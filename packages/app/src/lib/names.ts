@@ -1,5 +1,6 @@
 import type { Competition, Country, Player } from '@fc/engine';
 import type { Lang } from '../i18n/index.js';
+import { toHebrew } from './transliterate.js';
 
 /** Competition name in the player's language, falling back to the original. */
 export function competitionName(comp: Competition | null | undefined, lang: Lang): string {
@@ -16,7 +17,10 @@ export function countryName(country: Country | null | undefined, lang: Lang): st
  * Player names. Generated Israeli players already carry Hebrew names; real players
  * from the data pack keep the spelling they are known by.
  */
-export function playerName(player: Player | null | undefined): string {
+export function playerName(player: Player | null | undefined, lang: Lang = 'en'): string {
   if (!player) return '';
-  return `${player.firstName} ${player.lastName}`;
+  const name = `${player.firstName} ${player.lastName}`;
+  if (lang !== 'he') return name;
+  // Hebrew-generated players already read in Hebrew; everyone else is transliterated.
+  return /[\u0590-\u05FF]/.test(name) ? name : toHebrew(name);
 }

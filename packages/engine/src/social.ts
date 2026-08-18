@@ -436,22 +436,24 @@ export function driftRelationships(
   state: CareerState,
   context: { minutesPct: number; recentRating: number | null; played: boolean },
 ): void {
-  const rel = state.relationships;
   const performance = context.recentRating === null ? 0 : context.recentRating - 6.6;
   const minutes = context.minutesPct;
-
-  const managerPull = performance * 0.9 + (minutes - 0.35) * 1.4;
-  adjustRelationship(state, 'manager', clamp(managerPull, -2.2, 2.2) + rng.gauss(0, 0.25));
-
-  const fanPull = performance * 1.1 + (state.player.fame - 40) / 90 + (minutes - 0.3) * 0.8;
-  adjustRelationship(state, 'fans', clamp(fanPull, -2, 2) + rng.gauss(0, 0.3));
-
-  const dressingRoom = (state.player.personality.professionalism - 50) / 60 + performance * 0.4;
-  adjustRelationship(state, 'teammates', clamp(dressingRoom, -1, 1.4) + rng.gauss(0, 0.2));
-
   const ovr = overall(state.player.attributes, state.player.primaryPos, state.player.secondaryPos);
-  const boardPull = (minutes - 0.4) * 1.1 + (ovr - 60) / 90;
-  adjustRelationship(state, 'board', clamp(boardPull, -1.4, 1.4) + rng.gauss(0, 0.2));
 
-  adjustRelationship(state, 'media', clamp(performance * 0.7 + (state.player.fame - 45) / 80, -1.4, 1.4));
+  // Pulls are small and mean-reverting: standing has to be re-earned constantly, and
+  // nobody ends up permanently pinned at 0 or 100 after a long career.
+  const pulls: Record<RelationshipKey, number> = {
+    manager: performance * 0.7 + (minutes - 0.35) * 1.0,
+    fans: performance * 0.8 + (state.player.fame - 45) / 130 + (minutes - 0.3) * 0.6,
+    teammates: (state.player.personality.professionalism - 50) / 90 + performance * 0.3,
+    board: (minutes - 0.4) * 0.8 + (ovr - 62) / 120,
+    media: performance * 0.5 + (state.player.fame - 45) / 120,
+  };
+
+  for (const key of Object.keys(pulls) as RelationshipKey[]) {
+    const current = state.relationships[key];
+    const reversion = (52 - current) * 0.035;
+    const delta = clamp(pulls[key] + reversion + rng.gauss(0, 0.2), -1.6, 1.6);
+    adjustRelationship(state, key, delta);
+  }
 }

@@ -1,5 +1,6 @@
 import type { Club } from '@fc/engine';
 import type { Lang } from '../i18n/index.js';
+import { toHebrew } from './transliterate.js';
 
 /**
  * Club identity for display. Hebrew names come from the club's own Hebrew
@@ -8,20 +9,34 @@ import type { Lang } from '../i18n/index.js';
  */
 export function clubName(club: Club | null | undefined, lang: Lang): string {
   if (!club) return '';
-  if (lang === 'he' && club.nameHe) return club.nameHe;
-  return club.name;
+  if (lang !== 'he') return club.name;
+  if (club.nameHe) return cleanHebrew(club.nameHe);
+  // Nothing in the pack: write it the way it is said, so a Hebrew screen stays Hebrew.
+  return toHebrew(club.shortName || club.name);
+}
+
+/** Wikipedia disambiguation and "football club" boilerplate have no place in the UI. */
+function cleanHebrew(name: string): string {
+  return name
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/^מועדון הכדורגל\s+/, '')
+    .replace(/^מועדון כדורגל\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function clubShortName(club: Club | null | undefined, lang: Lang): string {
   if (!club) return '';
-  if (lang === 'he' && club.nameHe) return shortenHebrew(club.nameHe);
-  return club.shortName;
+  if (lang !== 'he') return club.shortName;
+  if (club.nameHe) return shortenHebrew(club.nameHe);
+  return toHebrew(club.shortName || club.name);
 }
 
 /** Hebrew club names carry a lot of "מועדון כדורגל" style baggage; trim it for lists. */
 function shortenHebrew(name: string): string {
   return name
     .replace(/\s*\(.*?\)\s*/g, ' ')
+    .replace(/מועדון הכדורגל\s*/g, '')
     .replace(/מועדון כדורגל\s*/g, '')
     .replace(/\s+/g, ' ')
     .trim();

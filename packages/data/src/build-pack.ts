@@ -17,6 +17,8 @@ import { MANUAL_CLUBS } from './manual-clubs.js';
 import { NAME_POOLS } from './names.js';
 import { STARS } from './stars.js';
 import { EVENTS } from './events.js';
+import { EVENTS_EXTRA } from './events-extra.js';
+import { HEBREW_CLUB_NAMES } from './hebrew-clubs.js';
 
 interface ClubAsset {
   clubId: string;
@@ -109,6 +111,16 @@ function parseTxtLeague(text: string): TeamRecord[] {
     }
   }
   return [...records.values()];
+}
+
+/** Wikipedia titles carry disambiguation suffixes the game does not want. */
+function cleanHebrewTitle(title: string): string {
+  return title
+    .replace(/\s*\((?:כדורגל|מועדון כדורגל|קבוצת כדורגל|אנגליה|ספרד|איטליה|גרמניה|ישראל)\)\s*/g, ' ')
+    .replace(/^מועדון הכדורגל\s+/, '')
+    .replace(/^מועדון כדורגל\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function slug(name: string): string {
@@ -217,8 +229,12 @@ async function main(): Promise<void> {
 
   for (const club of clubs) {
     const asset = assets[club.id];
+    // A hand-written Hebrew name always wins over the Wikipedia title, which
+    // often carries a disambiguation suffix like "(כדורגל)".
+    const manual = HEBREW_CLUB_NAMES[club.id];
+    if (manual) club.nameHe = manual;
     if (!asset) continue;
-    if (asset.nameHe) club.nameHe = asset.nameHe;
+    if (!manual && asset.nameHe) club.nameHe = cleanHebrewTitle(asset.nameHe);
     if (asset.crest) club.crest = asset.crest;
     if (asset.color) club.color = asset.color;
   }
@@ -240,7 +256,7 @@ async function main(): Promise<void> {
     clubs,
     names: NAME_POOLS,
     stars: STARS.filter((s) => clubs.some((c) => c.id === s.clubId)),
-    events: EVENTS,
+    events: [...EVENTS, ...EVENTS_EXTRA],
   };
 
   const problems = validatePack(pack);

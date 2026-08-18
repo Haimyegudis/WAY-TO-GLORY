@@ -96,8 +96,8 @@ export function squad(state: CareerState): SquadEntry[] {
 
 export interface ScorerRow {
   playerId: string;
-  name: string;
-  clubName: string;
+  player: Player | null;
+  clubId: string | null;
   goals: number;
   isUser: boolean;
 }
@@ -110,12 +110,11 @@ export function topScorers(state: CareerState, limit = 10): ScorerRow[] {
     .slice(0, limit)
     .map(([playerId, goals]) => {
       const isUser = playerId === state.player.id;
-      const player = isUser ? state.player : state.world.players[playerId];
-      const clubName = club(state, player?.clubId)?.shortName ?? '';
+      const player = (isUser ? state.player : state.world.players[playerId]) ?? null;
       return {
         playerId,
-        name: player ? `${player.firstName} ${player.lastName}` : playerId,
-        clubName,
+        player,
+        clubId: player?.clubId ?? null,
         goals,
         isUser,
       };

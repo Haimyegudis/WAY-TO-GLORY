@@ -68,6 +68,11 @@ export function useT(): (key: string, args?: TranslateArgs) => string {
   return (key, args) => translate(lang, key, args);
 }
 
+/** True when a key has real copy behind it, so optional text can stay hidden. */
+export function hasTranslation(lang: Lang, key: string): boolean {
+  return DICTS[lang][key] !== undefined || DICTS.en[key] !== undefined;
+}
+
 export function useDir(): 'rtl' | 'ltr' {
   return useLang((s) => s.lang) === 'he' ? 'rtl' : 'ltr';
 }

@@ -1,6 +1,7 @@
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
 import { competitionName } from '../lib/names.js';
 import { clubName, clubShortName } from '../lib/club.js';
+import { toHebrew } from '../lib/transliterate.js';
 import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { Chip, Empty, Meter, Card } from '../components/ui.js';
@@ -98,7 +99,7 @@ export function MarketScreen() {
         {state.agent ? (
           <div className="stack" style={{ gap: 8 }}>
             <div className="row-between">
-              <span style={{ fontSize: 15 }}>{state.agent.name}</span>
+              <span style={{ fontSize: 15 }}>{lang === 'he' ? toHebrew(state.agent.name) : state.agent.name}</span>
               <Chip>{state.agent.tier}</Chip>
             </div>
             <AgentBars agent={state.agent} />
@@ -113,7 +114,7 @@ export function MarketScreen() {
             {state.agentOffers.map((agent) => (
               <div key={agent.id} style={{ border: '1px solid var(--line)', padding: 12 }}>
                 <div className="row-between">
-                  <span style={{ fontSize: 15 }}>{agent.name}</span>
+                  <span style={{ fontSize: 15 }}>{lang === 'he' ? toHebrew(agent.name) : agent.name}</span>
                   <Chip>{agent.tier}</Chip>
                 </div>
                 <div style={{ marginBlock: 10 }}>

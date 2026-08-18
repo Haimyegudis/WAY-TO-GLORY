@@ -4,6 +4,7 @@ import { formatMoney, useLang, useT } from '../i18n/index.js';
 import { competitionName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { clubName } from '../lib/club.js';
+import { toHebrew } from '../lib/transliterate.js';
 import { Chip, Crest } from '../components/ui.js';
 
 /**
@@ -101,6 +102,7 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
 
 function AgentSheet({ decision }: { decision: PendingDecision }) {
   const t = useT();
+  const lang = useLang((s) => s.lang);
   const answerAgent = useGame((s) => s.answerAgent);
   const agents = decision.agents ?? [];
 
@@ -110,7 +112,7 @@ function AgentSheet({ decision }: { decision: PendingDecision }) {
         {agents.map((agent) => (
           <button key={agent.id} className="option" onClick={() => answerAgent(decision.id, agent.id)}>
             <div className="row-between">
-              <span style={{ fontSize: 15, fontWeight: 700 }}>{agent.name}</span>
+              <span style={{ fontSize: 15, fontWeight: 700 }}>{lang === 'he' ? toHebrew(agent.name) : agent.name}</span>
               <Chip tone="amber">{t(`agent.tier.${agent.tier}`)}</Chip>
             </div>
             <p className="faint" style={{ fontSize: 12, marginBlockStart: 5 }}>

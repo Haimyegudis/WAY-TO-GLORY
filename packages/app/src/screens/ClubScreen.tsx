@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLang, useT } from '../i18n/index.js';
 import { clubName, clubShortName } from '../lib/club.js';
-import { competitionName } from '../lib/names.js';
+import { competitionName, playerName } from '../lib/names.js';
 import { useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
 import { Card, Crest, Empty, Meter } from '../components/ui.js';
@@ -123,6 +123,7 @@ function LeagueTable() {
 
 function SquadList() {
   const t = useT();
+  const lang = useLang((x) => x.lang);
   const state = useGame((s) => s.state)!;
   const players = squad(state);
 
@@ -144,8 +145,8 @@ function SquadList() {
             {players.map((entry) => (
               <tr key={entry.player.id} className={entry.isUser ? 'me' : ''}>
                 <td className="n">{entry.player.primaryPos}</td>
-                <td>
-                  {entry.player.firstName} {entry.player.lastName}
+                <td className="start">
+                  {playerName(entry.player, lang)}
                   {entry.isUser && <span className="chip chip-flood" style={{ marginInlineStart: 6 }}>{t('club.you')}</span>}
                 </td>
                 <td className="n">{entry.age}</td>
@@ -161,6 +162,7 @@ function SquadList() {
 
 function Scorers() {
   const t = useT();
+  const lang = useLang((x) => x.lang);
   const state = useGame((s) => s.state)!;
   const rows = topScorers(state);
 
@@ -182,8 +184,13 @@ function Scorers() {
             {rows.map((row, i) => (
               <tr key={row.playerId} className={row.isUser ? 'me' : ''}>
                 <td className="n">{i + 1}</td>
-                <td>{row.name}</td>
-                <td className="faint" style={{ fontSize: 12 }}>{row.clubName}</td>
+                <td className="start">{playerName(row.player, lang)}</td>
+                <td className="faint" style={{ fontSize: 12 }}>
+                  <span className="row" style={{ gap: 6 }}>
+                    <Crest club={club(state, row.clubId)} size="sm" />
+                    <span>{clubShortName(club(state, row.clubId), lang)}</span>
+                  </span>
+                </td>
                 <td className="n" style={{ fontWeight: 700 }}>{row.goals}</td>
               </tr>
             ))}

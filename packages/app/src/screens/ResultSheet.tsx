@@ -1,5 +1,5 @@
 import type { DecisionResult } from '@fc/engine';
-import { useT } from '../i18n/index.js';
+import { hasTranslation, useLang, useT } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 import { ChangeList } from '../components/ui.js';
 
@@ -9,6 +9,7 @@ import { ChangeList } from '../components/ui.js';
  */
 export function ResultSheet({ result }: { result: DecisionResult }) {
   const t = useT();
+  const lang = useLang((s) => s.lang);
   const clearResult = useGame((s) => s.clearResult);
 
   return (
@@ -16,7 +17,7 @@ export function ResultSheet({ result }: { result: DecisionResult }) {
       <div className="sheet" onClick={(event) => event.stopPropagation()}>
         <div className="sheet-grip" />
         <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('result.title')}</p>
-        {result.narrativeKey && (
+        {result.narrativeKey && hasTranslation(lang, result.narrativeKey) && (
           <h2 className="headline" style={{ marginBlock: '8px 14px' }}>{t(result.narrativeKey)}</h2>
         )}
 

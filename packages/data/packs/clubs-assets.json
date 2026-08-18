@@ -1234,5 +1234,950 @@
     "nameHe": "זנקט פאולי (כדורגל)",
     "crest": "ger_fc_st_pauli_1910.png",
     "color": "#e30613"
+  },
+  "ger_1_fsv_mainz_05": {
+    "clubId": "ger_1_fsv_mainz_05",
+    "tried": true,
+    "title": "1. FSV Mainz 05",
+    "nameHe": "מיינץ 05",
+    "crest": "ger_1_fsv_mainz_05.png",
+    "color": "#ae0f0a"
+  },
+  "ger_1_fc_koln": {
+    "clubId": "ger_1_fc_koln",
+    "tried": true,
+    "title": "1. FC Köln",
+    "nameHe": "פ.צ. קלן",
+    "crest": "ger_1_fc_koln.png",
+    "color": "#e20613"
+  },
+  "ger_borussia_monchengladbach": {
+    "clubId": "ger_borussia_monchengladbach",
+    "tried": true,
+    "title": "Borussia Mönchengladbach",
+    "nameHe": "בורוסיה מנשנגלדבך"
+  },
+  "ger_hamburger_sv": {
+    "clubId": "ger_hamburger_sv",
+    "tried": true,
+    "title": "Hamburger SV",
+    "nameHe": "המבורג (כדורגל)"
+  },
+  "ger_fc_schalke_04": {
+    "clubId": "ger_fc_schalke_04",
+    "tried": true
+  },
+  "ger_hertha_bsc": {
+    "clubId": "ger_hertha_bsc",
+    "tried": true
+  },
+  "ger_sv_07_elversberg": {
+    "clubId": "ger_sv_07_elversberg",
+    "tried": true
+  },
+  "ger_1_fc_nurnberg": {
+    "clubId": "ger_1_fc_nurnberg",
+    "tried": true
+  },
+  "ger_sc_paderborn_07": {
+    "clubId": "ger_sc_paderborn_07",
+    "tried": true
+  },
+  "ger_holstein_kiel": {
+    "clubId": "ger_holstein_kiel",
+    "tried": true
+  },
+  "ger_karlsruher_sc": {
+    "clubId": "ger_karlsruher_sc",
+    "tried": true,
+    "title": "Karlsruher SC",
+    "nameHe": "קרלסרוהה (כדורגל)",
+    "crest": "ger_karlsruher_sc.png",
+    "color": "#004c94"
+  },
+  "ger_preu_en_munster": {
+    "clubId": "ger_preu_en_munster",
+    "tried": true,
+    "title": "SC Preußen Münster",
+    "nameHe": "פרויסן מינסטר",
+    "crest": "ger_preu_en_munster.png"
+  },
+  "ger_vfl_bochum": {
+    "clubId": "ger_vfl_bochum",
+    "tried": true,
+    "title": "VfL Bochum",
+    "nameHe": "בוכום (כדורגל)",
+    "crest": "ger_vfl_bochum.png",
+    "color": "#005ba4"
+  },
+  "ger_sv_darmstadt_98": {
+    "clubId": "ger_sv_darmstadt_98",
+    "tried": true,
+    "title": "SV Darmstadt 98",
+    "nameHe": "דרמשטאדט 98",
+    "crest": "ger_sv_darmstadt_98.png",
+    "color": "#004f9f"
+  },
+  "ger_fortuna_dusseldorf": {
+    "clubId": "ger_fortuna_dusseldorf",
+    "tried": true,
+    "title": "Fortuna Düsseldorf",
+    "nameHe": "פורטונה דיסלדורף",
+    "crest": "ger_fortuna_dusseldorf.png",
+    "color": "#e30511"
+  },
+  "ger_1_fc_magdeburg": {
+    "clubId": "ger_1_fc_magdeburg",
+    "tried": true,
+    "title": "1. FC Magdeburg",
+    "nameHe": "פ.צ. מגדבורג",
+    "crest": "ger_1_fc_magdeburg.png",
+    "color": "#0057b7"
+  },
+  "ger_arminia_bielefeld": {
+    "clubId": "ger_arminia_bielefeld",
+    "tried": true,
+    "title": "Arminia Bielefeld",
+    "nameHe": "ארמיניה בילפלד"
+  },
+  "ger_eintracht_braunschweig": {
+    "clubId": "ger_eintracht_braunschweig",
+    "tried": true
+  },
+  "ger_hannover_96": {
+    "clubId": "ger_hannover_96",
+    "tried": true
+  },
+  "ger_1_fc_kaiserslautern": {
+    "clubId": "ger_1_fc_kaiserslautern",
+    "tried": true
+  },
+  "ger_spvgg_greuther_furth": {
+    "clubId": "ger_spvgg_greuther_furth",
+    "tried": true
+  },
+  "ger_dynamo_dresden": {
+    "clubId": "ger_dynamo_dresden",
+    "tried": true
+  },
+  "ger_rot_weiss_essen": {
+    "clubId": "ger_rot_weiss_essen",
+    "tried": true
+  },
+  "ger_tsv_1860_munchen": {
+    "clubId": "ger_tsv_1860_munchen",
+    "tried": true,
+    "title": "TSV 1860 Munich",
+    "nameHe": "מינכן 1860",
+    "crest": "ger_tsv_1860_munchen.png"
+  },
+  "ger_waldhof_mannheim": {
+    "clubId": "ger_waldhof_mannheim",
+    "tried": true,
+    "title": "SV Waldhof Mannheim",
+    "nameHe": "וולדהוף מנהיים",
+    "crest": "ger_waldhof_mannheim.png",
+    "color": "#25478a"
+  },
+  "ger_sc_verl": {
+    "clubId": "ger_sc_verl",
+    "tried": true,
+    "title": "SC Verl",
+    "crest": "ger_sc_verl.png"
+  },
+  "ger_fc_ingolstadt_04": {
+    "clubId": "ger_fc_ingolstadt_04",
+    "tried": true,
+    "title": "FC Ingolstadt 04",
+    "nameHe": "אינגולשטאדט 04",
+    "crest": "ger_fc_ingolstadt_04.png",
+    "color": "#de0014"
+  },
+  "ger_jahn_regensburg": {
+    "clubId": "ger_jahn_regensburg",
+    "tried": true,
+    "title": "SSV Jahn Regensburg",
+    "nameHe": "יאן רגנסבורג"
+  },
+  "ger_vfl_osnabruck": {
+    "clubId": "ger_vfl_osnabruck",
+    "tried": true,
+    "title": "VfL Osnabrück",
+    "nameHe": "אוסנבריק (כדורגל)"
+  },
+  "ger_alemannia_aachen": {
+    "clubId": "ger_alemannia_aachen",
+    "tried": true,
+    "title": "Alemannia Aachen",
+    "nameHe": "אלמניה אאכן"
+  },
+  "ger_energie_cottbus": {
+    "clubId": "ger_energie_cottbus",
+    "tried": true,
+    "title": "FC Energie Cottbus",
+    "nameHe": "אנרגי קוטבוס"
+  },
+  "ger_1899_hoffenheim_ii": {
+    "clubId": "ger_1899_hoffenheim_ii",
+    "tried": true
+  },
+  "ger_1_fc_saarbrucken": {
+    "clubId": "ger_1_fc_saarbrucken",
+    "tried": true,
+    "title": "1. FC Saarbrücken",
+    "nameHe": "פ.צ. זארבריקן"
+  },
+  "ger_tsv_havelse": {
+    "clubId": "ger_tsv_havelse",
+    "tried": true
+  },
+  "ger_msv_duisburg": {
+    "clubId": "ger_msv_duisburg",
+    "tried": true
+  },
+  "ger_vfb_stuttgart_ii": {
+    "clubId": "ger_vfb_stuttgart_ii",
+    "tried": true
+  },
+  "ger_erzgebirge_aue": {
+    "clubId": "ger_erzgebirge_aue",
+    "tried": true
+  },
+  "ger_hansa_rostock": {
+    "clubId": "ger_hansa_rostock",
+    "tried": true,
+    "title": "FC Hansa Rostock",
+    "nameHe": "הנזה רוסטוק",
+    "crest": "ger_hansa_rostock.png",
+    "color": "#e64226"
+  },
+  "ger_viktoria_koln": {
+    "clubId": "ger_viktoria_koln",
+    "tried": true,
+    "title": "FC Viktoria Köln",
+    "crest": "ger_viktoria_koln.png",
+    "color": "#eb2225"
+  },
+  "ger_sv_wehen_wiesbaden": {
+    "clubId": "ger_sv_wehen_wiesbaden",
+    "tried": true,
+    "title": "SV Wehen Wiesbaden",
+    "nameHe": "וין ויסבאדן",
+    "crest": "ger_sv_wehen_wiesbaden.png",
+    "color": "#c4161c"
+  },
+  "ger_1_fc_schweinfurt_05": {
+    "clubId": "ger_1_fc_schweinfurt_05",
+    "tried": true,
+    "title": "1. FC Schweinfurt 05"
+  },
+  "ger_ssv_ulm_1846": {
+    "clubId": "ger_ssv_ulm_1846",
+    "tried": true,
+    "title": "SSV Ulm 1846",
+    "nameHe": "אולם 1846",
+    "crest": "ger_ssv_ulm_1846.png"
+  },
+  "isr_maccabi_tel_aviv": {
+    "clubId": "isr_maccabi_tel_aviv",
+    "tried": true,
+    "title": "Maccabi Tel Aviv",
+    "nameHe": "מכבי תל אביב"
+  },
+  "isr_hapoel_beer_sheva": {
+    "clubId": "isr_hapoel_beer_sheva",
+    "tried": true,
+    "title": "Hapoel Be'er Sheva F.C.",
+    "nameHe": "הפועל באר שבע"
+  },
+  "isr_maccabi_haifa": {
+    "clubId": "isr_maccabi_haifa",
+    "tried": true
+  },
+  "isr_beitar_jerusalem": {
+    "clubId": "isr_beitar_jerusalem",
+    "tried": true
+  },
+  "isr_hapoel_tel_aviv": {
+    "clubId": "isr_hapoel_tel_aviv",
+    "tried": true
+  },
+  "isr_maccabi_netanya": {
+    "clubId": "isr_maccabi_netanya",
+    "tried": true
+  },
+  "isr_bnei_sakhnin": {
+    "clubId": "isr_bnei_sakhnin",
+    "tried": true
+  },
+  "isr_ironi_kiryat_shmona": {
+    "clubId": "isr_ironi_kiryat_shmona",
+    "tried": true,
+    "title": "Hapoel Ironi Kiryat Shmona F.C.",
+    "nameHe": "עירוני קריית שמונה",
+    "crest": "isr_ironi_kiryat_shmona.png",
+    "color": "#2c2d7d"
+  },
+  "isr_hapoel_haifa": {
+    "clubId": "isr_hapoel_haifa",
+    "tried": true,
+    "title": "Hapoel Haifa F.C.",
+    "nameHe": "הפועל חיפה (כדורגל)",
+    "crest": "isr_hapoel_haifa.png",
+    "color": "#e70c2e"
+  },
+  "isr_maccabi_bnei_raina": {
+    "clubId": "isr_maccabi_bnei_raina",
+    "tried": true,
+    "title": "Nikita Stoinov",
+    "nameHe": "ניקיטה סטויאנוב"
+  },
+  "isr_ironi_tiberias": {
+    "clubId": "isr_ironi_tiberias",
+    "tried": true,
+    "title": "Ironi Tiberias F.C.",
+    "nameHe": "עירוני טבריה",
+    "crest": "isr_ironi_tiberias.png",
+    "color": "#025989"
+  },
+  "isr_hapoel_petah_tikva": {
+    "clubId": "isr_hapoel_petah_tikva",
+    "tried": true,
+    "title": "Hapoel Petah Tikva F.C.",
+    "nameHe": "הפועל פתח תקווה (כדורגל)"
+  },
+  "isr_fc_ashdod": {
+    "clubId": "isr_fc_ashdod",
+    "tried": true,
+    "title": "F.C. Ashdod",
+    "nameHe": "מועדון ספורט אשדוד"
+  },
+  "isr_hapoel_hadera": {
+    "clubId": "isr_hapoel_hadera",
+    "tried": true
+  },
+  "isr_hapoel_jerusalem": {
+    "clubId": "isr_hapoel_jerusalem",
+    "tried": true
+  },
+  "isr_hapoel_ramat_gan": {
+    "clubId": "isr_hapoel_ramat_gan",
+    "tried": true,
+    "title": "Hapoel Ramat Gan Givatayim F.C.",
+    "nameHe": "הפועל רמת-גן (כדורגל)",
+    "crest": "isr_hapoel_ramat_gan.png",
+    "color": "#e31b23"
+  },
+  "isr_hapoel_nof_hagalil": {
+    "clubId": "isr_hapoel_nof_hagalil",
+    "tried": true,
+    "title": "Nof HaGalil",
+    "nameHe": "נוף הגליל",
+    "crest": "isr_hapoel_nof_hagalil.png"
+  },
+  "isr_hapoel_raanana": {
+    "clubId": "isr_hapoel_raanana",
+    "tried": true,
+    "title": "Hapoel Ra'anana A.F.C.",
+    "nameHe": "הפועל רעננה",
+    "crest": "isr_hapoel_raanana.png",
+    "color": "#cb1f23"
+  },
+  "isr_maccabi_petah_tikva": {
+    "clubId": "isr_maccabi_petah_tikva",
+    "tried": true
+  },
+  "isr_hapoel_kfar_saba": {
+    "clubId": "isr_hapoel_kfar_saba",
+    "tried": true,
+    "title": "Hapoel Kfar Saba F.C.",
+    "nameHe": "הפועל כפר סבא",
+    "crest": "isr_hapoel_kfar_saba.png",
+    "color": "#216845"
+  },
+  "isr_hapoel_rishon_lezion": {
+    "clubId": "isr_hapoel_rishon_lezion",
+    "tried": true,
+    "title": "Hapoel Rishon LeZion F.C.",
+    "nameHe": "הפועל ראשון לציון (כדורגל)"
+  },
+  "isr_hapoel_afula": {
+    "clubId": "isr_hapoel_afula",
+    "tried": true,
+    "title": "Hapoel Afula F.C.",
+    "nameHe": "הפועל עפולה (כדורגל)"
+  },
+  "isr_hapoel_umm_al_fahm": {
+    "clubId": "isr_hapoel_umm_al_fahm",
+    "tried": true
+  },
+  "isr_maccabi_herzliya": {
+    "clubId": "isr_maccabi_herzliya",
+    "tried": true
+  },
+  "isr_hapoel_ashkelon": {
+    "clubId": "isr_hapoel_ashkelon",
+    "tried": true
+  },
+  "isr_sektzia_nes_ziona": {
+    "clubId": "isr_sektzia_nes_ziona",
+    "tried": true
+  },
+  "isr_hapoel_acre": {
+    "clubId": "isr_hapoel_acre",
+    "tried": true
+  },
+  "isr_hapoel_kfar_shalem": {
+    "clubId": "isr_hapoel_kfar_shalem",
+    "tried": true,
+    "title": "Hapoel Kfar Shalem F.C.",
+    "nameHe": "הפועל כפר שלם"
+  },
+  "isr_maccabi_kabilio_jaffa": {
+    "clubId": "isr_maccabi_kabilio_jaffa",
+    "tried": true,
+    "title": "Maccabi Jaffa F.C.",
+    "nameHe": "מכבי יפו",
+    "crest": "isr_maccabi_kabilio_jaffa.png",
+    "color": "#373488"
+  },
+  "isr_ironi_nesher": {
+    "clubId": "isr_ironi_nesher",
+    "tried": true,
+    "title": "Ironi Nesher F.C.",
+    "nameHe": "עירוני נשר"
+  },
+  "isr_beitar_tel_aviv_bat_yam": {
+    "clubId": "isr_beitar_tel_aviv_bat_yam",
+    "tried": true,
+    "title": "Bat Yam",
+    "nameHe": "בת ים",
+    "crest": "isr_beitar_tel_aviv_bat_yam.png"
+  },
+  "isr_hapoel_marmorek": {
+    "clubId": "isr_hapoel_marmorek",
+    "tried": true,
+    "title": "Hapoel Marmorek F.C.",
+    "nameHe": "הפועל מרמורק",
+    "crest": "isr_hapoel_marmorek.png",
+    "color": "#fe0000"
+  },
+  "isr_maccabi_sha_arayim": {
+    "clubId": "isr_maccabi_sha_arayim",
+    "tried": true,
+    "title": "Maccabi Sha'arayim F.C.",
+    "nameHe": "מכבי שעריים"
+  },
+  "isr_hapoel_azor": {
+    "clubId": "isr_hapoel_azor",
+    "tried": true
+  },
+  "isr_beitar_kfar_saba": {
+    "clubId": "isr_beitar_kfar_saba",
+    "tried": true
+  },
+  "isr_hapoel_herzliya": {
+    "clubId": "isr_hapoel_herzliya",
+    "tried": true
+  },
+  "isr_maccabi_ironi_amishav": {
+    "clubId": "isr_maccabi_ironi_amishav",
+    "tried": true
+  },
+  "isr_hapoel_bnei_zalafa": {
+    "clubId": "isr_hapoel_bnei_zalafa",
+    "tried": true,
+    "title": "Hapoel Bnei Zalafa F.C.",
+    "nameHe": "הפועל בני זלפה"
+  },
+  "isr_maccabi_ironi_bat_yam": {
+    "clubId": "isr_maccabi_ironi_bat_yam",
+    "tried": true,
+    "title": "Maccabi Ironi Bat Yam F.C.",
+    "nameHe": "מכבי עירוני בת ים",
+    "crest": "isr_maccabi_ironi_bat_yam.png",
+    "color": "#15538e"
+  },
+  "isr_hapoel_ironi_arad": {
+    "clubId": "isr_hapoel_ironi_arad",
+    "tried": true,
+    "title": "Ofri Arad",
+    "nameHe": "עופרי ארד",
+    "crest": "isr_hapoel_ironi_arad.png"
+  },
+  "isr_maccabi_kiryat_gat": {
+    "clubId": "isr_maccabi_kiryat_gat",
+    "tried": true,
+    "title": "Maccabi Kiryat Gat F.C.",
+    "nameHe": "מכבי עירוני קריית גת (כדורגל)"
+  },
+  "isr_ihud_bnei_shefa_amr": {
+    "clubId": "isr_ihud_bnei_shefa_amr",
+    "tried": true,
+    "title": "Ihud Bnei Shefa-'Amr F.C.",
+    "nameHe": "איחוד בני שפרעם"
+  },
+  "isr_maccabi_ahi_nazareth": {
+    "clubId": "isr_maccabi_ahi_nazareth",
+    "tried": true,
+    "title": "Maccabi Akhi Nazareth F.C.",
+    "nameHe": "מכבי אחי נצרת"
+  },
+  "isr_hapoel_beit_shean": {
+    "clubId": "isr_hapoel_beit_shean",
+    "tried": true
+  },
+  "isr_hapoel_migdal_haemek": {
+    "clubId": "isr_hapoel_migdal_haemek",
+    "tried": true
+  },
+  "isr_hapoel_bikat_hayarden": {
+    "clubId": "isr_hapoel_bikat_hayarden",
+    "tried": true
+  },
+  "fra_stade_rennais_fc_1901": {
+    "clubId": "fra_stade_rennais_fc_1901",
+    "tried": true
+  },
+  "fra_olympique_de_marseille": {
+    "clubId": "fra_olympique_de_marseille",
+    "tried": true
+  },
+  "fra_racing_club_de_lens": {
+    "clubId": "fra_racing_club_de_lens",
+    "tried": true,
+    "title": "RC Lens",
+    "nameHe": "לאנס (כדורגל)",
+    "crest": "fra_racing_club_de_lens.png"
+  },
+  "fra_olympique_lyonnais": {
+    "clubId": "fra_olympique_lyonnais",
+    "tried": true,
+    "title": "Olympique Lyonnais",
+    "nameHe": "אולימפיק ליון",
+    "crest": "fra_olympique_lyonnais.png",
+    "color": "#0f23aa"
+  },
+  "fra_as_monaco_fc": {
+    "clubId": "fra_as_monaco_fc",
+    "tried": true,
+    "title": "AS Monaco FC",
+    "nameHe": "מונקו (כדורגל)",
+    "crest": "fra_as_monaco_fc.png",
+    "color": "#ff002e"
+  },
+  "fra_le_havre_ac": {
+    "clubId": "fra_le_havre_ac",
+    "tried": true,
+    "title": "Le Havre AC",
+    "nameHe": "לה האבר (כדורגל)",
+    "crest": "fra_le_havre_ac.png"
+  },
+  "fra_ogc_nice": {
+    "clubId": "fra_ogc_nice",
+    "tried": true,
+    "title": "OGC Nice",
+    "nameHe": "ניס (כדורגל)",
+    "crest": "fra_ogc_nice.png",
+    "color": "#b59a54"
+  },
+  "fra_toulouse_fc": {
+    "clubId": "fra_toulouse_fc",
+    "tried": true,
+    "title": "Toulouse FC",
+    "nameHe": "טולוז (כדורגל)"
+  },
+  "fra_stade_brestois_29": {
+    "clubId": "fra_stade_brestois_29",
+    "tried": true
+  },
+  "fra_lille_osc": {
+    "clubId": "fra_lille_osc",
+    "tried": true
+  },
+  "fra_aj_auxerre": {
+    "clubId": "fra_aj_auxerre",
+    "tried": true
+  },
+  "fra_fc_lorient": {
+    "clubId": "fra_fc_lorient",
+    "tried": true
+  },
+  "fra_fc_metz": {
+    "clubId": "fra_fc_metz",
+    "tried": true
+  },
+  "fra_rc_strasbourg_alsace": {
+    "clubId": "fra_rc_strasbourg_alsace",
+    "tried": true
+  },
+  "fra_angers_sco": {
+    "clubId": "fra_angers_sco",
+    "tried": true,
+    "title": "Angers SCO",
+    "nameHe": "אנז'ה (כדורגל)",
+    "crest": "fra_angers_sco.png",
+    "color": "#c09869"
+  },
+  "fra_paris_fc": {
+    "clubId": "fra_paris_fc",
+    "tried": true,
+    "title": "Paris FC",
+    "nameHe": "פריז (כדורגל)",
+    "crest": "fra_paris_fc.png",
+    "color": "#0a1130"
+  },
+  "fra_fc_nantes": {
+    "clubId": "fra_fc_nantes",
+    "tried": true,
+    "title": "FC Nantes",
+    "nameHe": "נאנט (כדורגל)",
+    "crest": "fra_fc_nantes.png",
+    "color": "#ffdc00"
+  },
+  "fra_paris_saint_germain_fc": {
+    "clubId": "fra_paris_saint_germain_fc",
+    "tried": true,
+    "title": "Paris Saint-Germain FC",
+    "nameHe": "פריז סן-ז'רמן",
+    "crest": "fra_paris_saint_germain_fc.png",
+    "color": "#004170"
+  },
+  "fra_ea_guingamp": {
+    "clubId": "fra_ea_guingamp",
+    "tried": true,
+    "title": "En Avant Guingamp",
+    "nameHe": "גנגאן (כדורגל)"
+  },
+  "fra_le_mans_fc": {
+    "clubId": "fra_le_mans_fc",
+    "tried": true,
+    "title": "Le Mans FC",
+    "nameHe": "לה מאן (כדורגל)",
+    "crest": "fra_le_mans_fc.png",
+    "color": "#c70008"
+  },
+  "fra_estac_troyes": {
+    "clubId": "fra_estac_troyes",
+    "tried": true,
+    "title": "ES Troyes AC",
+    "nameHe": "טרואה (כדורגל)",
+    "crest": "fra_estac_troyes.png",
+    "color": "#006cb3"
+  },
+  "fra_grenoble_foot_38": {
+    "clubId": "fra_grenoble_foot_38",
+    "tried": true
+  },
+  "fra_pau_fc": {
+    "clubId": "fra_pau_fc",
+    "tried": true
+  },
+  "fra_fc_annecy": {
+    "clubId": "fra_fc_annecy",
+    "tried": true
+  },
+  "fra_montpellier_hsc": {
+    "clubId": "fra_montpellier_hsc",
+    "tried": true,
+    "title": "Montpellier HSC",
+    "nameHe": "מונפלייה (כדורגל)"
+  },
+  "fra_red_star_fc": {
+    "clubId": "fra_red_star_fc",
+    "tried": true
+  },
+  "fra_rodez_af": {
+    "clubId": "fra_rodez_af",
+    "tried": true
+  },
+  "fra_as_nancy_lorraine": {
+    "clubId": "fra_as_nancy_lorraine",
+    "tried": true,
+    "title": "AS Nancy Lorraine",
+    "nameHe": "נאנסי (כדורגל)",
+    "crest": "fra_as_nancy_lorraine.png"
+  },
+  "fra_stade_lavallois": {
+    "clubId": "fra_stade_lavallois",
+    "tried": true,
+    "title": "Stade Lavallois",
+    "crest": "fra_stade_lavallois.png",
+    "color": "#ec6608"
+  },
+  "fra_as_saint_etienne": {
+    "clubId": "fra_as_saint_etienne",
+    "tried": true,
+    "title": "AS Saint-Étienne",
+    "nameHe": "סנט אטיין (כדורגל)",
+    "crest": "fra_as_saint_etienne.png"
+  },
+  "fra_usl_dunkerque": {
+    "clubId": "fra_usl_dunkerque",
+    "tried": true,
+    "title": "USL Dunkerque",
+    "crest": "fra_usl_dunkerque.png",
+    "color": "#1b2738"
+  },
+  "fra_clermont_foot_63": {
+    "clubId": "fra_clermont_foot_63",
+    "tried": true,
+    "title": "Clermont Foot 63",
+    "nameHe": "קלרמון פוט"
+  },
+  "fra_stade_de_reims": {
+    "clubId": "fra_stade_de_reims",
+    "tried": true,
+    "title": "Stade de Reims",
+    "nameHe": "סטאד ריימס",
+    "crest": "fra_stade_de_reims.png",
+    "color": "#eb0000"
+  },
+  "fra_amiens_sc": {
+    "clubId": "fra_amiens_sc",
+    "tried": true,
+    "title": "Amiens SC",
+    "nameHe": "אמיין (כדורגל)"
+  },
+  "fra_us_boulogne": {
+    "clubId": "fra_us_boulogne",
+    "tried": true
+  },
+  "fra_sc_bastia": {
+    "clubId": "fra_sc_bastia",
+    "tried": true
+  },
+  "por_casa_pia_ac": {
+    "clubId": "por_casa_pia_ac",
+    "tried": true
+  },
+  "por_sporting_clube_de_portugal": {
+    "clubId": "por_sporting_clube_de_portugal",
+    "tried": true
+  },
+  "por_cd_nacional": {
+    "clubId": "por_cd_nacional",
+    "tried": true
+  },
+  "por_gil_vicente_fc": {
+    "clubId": "por_gil_vicente_fc",
+    "tried": true,
+    "title": "Gil Vicente F.C.",
+    "nameHe": "ז'יל ויסנטה (כדורגל)",
+    "crest": "por_gil_vicente_fc.png",
+    "color": "#fe2120"
+  },
+  "por_fc_arouca": {
+    "clubId": "por_fc_arouca",
+    "tried": true,
+    "title": "F.C. Arouca",
+    "nameHe": "ארוקה (כדורגל)",
+    "crest": "por_fc_arouca.png",
+    "color": "#f8e723"
+  },
+  "por_fc_famalicao": {
+    "clubId": "por_fc_famalicao",
+    "tried": true,
+    "title": "F.C. Famalicão",
+    "nameHe": "פמליקאו",
+    "crest": "por_fc_famalicao.png",
+    "color": "#f5c505"
+  },
+  "por_avs": {
+    "clubId": "por_avs",
+    "tried": true,
+    "title": "AVS Futebol SAD",
+    "nameHe": "אבש פוטבול",
+    "crest": "por_avs.png",
+    "color": "#ac2c34"
+  },
+  "por_cd_santa_clara": {
+    "clubId": "por_cd_santa_clara",
+    "tried": true,
+    "title": "C.D. Santa Clara",
+    "nameHe": "ק.ד. סנטה קלרה",
+    "crest": "por_cd_santa_clara.png",
+    "color": "#d9291c"
+  },
+  "por_sporting_clube_de_braga": {
+    "clubId": "por_sporting_clube_de_braga",
+    "tried": true
+  },
+  "por_cd_tondela": {
+    "clubId": "por_cd_tondela",
+    "tried": true
+  },
+  "por_moreirense_fc": {
+    "clubId": "por_moreirense_fc",
+    "tried": true
+  },
+  "por_fc_alverca": {
+    "clubId": "por_fc_alverca",
+    "tried": true
+  },
+  "por_gd_estoril_praia": {
+    "clubId": "por_gd_estoril_praia",
+    "tried": true,
+    "title": "G.D. Estoril Praia",
+    "nameHe": "אשטוריל (כדורגל)",
+    "crest": "por_gd_estoril_praia.png",
+    "color": "#ffe204"
+  },
+  "por_cf_estrela_da_amadora": {
+    "clubId": "por_cf_estrela_da_amadora",
+    "tried": true,
+    "title": "C.F. Estrela da Amadora",
+    "nameHe": "אשטרלה דה אמדורה",
+    "crest": "por_cf_estrela_da_amadora.png",
+    "color": "#fcc352"
+  },
+  "por_fc_porto": {
+    "clubId": "por_fc_porto",
+    "tried": true,
+    "title": "FC Porto",
+    "nameHe": "פורטו (כדורגל)",
+    "crest": "por_fc_porto.png",
+    "color": "#223964"
+  },
+  "por_vitoria_guimaraes": {
+    "clubId": "por_vitoria_guimaraes",
+    "tried": true,
+    "title": "Vitória S.C.",
+    "nameHe": "ויטוריה דה גימארייש",
+    "crest": "por_vitoria_guimaraes.png"
+  },
+  "por_sport_lisboa_e_benfica": {
+    "clubId": "por_sport_lisboa_e_benfica",
+    "tried": true,
+    "title": "S.L. Benfica",
+    "nameHe": "בנפיקה ליסבון"
+  },
+  "por_rio_ave_fc": {
+    "clubId": "por_rio_ave_fc",
+    "tried": true,
+    "title": "Rio Ave F.C.",
+    "nameHe": "ריו אבה",
+    "crest": "por_rio_ave_fc.png",
+    "color": "#f08a00"
+  },
+  "ned_fortuna_sittard": {
+    "clubId": "ned_fortuna_sittard",
+    "tried": true,
+    "title": "Fortuna Sittard",
+    "nameHe": "פורטונה סיטארד",
+    "crest": "ned_fortuna_sittard.png",
+    "color": "#006648"
+  },
+  "ned_go_ahead_eagles": {
+    "clubId": "ned_go_ahead_eagles",
+    "tried": true,
+    "title": "Go Ahead Eagles",
+    "nameHe": "גו אהד איגלס",
+    "crest": "ned_go_ahead_eagles.png",
+    "color": "#ffd600"
+  },
+  "ned_nec": {
+    "clubId": "ned_nec",
+    "tried": true,
+    "title": "NEC Nijmegen",
+    "nameHe": "אן.אה.סיי. ניימכן",
+    "crest": "ned_nec.png",
+    "color": "#e63027"
+  },
+  "ned_sbv_excelsior": {
+    "clubId": "ned_sbv_excelsior",
+    "tried": true,
+    "title": "Excelsior Rotterdam",
+    "nameHe": "אקסלסיור רוטרדם"
+  },
+  "ned_feyenoord_rotterdam": {
+    "clubId": "ned_feyenoord_rotterdam",
+    "tried": true,
+    "title": "Feyenoord",
+    "nameHe": "פיינורד",
+    "crest": "ned_feyenoord_rotterdam.png",
+    "color": "#b0a072"
+  },
+  "ned_nac_breda": {
+    "clubId": "ned_nac_breda",
+    "tried": true,
+    "title": "NAC Breda",
+    "nameHe": "נאק ברדה",
+    "crest": "ned_nac_breda.png",
+    "color": "#ffdd25"
+  },
+  "ned_fc_volendam": {
+    "clubId": "ned_fc_volendam",
+    "tried": true
+  },
+  "ned_sc_heerenveen": {
+    "clubId": "ned_sc_heerenveen",
+    "tried": true,
+    "title": "SC Heerenveen",
+    "nameHe": "הירנפיין (כדורגל)"
+  },
+  "ned_sparta_rotterdam": {
+    "clubId": "ned_sparta_rotterdam",
+    "tried": true
+  },
+  "ned_psv": {
+    "clubId": "ned_psv",
+    "tried": true
+  },
+  "ned_pec_zwolle": {
+    "clubId": "ned_pec_zwolle",
+    "tried": true
+  },
+  "ned_fc_twente_65": {
+    "clubId": "ned_fc_twente_65",
+    "tried": true
+  },
+  "ned_afc_ajax": {
+    "clubId": "ned_afc_ajax",
+    "tried": true,
+    "title": "AFC Ajax",
+    "nameHe": "אייאקס",
+    "crest": "ned_afc_ajax.png",
+    "color": "#c21f3d"
+  },
+  "ned_telstar_1963": {
+    "clubId": "ned_telstar_1963",
+    "tried": true,
+    "title": "SC Telstar",
+    "nameHe": "טלסטאר ספורטקלאב",
+    "crest": "ned_telstar_1963.png",
+    "color": "#0a57a4"
+  },
+  "ned_az": {
+    "clubId": "ned_az",
+    "tried": true,
+    "title": "AZ Alkmaar",
+    "nameHe": "א.ז. אלקמאר",
+    "crest": "ned_az.png",
+    "color": "#db0021"
+  },
+  "ned_fc_groningen": {
+    "clubId": "ned_fc_groningen",
+    "tried": true,
+    "title": "FC Groningen",
+    "nameHe": "חרונינגן (כדורגל)",
+    "crest": "ned_fc_groningen.png",
+    "color": "#008e5a"
+  },
+  "ned_fc_utrecht": {
+    "clubId": "ned_fc_utrecht",
+    "tried": true,
+    "title": "FC Utrecht",
+    "nameHe": "אוטרכט (כדורגל)",
+    "crest": "ned_fc_utrecht.png",
+    "color": "#ed1a2f"
+  },
+  "tur_gaziantep_fk": {
+    "clubId": "tur_gaziantep_fk",
+    "tried": true,
+    "title": "Gaziantep F.K.",
+    "nameHe": "גזיאנטפ (כדורגל)",
+    "crest": "tur_gaziantep_fk.png",
+    "color": "#e12432"
   }
 }
