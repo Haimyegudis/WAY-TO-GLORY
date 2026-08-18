@@ -1,4 +1,5 @@
 import { Rng, clamp } from './rng.js';
+import { overall } from './positions.js';
 import { rollInjury } from './injury.js';
 import type {
   AttributeKey,
@@ -132,7 +133,13 @@ export function applyEffects(
       case 'attribute': {
         const key = (effect.key ?? '') as AttributeKey;
         if (ATTRIBUTE_SET.has(key)) {
+          const before = overall(player.attributes, player.primaryPos, player.secondaryPos);
           player.attributes[key] = clamp(player.attributes[key] + value, 1, 99);
+          // Training events are still training: they cannot push a player past the
+          // ceiling the development engine enforces everywhere else.
+          if (value > 0 && before >= player.potential) {
+            player.attributes[key] = clamp(player.attributes[key] - value, 1, 99);
+          }
         }
         break;
       }

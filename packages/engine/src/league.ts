@@ -186,8 +186,8 @@ export function driftClubStrength(rng: Rng, club: Club, finishPct: number): void
   const expected = 1 - club.strength / 100;
   const surprise = expected - finishPct;
   const drift = surprise * rng.range(1.5, 4) + rng.gauss(0, 1.2);
-  club.strength = Math.max(5, Math.min(99, club.strength + drift));
-  club.reputation = Math.max(5, Math.min(99, club.reputation + drift * 0.35));
+  club.strength = Math.round(Math.max(5, Math.min(99, club.strength + drift)));
+  club.reputation = Math.round(Math.max(5, Math.min(99, club.reputation + drift * 0.35)));
 }
 
 export function tierStrengthBand(tier: number): [number, number] {

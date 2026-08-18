@@ -9,7 +9,7 @@ const AGE_VALUE_CURVE: readonly (readonly [number, number])[] = [
 
 /** Base value from ability alone, on a steep curve: elite players cost exponentially more. */
 export function baseValueFromOvr(ovr: number): number {
-  return Math.exp((ovr - 40) / 6.2) * 30_000;
+  return Math.exp((ovr - 40) / 6.9) * 30_000;
 }
 
 export interface ValueContext {
@@ -47,7 +47,8 @@ export function marketValue(player: Player, ctx: ValueContext): number {
   const injuryLoad = player.condition.injuryHistory.reduce((s, i) => s + i.weeksOut, 0);
   value *= clamp(1 - injuryLoad / 420, 0.55, 1);
 
-  return Math.round(value / 10_000) * 10_000;
+  // Even the very best transfer for a finite amount of money.
+  return Math.min(260_000_000, Math.round(value / 10_000) * 10_000);
 }
 
 /** Weekly wage a club would realistically pay for this player. */
@@ -58,9 +59,11 @@ export function expectedWage(
   competition: Competition,
   age: number,
 ): number {
-  const base = Math.exp((ovr - 42) / 7.4) * 600;
+  const base = Math.exp((ovr - 42) / 8.2) * 420;
   const financeFactor = 0.45 + clubFinances / 90;
-  const leagueFactor = 0.5 + competition.reputation / 110;
+  // What a league pays matters as much as how good you are: the same player earns
+  // several times more in England than in the Israeli top flight.
+  const leagueFactor = 0.25 + competition.reputation / 85;
   const ageFactor = age < 20 ? 0.45 : age < 23 ? 0.72 : age > 33 ? 0.8 : 1;
   const repFactor = 0.9 + player.reputation / 500;
   return Math.round((base * financeFactor * leagueFactor * ageFactor * repFactor) / 100) * 100;
