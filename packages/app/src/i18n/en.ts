@@ -1218,4 +1218,6 @@ export const en: Record<string, string> = {
   'inbox.tournament.missed.worldCup': '{country} did not qualify for the World Cup.',
   'inbox.tournament.missed.euro': '{country} did not qualify for the Euros.',
 
+
+  'national.tournamentLine': '{caps} matches · {goals} goals · rating {rating}',
 };

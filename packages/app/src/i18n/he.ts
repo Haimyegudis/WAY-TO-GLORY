@@ -1220,4 +1220,6 @@ export const he: Record<string, string> = {
   'inbox.tournament.missed.worldCup': '{country} לא העפילה למונדיאל.',
   'inbox.tournament.missed.euro': '{country} לא העפילה לאליפות אירופה.',
 
+
+  'national.tournamentLine': '{caps} משחקים · {goals} שערים · ציון {rating}',
 };

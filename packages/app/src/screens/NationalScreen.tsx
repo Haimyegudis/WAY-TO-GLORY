@@ -52,6 +52,29 @@ export function NationalScreen() {
         <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 12 }}>{t('national.note')}</p>
       </Card>
 
+      {(state.tournaments ?? []).length > 0 && (
+        <Card title={t('career.tournaments')}>
+          <ul className="list">
+            {(state.tournaments ?? []).slice().reverse().map((tournament, i) => (
+              <li key={`${tournament.season}-${i}`} className="list-item" style={{ alignItems: 'flex-start' }}>
+                <span className="grow">
+                  <span style={{ fontSize: 13.5 }}>{t(`tournament.${tournament.id}`)}</span>
+                  <span className="faint num" style={{ fontSize: 11.5 }}> {tournament.season + 1}</span>
+                  <p className="faint" style={{ fontSize: 11.5 }}>
+                    {t('national.tournamentLine', {
+                      caps: tournament.caps,
+                      goals: tournament.goals,
+                      rating: tournament.averageRating > 0 ? tournament.averageRating.toFixed(1) : '—',
+                    })}
+                  </p>
+                </span>
+                <span className="chip chip-amber">{t(`tournament.finish.${tournament.finish}`)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {nt.callUpHistory.length > 0 && (
         <Card title={t('career.history')}>
           <ul className="list">

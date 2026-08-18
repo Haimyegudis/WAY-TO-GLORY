@@ -27,6 +27,21 @@ export default defineConfig({
         // The data pack is large but static: cache it so the game opens offline.
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,json}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        // 425 club badges are 30MB of install for a phone, and a career only ever
+        // shows a handful of them. They are cached the first time they are drawn
+        // instead, which keeps the install small and still works offline afterwards.
+        globIgnores: ['**/crests/**', '**/crests.html'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/crests\/.*\.png$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'club-crests',
+              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],
