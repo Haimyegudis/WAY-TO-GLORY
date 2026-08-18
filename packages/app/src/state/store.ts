@@ -2,7 +2,11 @@ import { create } from 'zustand';
 import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import {
   acceptOffer as engineAcceptOffer,
+  actionsAvailableNow,
   advanceWeek,
+  answerAgent as engineAnswerAgent,
+  answerOffer as engineAnswerOffer,
+  doPlayerAction,
   createCareer,
   deserialize,
   getAcademyOffers,
@@ -17,6 +21,8 @@ import {
   type AcademyOffer,
   type CareerState,
   type CreateCareerInput,
+  type DecisionResult,
+  type PlayerActionId,
   type DataPack,
   type PackIndex,
   type TickResult,
@@ -26,7 +32,17 @@ import packJson from '@fc/data/pack';
 
 const SAVE_KEY = 'fc.career.v1';
 
-export type Screen = 'hub' | 'club' | 'train' | 'market' | 'career' | 'settings' | 'match' | 'national';
+export type Screen =
+  | 'hub'
+  | 'club'
+  | 'train'
+  | 'market'
+  | 'career'
+  | 'settings'
+  | 'match'
+  | 'matches'
+  | 'national'
+  | 'social';
 export type Phase = 'loading' | 'menu' | 'create' | 'academy' | 'playing';
 
 interface GameStore {
@@ -39,6 +55,8 @@ interface GameStore {
   busy: boolean;
   toast: string | null;
   lastTick: TickResult['stopped'] | null;
+  /** Shown in a sheet right after a choice, so the player sees what it did. */
+  result: DecisionResult | null;
 
   boot: () => Promise<void>;
   goto: (screen: Screen) => void;
@@ -50,6 +68,10 @@ interface GameStore {
   deleteSave: () => Promise<void>;
   advance: (weeks?: number) => void;
   decide: (decisionId: string, optionId: string) => void;
+  answerOffer: (decisionId: string, offerId: string | null) => void;
+  answerAgent: (decisionId: string, agentId: string | null) => void;
+  runAction: (id: PlayerActionId) => void;
+  clearResult: () => void;
   acceptOffer: (offerId: string) => void;
   signAgent: (agentId: string) => void;
   updateTraining: (plan: Partial<TrainingPlan>) => void;
@@ -76,6 +98,7 @@ export const useGame = create<GameStore>((set, get) => ({
   busy: false,
   toast: null,
   lastTick: null,
+  result: null,
 
   async boot() {
     const raw = await idbGet<string>(SAVE_KEY);
@@ -154,10 +177,38 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     const rng = Rng.fromState(state.rngState);
-    resolveDecision(rng, state, decisionId, optionId, pack.events);
+    const result = resolveDecision(rng, state, decisionId, optionId, pack.events);
     state.rngState = rng.getState();
     persist(state);
-    set({ state: { ...state } });
+    set({ state: { ...state }, result });
+  },
+
+  answerOffer(decisionId, offerId) {
+    const { state, index } = get();
+    if (!state || !index) return;
+    const result = engineAnswerOffer(state, index, decisionId, offerId);
+    persist(state);
+    set({ state: { ...state }, result });
+  },
+
+  answerAgent(decisionId, agentId) {
+    const { state } = get();
+    if (!state) return;
+    const result = engineAnswerAgent(state, decisionId, agentId);
+    persist(state);
+    set({ state: { ...state }, result });
+  },
+
+  runAction(id) {
+    const { state } = get();
+    if (!state) return;
+    const result = doPlayerAction(state, id);
+    persist(state);
+    set({ state: { ...state }, result });
+  },
+
+  clearResult() {
+    set({ result: null });
   },
 
   acceptOffer(offerId) {
@@ -214,4 +265,8 @@ export const useGame = create<GameStore>((set, get) => ({
 
 export function getPack(): DataPack {
   return pack;
+}
+
+export function availableActions(state: CareerState) {
+  return actionsAvailableNow(state);
 }

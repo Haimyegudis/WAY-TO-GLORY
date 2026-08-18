@@ -37,7 +37,14 @@ export type TranslateArgs = Record<string, string | number | undefined>;
 
 export function translate(lang: Lang, key: string, args?: TranslateArgs): string {
   const dict = DICTS[lang];
-  let text = dict[key] ?? DICTS.en[key];
+  // 'change.attr.finishing' and 'change.personality.discipline' reuse the
+  // attribute and personality names rather than duplicating every label.
+  const alias = key.startsWith('change.attr.')
+    ? `attr.${key.slice('change.attr.'.length)}`
+    : key.startsWith('change.personality.')
+      ? `personality.${key.slice('change.personality.'.length)}`
+      : null;
+  let text = dict[key] ?? DICTS.en[key] ?? (alias ? dict[alias] ?? DICTS.en[alias] : undefined);
   if (text === undefined) {
     // A missing key should read as a gap in the copy, not as a crash.
     return key.split('.').pop() ?? key;

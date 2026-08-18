@@ -18,9 +18,17 @@ import { NAME_POOLS } from './names.js';
 import { STARS } from './stars.js';
 import { EVENTS } from './events.js';
 
+interface ClubAsset {
+  clubId: string;
+  nameHe?: string;
+  crest?: string;
+  color?: string;
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 const rawDir = join(here, '..', 'packs', 'raw');
 const outDir = join(here, '..', 'packs');
+const packsDir = outDir;
 
 const SEASON = 2025;
 
@@ -150,6 +158,12 @@ function buildClub(seed: CompetitionSeed, name: string, strength: number, city?:
 }
 
 async function main(): Promise<void> {
+  // Crests, Hebrew names and club colours are collected by fetch-club-assets.
+  const assetsFile = join(packsDir, 'clubs-assets.json');
+  const assets: Record<string, ClubAsset> = existsSync(assetsFile)
+    ? (JSON.parse(await readFile(assetsFile, 'utf8')) as Record<string, ClubAsset>)
+    : {};
+
   const clubs: Club[] = [];
   const competitions: Competition[] = [];
   const missing: string[] = [];
@@ -184,6 +198,7 @@ async function main(): Promise<void> {
     competitions.push({
       id: seed.id,
       name: seed.name,
+      nameHe: seed.nameHe,
       country: seed.country,
       tier: seed.tier,
       type: 'league',
@@ -198,6 +213,14 @@ async function main(): Promise<void> {
       reputation: seed.reputation,
       seasonStartMonth: 8,
     });
+  }
+
+  for (const club of clubs) {
+    const asset = assets[club.id];
+    if (!asset) continue;
+    if (asset.nameHe) club.nameHe = asset.nameHe;
+    if (asset.crest) club.crest = asset.crest;
+    if (asset.color) club.color = asset.color;
   }
 
   const countries: Country[] = COUNTRIES.map((c) => ({
@@ -237,7 +260,9 @@ async function main(): Promise<void> {
   const byTier = new Map<string, number>();
   for (const club of clubs) byTier.set(club.competitionId, (byTier.get(club.competitionId) ?? 0) + 1);
 
-  console.log(`\npack ${pack.version}: ${countries.length} countries, ${competitions.length} competitions, ${clubs.length} clubs, ${pack.stars.length} named stars, ${pack.events.length} events`);
+  const crested = clubs.filter((c) => c.crest).length;
+  const hebrew = clubs.filter((c) => c.nameHe).length;
+  console.log(`\npack ${pack.version}: ${countries.length} countries, ${competitions.length} competitions, ${clubs.length} clubs, ${crested} crests, ${hebrew} hebrew names, ${pack.stars.length} named stars, ${pack.events.length} events`);
   console.log([...byTier.entries()].map(([id, n]) => `${id}:${n}`).join('  '));
 
   if (errors.length > 0) {

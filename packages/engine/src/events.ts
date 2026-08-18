@@ -1,14 +1,18 @@
 import { Rng, clamp } from './rng.js';
 import { overall } from './positions.js';
 import { rollInjury } from './injury.js';
+import { adjustRelationship, evaluateConsequences, track } from './social.js';
 import type {
+  AppliedChange,
   AttributeKey,
   CareerEventDef,
   CareerState,
+  DecisionResult,
   EventEffect,
   PersonalityKey,
   PendingDecision,
   Position,
+  RelationshipKey,
   SquadRole,
 } from './types.js';
 
@@ -71,6 +75,7 @@ export function toPendingDecision(
 ): PendingDecision {
   return {
     id: `dec_${def.id}_${absoluteWeek}`,
+    kind: 'event',
     eventId: def.id,
     category: def.category,
     textKey: def.textKey,
@@ -89,18 +94,21 @@ const ATTRIBUTE_SET = new Set<string>([
 ]);
 
 export interface EffectOutcome {
-  applied: string[];
+  changes: AppliedChange[];
   injuryTriggered: boolean;
 }
 
-/** Apply an option's effects. Chance-gated effects are rolled here, never shown as numbers. */
+/**
+ * Apply an option's effects and record what each one did, so the game can tell the
+ * player exactly why his morale dropped or why the manager cooled on him.
+ */
 export function applyEffects(
   rng: Rng,
   state: CareerState,
   effects: EventEffect[],
   args?: Record<string, string | number>,
 ): EffectOutcome {
-  const applied: string[] = [];
+  const changes: AppliedChange[] = [];
   let injuryTriggered = false;
   const player = state.player;
 
@@ -109,36 +117,63 @@ export function applyEffects(
     const value = effect.value ?? 0;
 
     switch (effect.kind) {
-      case 'morale':
-        player.morale = clamp(player.morale + value, 0, 100);
+      case 'morale': {
+        const before = player.morale;
+        player.morale = clamp(before + value, 0, 100);
+        track(changes, 'change.morale', before, player.morale);
         break;
-      case 'managerTrust':
-        state.managerTrust = clamp(state.managerTrust + value, 0, 100);
+      }
+      case 'managerTrust': {
+        adjustRelationship(state, 'manager', value, changes);
         break;
-      case 'form':
-        player.form = clamp(player.form + value, 0, 100);
+      }
+      case 'relationship': {
+        const key = (effect.key ?? 'manager') as RelationshipKey;
+        adjustRelationship(state, key, value, changes);
         break;
-      case 'fitness':
-        player.fitness = clamp(player.fitness + value, 0, 100);
+      }
+      case 'form': {
+        const before = player.form;
+        player.form = clamp(before + value, 0, 100);
+        track(changes, 'change.form', before, player.form);
         break;
-      case 'fatigue':
-        player.condition.fatigue = clamp(player.condition.fatigue + value, 0, 100);
+      }
+      case 'fitness': {
+        const before = player.fitness;
+        player.fitness = clamp(before + value, 0, 100);
+        track(changes, 'change.fitness', before, player.fitness);
         break;
-      case 'reputation':
-        player.reputation = clamp(player.reputation + value, 0, 100);
+      }
+      case 'fatigue': {
+        const before = player.condition.fatigue;
+        player.condition.fatigue = clamp(before + value, 0, 100);
+        track(changes, 'change.fatigue', before, player.condition.fatigue, false);
         break;
-      case 'fame':
-        player.fame = clamp(player.fame + value, 0, 100);
+      }
+      case 'reputation': {
+        const before = player.reputation;
+        player.reputation = clamp(before + value, 0, 100);
+        track(changes, 'change.reputation', before, player.reputation);
         break;
+      }
+      case 'fame': {
+        const before = player.fame;
+        player.fame = clamp(before + value, 0, 100);
+        track(changes, 'change.fame', before, player.fame);
+        break;
+      }
       case 'attribute': {
         const key = (effect.key ?? '') as AttributeKey;
         if (ATTRIBUTE_SET.has(key)) {
-          const before = overall(player.attributes, player.primaryPos, player.secondaryPos);
-          player.attributes[key] = clamp(player.attributes[key] + value, 1, 99);
+          const ovrBefore = overall(player.attributes, player.primaryPos, player.secondaryPos);
+          const before = player.attributes[key];
+          player.attributes[key] = clamp(before + value, 1, 99);
           // Training events are still training: they cannot push a player past the
           // ceiling the development engine enforces everywhere else.
-          if (value > 0 && before >= player.potential) {
-            player.attributes[key] = clamp(player.attributes[key] - value, 1, 99);
+          if (value > 0 && ovrBefore >= player.potential) {
+            player.attributes[key] = before;
+          } else {
+            track(changes, 'change.attr.' + key, before, player.attributes[key]);
           }
         }
         break;
@@ -146,13 +181,27 @@ export function applyEffects(
       case 'personality': {
         const key = (effect.key ?? '') as PersonalityKey;
         if (key in player.personality) {
-          player.personality[key] = clamp(player.personality[key] + value, 1, 99);
+          const before = player.personality[key];
+          player.personality[key] = clamp(before + value, 1, 99);
+          track(changes, 'change.personality.' + key, before, player.personality[key]);
         }
         break;
       }
-      case 'potential':
-        player.potential = clamp(player.potential + value, 40, 99);
+      case 'potential': {
+        const before = player.potential;
+        player.potential = clamp(before + value, 40, 99);
+        // Potential stays hidden: the player is told something moved, not the number.
+        if (Math.abs(player.potential - before) >= 1) {
+          changes.push({
+            key: 'change.potential',
+            delta: player.potential > before ? 1 : -1,
+            before: 0,
+            after: 0,
+            tone: player.potential > before ? 'good' : 'bad',
+          });
+        }
         break;
+      }
       case 'injuryRisk': {
         if (rng.chance(clamp(value / 100, 0, 1))) {
           const injury = rollInjury(rng, player, state.world.season, 1.4);
@@ -161,10 +210,13 @@ export function applyEffects(
         }
         break;
       }
-      case 'money':
+      case 'money': {
+        const before = state.finances.balance;
         state.finances.balance += value;
         if (value > 0) state.finances.careerEarnings += value;
+        track(changes, 'change.money', before, state.finances.balance);
         break;
+      }
       case 'squadRole':
         if (effect.key) player.squadRole = effect.key as SquadRole;
         break;
@@ -173,23 +225,28 @@ export function applyEffects(
         const pos = raw as Position;
         if (pos && !player.secondaryPos.includes(pos) && player.primaryPos !== pos) {
           player.secondaryPos.push(pos);
+          changes.push({ key: 'change.newPosition', delta: 1, before: 0, after: 0, tone: 'good' });
         }
         break;
       }
       case 'transferRequest':
         state.flags['transferRequested'] = true;
+        changes.push({ key: 'change.transferRequested', delta: 1, before: 0, after: 0, tone: 'neutral' });
         break;
       case 'agentRelationship':
-        if (state.agent) state.agent.relationship = clamp(state.agent.relationship + value, 0, 100);
+        if (state.agent) {
+          const before = state.agent.relationship;
+          state.agent.relationship = clamp(before + value, 0, 100);
+          track(changes, 'change.agent', before, state.agent.relationship);
+        }
         break;
       case 'custom':
         if (effect.key) state.flags[effect.key] = value || true;
         break;
     }
-    applied.push(`${effect.kind}${effect.key ? `:${effect.key}` : ''}=${value}`);
   }
 
-  return { applied, injuryTriggered };
+  return { changes, injuryTriggered };
 }
 
 export function resolveDecision(
@@ -198,7 +255,7 @@ export function resolveDecision(
   decisionId: string,
   optionId: string,
   defs: CareerEventDef[],
-): EffectOutcome | null {
+): DecisionResult | null {
   const index = state.pendingDecisions.findIndex((d) => d.id === decisionId);
   if (index === -1) return null;
   const decision = state.pendingDecisions[index]!;
@@ -212,8 +269,20 @@ export function resolveDecision(
   if (def) {
     state.eventCooldowns[def.id] = absoluteWeek + def.cooldownWeeks;
     if (def.oncePerCareer) state.firedOnceEvents.push(def.id);
+    // Keep the same category from firing twice in a row.
+    state.eventCooldowns['cat:' + def.category] = absoluteWeek + 3;
   }
 
   state.pendingDecisions.splice(index, 1);
-  return outcome;
+
+  const consequences = evaluateConsequences(rng, state);
+  if (outcome.injuryTriggered) consequences.push({ id: 'injuryPickedUp' });
+
+  const result: DecisionResult = {
+    changes: outcome.changes,
+    consequences,
+    narrativeKey: decision.textKey + '.' + option.id + '.outcome',
+  };
+  state.lastResult = result;
+  return result;
 }

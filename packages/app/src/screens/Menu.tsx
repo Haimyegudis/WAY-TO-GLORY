@@ -1,6 +1,12 @@
+import { useState } from 'react';
 import { LANG_LABEL, useLang, useT, type Lang } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 
+/**
+ * Title screen. If the artwork is present it carries the screen on its own; if it
+ * is missing the same composition is drawn with type and gradients instead, so the
+ * game never opens on a broken image.
+ */
 export function Menu() {
   const t = useT();
   const lang = useLang((s) => s.lang);
@@ -8,34 +14,83 @@ export function Menu() {
   const hasSave = useGame((s) => s.hasSave);
   const startCreation = useGame((s) => s.startCreation);
   const loadSave = useGame((s) => s.loadSave);
+  const [artFailed, setArtFailed] = useState(false);
 
   return (
-    <div className="app">
-      <div className="screen pitch-lines" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 26, paddingBottom: 30 }}>
-        <header style={{ position: 'relative', zIndex: 1 }}>
-          <p className="eyebrow" dir="ltr" style={{ marginBlockEnd: 10 }}>2025 / 26</p>
-          <h1 className="display" style={{ fontSize: 46, lineHeight: 0.98 }}>
-            {t('app.title')}
-          </h1>
-          <p className="muted" style={{ marginBlockStart: 10, maxWidth: 300 }}>
-            {t('home.subtitle')}
-          </p>
-        </header>
+    <>
+      <div className="backdrop" />
+      {!artFailed && (
+        <>
+          <img
+            src="/bg/hero.jpg"
+            alt=""
+            onError={() => setArtFailed(true)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'top center',
+              zIndex: -2,
+            }}
+          />
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: -1,
+              background:
+                'linear-gradient(180deg, rgba(6,11,24,0.05) 0%, rgba(6,11,24,0.25) 42%, rgba(6,11,24,0.9) 72%, var(--bg) 92%)',
+            }}
+          />
+        </>
+      )}
 
-        <div className="stack" style={{ position: 'relative', zIndex: 1 }}>
-          {hasSave && (
-            <button className="btn btn-primary btn-block" onClick={() => void loadSave()}>
-              {t('action.loadCareer')}
-            </button>
+      <div className="app">
+        <div
+          className="screen"
+          style={{
+            minHeight: '100dvh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            gap: 18,
+            paddingBottom: 26,
+          }}
+        >
+          {artFailed && (
+            <header style={{ marginBlockEnd: 'auto', paddingBlockStart: '22vh', textAlign: 'center' }}>
+              <p className="eyebrow" dir="ltr">2025 / 26</p>
+              <h1
+                style={{
+                  fontSize: 44,
+                  fontWeight: 700,
+                  lineHeight: 1.05,
+                  marginBlockStart: 10,
+                  background: 'linear-gradient(180deg, #ffe9a8, var(--amber) 60%, #b8862a)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                {t('app.title')}
+              </h1>
+              <p className="muted" style={{ marginBlockStart: 10 }}>{t('home.subtitle')}</p>
+            </header>
           )}
-          <button className={`btn btn-block ${hasSave ? 'btn-ghost' : 'btn-primary'}`} onClick={startCreation}>
-            {t('action.newCareer')}
-          </button>
-          {!hasSave && <p className="faint" style={{ fontSize: 13 }}>{t('home.noSave')}</p>}
-        </div>
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <p className="eyebrow" style={{ marginBlockEnd: 8 }}>{t('home.language')}</p>
+          <div className="stack">
+            {hasSave && (
+              <button className="btn btn-amber btn-block" onClick={() => void loadSave()}>
+                {t('action.loadCareer')}
+              </button>
+            )}
+            <button className={`btn btn-block ${hasSave ? '' : 'btn-amber'}`} onClick={startCreation}>
+              {t('action.newCareer')}
+            </button>
+          </div>
+
           <div className="seg">
             {(Object.keys(LANG_LABEL) as Lang[]).map((code) => (
               <button key={code} aria-pressed={lang === code} onClick={() => setLang(code)}>
@@ -43,10 +98,10 @@ export function Menu() {
               </button>
             ))}
           </div>
-        </div>
 
-        <p className="faint" style={{ fontSize: 11, position: 'relative', zIndex: 1 }}>{t('home.credits')}</p>
+          <p className="faint center" style={{ fontSize: 11 }}>{t('home.credits')}</p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

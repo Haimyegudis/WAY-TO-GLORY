@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { useT } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 import { myClub } from '../state/selectors.js';
-import { Panel } from '../components/ui.js';
+import { Card } from '../components/ui.js';
 import {
   cloudConfigured,
   currentSession,
@@ -36,9 +36,9 @@ export function CloudPanel() {
 
   if (!cloudConfigured()) {
     return (
-      <Panel title={t('settings.cloud')}>
+      <Card title={t('settings.cloud')}>
         <p className="faint" style={{ fontSize: 12.5 }}>{t('settings.notConfigured')}</p>
-      </Panel>
+      </Card>
     );
   }
 
@@ -65,18 +65,18 @@ export function CloudPanel() {
   };
 
   return (
-    <Panel title={t('settings.cloud')}>
+    <Card title={t('settings.cloud')}>
       {session ? (
         <div className="stack">
           <div className="row-between">
             <span style={{ fontSize: 13 }}>{session.user.email}</span>
-            <button className="btn btn-ghost" onClick={() => void signOut().then(() => setSession(null))}>
+            <button className="btn btn-quiet" onClick={() => void signOut().then(() => setSession(null))}>
               {t('settings.signOut')}
             </button>
           </div>
           <div className="row" style={{ gap: 8 }}>
-            <button className="btn btn-ghost grow" disabled={busy} onClick={() => void sync()}>{t('settings.sync')}</button>
-            <button className="btn btn-ghost grow" disabled={busy} onClick={() => void restore()}>{t('action.loadCareer')}</button>
+            <button className="btn btn-quiet grow" disabled={busy} onClick={() => void sync()}>{t('settings.sync')}</button>
+            <button className="btn btn-quiet grow" disabled={busy} onClick={() => void restore()}>{t('action.loadCareer')}</button>
           </div>
 
           {rows.length > 0 && (
@@ -112,7 +112,7 @@ export function CloudPanel() {
             <input id="email" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <button
-            className="btn btn-ghost btn-block"
+            className="btn btn-quiet btn-block"
             disabled={!email.includes('@') || busy}
             onClick={() => {
               setBusy(true);
@@ -126,6 +126,6 @@ export function CloudPanel() {
           </button>
         </div>
       )}
-    </Panel>
+    </Card>
   );
 }

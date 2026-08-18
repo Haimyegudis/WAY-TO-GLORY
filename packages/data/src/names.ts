@@ -24,8 +24,8 @@ export const NAME_POOLS: NamePool[] = [
   },
   {
     locale: 'he',
-    first: ['Omri', 'Eitan', 'Yarden', 'Noam', 'Idan', 'Guy', 'Ori', 'Roi', 'Shalev', 'Liran', 'Aviv', 'Dor', 'Nadav', 'Tomer', 'Yuval', 'Amit', 'Itay', 'Barak', 'Elad', 'Gal', 'Maor', 'Ofek', 'Sagiv', 'Ilay', 'Ran', 'Yonatan', 'Assaf', 'Bar', 'Lior', 'Shai'],
-    last: ['Cohen', 'Levi', 'Mizrahi', 'Peretz', 'Biton', 'Dahan', 'Azoulay', 'Malka', 'Ohana', 'Ben David', 'Shalom', 'Amar', 'Gabay', 'Hadad', 'Yosef', 'Barda', 'Turgeman', 'Zohar', 'Elbaz', 'Nissim', 'Sabag', 'Ashkenazi', 'Katz', 'Segal', 'Golan', 'Harush', 'Zaguri', 'Buzaglo', 'Vaknin', 'Shitrit'],
+    first: ['עומרי', 'איתן', 'ירדן', 'נועם', 'עידן', 'גיא', 'אורי', 'רועי', 'שלו', 'לירן', 'אביב', 'דור', 'נדב', 'תומר', 'יובל', 'עמית', 'איתי', 'ברק', 'אלעד', 'גל', 'מאור', 'אופק', 'שגיא', 'עילאי', 'רן', 'יונתן', 'אסף', 'בר', 'ליאור', 'שי', 'אלמוג', 'ניר', 'עידו', 'רותם', 'יהב'],
+    last: ['כהן', 'לוי', 'מזרחי', 'פרץ', 'ביטון', 'דהן', 'אזולאי', 'מלכה', 'אוחנה', 'בן דוד', 'שלום', 'עמר', 'גבאי', 'חדד', 'יוסף', 'ברדה', 'תורג׳מן', 'זוהר', 'אלבז', 'ניסים', 'סבג', 'אשכנזי', 'כץ', 'סגל', 'גולן', 'הרוש', 'זגורי', 'בוזגלו', 'ועקנין', 'שטרית', 'אוחיון', 'ביטן', 'נחום', 'אדרי', 'שרעבי'],
   },
   {
     locale: 'fr',

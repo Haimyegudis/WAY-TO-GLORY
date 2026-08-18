@@ -9,7 +9,7 @@ import {
 } from '@fc/engine';
 import { useT } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
-import { Meter, Panel } from '../components/ui.js';
+import { Meter, Card } from '../components/ui.js';
 
 const INTENSITIES: TrainingIntensity[] = ['light', 'normal', 'intensive', 'extreme'];
 const DIETS: DietLevel[] = ['poor', 'normal', 'professional', 'nutritionist'];
@@ -32,10 +32,10 @@ export function TrainingScreen() {
     <div className="screen stack">
       <header>
         <p className="eyebrow">{t('train.title')}</p>
-        <h1 className="display" style={{ fontSize: 26, marginBlockStart: 4 }}>{t('train.intensity')}</h1>
+        <h1 className="title">{t('train.intensity')}</h1>
       </header>
 
-      <Panel>
+      <Card>
         <div className="stack">
           <div>
             <p className="eyebrow" style={{ marginBlockEnd: 6 }}>{t('train.intensity')}</p>
@@ -70,9 +70,9 @@ export function TrainingScreen() {
                   style={{
                     padding: '9px 6px',
                     fontSize: 12.5,
-                    background: plan.focus === focus ? 'var(--flood)' : 'rgba(238,244,238,0.03)',
-                    color: plan.focus === focus ? 'var(--pitch-900)' : 'var(--ink-dim)',
-                    borderColor: plan.focus === focus ? 'var(--flood)' : 'var(--chalk-line-strong)',
+                    background: plan.focus === focus ? 'var(--amber)' : 'rgba(238,244,238,0.03)',
+                    color: plan.focus === focus ? 'var(--bg)' : 'var(--muted)',
+                    borderColor: plan.focus === focus ? 'var(--amber)' : 'var(--line-strong)',
                   }}
                 >
                   {t(`train.focus.${focus}`)}
@@ -83,26 +83,26 @@ export function TrainingScreen() {
 
           <p className="faint" style={{ fontSize: 11.5 }}>{t('train.warning')}</p>
         </div>
-      </Panel>
+      </Card>
 
-      <Panel>
+      <Card>
         <div className="stack" style={{ gap: 10 }}>
-          <Line label={t('train.fatigue')} value={player.condition.fatigue} tone={player.condition.fatigue > 60 ? 'blood' : 'amber'} />
-          <Line label={t('train.sharpness')} value={player.condition.sharpness} tone="sky" />
+          <Line label={t('train.fatigue')} value={player.condition.fatigue} tone={player.condition.fatigue > 60 ? 'red' : 'amber'} />
+          <Line label={t('train.sharpness')} value={player.condition.sharpness} tone="blue" />
         </div>
-      </Panel>
+      </Card>
 
-      <Panel title={t('train.physical')}>
+      <Card title={t('train.physical')}>
         <AttrList keys={PHYSICAL_ATTRS} />
-      </Panel>
-      <Panel title={isKeeper ? t('train.goalkeeping') : t('train.technical')}>
+      </Card>
+      <Card title={isKeeper ? t('train.goalkeeping') : t('train.technical')}>
         <AttrList keys={isKeeper ? GK_ATTRS : TECHNICAL} />
-      </Panel>
-      <Panel title={t('train.mental')}>
+      </Card>
+      <Card title={t('train.mental')}>
         <AttrList keys={MENTAL_ATTRS} />
-      </Panel>
+      </Card>
 
-      <Panel title={t('train.injuryHistory')}>
+      <Card title={t('train.injuryHistory')}>
         {player.condition.injuryHistory.length === 0 && player.condition.injuries.length === 0 ? (
           <p className="faint" style={{ fontSize: 13 }}>{t('train.noInjuries')}</p>
         ) : (
@@ -118,12 +118,12 @@ export function TrainingScreen() {
             ))}
           </ul>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }
 
-function Line({ label, value, tone }: { label: string; value: number; tone: 'flood' | 'amber' | 'blood' | 'sky' }) {
+function Line({ label, value, tone }: { label: string; value: number; tone: 'amber' | 'amber' | 'red' | 'blue' | 'green' }) {
   return (
     <div>
       <div className="row-between" style={{ marginBlockEnd: 4 }}>
@@ -146,7 +146,7 @@ function AttrList({ keys }: { keys: readonly AttributeKey[] }) {
           <div key={key} className="attr-row">
             <span style={{ fontSize: 13 }}>{t(`attr.${key}`)}</span>
             <span className="num">{value}</span>
-            <Meter value={value} tone={value >= 75 ? 'flood' : value >= 55 ? 'sky' : 'amber'} />
+            <Meter value={value} tone={value >= 75 ? 'amber' : value >= 55 ? 'blue' : 'amber'} />
           </div>
         );
       })}

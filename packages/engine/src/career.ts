@@ -49,8 +49,23 @@ import {
   updateNationalInterest,
 } from './national.js';
 import { pickEvent, toPendingDecision, type EventContext } from './events.js';
+import {
+  adjustRelationship,
+  availableActions,
+  driftRelationships,
+  evaluateConsequences,
+  initRelationships,
+  isFrozenOut,
+  performAction,
+  track,
+  type PlayerActionId,
+} from './social.js';
 import type {
   Achievement,
+  Agent,
+  AppliedChange,
+  DecisionResult,
+  PendingDecision,
   CareerSeasonRecord,
   CareerState,
   Club,
@@ -117,6 +132,9 @@ export function createCareer(pack: DataPack, input: CreateCareerInput): { state:
     agentOffers: [],
     training: { intensity: 'normal', focus: 'balanced', diet: 'normal' },
     managerTrust: 45,
+    relationships: initRelationships(),
+    socialActions: { used: 0, perWeek: 2 },
+    lastResult: null,
     world: {
       season,
       week: 1,
@@ -277,6 +295,15 @@ export function joinClub(
     rotation: 46, starter: 55, important: 62, key: 70, star: 78,
   };
   state.managerTrust = clamp((roleTrust[state.player.squadRole] ?? 45) + rng.int(-5, 6), 15, 88);
+  state.relationships.manager = state.managerTrust;
+  // A new dressing room and a new crowd start from scratch.
+  state.relationships.teammates = clamp(48 + rng.int(-8, 8), 20, 70);
+  state.relationships.fans = clamp(50 + rng.int(-6, 10), 25, 75);
+  state.relationships.board = clamp(52 + rng.int(-6, 8), 25, 78);
+  state.flags['transferListed'] = false;
+  state.flags['replacementSought'] = false;
+  state.flags['benchedUntilWeek'] = 0;
+  state.flags['droppedNotified'] = false;
   ensureModelledSquads(state, index, rng);
 
   // Season stats survive a mid-season move: the season is the season, wherever it was played.
@@ -351,6 +378,15 @@ export function ensureModelledSquads(state: CareerState, index: PackIndex, rng: 
     }
     delete state.world.squads[id];
   }
+}
+
+/** Which inbox folder a consequence belongs in. */
+function consequenceCategory(id: string): InboxMessage['category'] {
+  if (id.startsWith('fans')) return 'media';
+  if (id.startsWith('board') || id === 'transferListed' || id === 'offTransferList' || id === 'clubSeeksReplacement') return 'club';
+  if (id === 'injuryPickedUp') return 'medical';
+  if (id === 'dressingRoomFallout') return 'personal';
+  return 'manager';
 }
 
 function pushNews(state: CareerState, key: string, args: Record<string, string | number>, importance: NewsItem['importance']): void {
@@ -491,11 +527,13 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // a fortnight later, so interest only builds up after he has settled.
   const weeksSinceTransfer = season * 52 + week - Number(state.flags['lastTransferWeek'] ?? 0);
   const settled = weeksSinceTransfer >= 30;
-  if (isTransferWindow(week) && club && settled && state.transferOffers.length === 0 && rng.chance(0.22)) {
+  const listed = Boolean(state.flags['transferListed']);
+  const offerChance = listed ? 0.5 : state.flags['transferRequested'] ? 0.42 : 0.22;
+  if (isTransferWindow(week) && club && settled && state.transferOffers.length === 0 && rng.chance(offerChance)) {
     const offers = generateOffers({ state, index, rng, minutesPct: minutesPct(state) });
     if (offers.length > 0) {
       state.transferOffers = offers;
-      pushInbox(state, 'transfer', 'inbox.transferInterest', { count: offers.length });
+      openOfferDecision(state, offers);
       pushNews(state, 'news.transferInterest', { club: state.world.clubs[offers[0]!.clubId]?.name ?? '' }, 'medium');
     }
   }
@@ -504,7 +542,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   if (!state.agent && state.agentOffers.length === 0 && player.reputation >= 10 && rng.chance(0.25)) {
     const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
     state.agentOffers = generateAgentOffers(rng, index, player, ovr, season - player.birthYear);
-    if (state.agentOffers.length > 0) pushInbox(state, 'agent', 'inbox.agentInterest', { count: state.agentOffers.length });
+    if (state.agentOffers.length > 0) openAgentDecision(state, state.agentOffers);
   }
 
   // 8. Career events.
@@ -521,7 +559,23 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     stopped = 'decision';
   }
 
-  // 9. Form and market value.
+  // 9. The people around him react to the week just played.
+  state.socialActions.used = 0;
+  const weekRatings = state.matchLog
+    .filter((m) => m.season === season && m.userLine?.played)
+    .slice(0, 3)
+    .map((m) => m.userLine!.rating);
+  driftRelationships(rng, state, {
+    minutesPct: minutesPct(state),
+    recentRating: weekRatings.length > 0 ? weekRatings.reduce((a, b) => a + b, 0) / weekRatings.length : null,
+    played: playedThisWeek > 0,
+  });
+  for (const consequence of evaluateConsequences(rng, state)) {
+    pushInbox(state, consequenceCategory(consequence.id), `consequence.${consequence.id}`, consequence.args);
+    pushNews(state, `consequence.${consequence.id}`, consequence.args ?? {}, 'medium');
+  }
+
+  // 10. Form and market value.
   const recentRatings = state.matchLog
     .filter((m) => m.userLine?.played && m.season === season)
     .slice(0, 5)
@@ -534,7 +588,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     internationalCaps: state.nationalTeam.caps,
   });
 
-  // 10. Advance the clock.
+  // 11. Advance the clock.
   state.world.week += 1;
   if (state.world.week > WEEKS_PER_SEASON) {
     endSeason(state, index, rng);
@@ -707,7 +761,8 @@ function playUserMatch(
   const opponent = state.world.clubs[opponentId]!;
 
   const suspension = player.condition.suspensions.find((s) => s.competitionId === competitionId && s.matchesRemaining > 0);
-  const available = isAvailable(player) && !suspension && !isAcademyPlayer(state);
+  // A manager who has fallen out with him simply leaves him out for a while.
+  const available = isAvailable(player) && !suspension && !isAcademyPlayer(state) && !isFrozenOut(state);
 
   const rotationPressure = clamp(state.matchLog.filter((m) => m.season === state.world.season && m.week >= state.world.week - 2).length / 3, 0, 1);
   const selectionCtx: SelectionContext = {
@@ -765,7 +820,8 @@ function playUserMatch(
 
   state.lastMatch = result;
   state.matchLog.unshift(result);
-  if (state.matchLog.length > 80) state.matchLog.length = 80;
+  // A full season of fixtures plus a cup run, so the results page can show them all.
+  if (state.matchLog.length > 140) state.matchLog.length = 140;
 
   return result;
 }
@@ -801,6 +857,7 @@ function applyMatchToPlayer(
     const weight = clamp(line.minutes / 90, 0.2, 1);
     const delta = ((line.rating - 6.6) * 2.2 + (line.motm ? 2 : 0)) * weight - line.red * 6;
     state.managerTrust = clamp(state.managerTrust + delta * 0.5, 0, 100);
+    state.relationships.manager = state.managerTrust;
     player.morale = clamp(player.morale + (line.rating - 6.4) * 1.6, 0, 100);
     player.reputation = clamp(player.reputation + line.goals * 0.35 + line.assists * 0.2 + (line.motm ? 0.5 : 0), 0, 100);
     player.fame = clamp(player.fame + line.goals * 0.4 + (line.motm ? 0.6 : 0), 0, 100);
@@ -1368,6 +1425,133 @@ export function careerStatus(score: number): string {
   return 'localHero';
 }
 
+/** Put clubs on the table as a decision the player has to answer. */
+function openOfferDecision(state: CareerState, offers: TransferOffer[]): void {
+  const absoluteWeek = state.world.season * 52 + state.world.week;
+  const anyLoan = offers.some((o) => o.isLoan);
+  const decision: PendingDecision = {
+    id: `offer_${absoluteWeek}`,
+    kind: 'transfer',
+    eventId: 'transferApproach',
+    category: 'transfer',
+    textKey: anyLoan ? 'decision.loanApproach' : 'decision.transferApproach',
+    options: [],
+    offers,
+    expiresWeek: absoluteWeek + 3,
+  };
+  state.pendingDecisions.push(decision);
+  pushInbox(state, 'transfer', 'inbox.transferInterest', { count: offers.length }, decision.id);
+}
+
+function openAgentDecision(state: CareerState, agents: Agent[]): void {
+  const absoluteWeek = state.world.season * 52 + state.world.week;
+  const decision: PendingDecision = {
+    id: `agent_${absoluteWeek}`,
+    kind: 'agent',
+    eventId: 'agentApproach',
+    category: 'agent',
+    textKey: 'decision.agentApproach',
+    options: [],
+    agents,
+    expiresWeek: absoluteWeek + 3,
+  };
+  state.pendingDecisions.push(decision);
+  pushInbox(state, 'agent', 'inbox.agentInterest', { count: agents.length }, decision.id);
+}
+
+/**
+ * Answer a club approach. Passing null turns every club down, which the manager
+ * and the supporters notice as much as leaving would have.
+ */
+export function answerOffer(
+  state: CareerState,
+  index: PackIndex,
+  decisionId: string,
+  offerId: string | null,
+): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex((d) => d.id === decisionId && d.kind === 'transfer');
+  if (at === -1) return null;
+  const decision = state.pendingDecisions[at]!;
+  const rng = mainRng(state);
+  const changes: AppliedChange[] = [];
+
+  if (offerId) {
+    const offer = decision.offers?.find((o) => o.id === offerId);
+    if (!offer) return null;
+    const club = state.world.clubs[offer.clubId];
+    state.pendingDecisions.splice(at, 1);
+    acceptOffer(state, index, offer.id);
+    changes.push({ key: 'change.newClub', delta: 1, before: 0, after: 0, tone: 'good' });
+    const result: DecisionResult = {
+      changes,
+      consequences: [],
+      narrativeKey: offer.isLoan ? 'decision.loanApproach.joined' : 'decision.transferApproach.joined',
+    };
+    state.lastResult = result;
+    if (club) pushNews(state, 'news.joinedClub', { club: club.name }, 'high');
+    return result;
+  }
+
+  // Staying put: the club reads it as loyalty, the agent as a missed payday.
+  state.pendingDecisions.splice(at, 1);
+  state.transferOffers = [];
+  adjustRelationship(state, 'fans', 4, changes);
+  adjustRelationship(state, 'board', 3, changes);
+  if (state.agent) {
+    const before = state.agent.relationship;
+    state.agent.relationship = clamp(before - 6, 0, 100);
+    track(changes, 'change.agent', before, state.agent.relationship);
+  }
+  const consequences = evaluateConsequences(rng, state);
+  const result: DecisionResult = { changes, consequences, narrativeKey: 'decision.transferApproach.stayed' };
+  state.lastResult = result;
+  commitRng(state, rng);
+  return result;
+}
+
+/** Answer an agent approach. Passing null keeps him without representation. */
+export function answerAgent(state: CareerState, decisionId: string, agentId: string | null): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex((d) => d.id === decisionId && d.kind === 'agent');
+  if (at === -1) return null;
+  const decision = state.pendingDecisions[at]!;
+  state.pendingDecisions.splice(at, 1);
+  const changes: AppliedChange[] = [];
+
+  if (agentId) {
+    const agent = decision.agents?.find((a) => a.id === agentId);
+    if (agent) {
+      state.agent = agent;
+      state.agentOffers = [];
+      changes.push({ key: 'change.newAgent', delta: 1, before: 0, after: 0, tone: 'good' });
+      pushInbox(state, 'agent', 'inbox.agentSigned', { name: agent.name });
+    }
+  } else {
+    state.agentOffers = [];
+    changes.push({ key: 'change.noAgent', delta: 0, before: 0, after: 0, tone: 'neutral' });
+  }
+
+  const result: DecisionResult = {
+    changes,
+    consequences: [],
+    narrativeKey: agentId ? 'decision.agentApproach.signed' : 'decision.agentApproach.declined',
+  };
+  state.lastResult = result;
+  return result;
+}
+
+/** Carry out one of the player's own moves: a conversation, a gesture, a request. */
+export function doPlayerAction(state: CareerState, id: PlayerActionId): DecisionResult | null {
+  const rng = mainRng(state);
+  const result = performAction(rng, state, id);
+  commitRng(state, rng);
+  if (result.changes.length === 0 && result.consequences.length === 0) return null;
+  state.lastResult = result;
+  for (const consequence of result.consequences) {
+    pushInbox(state, 'manager', `consequence.${consequence.id}`, consequence.args);
+  }
+  return result;
+}
+
 /** Accept a transfer or loan offer. */
 export function acceptOffer(state: CareerState, index: PackIndex, offerId: string): boolean {
   const offer = state.transferOffers.find((o) => o.id === offerId);
@@ -1419,6 +1603,10 @@ export function advanceUntil(state: CareerState, index: PackIndex, plan: WeekPla
     if (state.retired) return last;
   }
   return last;
+}
+
+export function actionsAvailableNow(state: CareerState) {
+  return availableActions(state);
 }
 
 export function currentOvr(state: CareerState): number {

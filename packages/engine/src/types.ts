@@ -130,7 +130,13 @@ export interface Player {
 export interface Club {
   id: string;
   name: string;
+  /** Club name in Hebrew, taken from the club's own Hebrew Wikipedia article. */
+  nameHe?: string;
   shortName: string;
+  /** Crest file shipped with the app, relative to /crests. */
+  crest?: string;
+  /** Dominant crest colour, used to tint the club's card. */
+  color?: string;
   country: string;
   competitionId: string;
   tier: number;
@@ -156,6 +162,7 @@ export interface CardRules {
 export interface Competition {
   id: string;
   name: string;
+  nameHe?: string;
   country: string;
   tier: number;
   type: 'league' | 'cup' | 'continental';
@@ -335,6 +342,51 @@ export interface TrainingPlan {
   diet: DietLevel;
 }
 
+/**
+ * Everyone whose opinion of the player matters. These move on results, on choices
+ * and on how the player behaves, and they feed selection, offers and events.
+ */
+export interface Relationships {
+  manager: number;    // 0-100 trust from the head coach
+  teammates: number;  // 0-100 standing in the dressing room
+  fans: number;       // 0-100 how the stands feel about him
+  board: number;      // 0-100 how the club's management sees him
+  media: number;      // 0-100 press goodwill
+}
+
+export type RelationshipKey = keyof Relationships;
+
+/** A single visible change produced by a decision or an action. */
+export interface AppliedChange {
+  key: string;              // i18n label key, e.g. 'change.morale'
+  delta: number;
+  before: number;
+  after: number;
+  tone: 'good' | 'bad' | 'neutral';
+}
+
+export type ConsequenceId =
+  | 'droppedFromSquad'
+  | 'backInFavour'
+  | 'transferListed'
+  | 'offTransferList'
+  | 'fined'
+  | 'dressingRoomFallout'
+  | 'fansTurned'
+  | 'fansBehindYou'
+  | 'boardWarning'
+  | 'captaincyLost'
+  | 'clubSeeksReplacement'
+  | 'injuryPickedUp'
+  | 'apologyAccepted'
+  | 'apologyRejected';
+
+export interface DecisionResult {
+  changes: AppliedChange[];
+  consequences: { id: ConsequenceId; args?: Record<string, string | number> }[];
+  narrativeKey?: string;
+}
+
 export interface NationalTeamState {
   countryCode: string | null;         // committed senior association
   eligibleCountries: string[];
@@ -355,7 +407,7 @@ export interface CareerEventOption {
 
 export interface EventEffect {
   kind:
-    | 'morale' | 'managerTrust' | 'form' | 'fitness' | 'fatigue' | 'reputation' | 'fame'
+    | 'morale' | 'managerTrust' | 'relationship' | 'form' | 'fitness' | 'fatigue' | 'reputation' | 'fame'
     | 'attribute' | 'personality' | 'potential' | 'injuryRisk' | 'money' | 'squadRole'
     | 'learnPosition' | 'transferRequest' | 'agentRelationship' | 'custom';
   key?: string;
@@ -392,13 +444,20 @@ export interface EventTrigger {
   requiresContractExpiringIn?: number;   // seasons
 }
 
+export type DecisionKind = 'event' | 'transfer' | 'agent';
+
 export interface PendingDecision {
   id: string;
+  kind: DecisionKind;
   eventId: string;
   category: CareerEventDef['category'];
   textKey: string;
   textArgs?: Record<string, string | number>;
   options: CareerEventOption[];
+  /** Clubs on the table, when this is a transfer or loan approach. */
+  offers?: TransferOffer[];
+  /** Agents who want to represent him. */
+  agents?: Agent[];
   expiresWeek?: number;
 }
 
@@ -473,7 +532,11 @@ export interface CareerState {
   agent: Agent | null;
   agentOffers: Agent[];
   training: TrainingPlan;
-  managerTrust: number;
+  managerTrust: number;          // mirrors relationships.manager, kept for save compatibility
+  relationships: Relationships;
+  /** Conversations and gestures cost time: a small budget refreshed every week. */
+  socialActions: { used: number; perWeek: number };
+  lastResult: DecisionResult | null;
   world: WorldState;
   nationalTeam: NationalTeamState;
   seasonHistory: CareerSeasonRecord[];

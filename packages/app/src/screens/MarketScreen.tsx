@@ -1,7 +1,9 @@
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
+import { competitionName } from '../lib/names.js';
+import { clubName, clubShortName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
-import { Chip, Empty, Meter, Panel } from '../components/ui.js';
+import { Chip, Empty, Meter, Card } from '../components/ui.js';
 
 export function MarketScreen() {
   const t = useT();
@@ -11,24 +13,24 @@ export function MarketScreen() {
   const signAgent = useGame((s) => s.signAgent);
   const pack = getPack();
 
-  const competitionName = (id: string) => pack.competitions.find((c) => c.id === id)?.name ?? id;
+  const competition = (id: string) => competitionName(pack.competitions.find((c) => c.id === id), lang) || id;
 
   return (
     <div className="screen stack">
       <header>
         <p className="eyebrow">{t('market.title')}</p>
-        <h1 className="display" style={{ fontSize: 26, marginBlockStart: 4 }}>
+        <h1 className="title">
           {formatMoney(state.marketValue, lang)}
         </h1>
         <p className="faint" style={{ fontSize: 12 }}>{t('hub.value')}</p>
       </header>
 
-      <Panel title={t('market.contract')}>
+      <Card title={t('market.contract')}>
         {state.contract ? (
           <div className="stack" style={{ gap: 8 }}>
             <div className="row-between">
-              <span style={{ fontSize: 14 }}>{club(state, state.contract.clubId)?.name}</span>
-              <Chip tone="flood">{t(`role.${state.contract.squadRole}`)}</Chip>
+              <span style={{ fontSize: 14 }}>{clubName(club(state, state.contract.clubId), lang)}</span>
+              <Chip tone="amber">{t(`role.${state.contract.squadRole}`)}</Chip>
             </div>
             <div className="row-between">
               <span className="eyebrow">{t('market.wage')}</span>
@@ -38,7 +40,7 @@ export function MarketScreen() {
               <span className="eyebrow">{t('market.until')}</span>
               <span className="num">{formatSeason(state.contract.endSeason)}</span>
             </div>
-            {state.contract.isLoan && <Chip tone="sky">{t('market.loan')}</Chip>}
+            {state.contract.isLoan && <Chip tone="blue">{t('market.loan')}</Chip>}
           </div>
         ) : (
           <p className="faint">{t('hub.freeAgent')}</p>
@@ -48,9 +50,9 @@ export function MarketScreen() {
           <span className="eyebrow">{t('market.earnings')}</span>
           <span className="num">{formatMoney(state.finances.careerEarnings, lang)}</span>
         </div>
-      </Panel>
+      </Card>
 
-      <Panel title={t('market.offers')} lit={state.transferOffers.length > 0}>
+      <Card title={t('market.offers')} lit={state.transferOffers.length > 0}>
         {state.transferOffers.length === 0 ? (
           <p className="faint" style={{ fontSize: 13 }}>{t('market.noOffers')}</p>
         ) : (
@@ -58,13 +60,13 @@ export function MarketScreen() {
             {state.transferOffers.map((offer) => {
               const target = club(state, offer.clubId);
               return (
-                <div key={offer.id} style={{ border: '1px solid var(--chalk-line)', padding: 12 }}>
+                <div key={offer.id} style={{ border: '1px solid var(--line)', padding: 12 }}>
                   <div className="row-between" style={{ alignItems: 'flex-start' }}>
                     <div>
-                      <p className="display" style={{ fontSize: 17 }}>{target?.name}</p>
-                      <p className="faint" style={{ fontSize: 11.5 }}>{competitionName(offer.competitionId)}</p>
+                      <p className="headline">{clubName(target, lang)}</p>
+                      <p className="faint" style={{ fontSize: 11.5 }}>{competition(offer.competitionId)}</p>
                     </div>
-                    {offer.isLoan ? <Chip tone="sky">{t('market.loan')}</Chip> : <Chip tone="flood">{t(`role.${offer.squadRole}`)}</Chip>}
+                    {offer.isLoan ? <Chip tone="blue">{t('market.loan')}</Chip> : <Chip tone="amber">{t(`role.${offer.squadRole}`)}</Chip>}
                   </div>
 
                   <div className="grid-2" style={{ marginBlock: 10, gap: 8 }}>
@@ -83,16 +85,16 @@ export function MarketScreen() {
                   </div>
 
                   <button className="btn btn-primary btn-block" onClick={() => accept(offer.id)}>
-                    {t('market.accept', { club: target?.shortName ?? '' })}
+                    {t('market.accept', { club: clubShortName(target, lang) })}
                   </button>
                 </div>
               );
             })}
           </div>
         )}
-      </Panel>
+      </Card>
 
-      <Panel title={t('market.agent')}>
+      <Card title={t('market.agent')}>
         {state.agent ? (
           <div className="stack" style={{ gap: 8 }}>
             <div className="row-between">
@@ -109,7 +111,7 @@ export function MarketScreen() {
           <div className="stack">
             <p className="eyebrow">{t('market.agentOffers')}</p>
             {state.agentOffers.map((agent) => (
-              <div key={agent.id} style={{ border: '1px solid var(--chalk-line)', padding: 12 }}>
+              <div key={agent.id} style={{ border: '1px solid var(--line)', padding: 12 }}>
                 <div className="row-between">
                   <span style={{ fontSize: 15 }}>{agent.name}</span>
                   <Chip>{agent.tier}</Chip>
@@ -119,7 +121,7 @@ export function MarketScreen() {
                 </div>
                 <div className="row-between">
                   <span className="eyebrow">{t('market.commission', { pct: (agent.commissionPct * 100).toFixed(1) })}</span>
-                  <button className="btn btn-ghost" onClick={() => signAgent(agent.id)}>{t('market.signAgent')}</button>
+                  <button className="btn btn-quiet" onClick={() => signAgent(agent.id)}>{t('market.signAgent')}</button>
                 </div>
               </div>
             ))}
@@ -127,7 +129,7 @@ export function MarketScreen() {
         ) : (
           <Empty>{t('market.noAgent')}</Empty>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }

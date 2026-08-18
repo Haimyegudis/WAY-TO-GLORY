@@ -1,0 +1,488 @@
+{
+  "eng_liverpool_fc": {
+    "clubId": "eng_liverpool_fc",
+    "missing": true
+  },
+  "eng_aston_villa_fc": {
+    "clubId": "eng_aston_villa_fc",
+    "missing": true
+  },
+  "eng_afc_bournemouth": {
+    "clubId": "eng_afc_bournemouth",
+    "missing": true
+  },
+  "eng_fulham_fc": {
+    "clubId": "eng_fulham_fc",
+    "title": "Fulham F.C.",
+    "file": "eng_fulham_fc.png",
+    "color": "#cc0000"
+  },
+  "eng_newcastle_united_fc": {
+    "clubId": "eng_newcastle_united_fc",
+    "title": "Newcastle United F.C.",
+    "file": "eng_newcastle_united_fc.png",
+    "color": "#00b6f1"
+  },
+  "eng_brighton_hove_albion_fc": {
+    "clubId": "eng_brighton_hove_albion_fc",
+    "title": "Brighton & Hove Albion W.F.C.",
+    "file": "eng_brighton_hove_albion_fc.png",
+    "color": "#004a99"
+  },
+  "eng_tottenham_hotspur_fc": {
+    "clubId": "eng_tottenham_hotspur_fc",
+    "missing": true
+  },
+  "eng_west_ham_united_fc": {
+    "clubId": "eng_west_ham_united_fc",
+    "missing": true
+  },
+  "eng_sunderland_afc": {
+    "clubId": "eng_sunderland_afc",
+    "missing": true
+  },
+  "eng_burnley_fc": {
+    "clubId": "eng_burnley_fc",
+    "title": "Burnley F.C.",
+    "file": "eng_burnley_fc.png",
+    "color": "#5f0041"
+  },
+  "eng_wolverhampton_wanderers_fc": {
+    "clubId": "eng_wolverhampton_wanderers_fc",
+    "title": "Wolverhampton Wanderers F.C.",
+    "file": "eng_wolverhampton_wanderers_fc.png",
+    "color": "#fdb913"
+  },
+  "eng_manchester_city_fc": {
+    "clubId": "eng_manchester_city_fc",
+    "title": "Manchester City F.C.",
+    "file": "eng_manchester_city_fc.png",
+    "color": "#01295f"
+  },
+  "eng_nottingham_forest_fc": {
+    "clubId": "eng_nottingham_forest_fc",
+    "title": "Nottingham Forest F.C.",
+    "file": "eng_nottingham_forest_fc.png",
+    "color": "#dd0000"
+  },
+  "eng_brentford_fc": {
+    "clubId": "eng_brentford_fc",
+    "missing": true
+  },
+  "eng_chelsea_fc": {
+    "clubId": "eng_chelsea_fc",
+    "missing": true
+  },
+  "eng_crystal_palace_fc": {
+    "clubId": "eng_crystal_palace_fc",
+    "missing": true
+  },
+  "eng_arsenal_fc": {
+    "clubId": "eng_arsenal_fc",
+    "title": "Arsenal F.C.",
+    "file": "eng_arsenal_fc.png",
+    "color": "#e50107"
+  },
+  "eng_manchester_united_fc": {
+    "clubId": "eng_manchester_united_fc",
+    "title": "F.C. United of Manchester",
+    "file": "eng_manchester_united_fc.png",
+    "color": "#e11f27"
+  },
+  "eng_leeds_united_fc": {
+    "clubId": "eng_leeds_united_fc",
+    "title": "Leeds United F.C.",
+    "file": "eng_leeds_united_fc.png",
+    "color": "#ffde1b"
+  },
+  "eng_ipswich_town_fc": {
+    "clubId": "eng_ipswich_town_fc",
+    "title": "Ipswich Town F.C.",
+    "file": "eng_ipswich_town_fc.png",
+    "color": "#123d88"
+  },
+  "eng_charlton_athletic_fc": {
+    "clubId": "eng_charlton_athletic_fc",
+    "title": "Charlton Athletic F.C.",
+    "file": "eng_charlton_athletic_fc.png",
+    "color": "#c42a2b"
+  },
+  "eng_everton_fc": {
+    "clubId": "eng_everton_fc",
+    "missing": true
+  },
+  "eng_birmingham_city_fc": {
+    "clubId": "eng_birmingham_city_fc",
+    "missing": true
+  },
+  "eng_watford_fc": {
+    "clubId": "eng_watford_fc",
+    "missing": true
+  },
+  "eng_coventry_city_fc": {
+    "clubId": "eng_coventry_city_fc",
+    "title": "Coventry City F.C.",
+    "file": "eng_coventry_city_fc.png",
+    "color": "#bc8c27"
+  },
+  "eng_wrexham_afc": {
+    "clubId": "eng_wrexham_afc",
+    "title": "Wrexham A.F.C.",
+    "file": "eng_wrexham_afc.png",
+    "color": "#007a4e"
+  },
+  "eng_southampton_fc": {
+    "clubId": "eng_southampton_fc",
+    "title": "Southampton F.C.",
+    "file": "eng_southampton_fc.png",
+    "color": "#ed1a3b"
+  },
+  "eng_hull_city_afc": {
+    "clubId": "eng_hull_city_afc",
+    "missing": true
+  },
+  "eng_middlesbrough_fc": {
+    "clubId": "eng_middlesbrough_fc",
+    "missing": true
+  },
+  "eng_swansea_city_afc": {
+    "clubId": "eng_swansea_city_afc",
+    "missing": true
+  },
+  "eng_norwich_city_fc": {
+    "clubId": "eng_norwich_city_fc",
+    "missing": true
+  },
+  "eng_portsmouth_fc": {
+    "clubId": "eng_portsmouth_fc",
+    "title": "Portsmouth F.C.",
+    "file": "eng_portsmouth_fc.png",
+    "color": "#293f9c"
+  },
+  "eng_millwall_fc": {
+    "clubId": "eng_millwall_fc",
+    "missing": true
+  },
+  "eng_oxford_united_fc": {
+    "clubId": "eng_oxford_united_fc",
+    "missing": true
+  },
+  "eng_queens_park_rangers_fc": {
+    "clubId": "eng_queens_park_rangers_fc",
+    "missing": true
+  },
+  "eng_preston_north_end_fc": {
+    "clubId": "eng_preston_north_end_fc",
+    "missing": true
+  },
+  "eng_stoke_city_fc": {
+    "clubId": "eng_stoke_city_fc",
+    "missing": true
+  },
+  "eng_west_bromwich_albion_fc": {
+    "clubId": "eng_west_bromwich_albion_fc",
+    "title": "West Bromwich Albion F.C.",
+    "file": "eng_west_bromwich_albion_fc.png",
+    "color": "#091453"
+  },
+  "eng_sheffield_united_fc": {
+    "clubId": "eng_sheffield_united_fc",
+    "title": "Sheffield United F.C.",
+    "file": "eng_sheffield_united_fc.png",
+    "color": "#ec2227"
+  },
+  "eng_bristol_city_fc": {
+    "clubId": "eng_bristol_city_fc",
+    "title": "Bristol City F.C.",
+    "file": "eng_bristol_city_fc.png",
+    "color": "#e21a23"
+  },
+  "eng_leicester_city_fc": {
+    "clubId": "eng_leicester_city_fc",
+    "title": "Leicester City F.C.",
+    "file": "eng_leicester_city_fc.png",
+    "color": "#0153a0"
+  },
+  "eng_sheffield_wednesday_fc": {
+    "clubId": "eng_sheffield_wednesday_fc",
+    "title": "Sheffield Wednesday F.C.",
+    "file": "eng_sheffield_wednesday_fc.png",
+    "color": "#002fa1"
+  },
+  "eng_luton_town": {
+    "clubId": "eng_luton_town",
+    "title": "Luton Town F.C.",
+    "file": "eng_luton_town.png",
+    "color": "#002d61"
+  },
+  "eng_derby_county_fc": {
+    "clubId": "eng_derby_county_fc",
+    "missing": true
+  },
+  "eng_blackburn_rovers_fc": {
+    "clubId": "eng_blackburn_rovers_fc",
+    "missing": true
+  },
+  "eng_afc_wimbledon": {
+    "clubId": "eng_afc_wimbledon",
+    "missing": true
+  },
+  "eng_cardiff_city": {
+    "clubId": "eng_cardiff_city",
+    "missing": true
+  },
+  "eng_stevenage_fc": {
+    "clubId": "eng_stevenage_fc",
+    "title": "Stevenage F.C.",
+    "file": "eng_stevenage_fc.png",
+    "color": "#ab162d"
+  },
+  "eng_blackpool_fc": {
+    "clubId": "eng_blackpool_fc",
+    "title": "Blackpool F.C.",
+    "file": "eng_blackpool_fc.png",
+    "color": "#f68712"
+  },
+  "eng_bradford_city": {
+    "clubId": "eng_bradford_city",
+    "title": "Bradford City A.F.C.",
+    "file": "eng_bradford_city.png",
+    "color": "#f68f1b"
+  },
+  "eng_peterborough_united": {
+    "clubId": "eng_peterborough_united",
+    "missing": true
+  },
+  "eng_burton_albion": {
+    "clubId": "eng_burton_albion",
+    "missing": true
+  },
+  "eng_wycombe_wanderers": {
+    "clubId": "eng_wycombe_wanderers",
+    "missing": true
+  },
+  "eng_mansfield_town": {
+    "clubId": "eng_mansfield_town",
+    "missing": true
+  },
+  "eng_exeter_city": {
+    "clubId": "eng_exeter_city",
+    "title": "Exeter City F.C.",
+    "file": "eng_exeter_city.png",
+    "color": "#ed1944"
+  },
+  "eng_leyton_orient": {
+    "clubId": "eng_leyton_orient",
+    "title": "Leyton Orient F.C.",
+    "file": "eng_leyton_orient.png",
+    "color": "#ec2227"
+  },
+  "eng_lincoln_city": {
+    "clubId": "eng_lincoln_city",
+    "title": "Lincoln City F.C.",
+    "file": "eng_lincoln_city.png",
+    "color": "#e62831"
+  },
+  "eng_doncaster_rovers": {
+    "clubId": "eng_doncaster_rovers",
+    "title": "Doncaster Rovers F.C.",
+    "file": "eng_doncaster_rovers.png",
+    "color": "#af9f4c"
+  },
+  "eng_huddersfield_town": {
+    "clubId": "eng_huddersfield_town",
+    "missing": true
+  },
+  "eng_reading_fc": {
+    "clubId": "eng_reading_fc",
+    "missing": true
+  },
+  "eng_plymouth_argyle": {
+    "clubId": "eng_plymouth_argyle",
+    "missing": true
+  },
+  "eng_barnsley_fc": {
+    "clubId": "eng_barnsley_fc",
+    "missing": true
+  },
+  "eng_rotherham_united": {
+    "clubId": "eng_rotherham_united",
+    "missing": true
+  },
+  "eng_port_vale_fc": {
+    "clubId": "eng_port_vale_fc",
+    "missing": true
+  },
+  "eng_wigan_athletic": {
+    "clubId": "eng_wigan_athletic",
+    "missing": true
+  },
+  "eng_northampton_town": {
+    "clubId": "eng_northampton_town",
+    "missing": true
+  },
+  "eng_stockport_county": {
+    "clubId": "eng_stockport_county",
+    "missing": true
+  },
+  "esp_girona_fc": {
+    "clubId": "esp_girona_fc",
+    "title": "Girona FC",
+    "file": "esp_girona_fc.png",
+    "color": "#cf0d29"
+  },
+  "esp_villarreal_cf": {
+    "clubId": "esp_villarreal_cf",
+    "title": "Villarreal CF B",
+    "file": "esp_villarreal_cf.png",
+    "color": "#015187"
+  },
+  "esp_real_oviedo": {
+    "clubId": "esp_real_oviedo",
+    "title": "Real Oviedo",
+    "file": "esp_real_oviedo.png",
+    "color": "#ffd200"
+  },
+  "eng_bolton_wanderers": {
+    "clubId": "eng_bolton_wanderers",
+    "missing": true
+  },
+  "esp_rayo_vallecano_de_madrid": {
+    "clubId": "esp_rayo_vallecano_de_madrid",
+    "missing": true
+  },
+  "esp_rcd_mallorca": {
+    "clubId": "esp_rcd_mallorca",
+    "missing": true
+  },
+  "esp_fc_barcelona": {
+    "clubId": "esp_fc_barcelona",
+    "missing": true
+  },
+  "esp_deportivo_alaves": {
+    "clubId": "esp_deportivo_alaves",
+    "title": "Deportivo Alavés",
+    "file": "esp_deportivo_alaves.png",
+    "color": "#0232a0"
+  },
+  "esp_levante_ud": {
+    "clubId": "esp_levante_ud",
+    "missing": true
+  },
+  "esp_real_sociedad_de_futbol": {
+    "clubId": "esp_real_sociedad_de_futbol",
+    "missing": true
+  },
+  "esp_valencia_cf": {
+    "clubId": "esp_valencia_cf",
+    "missing": true
+  },
+  "esp_rc_celta_de_vigo": {
+    "clubId": "esp_rc_celta_de_vigo",
+    "missing": true
+  },
+  "esp_athletic_club": {
+    "clubId": "esp_athletic_club",
+    "title": "St Patrick's Athletic F.C.",
+    "file": "esp_athletic_club.png",
+    "color": "#ed1d25"
+  },
+  "esp_rcd_espanyol_de_barcelona": {
+    "clubId": "esp_rcd_espanyol_de_barcelona",
+    "title": "RCD Espanyol",
+    "file": "esp_rcd_espanyol_de_barcelona.png",
+    "color": "#e01217"
+  },
+  "esp_sevilla_fc": {
+    "clubId": "esp_sevilla_fc",
+    "title": "Sevilla FC",
+    "file": "esp_sevilla_fc.png",
+    "color": "#d70f21"
+  },
+  "esp_club_atletico_de_madrid": {
+    "clubId": "esp_club_atletico_de_madrid",
+    "title": "Atlético Madrid",
+    "file": "esp_club_atletico_de_madrid.png",
+    "color": "#282a6f"
+  },
+  "esp_getafe_cf": {
+    "clubId": "esp_getafe_cf",
+    "missing": true
+  },
+  "esp_real_betis_balompie": {
+    "clubId": "esp_real_betis_balompie",
+    "missing": true
+  },
+  "esp_ca_osasuna": {
+    "clubId": "esp_ca_osasuna",
+    "title": "CA Osasuna",
+    "file": "esp_ca_osasuna.png",
+    "color": "#caa946"
+  },
+  "esp_real_madrid_cf": {
+    "clubId": "esp_real_madrid_cf",
+    "missing": true
+  },
+  "esp_elche_cf": {
+    "clubId": "esp_elche_cf",
+    "missing": true
+  },
+  "esp_burgos_cf": {
+    "clubId": "esp_burgos_cf",
+    "missing": true
+  },
+  "esp_cultural_leonesa": {
+    "clubId": "esp_cultural_leonesa",
+    "title": "Cultural y Deportiva Leonesa",
+    "file": "esp_cultural_leonesa.png",
+    "color": "#e4032c"
+  },
+  "esp_real_valladolid": {
+    "clubId": "esp_real_valladolid",
+    "title": "Real Valladolid",
+    "file": "esp_real_valladolid.png",
+    "color": "#ed1d29"
+  },
+  "esp_ad_ceuta_fc": {
+    "clubId": "esp_ad_ceuta_fc",
+    "title": "AD Ceuta FC",
+    "file": "esp_ad_ceuta_fc.png",
+    "color": "#fb0407"
+  },
+  "esp_racing_santander": {
+    "clubId": "esp_racing_santander",
+    "missing": true
+  },
+  "esp_cd_castellon": {
+    "clubId": "esp_cd_castellon",
+    "missing": true
+  },
+  "esp_malaga_cf": {
+    "clubId": "esp_malaga_cf",
+    "missing": true
+  },
+  "esp_sd_eibar": {
+    "clubId": "esp_sd_eibar",
+    "title": "SD Eibar",
+    "file": "esp_sd_eibar.png",
+    "color": "#02306b"
+  },
+  "esp_granada_cf": {
+    "clubId": "esp_granada_cf",
+    "missing": true
+  },
+  "esp_deportivo_la_coruna": {
+    "clubId": "esp_deportivo_la_coruna",
+    "missing": true
+  },
+  "esp_real_sociedad_b": {
+    "clubId": "esp_real_sociedad_b",
+    "missing": true
+  },
+  "esp_cadiz_cf": {
+    "clubId": "esp_cadiz_cf",
+    "title": "Cádiz CF",
+    "file": "esp_cadiz_cf.png",
+    "color": "#fde506"
+  }
+}

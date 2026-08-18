@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { saveSizeBytes, serialize } from '@fc/engine';
 import { LANG_LABEL, useLang, useT, type Lang } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
-import { Panel } from '../components/ui.js';
+import { Card } from '../components/ui.js';
 import { CloudPanel } from '../cloud/CloudPanel.js';
 
 export function SettingsScreen() {
@@ -29,12 +29,12 @@ export function SettingsScreen() {
       <header className="row-between">
         <div>
           <p className="eyebrow">{t('settings.title')}</p>
-          <h1 className="display" style={{ fontSize: 26, marginBlockStart: 4 }}>{t('app.title')}</h1>
+          <h1 className="title">{t('app.title')}</h1>
         </div>
         <button className="eyebrow" onClick={() => goto('hub')}>← {t('nav.hub')}</button>
       </header>
 
-      <Panel title={t('settings.language')}>
+      <Card title={t('settings.language')}>
         <div className="seg">
           {(Object.keys(LANG_LABEL) as Lang[]).map((code) => (
             <button key={code} aria-pressed={lang === code} onClick={() => setLang(code)}>
@@ -42,11 +42,11 @@ export function SettingsScreen() {
             </button>
           ))}
         </div>
-      </Panel>
+      </Card>
 
       <CloudPanel />
 
-      <Panel title={t('settings.dev')}>
+      <Card title={t('settings.dev')}>
         <div className="stack" style={{ gap: 8 }}>
           <div className="row-between">
             <span className="eyebrow">{t('settings.seed')}</span>
@@ -56,16 +56,16 @@ export function SettingsScreen() {
             <span className="eyebrow">{t('settings.saveSize')}</span>
             <span className="num">{Math.round(saveSizeBytes(state) / 1024)} KB</span>
           </div>
-          <button className="btn btn-ghost btn-block" onClick={download}>{t('settings.export')}</button>
+          <button className="btn btn-quiet btn-block" onClick={download}>{t('settings.export')}</button>
         </div>
-      </Panel>
+      </Card>
 
-      <Panel>
+      <Card>
         {confirming ? (
           <div className="stack">
             <p className="headline">{t('action.deleteCareer')}?</p>
             <div className="row" style={{ gap: 8 }}>
-              <button className="btn btn-ghost grow" onClick={() => setConfirming(false)}>{t('action.cancel')}</button>
+              <button className="btn btn-quiet grow" onClick={() => setConfirming(false)}>{t('action.cancel')}</button>
               <button className="btn btn-danger grow" onClick={() => void deleteSave()}>{t('action.confirm')}</button>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function SettingsScreen() {
             {t('action.deleteCareer')}
           </button>
         )}
-      </Panel>
+      </Card>
 
       <p className="faint" style={{ fontSize: 11 }}>{t('home.credits')}</p>
     </div>

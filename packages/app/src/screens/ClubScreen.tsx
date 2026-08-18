@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { useT } from '../i18n/index.js';
+import { useLang, useT } from '../i18n/index.js';
+import { clubName, clubShortName } from '../lib/club.js';
+import { competitionName } from '../lib/names.js';
 import { useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
-import { Empty, Meter, Panel } from '../components/ui.js';
+import { Card, Crest, Empty, Meter } from '../components/ui.js';
 
 type Tab = 'table' | 'squad' | 'scorers';
 
 export function ClubScreen() {
   const t = useT();
+  const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
   const [tab, setTab] = useState<Tab>('table');
   const home = myClub(state);
@@ -22,20 +25,23 @@ export function ClubScreen() {
 
   return (
     <div className="screen stack">
-      <header>
-        <p className="eyebrow">{t('club.title')}</p>
-        <h1 className="display" style={{ fontSize: 26, marginBlockStart: 4 }}>{home.name}</h1>
-        <p className="faint" style={{ fontSize: 12 }}>{home.city}</p>
+      <header className="row" style={{ gap: 12 }}>
+        <Crest club={home} size="lg" />
+        <div>
+          <p className="eyebrow">{t('club.title')}</p>
+          <h1 className="title">{clubName(home, lang)}</h1>
+          <p className="faint" style={{ fontSize: 12 }}>{home.city}</p>
+        </div>
       </header>
 
-      <Panel>
+      <Card>
         <div className="stack" style={{ gap: 9 }}>
           <Bar label={t('club.facilities')} value={home.training} />
           <Bar label={t('club.academyQuality')} value={home.academy} />
           <Bar label={t('club.finances')} value={home.finances} />
           <Bar label={t('academy.reputation')} value={home.reputation} />
         </div>
-      </Panel>
+      </Card>
 
       <div className="seg">
         <button aria-pressed={tab === 'table'} onClick={() => setTab('table')}>{t('club.table')}</button>
@@ -64,6 +70,7 @@ function Bar({ label, value }: { label: string; value: number }) {
 
 function LeagueTable() {
   const t = useT();
+  const lang = useLang((x) => x.lang);
   const state = useGame((s) => s.state)!;
   const rows = table(state);
   const comp = myCompetitionState(state);
@@ -72,7 +79,7 @@ function LeagueTable() {
   if (rows.length === 0) return <Empty>—</Empty>;
 
   return (
-    <Panel title={comp?.competitionId}>
+    <Card title={comp?.competitionId}>
       <div className="scroll-x">
         <table className="tbl">
           <thead>
@@ -91,7 +98,14 @@ function LeagueTable() {
             {rows.map((row, i) => (
               <tr key={row.clubId} className={row.clubId === mine ? 'me' : ''}>
                 <td className="n">{i + 1}</td>
-                <td>{club(state, row.clubId)?.shortName ?? row.clubId}</td>
+                <td className="start">
+                  <span className="row" style={{ gap: 7, minWidth: 0 }}>
+                    <Crest club={club(state, row.clubId)} size="sm" />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {clubShortName(club(state, row.clubId), lang) || row.clubId}
+                    </span>
+                  </span>
+                </td>
                 <td className="n">{row.played}</td>
                 <td className="n">{row.won}</td>
                 <td className="n">{row.drawn}</td>
@@ -103,7 +117,7 @@ function LeagueTable() {
           </tbody>
         </table>
       </div>
-    </Panel>
+    </Card>
   );
 }
 
@@ -115,7 +129,7 @@ function SquadList() {
   if (players.length === 0) return <Empty>—</Empty>;
 
   return (
-    <Panel title={t('club.squad')}>
+    <Card title={t('club.squad')}>
       <div className="scroll-x">
         <table className="tbl">
           <thead>
@@ -141,7 +155,7 @@ function SquadList() {
           </tbody>
         </table>
       </div>
-    </Panel>
+    </Card>
   );
 }
 
@@ -153,7 +167,7 @@ function Scorers() {
   if (rows.length === 0) return <Empty>—</Empty>;
 
   return (
-    <Panel title={t('club.scorers')}>
+    <Card title={t('club.scorers')}>
       <div className="scroll-x">
         <table className="tbl">
           <thead>
@@ -176,6 +190,6 @@ function Scorers() {
           </tbody>
         </table>
       </div>
-    </Panel>
+    </Card>
   );
 }

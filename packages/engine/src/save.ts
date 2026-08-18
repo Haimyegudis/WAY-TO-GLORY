@@ -14,7 +14,7 @@ export interface SaveEnvelope {
  */
 export function compact(state: CareerState): CareerState {
   const season = state.world.season;
-  const recentMatches = state.matchLog.filter((m) => m.season >= season - 1).slice(0, 60);
+  const recentMatches = state.matchLog.filter((m) => m.season >= season - 1).slice(0, 140);
   return {
     ...state,
     matchLog: recentMatches.map((m) => (m.season < season ? { ...m, events: undefined } : m)),

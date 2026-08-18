@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { POSITIONS, type Foot, type Position } from '@fc/engine';
-import { useT } from '../i18n/index.js';
+import type { Foot, Position } from '@fc/engine';
+import { useLang, useT } from '../i18n/index.js';
+import { countryName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
-import { Panel } from '../components/ui.js';
+import { Card } from '../components/ui.js';
+import { PitchPicker } from '../components/PitchPicker.js';
 
 const STEPS = ['create.identity', 'create.physical', 'create.position', 'create.world'] as const;
 
 export function CreatePlayer() {
   const t = useT();
+  const lang = useLang((s) => s.lang);
   const pack = getPack();
   const createPlayer = useGame((s) => s.createPlayer);
   const cancel = useGame((s) => s.cancelCreation);
@@ -25,6 +28,7 @@ export function CreatePlayer() {
   const [secondaryPos, setSecondaryPos] = useState<Position | ''>('CM');
   const [startCountry, setStartCountry] = useState(pack.countries[0]?.code ?? 'ISR');
   const [seed, setSeed] = useState('');
+  const [picking, setPicking] = useState<'primary' | 'secondary'>('primary');
 
   const canAdvance = step !== 0 || (firstName.trim().length > 0 && lastName.trim().length > 0);
 
@@ -50,11 +54,11 @@ export function CreatePlayer() {
       <div className="screen stack" style={{ paddingBottom: 120 }}>
         <header>
           <p className="eyebrow">{t('create.step', { step: step + 1, total: STEPS.length })}</p>
-          <h1 className="display" style={{ fontSize: 30, marginBlockStart: 6 }}>{t('create.title')}</h1>
+          <h1 className="title">{t('create.title')}</h1>
         </header>
 
         {step === 0 && (
-          <Panel title={t('create.identity')}>
+          <Card title={t('create.identity')}>
             <div className="stack">
               <div className="field">
                 <label htmlFor="fn">{t('create.firstName')}</label>
@@ -68,7 +72,7 @@ export function CreatePlayer() {
                 <label htmlFor="bc">{t('create.country')}</label>
                 <select id="bc" value={birthCountry} onChange={(e) => setBirthCountry(e.target.value)}>
                   {pack.countries.map((c) => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
+                    <option key={c.code} value={c.code}>{countryName(c, lang)}</option>
                   ))}
                 </select>
               </div>
@@ -77,16 +81,16 @@ export function CreatePlayer() {
                 <select id="sc" value={secondCitizenship} onChange={(e) => setSecondCitizenship(e.target.value)}>
                   <option value="">{t('create.none')}</option>
                   {pack.countries.filter((c) => c.code !== birthCountry).map((c) => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
+                    <option key={c.code} value={c.code}>{countryName(c, lang)}</option>
                   ))}
                 </select>
               </div>
             </div>
-          </Panel>
+          </Card>
         )}
 
         {step === 1 && (
-          <Panel title={t('create.physical')}>
+          <Card title={t('create.physical')}>
             <div className="stack">
               <NumberField label={t('create.age')} value={age} min={14} max={16} onChange={setAge} />
               <NumberField label={t('create.height')} value={heightCm} min={160} max={205} onChange={setHeightCm} />
@@ -100,37 +104,58 @@ export function CreatePlayer() {
                 </div>
               </div>
             </div>
-          </Panel>
+          </Card>
         )}
 
         {step === 2 && (
-          <Panel title={t('create.position')}>
+          <Card title={t('create.position')}>
             <div className="stack">
-              <div>
-                <p className="eyebrow" style={{ marginBlockEnd: 8 }}>{t('create.primaryPos')}</p>
-                <PositionGrid value={primaryPos} onChange={setPrimaryPos} />
+              <div className="seg">
+                <button aria-pressed={picking === 'primary'} onClick={() => setPicking('primary')}>
+                  {t('create.primaryPos')}
+                </button>
+                <button aria-pressed={picking === 'secondary'} onClick={() => setPicking('secondary')}>
+                  {t('create.secondaryPos')}
+                </button>
               </div>
-              <div className="field">
-                <label htmlFor="sp">{t('create.secondaryPos')}</label>
-                <select id="sp" value={secondaryPos} onChange={(e) => setSecondaryPos(e.target.value as Position | '')}>
-                  <option value="">{t('create.none')}</option>
-                  {POSITIONS.filter((p) => p !== primaryPos).map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
+
+              <PitchPicker
+                value={picking === 'primary' ? primaryPos : (secondaryPos || primaryPos)}
+                secondary={picking === 'primary' ? secondaryPos : primaryPos}
+                onPick={(pos) => {
+                  if (picking === 'primary') {
+                    setPrimaryPos(pos);
+                    if (secondaryPos === pos) setSecondaryPos('');
+                  } else {
+                    setSecondaryPos(pos === primaryPos ? '' : pos);
+                  }
+                }}
+              />
+
+              <div className="row-between">
+                <span className="faint" style={{ fontSize: 12.5 }}>{t('create.primaryPos')}</span>
+                <span className="chip chip-pink">{primaryPos} · {t(`pos.${primaryPos}`)}</span>
+              </div>
+              <div className="row-between">
+                <span className="faint" style={{ fontSize: 12.5 }}>{t('create.secondaryPos')}</span>
+                {secondaryPos ? (
+                  <span className="chip chip-amber">{secondaryPos} · {t(`pos.${secondaryPos}`)}</span>
+                ) : (
+                  <button className="chip" onClick={() => setPicking('secondary')}>{t('create.none')}</button>
+                )}
               </div>
             </div>
-          </Panel>
+          </Card>
         )}
 
         {step === 3 && (
-          <Panel title={t('create.world')}>
+          <Card title={t('create.world')}>
             <div className="stack">
               <div className="field">
                 <label htmlFor="start">{t('create.startCountry')}</label>
                 <select id="start" value={startCountry} onChange={(e) => setStartCountry(e.target.value)}>
                   {pack.countries.map((c) => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
+                    <option key={c.code} value={c.code}>{countryName(c, lang)}</option>
                   ))}
                 </select>
               </div>
@@ -140,11 +165,11 @@ export function CreatePlayer() {
                 <span className="faint" style={{ fontSize: 11 }}>{t('create.seedHint')}</span>
               </div>
             </div>
-          </Panel>
+          </Card>
         )}
 
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-ghost" onClick={() => (step === 0 ? cancel() : setStep(step - 1))}>
+          <button className="btn btn-quiet" onClick={() => (step === 0 ? cancel() : setStep(step - 1))}>
             {t('action.back')}
           </button>
           {step < STEPS.length - 1 ? (
@@ -165,46 +190,11 @@ function NumberField({ label, value, min, max, onChange }: { label: string; valu
     <div className="field">
       <label>{label}</label>
       <div className="row">
-        <button className="btn btn-ghost" onClick={() => onChange(Math.max(min, value - 1))}>−</button>
+        <button className="btn btn-quiet" onClick={() => onChange(Math.max(min, value - 1))}>−</button>
         <span className="num grow" style={{ textAlign: 'center', fontSize: 20 }}>{value}</span>
-        <button className="btn btn-ghost" onClick={() => onChange(Math.min(max, value + 1))}>+</button>
+        <button className="btn btn-quiet" onClick={() => onChange(Math.min(max, value + 1))}>+</button>
       </div>
     </div>
   );
 }
 
-const POSITION_ROWS: Position[][] = [
-  ['LW', 'ST', 'CF', 'RW'],
-  ['LM', 'CAM', 'CM', 'RM'],
-  ['LWB', 'CDM', 'CB', 'RWB'],
-  ['LB', 'GK', 'RB'],
-];
-
-function PositionGrid({ value, onChange }: { value: Position; onChange: (p: Position) => void }) {
-  return (
-    <div className="stack pitch-lines" style={{ gap: 6, padding: 8, border: '1px solid var(--chalk-line)' }}>
-      {POSITION_ROWS.map((row, i) => (
-        <div key={i} className="row" style={{ gap: 6, position: 'relative', zIndex: 1 }}>
-          {row.map((pos) => (
-            <button
-              key={pos}
-              onClick={() => onChange(pos)}
-              className="num"
-              style={{
-                flex: 1,
-                padding: '10px 4px',
-                fontSize: 12,
-                borderRadius: 2,
-                border: '1px solid var(--chalk-line-strong)',
-                background: value === pos ? 'var(--flood)' : 'rgba(238,244,238,0.03)',
-                color: value === pos ? 'var(--pitch-900)' : 'var(--ink-dim)',
-              }}
-            >
-              {pos}
-            </button>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}

@@ -1,7 +1,8 @@
-import { formatSeason, useT } from '../i18n/index.js';
+import { formatSeason, useLang, useT } from '../i18n/index.js';
+import { clubShortName } from '../lib/club.js';
 import { useGame } from '../state/store.js';
 import { club, recentMatches } from '../state/selectors.js';
-import { Empty, Panel, RatingBadge, Stat } from '../components/ui.js';
+import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 
 /** Three phrasings per repeated beat, chosen by minute, so reports do not repeat verbatim. */
 function variantKey(key: string, minute: number): string {
@@ -13,6 +14,7 @@ function variantKey(key: string, minute: number): string {
 
 export function MatchCentre() {
   const t = useT();
+  const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
   const match = state.lastMatch;
 
@@ -52,28 +54,30 @@ export function MatchCentre() {
         </span>
       </div>
 
-      <Panel lit>
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <p className="display" style={{ fontSize: 17 }}>{home?.shortName ?? match.homeClubId}</p>
+      <Card lit>
+        <div className="scoreline">
+          <div className="side">
+            <Crest club={home} size="lg" />
+            <span>{clubShortName(home, lang) || match.homeClubId}</span>
           </div>
-          <div className="num" style={{ fontSize: 34, letterSpacing: '0.04em' }} dir="ltr">
+          <div className="score">
             {match.homeGoals}–{match.awayGoals}
           </div>
-          <div style={{ flex: 1, textAlign: 'end' }}>
-            <p className="display" style={{ fontSize: 17 }}>{away?.shortName ?? match.awayClubId}</p>
+          <div className="side away">
+            <Crest club={away} size="lg" />
+            <span>{clubShortName(away, lang) || match.awayClubId}</span>
           </div>
         </div>
         {match.importance && match.importance !== 'normal' && (
-          <p className="eyebrow" style={{ textAlign: 'center', marginBlockStart: 10, color: 'var(--flood)' }}>
+          <p className="eyebrow" style={{ textAlign: 'center', marginBlockStart: 10, color: 'var(--amber)' }}>
             {t(`match.importance.${match.importance}`)}
           </p>
         )}
-      </Panel>
+      </Card>
 
       {line?.played ? (
         <>
-          <Panel title={t('match.rating')}>
+          <Card title={t('match.rating')}>
             <div className="row-between" style={{ marginBlockEnd: 12 }}>
               <div className="row" style={{ gap: 8 }}>
                 <span className="chip">{line.position}</span>
@@ -84,16 +88,16 @@ export function MatchCentre() {
                 <RatingBadge rating={line.rating} />
               </span>
             </div>
-            <div className="statgrid">
+            <div className="statrow">
               <Stat label={t('match.goals')} value={line.goals} />
               <Stat label={t('match.assists')} value={line.assists} />
               <Stat label={t('match.shots')} value={line.shots} />
               <Stat label={line.saves > 0 ? t('match.saves') : t('match.keyPasses')} value={line.saves > 0 ? line.saves : line.keyPasses} />
             </div>
-          </Panel>
+          </Card>
 
           {events.length > 0 && (
-            <Panel title="90′">
+            <Card title="90′">
               <div className="timeline">
                 {events.map((event, i) => {
                   const good = event.type === 'goal' || event.type === 'assist' || event.type === 'save' || event.type === 'tackle';
@@ -105,7 +109,7 @@ export function MatchCentre() {
                       style={{ animationDelay: `${i * 60}ms` }}
                     >
                       <span className="tl-minute">{event.minute}′</span>
-                      <p style={{ fontSize: 13.5, color: event.byUser ? 'var(--ink)' : 'var(--ink-dim)' }}>
+                      <p style={{ fontSize: 13.5, color: event.byUser ? 'var(--text)' : 'var(--muted)' }}>
                         {t(variantKey(event.detailKey ?? `match.event.${event.type}`, event.minute))}
                       </p>
                       {event.score && (
@@ -117,21 +121,21 @@ export function MatchCentre() {
                   );
                 })}
               </div>
-            </Panel>
+            </Card>
           )}
         </>
       ) : (
-        <Panel>
+        <Card>
           <p className="headline">{t('match.didNotPlay')}</p>
           {line?.reasonNotPlayed && (
             <p className="muted" style={{ marginBlockStart: 6, fontSize: 13.5 }}>
               {t(`match.reason.${line.reasonNotPlayed}`)}
             </p>
           )}
-        </Panel>
+        </Card>
       )}
 
-      <Panel title={t('club.fixtures')}>
+      <Card title={t('club.fixtures')}>
         <ul className="list">
           {recentMatches(state).map((m) => {
             const h = club(state, m.homeClubId);
@@ -139,8 +143,10 @@ export function MatchCentre() {
             return (
               <li key={m.id} className="list-item">
                 <span className="faint num" style={{ fontSize: 11, minWidth: 26 }}>{m.week}</span>
-                <span className="grow" style={{ fontSize: 13 }} dir="ltr">
-                  {h?.shortName} <span className="num">{m.homeGoals}–{m.awayGoals}</span> {a?.shortName}
+                <span className="grow row" style={{ fontSize: 13, gap: 6, minWidth: 0 }}>
+                  <Crest club={h} size="sm" />
+                  <span className="num">{m.homeGoals}–{m.awayGoals}</span>
+                  <Crest club={a} size="sm" />
                 </span>
                 {m.userLine?.played ? (
                   <RatingBadge rating={m.userLine.rating} />
@@ -151,7 +157,7 @@ export function MatchCentre() {
             );
           })}
         </ul>
-      </Panel>
+      </Card>
     </div>
   );
 }
