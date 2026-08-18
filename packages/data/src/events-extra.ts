@@ -68,7 +68,7 @@ export const EVENTS_EXTRA: CareerEventDef[] = [
   ev('fans_criticise_effort', 'media', 24, 30, { ageRange: [17, 38], maxMinutesSeasonPct: 0.75 }, [
     opt('fans_criticise_effort', 'answer_on_pitch', [e('form', 5), e('fatigue', 6), e('relationship', 3, 'fans')]),
     opt('fans_criticise_effort', 'answer_in_press', [e('relationship', -8, 'fans'), e('fame', 4), e('relationship', -3, 'manager')], 'risk.high'),
-    opt('fans_criticise_effort', 'say_nothing', [e('relationship', -2, 'fans'), e('personality', 2, 'pressureHandling')]),
+    opt('fans_criticise_effort', 'say_nothing', [e('relationship', -2, 'fans'), e('personality', 2, 'pressureHandling'), e('morale', -3)]),
   ]),
   ev('supporter_child_letter', 'personal', 18, 60, { ageRange: [18, 38] }, [
     opt('supporter_child_letter', 'reply', [e('relationship', 6, 'fans'), e('morale', 4)]),
@@ -163,7 +163,7 @@ export const EVENTS_EXTRA: CareerEventDef[] = [
 
   // ---------------------------------------------------------------- life
   ev('house_move', 'personal', 16, 70, { ageRange: [19, 36] }, [
-    opt('house_move', 'near_training', [e('fatigue', -8), e('personality', 2, 'professionalism'), e('money', -150000)]),
+    opt('house_move', 'near_training', [e('fatigue', -8), e('personality', 2, 'professionalism'), e('money', -150000), e('fitness', 3)]),
     opt('house_move', 'city_centre', [e('morale', 6), e('fame', 3), e('money', -220000)]),
   ]),
   ev('old_friend_asks_money', 'personal', 16, 60, { ageRange: [19, 38] }, [

@@ -1,13 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { Rng, clamp, interpolate } from '../src/rng.js';
 import { overall, ratingAt, tacticalFit } from '../src/positions.js';
-import { ageFactor, developWeek, headroom } from '../src/development.js';
+import { ageFactor, developWeek, headroom, updateCondition } from '../src/development.js';
+import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
 import { buildAttributes, generatePlayer } from '../src/generate.js';
 import { pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
 import { indexPack, validatePack } from '../src/data.js';
-import { advanceWeek, createCareer, currentOvr, getAcademyOffers, joinClub, userSquad } from '../src/career.js';
+import {
+  advanceWeek,
+  createCareer,
+  currentOvr,
+  getAcademyOffers,
+  joinClub,
+  mentalFactor,
+  userSquad,
+} from '../src/career.js';
 import { DEFAULT_INPUT, loadPack, startedCareer } from './helpers.js';
 import type { Player, TrainingPlan } from '../src/types.js';
 
@@ -392,6 +401,117 @@ describe('career', () => {
     const israel = pack.competitions.find((c) => c.id === 'il.1')!;
     const england = pack.competitions.find((c) => c.id === 'en.1')!;
     expect(israel.cards.yellowSuspensionThreshold).not.toBe(england.cards.yellowSuspensionThreshold);
+  });
+});
+
+
+describe('training and state feed performance', () => {
+  it('loses match sharpness on a light load and gains it on a heavy one', () => {
+    const pack = loadPack();
+    const index = indexPack(pack);
+    const rng = new Rng(3);
+    const make = () =>
+      generatePlayer(rng, index, { clubId: null, pos: 'CM', age: 24, targetOvr: 70, season: 2025, countryCode: 'ENG' });
+
+    const coasting = make();
+    const working = make();
+    coasting.condition.sharpness = 60;
+    working.condition.sharpness = 60;
+
+    for (let week = 0; week < 6; week++) {
+      updateCondition(coasting, { intensity: 'light', focus: 'balanced', diet: 'normal' }, 0);
+      updateCondition(working, { intensity: 'intensive', focus: 'balanced', diet: 'normal' }, 0);
+    }
+
+    expect(coasting.condition.sharpness).toBeLessThan(60);
+    expect(working.condition.sharpness).toBeGreaterThan(coasting.condition.sharpness);
+  });
+
+  it('makes a heavy load more tiring than a light one', () => {
+    const pack = loadPack();
+    const index = indexPack(pack);
+    const rng = new Rng(4);
+    const easy = generatePlayer(rng, index, { clubId: null, pos: 'CM', age: 24, targetOvr: 70, season: 2025, countryCode: 'ENG' });
+    const hard = generatePlayer(rng, index, { clubId: null, pos: 'CM', age: 24, targetOvr: 70, season: 2025, countryCode: 'ENG' });
+    easy.condition.fatigue = 30;
+    hard.condition.fatigue = 30;
+
+    for (let week = 0; week < 4; week++) {
+      updateCondition(easy, { intensity: 'light', focus: 'balanced', diet: 'normal' }, 90);
+      updateCondition(hard, { intensity: 'extreme', focus: 'balanced', diet: 'normal' }, 90);
+    }
+
+    expect(hard.condition.fatigue).toBeGreaterThan(easy.condition.fatigue);
+  });
+
+  it('drops the player a level when his head, the crowd and the manager are against him', () => {
+    const { state } = startedCareer();
+    state.player.morale = 85;
+    state.player.condition.sharpness = 85;
+    state.player.condition.fatigue = 10;
+    state.relationships = { manager: 75, teammates: 70, fans: 75, board: 60, media: 55 };
+    const settled = mentalFactor(state);
+
+    state.player.morale = 20;
+    state.player.condition.sharpness = 25;
+    state.player.condition.fatigue = 70;
+    state.relationships = { manager: 18, teammates: 22, fans: 15, board: 25, media: 30 };
+    const unsettled = mentalFactor(state);
+
+    expect(settled).toBeGreaterThan(1);
+    expect(unsettled).toBeLessThan(0.9);
+    expect(settled - unsettled).toBeGreaterThan(0.15);
+  });
+
+  it('leaves a player out once the manager has fallen out with him', () => {
+    const { state } = startedCareer();
+    expect(isFrozenOut(state)).toBe(false);
+    state.player.squadRole = 'starter';
+    state.relationships.manager = 10;
+    state.managerTrust = 10;
+    const consequences = evaluateConsequences(new Rng(1), state);
+    expect(consequences.some((c) => c.id === 'droppedFromSquad')).toBe(true);
+    expect(isFrozenOut(state)).toBe(true);
+  });
+
+  it('puts a player nobody wants on the transfer list, and takes him off when he wins them back', () => {
+    const { state } = startedCareer();
+    state.player.squadRole = 'starter';
+    state.relationships.manager = 20;
+    state.relationships.board = 20;
+    const rng = new Rng(9);
+    let listed = false;
+    for (let attempt = 0; attempt < 25 && !listed; attempt++) {
+      const consequences = evaluateConsequences(rng, state);
+      listed = consequences.some((c) => c.id === 'transferListed');
+    }
+    expect(listed).toBe(true);
+
+    state.relationships.manager = 70;
+    state.relationships.board = 70;
+    const back = evaluateConsequences(rng, state);
+    expect(back.some((c) => c.id === 'offTransferList')).toBe(true);
+  });
+
+  it('lets an apology repair a fallout', () => {
+    const { state } = startedCareer();
+    state.relationships.manager = 30;
+    state.flags['incidentWithManager'] = true;
+    const before = state.relationships.manager;
+    const result = performAction(new Rng(2), state, 'apologiseManager');
+    expect(result.changes.length).toBeGreaterThan(0);
+    expect(state.relationships.manager).toBeGreaterThan(before);
+  });
+
+  it('spends the weekly budget of conversations', () => {
+    const { state } = startedCareer();
+    state.socialActions = { used: 0, perWeek: 2 };
+    performAction(new Rng(5), state, 'quietWeek');
+    expect(state.socialActions.used).toBe(1);
+    expect(availableActions(state).length).toBeGreaterThan(0);
+    performAction(new Rng(6), state, 'thankFans');
+    expect(state.socialActions.used).toBe(2);
+    expect(availableActions(state)).toHaveLength(0);
   });
 });
 

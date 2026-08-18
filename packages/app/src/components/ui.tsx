@@ -57,6 +57,62 @@ export function ClubLine({ club, size = 'md' }: { club: Club | null | undefined;
   );
 }
 
+/**
+ * A card wearing the club's own colour, taken from its crest. Used wherever the
+ * player is choosing between clubs, so the choice looks like the clubs themselves.
+ */
+export function ClubCard({
+  club,
+  children,
+  onClick,
+  featured,
+}: {
+  club: Club | null | undefined;
+  children: ReactNode;
+  onClick?: () => void;
+  featured?: boolean;
+}) {
+  const color = clubColor(club);
+  const style = {
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+    borderColor: featured ? color : 'var(--line)',
+    background: `linear-gradient(150deg, ${color}2e, var(--surface) 58%)`,
+  };
+  const content = (
+    <>
+      {club?.crest && (
+        <img
+          src={`/crests/${club.crest}`}
+          alt=""
+          style={{
+            position: 'absolute',
+            insetBlockStart: '-18%',
+            insetInlineEnd: '-12%',
+            width: '44%',
+            opacity: 0.09,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      <div style={{ position: 'relative' }}>{children}</div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button className="card" style={{ ...style, width: '100%', textAlign: 'start' }} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+  return (
+    <section className="card" style={style}>
+      {content}
+    </section>
+  );
+}
+
 export function Meter({ value, tone = 'green' }: { value: number; tone?: 'green' | 'amber' | 'red' | 'blue' }) {
   const cls = tone === 'green' ? '' : `meter-${tone}`;
   return (

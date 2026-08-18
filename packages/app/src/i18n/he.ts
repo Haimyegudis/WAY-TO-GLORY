@@ -996,4 +996,12 @@ export const he: Record<string, string> = {
   'event.winter_transfer_rumour.ask_agent_to_explore': 'מבקש מהסוכן לבדוק',
   'event.winter_transfer_rumour.commit_publicly': 'מתחייב למועדון בפומבי',
 
+
+  'train.effects': 'מה התוכנית הזאת עושה',
+  'train.effect.development': 'התפתחות',
+  'train.effect.sharpness': 'חדות משחק',
+  'train.effect.fatigue': 'עייפות',
+  'train.effect.injury': 'סיכון פציעה',
+  'train.effect.recovery': 'התאוששות',
+
 };

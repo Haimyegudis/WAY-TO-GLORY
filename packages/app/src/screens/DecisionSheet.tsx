@@ -6,6 +6,7 @@ import { getPack, useGame } from '../state/store.js';
 import { clubName } from '../lib/club.js';
 import { toHebrew } from '../lib/transliterate.js';
 import { Chip, Crest } from '../components/ui.js';
+import { clubColor } from '../lib/club.js';
 
 /**
  * Everything that needs an answer arrives here: a dressing-room moment, a club
@@ -79,6 +80,7 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
             <button
               key={offer.id}
               className={`offer ${i === 0 ? 'offer-featured' : ''}`}
+              style={{ background: `linear-gradient(160deg, ${clubColor(club)}33, var(--surface-2) 62%)` }}
               onClick={() => answerOffer(decision.id, offer.id)}
             >
               <span className="offer-sub">{offer.isLoan ? t('market.loan') : t('market.transfer')}</span>

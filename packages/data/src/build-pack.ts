@@ -19,6 +19,7 @@ import { STARS } from './stars.js';
 import { EVENTS } from './events.js';
 import { EVENTS_EXTRA } from './events-extra.js';
 import { HEBREW_CLUB_NAMES } from './hebrew-clubs.js';
+import { CLUB_COLORS } from './club-colors.js';
 
 interface ClubAsset {
   clubId: string;
@@ -237,6 +238,9 @@ async function main(): Promise<void> {
     if (!manual && asset.nameHe) club.nameHe = cleanHebrewTitle(asset.nameHe);
     if (asset.crest) club.crest = asset.crest;
     if (asset.color) club.color = asset.color;
+    // A colour we know beats one guessed from the crest image.
+    const knownColor = CLUB_COLORS[club.id];
+    if (knownColor) club.color = knownColor;
   }
 
   const countries: Country[] = COUNTRIES.map((c) => ({

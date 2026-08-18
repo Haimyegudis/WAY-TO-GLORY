@@ -18,34 +18,22 @@ export function Menu() {
 
   return (
     <>
-      <div className="backdrop" />
-      {!artFailed && (
-        <>
-          <img
-            src="/bg/hero.jpg"
-            alt=""
-            onError={() => setArtFailed(true)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'top center',
-              zIndex: -2,
-            }}
-          />
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: -1,
-              background:
-                'linear-gradient(180deg, rgba(6,11,24,0.05) 0%, rgba(6,11,24,0.25) 42%, rgba(6,11,24,0.9) 72%, var(--bg) 92%)',
-            }}
-          />
-        </>
-      )}
+      <div className="device-frame">
+        {artFailed && <div className="backdrop" />}
+        {!artFailed && (
+          <>
+            <img src="/bg/hero.jpg" alt="" className="hero-art" onError={() => setArtFailed(true)} />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'linear-gradient(180deg, rgba(6,11,24,0.05) 0%, rgba(6,11,24,0.15) 45%, rgba(6,11,24,0.82) 74%, rgba(4,8,18,0.96) 100%)',
+              }}
+            />
+          </>
+        )}
+      </div>
 
       <div className="app">
         <div

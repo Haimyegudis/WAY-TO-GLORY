@@ -54,23 +54,21 @@ export function PitchPicker({
           src="/bg/positions.jpg"
           alt=""
           onError={() => setPhotoFailed(true)}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}
         />
       )}
 
-      {/* Drawn markings: they line up with the photo and stand in for it when missing. */}
-      <svg viewBox="0 0 300 460" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-        <g fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="2">
-          <rect x="8" y="8" width="284" height="444" rx="4" />
-          <line x1="8" y1="230" x2="292" y2="230" />
-          <circle cx="150" cy="230" r="46" />
-          <rect x="70" y="8" width="160" height="62" />
-          <rect x="70" y="390" width="160" height="62" />
-          <rect x="110" y="8" width="80" height="26" />
-          <rect x="110" y="426" width="80" height="26" />
-        </g>
-        <circle cx="150" cy="230" r="3" fill="rgba(255,255,255,0.6)" />
-      </svg>
+      {photoFailed && (
+        <svg viewBox="0 0 300 460" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+          <g fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="2">
+            <rect x="8" y="8" width="284" height="444" rx="4" />
+            <line x1="8" y1="230" x2="292" y2="230" />
+            <circle cx="150" cy="230" r="46" />
+            <rect x="70" y="8" width="160" height="62" />
+            <rect x="70" y="390" width="160" height="62" />
+          </g>
+        </svg>
+      )}
 
       {SPOTS.map((spot) => {
         const active = spot.pos === value;
@@ -82,8 +80,10 @@ export function PitchPicker({
             aria-pressed={active}
             style={{
               position: 'absolute',
-              insetInlineStart: `${spot.x}%`,
-              insetBlockStart: `${spot.y}%`,
+              // A pitch has no reading direction: use physical sides so the layout
+              // does not mirror when the interface is right to left.
+              left: `${spot.x}%`,
+              top: `${spot.y}%`,
               transform: 'translate(-50%, -50%)',
               width: 52,
               height: 52,

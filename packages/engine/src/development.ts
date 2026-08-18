@@ -211,7 +211,27 @@ export function driftPotential(
   return player.potential - before;
 }
 
-/** Weekly fitness / fatigue bookkeeping. */
+/** How much of his edge a training load keeps or costs him each week. */
+const INTENSITY_SHARPNESS: Record<TrainingPlan['intensity'], number> = {
+  light: -2.6,
+  normal: -0.4,
+  intensive: 1.6,
+  extreme: 2.4,
+};
+
+/** The fitness ceiling a training load can hold. Coasting has a cost. */
+const INTENSITY_FITNESS_CEILING: Record<TrainingPlan['intensity'], number> = {
+  light: 84,
+  normal: 96,
+  intensive: 100,
+  extreme: 100,
+};
+
+/**
+ * Weekly bookkeeping for the body. Training is a real choice here: train too hard
+ * and he is exhausted and breakable, coast and he loses sharpness and his ceiling
+ * of fitness drops, which shows up in his ratings before it shows up anywhere else.
+ */
 export function updateCondition(
   player: Player,
   plan: TrainingPlan,
@@ -227,10 +247,11 @@ export function updateCondition(
 
   cond.fatigue = clamp(cond.fatigue + matchFatigue + trainingFatigue - naturalRecovery, 0, 100);
 
-  const sharpnessDelta = playedMinutes > 0 ? Math.min(12, playedMinutes / 8) : -3.5;
-  cond.sharpness = clamp(cond.sharpness + sharpnessDelta, 0, 100);
+  const matchSharpness = playedMinutes > 0 ? Math.min(12, playedMinutes / 8) : -3.5;
+  cond.sharpness = clamp(cond.sharpness + matchSharpness + INTENSITY_SHARPNESS[plan.intensity], 0, 100);
 
-  const targetFitness = 100 - cond.fatigue * 0.75;
+  const ceiling = INTENSITY_FITNESS_CEILING[plan.intensity] * (0.94 + DIET_FACTOR[plan.diet] * 0.06);
+  const targetFitness = Math.min(ceiling, 100 - cond.fatigue * 0.75);
   player.fitness = clamp(player.fitness + (targetFitness - player.fitness) * 0.45, 20, 100);
 }
 

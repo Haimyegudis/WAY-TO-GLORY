@@ -62,6 +62,11 @@ export interface UserMatchContext {
   minutes: MinutesOutcome;
   importance: MatchImportance;
   matchId: string;
+  /**
+   * How the player turns up: his head, his sharpness, the crowd behind or against
+   * him, and the dressing room. 1 is level, below 1 is a player carrying something.
+   */
+  mental: number;
 }
 
 /** Weight of a player being the one at the end of a chance. */
@@ -155,14 +160,16 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     if (!picked) continue;
 
     // If the user is on the pitch, they get their positional share of involvement.
-    const shooter = userOnPitch && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot))
+    const shooter = userOnPitch && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental))
       ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
       : picked;
 
     const isUser = shooter.player.id === ctx.user.id;
     const finishing = shooter.player.attributes.finishing;
     const composure = shooter.player.attributes.composure;
-    const quality = (finishing * 0.6 + composure * 0.25 + shooter.player.attributes.shooting * 0.15);
+    const rawQuality = finishing * 0.6 + composure * 0.25 + shooter.player.attributes.shooting * 0.15;
+    // Confidence is worth a few points of finishing either way.
+    const quality = isUser ? rawQuality * (0.88 + ctx.mental * 0.12) : rawQuality;
     const p = clamp(conversionBase * (0.5 + logistic((quality - oppDefenceRating) / 12) * 1.6), 0.03, 0.55);
 
     if (isUser) line.shots++;
@@ -173,7 +180,7 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
       let assistId: string | undefined;
       if (rng.chance(0.68)) {
         const creators = attackers.filter((a) => a.player.id !== shooter.player.id);
-        const userCanAssist = userOnPitch && !isUser && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot) * 1.35);
+        const userCanAssist = userOnPitch && !isUser && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 1.35);
         const creator = userCanAssist
           ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
           : rng.weighted(creators, (a) => assistWeight(a.player, a.slot));
@@ -210,7 +217,7 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
       });
     } else if (userOnPitch && rng.chance(0.6)) {
       // The user was involved in the build-up even when someone else finished.
-      const involved = rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot) * 0.8);
+      const involved = rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 0.8);
       if (involved) line.keyPasses++;
     }
   }
@@ -310,11 +317,12 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
 }
 
 /** How often the ball finds the user, given where they play. */
-function userInvolvementChance(user: Player, slot: Position | null): number {
+function userInvolvementChance(user: Player, slot: Position | null, mental = 1): number {
   const group = positionGroup(slot ?? user.primaryPos);
   const base = group === 'ATT' ? 0.44 : group === 'MID' ? 0.30 : group === 'DEF' ? 0.10 : 0.01;
   const quality = clamp(ratingAt(user.attributes, slot ?? user.primaryPos) / 90, 0.4, 1.25);
-  return clamp(base * quality * (0.85 + user.form / 320), 0.01, 0.6);
+  // A player who is off his game asks for the ball less and gets it less.
+  return clamp(base * quality * (0.85 + user.form / 320) * mental, 0.01, 0.6);
 }
 
 function inMatchInjuryChance(user: Player, minutes: number): number {

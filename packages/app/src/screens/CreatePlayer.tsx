@@ -50,7 +50,12 @@ export function CreatePlayer() {
   };
 
   return (
-    <div className="app">
+    <>
+      <div className="device-frame">
+        <img src="/bg/stadium.jpg" alt="" className="backdrop-photo" />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(6,11,24,0.78), rgba(6,11,24,0.9) 55%, rgba(5,9,20,0.95))' }} />
+      </div>
+      <div className="app">
       <div className="screen stack" style={{ paddingBottom: 120 }}>
         <header>
           <p className="eyebrow">{t('create.step', { step: step + 1, total: STEPS.length })}</p>
@@ -182,6 +187,7 @@ export function CreatePlayer() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -197,4 +203,3 @@ function NumberField({ label, value, min, max, onChange }: { label: string; valu
     </div>
   );
 }
-

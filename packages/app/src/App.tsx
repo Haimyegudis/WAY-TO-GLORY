@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame, type Screen } from './state/store.js';
 import { useT } from './i18n/index.js';
 import { Menu } from './screens/Menu.js';
@@ -24,16 +24,16 @@ import { ResultSheet } from './screens/ResultSheet.js';
 const STADIUM = '/bg/stadium.jpg';
 
 const SCREEN_DIM: Partial<Record<Screen, number>> = {
-  hub: 0.72,
-  match: 0.78,
-  matches: 0.84,
-  club: 0.86,
-  train: 0.86,
-  market: 0.84,
-  career: 0.84,
-  social: 0.8,
-  national: 0.8,
-  settings: 0.88,
+  hub: 0.6,
+  match: 0.68,
+  matches: 0.78,
+  club: 0.8,
+  train: 0.8,
+  market: 0.78,
+  career: 0.78,
+  social: 0.72,
+  national: 0.7,
+  settings: 0.84,
 };
 
 export function App() {
@@ -95,24 +95,21 @@ function Game() {
   );
 }
 
-/** The stadium behind everything, with a dimming veil tuned per screen. */
+/** The stadium behind everything, inside the phone frame, dimmed per screen. */
 function Stadium({ dim }: { dim: number }) {
+  const [failed, setFailed] = useState(false);
   return (
-    <>
-      <div className="backdrop" />
-      <div
-        className="backdrop-photo"
-        style={{ backgroundImage: `url(${STADIUM})`, opacity: 1 }}
-      />
+    <div className="device-frame">
+      {failed && <div className="backdrop" />}
+      {!failed && <img src={STADIUM} alt="" className="backdrop-photo" onError={() => setFailed(true)} />}
       <div
         style={{
-          position: 'fixed',
+          position: 'absolute',
           inset: 0,
-          zIndex: -1,
-          background: `linear-gradient(180deg, rgba(6,11,24,${dim * 0.8}), rgba(6,11,24,${dim}) 55%, rgba(5,9,20,${Math.min(0.97, dim + 0.12)}))`,
+          background: `linear-gradient(180deg, rgba(6,11,24,${dim * 0.78}), rgba(6,11,24,${dim}) 55%, rgba(5,9,20,${Math.min(0.97, dim + 0.1)}))`,
         }}
       />
-    </>
+    </div>
   );
 }
 

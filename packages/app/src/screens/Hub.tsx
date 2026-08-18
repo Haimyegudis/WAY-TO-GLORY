@@ -1,8 +1,9 @@
 import { currentOvr, potentialLabel, relationshipLabel } from '@fc/engine';
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
-import { useGame } from '../state/store.js';
+import { getPack, useGame } from '../state/store.js';
 import { myClub, myPosition, nextFixture, seasonLine, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName } from '../lib/club.js';
+import { competitionName } from '../lib/names.js';
 import { Card, Chip, ClubLine, Crest, Gauge, RatingBadge, Stat } from '../components/ui.js';
 
 export function Hub() {
@@ -14,6 +15,7 @@ export function Hub() {
 
   const player = state.player;
   const club = myClub(state);
+  const competition = club ? getPack().competitions.find((c) => c.id === club.competitionId) ?? null : null;
   const ovr = currentOvr(state);
   const age = state.world.season - player.birthYear;
   const fixture = nextFixture(state);
@@ -41,7 +43,7 @@ export function Hub() {
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {player.firstName} {player.lastName}
             </span>
-            <Crest club={club} />
+            <Crest club={club} size="lg" />
           </div>
           <div className="identity-meta">
             <Chip tone="pink">{player.primaryPos}</Chip>
@@ -50,6 +52,7 @@ export function Hub() {
           </div>
           <p className="muted" style={{ fontSize: 12.5, textAlign: 'end' }}>
             {club ? clubName(club, lang) : t('hub.freeAgent')}
+            {competition && <span className="faint"> · {competitionName(competition, lang)}</span>}
           </p>
         </div>
         <div className={`ovr-tile ${ovrTone}`}>

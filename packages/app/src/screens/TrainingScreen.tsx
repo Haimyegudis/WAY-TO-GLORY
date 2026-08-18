@@ -20,6 +20,54 @@ const TECHNICAL: AttributeKey[] = ATTRIBUTE_KEYS.filter(
   (k) => !PHYSICAL_ATTRS.includes(k) && !MENTAL_ATTRS.includes(k) && !GK_ATTRS.includes(k),
 );
 
+interface PlanEffect {
+  key: string;
+  arrow: string;
+  tone: 'good' | 'bad' | 'neutral';
+}
+
+/**
+ * What the current plan is doing, in plain terms. The player should be able to see
+ * why he is sharp and exhausted, or fresh and blunt, without reading the engine.
+ */
+function planEffects(plan: { intensity: TrainingIntensity; diet: DietLevel; focus: TrainingFocus }): PlanEffect[] {
+  const byIntensity: Record<TrainingIntensity, PlanEffect[]> = {
+    light: [
+      { key: 'train.effect.development', arrow: '▼▼', tone: 'bad' },
+      { key: 'train.effect.sharpness', arrow: '▼', tone: 'bad' },
+      { key: 'train.effect.fatigue', arrow: '▼▼', tone: 'good' },
+      { key: 'train.effect.injury', arrow: '▼', tone: 'good' },
+    ],
+    normal: [
+      { key: 'train.effect.development', arrow: '▬', tone: 'neutral' },
+      { key: 'train.effect.sharpness', arrow: '▬', tone: 'neutral' },
+      { key: 'train.effect.fatigue', arrow: '▬', tone: 'neutral' },
+      { key: 'train.effect.injury', arrow: '▬', tone: 'neutral' },
+    ],
+    intensive: [
+      { key: 'train.effect.development', arrow: '▲', tone: 'good' },
+      { key: 'train.effect.sharpness', arrow: '▲', tone: 'good' },
+      { key: 'train.effect.fatigue', arrow: '▲', tone: 'bad' },
+      { key: 'train.effect.injury', arrow: '▲', tone: 'bad' },
+    ],
+    extreme: [
+      { key: 'train.effect.development', arrow: '▲▲', tone: 'good' },
+      { key: 'train.effect.sharpness', arrow: '▲▲', tone: 'good' },
+      { key: 'train.effect.fatigue', arrow: '▲▲▲', tone: 'bad' },
+      { key: 'train.effect.injury', arrow: '▲▲▲', tone: 'bad' },
+    ],
+  };
+
+  const byDiet: Record<DietLevel, PlanEffect> = {
+    poor: { key: 'train.effect.recovery', arrow: '▼▼', tone: 'bad' },
+    normal: { key: 'train.effect.recovery', arrow: '▬', tone: 'neutral' },
+    professional: { key: 'train.effect.recovery', arrow: '▲', tone: 'good' },
+    nutritionist: { key: 'train.effect.recovery', arrow: '▲▲', tone: 'good' },
+  };
+
+  return [...byIntensity[plan.intensity], byDiet[plan.diet], { key: `train.focus.${plan.focus}`, arrow: '▲', tone: 'good' }];
+}
+
 export function TrainingScreen() {
   const t = useT();
   const state = useGame((s) => s.state)!;
@@ -82,6 +130,23 @@ export function TrainingScreen() {
           </div>
 
           <p className="faint" style={{ fontSize: 11.5 }}>{t('train.warning')}</p>
+
+          <div className="card" style={{ background: 'var(--surface-2)', padding: 12 }}>
+            <p className="eyebrow" style={{ marginBlockEnd: 8 }}>{t('train.effects')}</p>
+            <ul className="list">
+              {planEffects(plan).map((effect) => (
+                <li key={effect.key} className="list-item" style={{ padding: '7px 0' }}>
+                  <span className="grow" style={{ fontSize: 13 }}>{t(effect.key)}</span>
+                  <span
+                    className="num"
+                    style={{ fontSize: 13, color: effect.tone === 'good' ? 'var(--green)' : effect.tone === 'bad' ? 'var(--red)' : 'var(--muted)' }}
+                  >
+                    {effect.arrow}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </Card>
 

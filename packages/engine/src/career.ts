@@ -783,6 +783,7 @@ function playUserMatch(
   const opponentRating = opponentStars.length >= 8 ? teamRatingFromSquad(opponentStars) : clubRating(opponent);
 
   const outcome = simulateUserMatch(rng, {
+    mental: mentalFactor(state),
     season: state.world.season,
     week: state.world.week,
     competitionId,
@@ -824,6 +825,27 @@ function playUserMatch(
   if (state.matchLog.length > 140) state.matchLog.length = 140;
 
   return result;
+}
+
+/**
+ * Everything he carries onto the pitch that is not ability: morale, sharpness, the
+ * crowd, the dressing room, and whether he is fighting with the manager. Returns a
+ * multiplier around 1, so a settled player plays to his level and an unsettled one
+ * does not.
+ */
+export function mentalFactor(state: CareerState): number {
+  const player = state.player;
+  const rel = state.relationships;
+
+  const morale = (player.morale - 55) / 220;          // +/- 0.2
+  const sharpness = (player.condition.sharpness - 60) / 320;
+  const fans = (rel.fans - 50) / 400;
+  const dressingRoom = (rel.teammates - 50) / 500;
+  const manager = (rel.manager - 45) / 600;
+  const pressure = (player.personality.pressureHandling - 50) / 700;
+  const fatigue = -player.condition.fatigue / 500;
+
+  return clamp(1 + morale + sharpness + fans + dressingRoom + manager + pressure + fatigue, 0.72, 1.2);
 }
 
 function applyMatchToPlayer(

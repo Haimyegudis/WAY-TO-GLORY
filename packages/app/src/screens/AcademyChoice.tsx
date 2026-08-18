@@ -2,7 +2,7 @@ import { useLang, useT } from '../i18n/index.js';
 import { competitionName } from '../lib/names.js';
 import { clubName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
-import { Meter, Card } from '../components/ui.js';
+import { ClubCard, Crest, Meter } from '../components/ui.js';
 
 export function AcademyChoice() {
   const t = useT();
@@ -15,7 +15,12 @@ export function AcademyChoice() {
   const competition = (id: string) => competitionName(pack.competitions.find((c) => c.id === id), lang) || id;
 
   return (
-    <div className="app">
+    <>
+      <div className="device-frame">
+        <img src="/bg/stadium.jpg" alt="" className="backdrop-photo" />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(6,11,24,0.78), rgba(6,11,24,0.9) 55%, rgba(5,9,20,0.95))' }} />
+      </div>
+      <div className="app">
       <div className="screen stack" style={{ paddingBottom: 40 }}>
         <header>
           <p className="eyebrow" dir="ltr">2025 / 26</p>
@@ -24,13 +29,16 @@ export function AcademyChoice() {
         </header>
 
         {offers.map((offer) => (
-          <Card key={offer.clubId}>
+          <ClubCard key={offer.clubId} club={state.world.clubs[offer.clubId]}>
             <div className="row-between" style={{ alignItems: 'flex-start' }}>
-              <div>
+              <div className="row" style={{ gap: 10, minWidth: 0 }}>
+                <Crest club={state.world.clubs[offer.clubId]} size="lg" />
+                <div style={{ minWidth: 0 }}>
                 <h3 className="headline">{clubName(state.world.clubs[offer.clubId], lang)}</h3>
                 <p className="faint" style={{ fontSize: 12, marginBlockStart: 2 }}>
                   {competition(offer.competitionId)} · {t('academy.tier', { tier: offer.tier })}
-                </p>
+                  </p>
+                </div>
               </div>
               <div className="num" style={{ color: 'var(--amber)', fontSize: 15 }}>
                 {'★'.repeat(offer.academyStars)}
@@ -48,10 +56,11 @@ export function AcademyChoice() {
             <button className="btn btn-primary btn-block" onClick={() => choose(offer.clubId)}>
               {t('academy.join')}
             </button>
-          </Card>
+          </ClubCard>
         ))}
       </div>
     </div>
+    </>
   );
 }
 

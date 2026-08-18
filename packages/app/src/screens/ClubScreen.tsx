@@ -5,6 +5,7 @@ import { competitionName, playerName } from '../lib/names.js';
 import { useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
 import { Card, Crest, Empty, Meter } from '../components/ui.js';
+import { clubColor } from '../lib/club.js';
 
 type Tab = 'table' | 'squad' | 'scorers';
 
@@ -25,7 +26,15 @@ export function ClubScreen() {
 
   return (
     <div className="screen stack">
-      <header className="row" style={{ gap: 12 }}>
+      <header
+        className="row"
+        style={{
+          gap: 12,
+          padding: '12px 14px',
+          borderRadius: 'var(--radius)',
+          background: `linear-gradient(110deg, ${clubColor(home)}40, transparent 70%)`,
+        }}
+      >
         <Crest club={home} size="lg" />
         <div>
           <p className="eyebrow">{t('club.title')}</p>

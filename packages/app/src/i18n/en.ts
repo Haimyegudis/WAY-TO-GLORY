@@ -1000,4 +1000,12 @@ export const en: Record<string, string> = {
   'event.winter_transfer_rumour.ask_agent_to_explore': 'Tell your agent to explore it',
   'event.winter_transfer_rumour.commit_publicly': 'Commit to the club publicly',
 
+
+  'train.effects': 'What this plan does',
+  'train.effect.development': 'Development',
+  'train.effect.sharpness': 'Match sharpness',
+  'train.effect.fatigue': 'Fatigue',
+  'train.effect.injury': 'Injury risk',
+  'train.effect.recovery': 'Recovery',
+
 };

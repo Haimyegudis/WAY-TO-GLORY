@@ -49,9 +49,23 @@ export const EVENTS: CareerEventDef[] = [
     opt('academy_coach_criticism', 'argue', [e('managerTrust', -10), e('morale', 5), e('personality', -2, 'discipline')]),
   ]),
   ev('academy_school_conflict', 'personal', 30, 40, { ageRange: [15, 18] }, [
-    opt('academy_school_conflict', 'football', [e('attribute', 1.2, 'firstTouch'), e('personality', -2, 'professionalism')]),
-    opt('academy_school_conflict', 'school', [e('personality', 3, 'decisions' as string), e('morale', 3)]),
-    opt('academy_school_conflict', 'balance', [e('fatigue', 8), e('personality', 2, 'determination')]),
+    opt('academy_school_conflict', 'football', [
+      e('attribute', 1.4, 'firstTouch'),
+      e('personality', 3, 'determination'),
+      e('morale', -3),
+      e('custom', 1, 'noFallbackPlan'),
+    ]),
+    opt('academy_school_conflict', 'school', [
+      e('attribute', 1, 'decisions'),
+      e('attribute', 0.8, 'concentration'),
+      e('morale', 4),
+      e('managerTrust', -2),
+    ]),
+    opt('academy_school_conflict', 'balance', [
+      e('fatigue', 10),
+      e('personality', 2, 'determination'),
+      e('personality', 1, 'professionalism'),
+    ]),
   ]),
   ev('academy_trial_abroad', 'agent', 22, 52, { ageRange: [15, 18] }, [
     opt('academy_trial_abroad', 'go', [e('reputation', 4), e('fame', 2), e('personality', 3, 'adaptability'), e('fatigue', 12)], 'risk.medium'),
@@ -83,7 +97,7 @@ export const EVENTS: CareerEventDef[] = [
   ]),
   ev('manager_tactical_homework', 'manager', 32, 26, { ageRange: [17, 35] }, [
     opt('manager_tactical_homework', 'study', [e('attribute', 1.6, 'positioning'), e('attribute', 1.2, 'decisions'), e('managerTrust', 4)]),
-    opt('manager_tactical_homework', 'skip', [e('managerTrust', -6), e('morale', 2)]),
+    opt('manager_tactical_homework', 'skip', [e('managerTrust', -6), e('morale', 2), e('attribute', -0.4, 'positioning')]),
   ]),
   ev('manager_captaincy', 'manager', 12, 80, { ageRange: [24, 36], minOvr: 70, minManagerTrust: 65 }, [
     opt('manager_captaincy', 'accept', [e('attribute', 3, 'leadership'), e('reputation', 4), e('morale', 8), e('managerTrust', 6)]),
@@ -147,7 +161,7 @@ export const EVENTS: CareerEventDef[] = [
   ]),
   ev('agent_media_plan', 'agent', 22, 40, { ageRange: [18, 34], hasAgent: true, minOvr: 65 }, [
     opt('agent_media_plan', 'accept', [e('fame', 10), e('reputation', 3), e('managerTrust', -3)]),
-    opt('agent_media_plan', 'decline', [e('agentRelationship', -5), e('personality', 2, 'professionalism')]),
+    opt('agent_media_plan', 'decline', [e('agentRelationship', -5), e('relationship', 3, 'manager'), e('fame', -1)]),
   ]),
   ev('agent_rival_approach', 'agent', 18, 52, { ageRange: [18, 34], hasAgent: true }, [
     opt('agent_rival_approach', 'switch', [e('custom', 1, 'agentSwitchOffer'), e('agentRelationship', -30)], 'risk.medium'),
@@ -181,7 +195,7 @@ export const EVENTS: CareerEventDef[] = [
   ev('media_interview_request', 'media', 34, 20, { ageRange: [17, 38], minOvr: 55 }, [
     opt('media_interview_request', 'humble', [e('fame', 3), e('managerTrust', 3), e('reputation', 1)]),
     opt('media_interview_request', 'bold', [e('fame', 8), e('managerTrust', -5), e('reputation', 2)], 'risk.medium'),
-    opt('media_interview_request', 'decline', [e('fame', -2), e('personality', 1, 'professionalism')]),
+    opt('media_interview_request', 'decline', [e('fame', -2), e('relationship', -3, 'media')]),
   ]),
   ev('media_criticism', 'media', 26, 30, { ageRange: [17, 38], maxMorale: 60 }, [
     opt('media_criticism', 'respond', [e('fame', 5), e('morale', 4), e('managerTrust', -6)], 'risk.medium'),
@@ -279,8 +293,12 @@ export const EVENTS: CareerEventDef[] = [
     opt('training_ground_bust_up', 'standGround', [e('managerTrust', -12), e('morale', 5), e('personality', -3, 'discipline')], 'risk.high'),
   ]),
   ev('late_for_training', 'club', 18, 40, { ageRange: [17, 34], maxManagerTrust: 60 }, [
-    opt('late_for_training', 'ownUp', [e('managerTrust', -3), e('personality', 2, 'professionalism')]),
-    opt('late_for_training', 'excuse', [e('managerTrust', -8, undefined, 0.5)], 'risk.medium'),
+    opt('late_for_training', 'ownUp', [e('managerTrust', -3), e('relationship', 3, 'teammates')]),
+    opt('late_for_training', 'excuse', [
+      e('managerTrust', -8, undefined, 0.5),
+      e('personality', -2, 'professionalism'),
+      e('custom', 1, 'incidentWithManager', 0.5),
+    ], 'risk.medium'),
   ]),
   ev('referee_confrontation', 'club', 14, 50, { ageRange: [18, 36] }, [
     opt('referee_confrontation', 'apologise', [e('reputation', -1), e('personality', 2, 'discipline')]),
@@ -347,7 +365,7 @@ export const EVENTS: CareerEventDef[] = [
   ]),
   ev('club_financial_trouble', 'club', 14, 80, { ageRange: [17, 40], tierIn: [2, 3] }, [
     opt('club_financial_trouble', 'takeCut', [e('money', -80000), e('managerTrust', 8), e('reputation', 3)]),
-    opt('club_financial_trouble', 'refuse', [e('managerTrust', -8)]),
+    opt('club_financial_trouble', 'refuse', [e('relationship', -10, 'board'), e('relationship', -5, 'teammates')]),
   ]),
   ev('new_signing_rival', 'club', 26, 30, { ageRange: [17, 36], minMinutesSeasonPct: 0.3 }, [
     opt('new_signing_rival', 'compete', [e('form', 4), e('fatigue', 8), e('managerTrust', 4)]),
