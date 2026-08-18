@@ -120,6 +120,8 @@ export interface Player {
   condition: Condition;
   clubId: string | null;
   squadRole: SquadRole;
+  /** The number on his back. Chosen at creation for the user, cosmetic for the rest. */
+  shirtNumber?: number;
   reputation: number;               // 0-100
   fame: number;                     // 0-100
   isUser: boolean;
@@ -250,11 +252,16 @@ export interface MatchEvent {
   minute: number;
   type:
     | 'goal' | 'assist' | 'miss' | 'save' | 'concede' | 'keyPass' | 'tackle' | 'blockedShot'
-    | 'yellow' | 'red' | 'injury' | 'sub-on' | 'sub-off' | 'penaltyScored' | 'penaltyMissed';
+    | 'yellow' | 'red' | 'injury' | 'sub-on' | 'sub-off' | 'penaltyScored' | 'penaltyMissed'
+    // Broadcast colour: things that happen in a game without changing the score.
+    | 'kickOff' | 'halfTime' | 'fullTime' | 'corner' | 'freeKick' | 'offside'
+    | 'chance' | 'woodwork' | 'oppMiss';
   playerId?: string;
   byUser: boolean;
   detailKey?: string;
   score?: [number, number];
+  /** Colour for the live broadcast; left out of the written match report. */
+  ambient?: boolean;
 }
 
 export interface MatchResult {
@@ -294,6 +301,10 @@ export interface UserMatchLine {
   red: number;
   rating: number;
   motm: boolean;
+  /** The minute he came on, if he started on the bench. */
+  cameOnMinute?: number;
+  /** The minute he came off, if he did not see it out. */
+  offMinute?: number;
   reasonNotPlayed?: 'injured' | 'suspended' | 'notSelected' | 'notInSquad';
 }
 

@@ -2,7 +2,9 @@ import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubShortName } from '../lib/club.js';
 import { useGame } from '../state/store.js';
 import { club, recentMatches } from '../state/selectors.js';
+import { playerName } from '../lib/names.js';
 import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
+import { LiveMatch } from '../components/LiveMatch.js';
 
 /** Three phrasings per repeated beat, chosen by minute, so reports do not repeat verbatim. */
 function variantKey(key: string, minute: number): string {
@@ -12,16 +14,40 @@ function variantKey(key: string, minute: number): string {
   return variant === 0 ? key : `${key}${variant + 1}`;
 }
 
+/** The name behind a goal, an assist or a booking, when we model that player. */
+function namedFor(
+  event: { type: string; playerId?: string; byUser: boolean },
+  state: { player: { id: string }; world: { players: Record<string, import('@fc/engine').Player> } },
+  lang: 'he' | 'en',
+): string {
+  if (!event.playerId) return '';
+  if (event.type !== 'goal' && event.type !== 'assist' && event.type !== 'concede') return '';
+  if (event.playerId === state.player.id) return '';
+  const player = state.world.players[event.playerId];
+  return player ? playerName(player, lang) : '';
+}
+
 export function MatchCentre() {
   const t = useT();
   const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
+  const liveMatchId = useGame((s) => s.liveMatchId);
+  const endLive = useGame((s) => s.endLive);
   const match = state.lastMatch;
 
   if (!match) {
     return (
       <div className="screen">
         <Empty>{t('hub.noFixture')}</Empty>
+      </div>
+    );
+  }
+
+  // A match he played is watched first and read afterwards.
+  if (liveMatchId === match.id) {
+    return (
+      <div className="screen">
+        <LiveMatch match={match} onFinish={endLive} />
       </div>
     );
   }
@@ -34,6 +60,7 @@ export function MatchCentre() {
   const allEvents = match.events ?? [];
   let missesShown = 0;
   const events = allEvents.filter((e) => {
+    if (e.ambient) return false;
     const decisive = e.type === 'goal' || e.type === 'concede' || e.type === 'assist'
       || e.type === 'yellow' || e.type === 'red' || e.type === 'injury' || e.type === 'penaltyScored' || e.type === 'penaltyMissed';
     if (decisive) return true;
@@ -88,6 +115,15 @@ export function MatchCentre() {
                 <RatingBadge rating={line.rating} />
               </span>
             </div>
+            <p className="faint" style={{ fontSize: 12, marginBlockEnd: 10 }}>
+              {line.started ? t('match.started') : t('match.cameOn', { minute: line.cameOnMinute ?? 0 })}
+              {' · '}
+              {line.offMinute
+                ? t('match.cameOff', { minute: line.offMinute })
+                : t('match.sawItOut')}
+              {' · '}
+              {t('match.minutesPlayed', { minutes: line.minutes })}
+            </p>
             <div className="statrow">
               <Stat label={t('match.goals')} value={line.goals} />
               <Stat label={t('match.assists')} value={line.assists} />
@@ -111,6 +147,9 @@ export function MatchCentre() {
                       <span className="tl-minute">{event.minute}′</span>
                       <p style={{ fontSize: 13.5, color: event.byUser ? 'var(--text)' : 'var(--muted)' }}>
                         {t(variantKey(event.detailKey ?? `match.event.${event.type}`, event.minute))}
+                        {namedFor(event, state, lang) && (
+                          <span className="who"> · {namedFor(event, state, lang)}</span>
+                        )}
                       </p>
                       {event.score && (
                         <p className="num faint" style={{ fontSize: 11 }}>
@@ -143,7 +182,7 @@ export function MatchCentre() {
             return (
               <li key={m.id} className="list-item">
                 <span className="faint num" style={{ fontSize: 11, minWidth: 26 }}>{m.week}</span>
-                <span className="grow row" style={{ fontSize: 13, gap: 6, minWidth: 0 }}>
+                <span className="grow row score-row" style={{ fontSize: 13, gap: 6, minWidth: 0 }}>
                   <Crest club={h} size="sm" />
                   <span className="num">{m.homeGoals}–{m.awayGoals}</span>
                   <Crest club={a} size="sm" />

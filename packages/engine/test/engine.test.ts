@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Rng, clamp, interpolate } from '../src/rng.js';
-import { overall, ratingAt, tacticalFit } from '../src/positions.js';
+import { overall, ratingAt, skillProfile, skillRating, tacticalFit } from '../src/positions.js';
 import { ageFactor, developWeek, headroom, updateCondition } from '../src/development.js';
 import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
 import { buildAttributes, generatePlayer } from '../src/generate.js';
@@ -18,7 +18,7 @@ import {
   userSquad,
 } from '../src/career.js';
 import { DEFAULT_INPUT, loadPack, startedCareer } from './helpers.js';
-import type { Player, TrainingPlan } from '../src/types.js';
+import type { Player, Position, TrainingPlan } from '../src/types.js';
 
 const TRAINING: TrainingPlan = { intensity: 'normal', focus: 'balanced', diet: 'normal' };
 
@@ -520,5 +520,43 @@ describe('clamp', () => {
     expect(clamp(5, 0, 3)).toBe(3);
     expect(clamp(-5, 0, 3)).toBe(0);
     expect(clamp(2, 0, 3)).toBe(2);
+  });
+});
+
+describe('ovr agrees with the headline ratings', () => {
+  const positions: Position[] = ['GK', 'CB', 'RB', 'CDM', 'CM', 'CAM', 'RW', 'ST'];
+
+  it('a player who is 50 at everything is a 50 everywhere', () => {
+    const flat = buildAttributes(new Rng(7), 'CM', 50);
+    for (const key of Object.keys(flat) as (keyof typeof flat)[]) flat[key] = 50;
+    for (const pos of positions) {
+      expect(ratingAt(flat, pos)).toBe(50);
+    }
+    for (const skill of skillProfile(flat, 'CM')) expect(skill.value).toBe(50);
+  });
+
+  it('ovr never sits outside the ratings the player is shown', () => {
+    const rng = new Rng(99);
+    for (let i = 0; i < 200; i++) {
+      const pos = positions[rng.int(0, positions.length - 1)]!;
+      const attributes = buildAttributes(rng, pos, rng.int(45, 88));
+      const values = skillProfile(attributes, pos).map((s) => s.value);
+      const ovr = ratingAt(attributes, pos);
+      // The badge is a weighted read of the same numbers, so it cannot escape them.
+      expect(ovr).toBeGreaterThanOrEqual(Math.min(...values) - 4);
+      expect(ovr).toBeLessThanOrEqual(Math.max(...values) + 4);
+    }
+  });
+
+  it('weights the ratings that matter for the position', () => {
+    const attributes = buildAttributes(new Rng(3), 'ST', 70);
+    const before = ratingAt(attributes, 'ST');
+    const finishing = attributes.finishing;
+    attributes.finishing = clamp(finishing + 10, 1, 99);
+    const afterFinishing = ratingAt(attributes, 'ST');
+    attributes.finishing = finishing;
+    attributes.tackling = clamp(attributes.tackling + 10, 1, 99);
+    const afterTackling = ratingAt(attributes, 'ST');
+    expect(afterFinishing - before).toBeGreaterThan(afterTackling - before);
   });
 });

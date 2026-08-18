@@ -68,6 +68,9 @@ function Game() {
   const state = useGame((s) => s.state);
   const result = useGame((s) => s.result);
   const pending = state?.pendingDecisions[0] ?? null;
+  const liveMatchId = useGame((s) => s.liveMatchId);
+  // While a match is being watched, nothing else may advance the week from under it.
+  const watchingMatch = screen === 'match' && liveMatchId !== null && liveMatchId === state?.lastMatch?.id;
   const dim = SCREEN_DIM[screen] ?? 0.84;
 
   return (
@@ -85,7 +88,7 @@ function Game() {
         {screen === 'social' && <SocialScreen />}
         {screen === 'settings' && <SettingsScreen />}
 
-        {!pending && !result && !state?.retired && <ContinueDock />}
+        {!pending && !result && !state?.retired && !watchingMatch && <ContinueDock />}
         <Tabs />
         {result && <ResultSheet result={result} />}
         {!result && pending && <DecisionSheet decision={pending} />}

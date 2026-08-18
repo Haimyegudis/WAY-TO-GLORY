@@ -45,6 +45,14 @@ const DIET_FACTOR: Record<TrainingPlan['diet'], number> = {
 const DIET_RECOVERY: Record<TrainingPlan['diet'], number> = {
   poor: 0.7, normal: 1.0, professional: 1.2, nutritionist: 1.35,
 };
+/**
+ * What a diet costs you in the head. A weighed, policed week is hard to live with
+ * month after month, so the stricter plans pull morale down a little every week while
+ * the body benefits. Small numbers on purpose: one good run of games outweighs them.
+ */
+const DIET_MORALE: Record<TrainingPlan['diet'], number> = {
+  poor: 0.4, normal: 0, professional: -0.3, nutritionist: -0.85,
+};
 
 const FOCUS_ATTRS: Record<TrainingFocus, AttributeKey[]> = {
   balanced: [],
@@ -253,6 +261,8 @@ export function updateCondition(
   const ceiling = INTENSITY_FITNESS_CEILING[plan.intensity] * (0.94 + DIET_FACTOR[plan.diet] * 0.06);
   const targetFitness = Math.min(ceiling, 100 - cond.fatigue * 0.75);
   player.fitness = clamp(player.fitness + (targetFitness - player.fitness) * 0.45, 20, 100);
+
+  player.morale = clamp(player.morale + DIET_MORALE[plan.diet], 0, 100);
 }
 
 /** Form drifts toward recent match ratings and decays toward the mean when idle. */

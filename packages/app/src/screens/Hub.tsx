@@ -1,4 +1,4 @@
-import { currentOvr, potentialLabel, relationshipLabel } from '@fc/engine';
+import { currentOvr, potentialLabel, relationshipLabel, skillProfile } from '@fc/engine';
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
 import { myClub, myPosition, nextFixture, seasonLine, weeksInjured } from '../state/selectors.js';
@@ -47,6 +47,7 @@ export function Hub() {
           </div>
           <div className="identity-meta">
             <Chip tone="pink">{player.primaryPos}</Chip>
+            {player.shirtNumber && <Chip tone="amber"><span className="num">#{player.shirtNumber}</span></Chip>}
             <Chip>{t('hub.ageValue', { age })}</Chip>
             <Chip>{t(`role.${player.squadRole}`)}</Chip>
           </div>
@@ -76,6 +77,22 @@ export function Hub() {
           <Stat label={t('match.goals')} value={season.goals} />
           <Stat label={t('match.assists')} value={season.assists} />
           <Stat label={t('match.rating')} value={season.rating > 0 ? season.rating.toFixed(2) : '—'} />
+        </div>
+      </Card>
+
+      <Card title={t('hub.skills')}>
+        <div className="grid-3" style={{ gap: 10 }}>
+          {skillProfile(player.attributes, player.primaryPos).map((skill) => (
+            <div key={skill.key}>
+              <div className="row-between" style={{ marginBlockEnd: 4 }}>
+                <span style={{ fontSize: 12 }}>{t(`skill.${skill.key}`)}</span>
+                <span className="num" style={{ fontSize: 12.5, color: skillColor(skill.value) }}>{skill.value}</span>
+              </div>
+              <div className="meter" style={{ height: 4 }}>
+                <i style={{ width: `${skill.value}%`, background: skillColor(skill.value) }} />
+              </div>
+            </div>
+          ))}
         </div>
       </Card>
 
@@ -143,7 +160,7 @@ export function Hub() {
             </button>
           }
         >
-          <div className="row-between">
+          <div className="row-between score-row">
             <span className="grow" style={{ fontSize: 13.5, minWidth: 0 }}>
               <ClubLine club={state.world.clubs[state.lastMatch.homeClubId]} size="sm" />
             </span>
@@ -221,6 +238,14 @@ export function Hub() {
       </p>
     </div>
   );
+}
+
+/** Colour a rating the way a scouting report would: green is good, red is a problem. */
+function skillColor(value: number): string {
+  if (value >= 78) return 'var(--green)';
+  if (value >= 62) return '#9fd15f';
+  if (value >= 45) return 'var(--amber)';
+  return 'var(--red)';
 }
 
 function RelationRow({ label, value }: { label: string; value: number }) {

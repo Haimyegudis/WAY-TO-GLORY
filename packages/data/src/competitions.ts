@@ -45,7 +45,7 @@ export const COMPETITIONS: CompetitionSeed[] = [
   // England
   { id: 'en.1', name: 'Premier League', nameHe: 'פרמייר ליג', country: 'ENG', tier: 1, reputation: 95, rounds: 2, relegationAuto: 3, relegationTo: 'en.2', ucl: 4, uel: 2, uecl: 1, cards: STANDARD_CARDS },
   { id: 'en.2', name: 'Championship', nameHe: "צ'מפיונשיפ", country: 'ENG', tier: 2, reputation: 72, rounds: 2, promotionAuto: 3, promotionTo: 'en.1', relegationAuto: 3, relegationTo: 'en.3', cards: STANDARD_CARDS },
-  { id: 'en.3', name: 'League One', nameHe: 'ליג One', country: 'ENG', tier: 3, reputation: 52, rounds: 2, promotionAuto: 3, promotionTo: 'en.2', relegationAuto: 0, cards: LOWER_CARDS },
+  { id: 'en.3', name: 'League One', nameHe: 'ליגה One', country: 'ENG', tier: 3, reputation: 52, rounds: 2, promotionAuto: 3, promotionTo: 'en.2', relegationAuto: 0, cards: LOWER_CARDS },
 
   // Spain
   { id: 'es.1', name: 'LaLiga', nameHe: 'לה ליגה', country: 'ESP', tier: 1, reputation: 92, rounds: 2, relegationAuto: 3, relegationTo: 'es.2', ucl: 4, uel: 2, uecl: 1, cards: STANDARD_CARDS },

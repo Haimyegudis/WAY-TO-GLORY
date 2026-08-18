@@ -33,39 +33,39 @@ interface PlanEffect {
 function planEffects(plan: { intensity: TrainingIntensity; diet: DietLevel; focus: TrainingFocus }): PlanEffect[] {
   const byIntensity: Record<TrainingIntensity, PlanEffect[]> = {
     light: [
-      { key: 'train.effect.development', arrow: '▼▼', tone: 'bad' },
-      { key: 'train.effect.sharpness', arrow: '▼', tone: 'bad' },
-      { key: 'train.effect.fatigue', arrow: '▼▼', tone: 'good' },
-      { key: 'train.effect.injury', arrow: '▼', tone: 'good' },
+      { key: 'train.effect.development', arrow: '↓↓', tone: 'bad' },
+      { key: 'train.effect.sharpness', arrow: '↓', tone: 'bad' },
+      { key: 'train.effect.fatigue', arrow: '↓↓', tone: 'good' },
+      { key: 'train.effect.injury', arrow: '↓', tone: 'good' },
     ],
     normal: [
-      { key: 'train.effect.development', arrow: '▬', tone: 'neutral' },
-      { key: 'train.effect.sharpness', arrow: '▬', tone: 'neutral' },
-      { key: 'train.effect.fatigue', arrow: '▬', tone: 'neutral' },
-      { key: 'train.effect.injury', arrow: '▬', tone: 'neutral' },
+      { key: 'train.effect.development', arrow: '–', tone: 'neutral' },
+      { key: 'train.effect.sharpness', arrow: '–', tone: 'neutral' },
+      { key: 'train.effect.fatigue', arrow: '–', tone: 'neutral' },
+      { key: 'train.effect.injury', arrow: '–', tone: 'neutral' },
     ],
     intensive: [
-      { key: 'train.effect.development', arrow: '▲', tone: 'good' },
-      { key: 'train.effect.sharpness', arrow: '▲', tone: 'good' },
-      { key: 'train.effect.fatigue', arrow: '▲', tone: 'bad' },
-      { key: 'train.effect.injury', arrow: '▲', tone: 'bad' },
+      { key: 'train.effect.development', arrow: '↑', tone: 'good' },
+      { key: 'train.effect.sharpness', arrow: '↑', tone: 'good' },
+      { key: 'train.effect.fatigue', arrow: '↑', tone: 'bad' },
+      { key: 'train.effect.injury', arrow: '↑', tone: 'bad' },
     ],
     extreme: [
-      { key: 'train.effect.development', arrow: '▲▲', tone: 'good' },
-      { key: 'train.effect.sharpness', arrow: '▲▲', tone: 'good' },
-      { key: 'train.effect.fatigue', arrow: '▲▲▲', tone: 'bad' },
-      { key: 'train.effect.injury', arrow: '▲▲▲', tone: 'bad' },
+      { key: 'train.effect.development', arrow: '↑↑', tone: 'good' },
+      { key: 'train.effect.sharpness', arrow: '↑↑', tone: 'good' },
+      { key: 'train.effect.fatigue', arrow: '↑↑↑', tone: 'bad' },
+      { key: 'train.effect.injury', arrow: '↑↑↑', tone: 'bad' },
     ],
   };
 
   const byDiet: Record<DietLevel, PlanEffect> = {
-    poor: { key: 'train.effect.recovery', arrow: '▼▼', tone: 'bad' },
-    normal: { key: 'train.effect.recovery', arrow: '▬', tone: 'neutral' },
-    professional: { key: 'train.effect.recovery', arrow: '▲', tone: 'good' },
-    nutritionist: { key: 'train.effect.recovery', arrow: '▲▲', tone: 'good' },
+    poor: { key: 'train.effect.recovery', arrow: '↓↓', tone: 'bad' },
+    normal: { key: 'train.effect.recovery', arrow: '–', tone: 'neutral' },
+    professional: { key: 'train.effect.recovery', arrow: '↑', tone: 'good' },
+    nutritionist: { key: 'train.effect.recovery', arrow: '↑↑', tone: 'good' },
   };
 
-  return [...byIntensity[plan.intensity], byDiet[plan.diet], { key: `train.focus.${plan.focus}`, arrow: '▲', tone: 'good' }];
+  return [...byIntensity[plan.intensity], byDiet[plan.diet], { key: `train.focus.${plan.focus}`, arrow: '↑', tone: 'good' }];
 }
 
 export function TrainingScreen() {
@@ -79,8 +79,8 @@ export function TrainingScreen() {
   return (
     <div className="screen stack">
       <header>
-        <p className="eyebrow">{t('train.title')}</p>
-        <h1 className="title">{t('train.intensity')}</h1>
+        <p className="eyebrow">{t('nav.train')}</p>
+        <h1 className="title">{t('train.title')}</h1>
       </header>
 
       <Card>
@@ -94,6 +94,9 @@ export function TrainingScreen() {
                 </button>
               ))}
             </div>
+            <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>
+              {t(`train.intensity.${plan.intensity}.desc`)}
+            </p>
           </div>
 
           <div>
@@ -105,6 +108,9 @@ export function TrainingScreen() {
                 </button>
               ))}
             </div>
+            <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>
+              {t(`train.diet.${plan.diet}.desc`)}
+            </p>
           </div>
 
           <div>

@@ -150,3 +150,52 @@ export const FORMATIONS: Record<string, Position[]> = {
 };
 
 export const FORMATION_NAMES = Object.keys(FORMATIONS);
+
+
+/**
+ * The eight headline ratings a player thinks in: what he is quick at, what he can
+ * do with the ball, how he defends, how he reads a game. Each is a weighted read of
+ * the underlying attributes, so training, diet and build all move them.
+ */
+export type SkillKey =
+  | 'speed'
+  | 'agility'
+  | 'finishing'
+  | 'technique'
+  | 'passing'
+  | 'defending'
+  | 'heading'
+  | 'vision'
+  | 'physical'
+  | 'goalkeeping';
+
+const SKILL_WEIGHTS: Record<SkillKey, Partial<Record<AttributeKey, number>>> = {
+  speed: { pace: 0.55, acceleration: 0.45 },
+  agility: { agility: 0.5, balance: 0.3, dribbling: 0.2 },
+  finishing: { finishing: 0.55, shooting: 0.3, composure: 0.15 },
+  technique: { ballControl: 0.4, firstTouch: 0.35, dribbling: 0.25 },
+  passing: { passing: 0.6, crossing: 0.2, vision: 0.2 },
+  defending: { tackling: 0.4, marking: 0.4, positioning: 0.2 },
+  heading: { heading: 0.6, jumping: 0.25, strength: 0.15 },
+  vision: { vision: 0.35, decisions: 0.35, concentration: 0.3 },
+  physical: { strength: 0.4, stamina: 0.4, workRate: 0.2 },
+  goalkeeping: { reflexes: 0.4, handling: 0.3, positioningGK: 0.2, kicking: 0.1 },
+};
+
+export function skillRating(attributes: Attributes, skill: SkillKey): number {
+  let sum = 0;
+  let total = 0;
+  for (const [key, weight] of Object.entries(SKILL_WEIGHTS[skill]) as [AttributeKey, number][]) {
+    sum += (attributes[key] ?? 1) * weight;
+    total += weight;
+  }
+  return clamp(Math.round(sum / (total || 1)), 1, 99);
+}
+
+/** The set worth showing for a player, keepers included. */
+export function skillProfile(attributes: Attributes, pos: Position): { key: SkillKey; value: number }[] {
+  const keys: SkillKey[] = pos === 'GK'
+    ? ['goalkeeping', 'vision', 'physical', 'speed', 'agility', 'passing']
+    : ['speed', 'agility', 'finishing', 'technique', 'passing', 'defending', 'heading', 'vision', 'physical'];
+  return keys.map((key) => ({ key, value: skillRating(attributes, key) }));
+}

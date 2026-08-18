@@ -131,6 +131,8 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     red: 0,
     rating: 6.0,
     motm: false,
+    ...(ctx.minutes.cameOnMinute !== undefined ? { cameOnMinute: ctx.minutes.cameOnMinute } : {}),
+    ...(ctx.minutes.offMinute !== undefined ? { offMinute: ctx.minutes.offMinute } : {}),
   };
 
   const onPitchFrom = ctx.minutes.cameOnMinute ?? 0;
@@ -290,6 +292,8 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     }
   }
 
+  addBroadcastEvents(rng, ctx, events);
+
   const homeGoals = userHome ? userGoals : oppGoals;
   const awayGoals = userHome ? oppGoals : userGoals;
 
@@ -314,6 +318,77 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
   const injuryRolled = ctx.minutes.played && rng.chance(inMatchInjuryChance(ctx.user, ctx.minutes.minutes));
 
   return { result, events, line, injuryRolled };
+}
+
+/**
+ * Colour for a match you watch rather than read: corners, free kicks, balls flashing
+ * across the six-yard box, the moment you came off. None of it touches the scoreline -
+ * that has already emerged from the chances - but ninety minutes with nothing but two
+ * goals in it is not a match, it is a result.
+ */
+function addBroadcastEvents(rng: Rng, ctx: UserMatchContext, events: MatchEvent[]): void {
+  const played = ctx.minutes.played;
+  const from = ctx.minutes.cameOnMinute ?? 0;
+  const to = ctx.minutes.offMinute ?? (played ? 90 : 0);
+
+  const push = (minute: number, type: MatchEvent['type'], key: string, byUser = false) => {
+    events.push({ minute, type, byUser, detailKey: key, ambient: true, playerId: byUser ? ctx.user.id : undefined });
+  };
+
+  push(0, 'kickOff', 'match.live.kickOff');
+
+  if (played && ctx.minutes.cameOnMinute) {
+    events.push({
+      minute: ctx.minutes.cameOnMinute, type: 'sub-on', byUser: true,
+      playerId: ctx.user.id, detailKey: 'match.live.subOn',
+    });
+  }
+  if (played && ctx.minutes.offMinute && ctx.minutes.offMinute < 90) {
+    events.push({
+      minute: ctx.minutes.offMinute, type: 'sub-off', byUser: true,
+      playerId: ctx.user.id, detailKey: 'match.live.subOff',
+    });
+  }
+
+  // Neutral beats, and beats the user is at the centre of while he is on the pitch.
+  const neutral: [MatchEvent['type'], string][] = [
+    ['corner', 'match.live.corner'],
+    ['freeKick', 'match.live.freeKick'],
+    ['offside', 'match.live.offside'],
+    ['chance', 'match.live.chance'],
+    ['oppMiss', 'match.live.oppWide'],
+    ['oppMiss', 'match.live.oppSaved'],
+    ['corner', 'match.live.cornerOpp'],
+    ['chance', 'match.live.scramble'],
+  ];
+  const mine: [MatchEvent['type'], string][] = [
+    ['chance', 'match.live.userDribble'],
+    ['chance', 'match.live.userPass'],
+    ['freeKick', 'match.live.userFouled'],
+    ['corner', 'match.live.userCorner'],
+    ['chance', 'match.live.userPress'],
+    ['woodwork', 'match.live.userWoodwork'],
+    ['chance', 'match.live.userHeader'],
+    ['chance', 'match.live.userDuel'],
+  ];
+
+  const count = rng.int(9, 14);
+  const used = new Set<string>();
+  for (let i = 0; i < count; i++) {
+    const minute = rng.int(2, 89);
+    const onPitch = played && minute >= from && minute <= to;
+    const involvement = onPitch ? userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 1.6 : 0;
+    const pool = rng.chance(clamp(involvement, 0, 0.65)) ? mine : neutral;
+    // Do not run the same line twice in one match; there are enough to go round.
+    let pick = pool[rng.int(0, pool.length - 1)]!;
+    for (let tries = 0; tries < 3 && used.has(pick[1]); tries++) pick = pool[rng.int(0, pool.length - 1)]!;
+    if (used.has(pick[1])) continue;
+    used.add(pick[1]);
+    push(minute, pick[0], pick[1], pool === mine);
+  }
+
+  push(45, 'halfTime', 'match.live.halfTime');
+  push(90, 'fullTime', 'match.live.fullTime');
 }
 
 /** How often the ball finds the user, given where they play. */

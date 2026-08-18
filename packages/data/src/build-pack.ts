@@ -10,7 +10,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Rng, hashString, clamp, validatePack, type Club, type Competition, type Country, type DataPack } from '@fc/engine';
+import {
+  Rng, hashString, clamp, validatePack,
+  type Club, type Competition, type Country, type DataPack, type StarPlayerSeed,
+} from '@fc/engine';
 import { SOURCES } from './sources.js';
 import { COMPETITIONS, COUNTRIES, REPUTATION_OVERRIDES, type CompetitionSeed } from './competitions.js';
 import { MANUAL_CLUBS } from './manual-clubs.js';
@@ -18,8 +21,10 @@ import { NAME_POOLS } from './names.js';
 import { STARS } from './stars.js';
 import { EVENTS } from './events.js';
 import { EVENTS_EXTRA } from './events-extra.js';
+import { EVENTS_LIFESTYLE } from './events-lifestyle.js';
 import { HEBREW_CLUB_NAMES } from './hebrew-clubs.js';
 import { CLUB_COLORS } from './club-colors.js';
+import { REAL_PLAYERS } from './real-players.js';
 
 interface ClubAsset {
   clubId: string;
@@ -170,6 +175,29 @@ function buildClub(seed: CompetitionSeed, name: string, strength: number, city?:
   };
 }
 
+/**
+ * The hand-written marquee names win where they exist - they carry real ratings - and
+ * everything TheSportsDB gave us fills in behind them, so a squad list reads like the
+ * real squad rather than a page of invented names.
+ */
+function mergeStars(clubs: Club[]): StarPlayerSeed[] {
+  const clubIds = new Set(clubs.map((c) => c.id));
+  const manual = STARS.filter((s) => clubIds.has(s.clubId));
+  const taken = new Set(manual.map((s) => `${s.clubId}|${s.firstName} ${s.lastName}`.toLowerCase()));
+
+  const out: StarPlayerSeed[] = [...manual];
+  for (const [clubId, seeds] of Object.entries(REAL_PLAYERS)) {
+    if (!clubIds.has(clubId)) continue;
+    for (const seed of seeds) {
+      const key = `${clubId}|${seed.firstName} ${seed.lastName}`.toLowerCase();
+      if (taken.has(key)) continue;
+      taken.add(key);
+      out.push(seed);
+    }
+  }
+  return out;
+}
+
 async function main(): Promise<void> {
   // Crests, Hebrew names and club colours are collected by fetch-club-assets.
   const assetsFile = join(packsDir, 'clubs-assets.json');
@@ -259,8 +287,8 @@ async function main(): Promise<void> {
     competitions,
     clubs,
     names: NAME_POOLS,
-    stars: STARS.filter((s) => clubs.some((c) => c.id === s.clubId)),
-    events: [...EVENTS, ...EVENTS_EXTRA],
+    stars: mergeStars(clubs),
+    events: [...EVENTS, ...EVENTS_EXTRA, ...EVENTS_LIFESTYLE],
   };
 
   const problems = validatePack(pack);

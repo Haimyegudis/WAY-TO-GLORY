@@ -58,6 +58,47 @@ export function buildAttributes(rng: Rng, pos: Position, target: number, spread 
   return attrs;
 }
 
+
+/**
+ * A player's build is not cosmetic. A tall player wins headers and jumps; a small
+ * one turns and accelerates. Carrying weight for your height adds strength and
+ * stability and takes away pace. Applied on top of the generated attributes, so two
+ * players with the same rating can be very different footballers.
+ */
+export function applyPhysique(attributes: Attributes, heightCm: number, weightKg: number): void {
+  const tall = (heightCm - 180) / 10;                     // +1 per 10cm over 180
+
+  // Weight is judged against what a footballer of this height normally carries, not
+  // against a flat number: otherwise dropping the height alone makes a player "heavy"
+  // and slower, when a shorter player should be the quicker one.
+  const expectedKg = 76 + (heightCm - 180) * 0.9;
+  const heavy = (weightKg - expectedKg) / 6;              // +1 per 6kg over his build
+
+  const bump = (key: AttributeKey, amount: number) => {
+    attributes[key] = clamp(attributes[key] + amount, 1, 99);
+  };
+
+  // Tall: wins headers, gets up, covers ground - but turns slower and starts slower.
+  bump('heading', tall * 3.4 + heavy * 0.9);
+  bump('jumping', tall * 2.6);
+  bump('strength', tall * 1.6 + heavy * 1.8);
+  // A heavier player wins the physical duels, so he defends better.
+  bump('marking', tall * 0.8 + heavy * 0.9);
+  bump('tackling', heavy * 0.7);
+  bump('reflexes', tall * 1.2);
+  bump('positioningGK', tall * 0.8);
+
+  // Short and light: quick off the mark, quick to turn.
+  bump('acceleration', -tall * 3.0 - heavy * 1.6);
+  bump('pace', -tall * 2.4 - heavy * 1.4);
+  bump('agility', -tall * 3.0 - heavy * 1.2);
+  bump('dribbling', -tall * 1.2 - heavy * 0.6);
+
+  // Heavy: harder to knock over, harder to keep running.
+  bump('balance', -tall * 1.2 + heavy * 1.4);
+  bump('stamina', -heavy * 1.0);
+}
+
 export function buildPersonality(rng: Rng, bias = 0): Personality {
   const p = {} as Personality;
   for (const key of PERSONALITY_KEYS) {
@@ -99,6 +140,15 @@ export function generatePlayer(rng: Rng, index: PackIndex, opts: GenerateOptions
   const pool = poolFor(index, opts.countryCode);
   const { firstName, lastName } = pickName(rng, pool);
   const attributes = buildAttributes(rng, opts.pos, opts.targetOvr);
+
+  // Build first, then rate: a tall centre back and a small winger with the same
+  // target come out as different players, and their rating reflects the body.
+  const group = positionGroup(opts.pos);
+  const heightBase = group === 'GK' ? 190 : group === 'DEF' ? 184 : group === 'MID' ? 179 : 181;
+  const heightCm = Math.round(rng.gaussIn(heightBase, 6, 165, 205));
+  const weightKg = Math.round(clamp((heightCm - 100) * rng.range(0.92, 1.02), 58, 105));
+  applyPhysique(attributes, heightCm, weightKg);
+
   const ovr = ratingAt(attributes, opts.pos);
 
   // Younger players carry more headroom; by 27 potential is basically current ability.
@@ -108,11 +158,6 @@ export function generatePlayer(rng: Rng, index: PackIndex, opts: GenerateOptions
     ovr,
     99,
   );
-
-  const group = positionGroup(opts.pos);
-  const heightBase = group === 'GK' ? 190 : group === 'DEF' ? 184 : group === 'MID' ? 179 : 181;
-  const heightCm = Math.round(rng.gaussIn(heightBase, 6, 165, 205));
-  const weightKg = Math.round(clamp((heightCm - 100) * rng.range(0.92, 1.02), 58, 105));
 
   const foot: Foot = opts.pos === 'LB' || opts.pos === 'LWB' || opts.pos === 'LM' || opts.pos === 'LW'
     ? (rng.chance(0.75) ? 'L' : 'R')
@@ -304,6 +349,30 @@ export interface UserPlayerInput {
   foot: Foot;
   primaryPos: Position;
   secondaryPos: Position[];
+  /** The number he wants on his back. */
+  shirtNumber?: number;
+}
+
+/** What a player in this position traditionally wears, used as the default. */
+export function defaultShirtNumber(pos: Position): number {
+  switch (pos) {
+    case 'GK': return 1;
+    case 'RB': return 2;
+    case 'CB': return 5;
+    case 'LB': return 3;
+    case 'RWB': return 2;
+    case 'LWB': return 3;
+    case 'CDM': return 6;
+    case 'CM': return 8;
+    case 'CAM': return 10;
+    case 'RM': return 7;
+    case 'LM': return 11;
+    case 'RW': return 7;
+    case 'LW': return 11;
+    case 'CF': return 9;
+    case 'ST': return 9;
+    default: return 14;
+  }
 }
 
 /**
@@ -318,6 +387,7 @@ export function createUserPlayer(
 ): Player {
   const targetOvr = clamp(Math.round(28 + academyQuality * 0.06 + rng.gaussIn(2, 1.6, -2, 5)), 28, 38);
   const attributes = buildAttributes(rng, input.primaryPos, targetOvr, 6);
+  applyPhysique(attributes, input.heightCm, input.weightKg);
   const potentialRoll = rng.next();
   // Long right tail: most careers top out mid-table, a few are special.
   const potential = clamp(
@@ -362,6 +432,7 @@ export function createUserPlayer(
     condition: emptyCondition(),
     clubId: null,
     squadRole: 'academy',
+    shirtNumber: input.shirtNumber ?? defaultShirtNumber(input.primaryPos),
     reputation: 5,
     fame: 2,
     isUser: true,

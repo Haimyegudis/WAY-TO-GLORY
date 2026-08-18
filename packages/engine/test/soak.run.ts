@@ -31,6 +31,9 @@ while (!state.retired && weeks < maxWeeks) {
 
   // Answer any decision by picking an option at random, the way a distracted player would.
   for (const decision of [...state.pendingDecisions]) {
+    // Transfer and agent approaches are answered through their own calls below;
+    // only event decisions carry options to pick from.
+    if (decision.kind !== 'event' || decision.options.length === 0) continue;
     const option = rng.pick(decision.options);
     resolveDecision(rng, state, decision.id, option.id, pack.events);
     decisions++;

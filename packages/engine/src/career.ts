@@ -473,6 +473,11 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   let stopped: TickResult['stopped'] = 'week';
   let playedThisWeek = 0;
 
+  // 0. Nothing waits for ever. A club that hears nothing back signs someone else and
+  // an agent stops calling, otherwise unanswered approaches pile up and quietly choke
+  // off every other event in the game.
+  expireDecisions(state);
+
   // 1. Domestic and international fixtures.
   const userMatch = club ? simulateWeekFixtures(state, index, rng, club) : null;
   if (userMatch) {
@@ -545,8 +550,10 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     if (state.agentOffers.length > 0) openAgentDecision(state, state.agentOffers);
   }
 
-  // 8. Career events.
-  if (state.pendingDecisions.length === 0 && rng.chance(0.22)) {
+  // 8. Career events. Only another event blocks one: a transfer approach sitting on
+  // the table should not stop the rest of his life happening.
+  const eventPending = state.pendingDecisions.some((d) => d.kind === 'event');
+  if (!eventPending && rng.chance(0.22)) {
     const ctx = buildEventContext(state, index);
     const def = pickEvent(rng, index.pack.events, ctx, state);
     if (def) {
@@ -561,6 +568,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
 
   // 9. The people around him react to the week just played.
   state.socialActions.used = 0;
+  driftMorale(state);
   const weekRatings = state.matchLog
     .filter((m) => m.season === season && m.userLine?.played)
     .slice(0, 3)
@@ -598,6 +606,23 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   commitRng(state, rng);
   state.savedAt = new Date(0).toISOString();
   return { state, stopped, log };
+}
+
+/**
+ * Morale settles back toward where his life actually is. Without this a spell on the
+ * bench drives it to zero and it can never climb out, which is not how a footballer
+ * works: a run in the team, the crowd back onside, or simply time, all pull him back
+ * up. Sustained problems still keep him low - the weekly hits are bigger than the pull.
+ */
+function driftMorale(state: CareerState): void {
+  const player = state.player;
+  const rel = state.relationships;
+  const target = clamp(
+    46 + (player.form - 50) * 0.35 + (rel.teammates - 50) * 0.16 + (rel.fans - 50) * 0.12 + (rel.manager - 50) * 0.14,
+    18,
+    92,
+  );
+  player.morale = clamp(player.morale + (target - player.morale) * 0.14, 0, 100);
 }
 
 function buildEventContext(state: CareerState, index: PackIndex): EventContext {
@@ -1445,6 +1470,31 @@ export function careerStatus(score: number): string {
   if (score >= 52) return 'clubLegend';
   if (score >= 38) return 'professional';
   return 'localHero';
+}
+
+/**
+ * Drop approaches the player never answered. Silence is an answer: the club moves on
+ * and the agent takes another client, which is also what stops the decision list
+ * growing without bound over a twenty-season career.
+ */
+function expireDecisions(state: CareerState): void {
+  const absoluteWeek = state.world.season * 52 + state.world.week;
+  const expired = state.pendingDecisions.filter((d) => d.expiresWeek !== undefined && d.expiresWeek < absoluteWeek);
+  if (expired.length === 0) return;
+
+  const expiredIds = new Set(expired.map((d) => d.id));
+  state.pendingDecisions = state.pendingDecisions.filter((d) => !expiredIds.has(d.id));
+
+  for (const decision of expired) {
+    if (decision.kind === 'transfer' && decision.offers) {
+      const gone = new Set(decision.offers.map((o) => o.id));
+      state.transferOffers = state.transferOffers.filter((o) => !gone.has(o.id));
+    }
+    if (decision.kind === 'agent') {
+      state.agentOffers = [];
+    }
+  }
+  state.inbox = state.inbox.filter((item) => !item.decisionId || !expiredIds.has(item.decisionId));
 }
 
 /** Put clubs on the table as a decision the player has to answer. */

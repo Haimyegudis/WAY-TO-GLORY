@@ -37,13 +37,20 @@ packages/
   436 מועדונים ב-24 ליגות. הליגות הישראליות והדרגים החסרים נכתבו ידנית.
 - **סמלים ושמות בעברית**: נמשכים פעם אחת מוויקיפדיה בסקריפט build ונשמרים מקומית,
   כדי שהמשחק יעבוד אופליין.
-- **שחקנים**: 211 שחקנים אמיתיים במועדונים הגדולים; כל השאר מיוצרים פרוצדורלית.
+- **סמלים**: מקור אמיתי אחד - TheSportsDB, שמזהה כל קבוצה לפי ענף ומדינה, ולכן לא
+  מגיעים סמלים של קבוצת כדורסל או תמונות אצטדיון. מי שאין לו שם, נופל לוויקיפדיה
+  וגם שם נלקח רק קובץ ששמו הוא סמל/לוגו, אף פעם לא תמונת הכתבה. כל קובץ נבדק שהוא
+  ריבועי בערך, אחרת הוא נדחה.
+- **שחקנים**: שחקנים אמיתיים מהמאגר לכל מועדון שנמצא, בתוספת רשימת הכוכבים
+  הידנית (שמחזיקה ציונים אמיתיים) שגוברת עליה; שאר הסגל מיוצר פרוצדורלית.
 
 ```bash
 npm run -w @fc/data fetch     # מוריד את קבצי openfootball
-npx tsx packages/data/src/fetch-club-assets.ts   # סמלים + שמות בעברית
-npx tsx packages/data/src/build-pack.ts          # בונה את pack.json
-npx tsx packages/data/src/copy-assets.ts         # מעתיק סמלים ל-app/public
+npx tsx packages/data/src/fetch-crests.ts --all   # סמלים מ-TheSportsDB (+ צבע הקבוצה)
+npx tsx packages/data/src/fetch-squads.ts         # שחקנים אמיתיים לכל מועדון
+npx tsx packages/data/src/fetch-club-assets.ts    # שמות בעברית מוויקיפדיה
+npx tsx packages/data/src/build-pack.ts           # בונה את pack.json
+npx tsx packages/data/src/copy-assets.ts          # מעתיק סמלים ל-app/public
 ```
 
 ### תמונות רקע

@@ -57,6 +57,11 @@ interface GameStore {
   lastTick: TickResult['stopped'] | null;
   /** Shown in a sheet right after a choice, so the player sees what it did. */
   result: DecisionResult | null;
+  /**
+   * The match id currently being watched minute by minute. Set when the week stops on
+   * a match the player was involved in; cleared once he has seen it out or skipped.
+   */
+  liveMatchId: string | null;
 
   boot: () => Promise<void>;
   goto: (screen: Screen) => void;
@@ -77,6 +82,7 @@ interface GameStore {
   updateTraining: (plan: Partial<TrainingPlan>) => void;
   retire: () => void;
   markInboxRead: () => void;
+  endLive: () => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
 }
@@ -99,6 +105,7 @@ export const useGame = create<GameStore>((set, get) => ({
   toast: null,
   lastTick: null,
   result: null,
+  liveMatchId: null,
 
   async boot() {
     const raw = await idbGet<string>(SAVE_KEY);
@@ -170,6 +177,9 @@ export const useGame = create<GameStore>((set, get) => ({
       busy: false,
       lastTick: result?.stopped ?? null,
       screen: result?.stopped === 'match' && state.lastMatch?.userLine?.played ? 'match' : get().screen,
+      // A match he played gets watched, not just read.
+      liveMatchId:
+        result?.stopped === 'match' && state.lastMatch?.userLine?.played ? state.lastMatch.id : null,
     });
   },
 
@@ -245,6 +255,10 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ state: { ...state }, screen: 'career' });
   },
 
+  endLive() {
+    set({ liveMatchId: null });
+  },
+
   markInboxRead() {
     const { state } = get();
     if (!state) return;
@@ -269,4 +283,10 @@ export function getPack(): DataPack {
 
 export function availableActions(state: CareerState) {
   return actionsAvailableNow(state);
+}
+
+// A handle on the store while developing, so a career can be driven from the console
+// without clicking through twenty weeks. Stripped from production builds.
+if (import.meta.env.DEV) {
+  (window as unknown as { game: typeof useGame }).game = useGame;
 }
