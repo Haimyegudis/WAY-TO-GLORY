@@ -1,0 +1,205 @@
+import { Rng, clamp, logistic } from './rng.js';
+import { overall } from './positions.js';
+import { clubBaseOvr } from './generate.js';
+import { expectedWage, marketValue } from './value.js';
+import type { PackIndex } from './data.js';
+import type {
+  Agent,
+  CareerState,
+  Club,
+  Competition,
+  SquadRole,
+  TransferOffer,
+} from './types.js';
+
+export const SUMMER_WINDOW: [number, number] = [1, 6];
+export const WINTER_WINDOW: [number, number] = [25, 29];
+
+export function isTransferWindow(week: number): boolean {
+  return (
+    (week >= SUMMER_WINDOW[0] && week <= SUMMER_WINDOW[1]) ||
+    (week >= WINTER_WINDOW[0] && week <= WINTER_WINDOW[1])
+  );
+}
+
+/** Which countries a club can realistically scout the player in. */
+function agentReach(agent: Agent | null, club: Club, playerCountry: string): number {
+  if (!agent) {
+    // Without an agent you are visible mostly at home.
+    return club.country === playerCountry ? 0.8 : 0.18;
+  }
+  const inNetwork = agent.countries.includes(club.country);
+  const base = inNetwork ? 1 : agent.internationalNetwork / 130;
+  const tierBonus =
+    agent.tier === 'superAgent' ? 0.35 : agent.tier === 'international' ? 0.22 : agent.tier === 'national' ? 0.1 : 0;
+  return clamp(base + tierBonus, 0.1, 1.35);
+}
+
+export interface InterestInput {
+  club: Club;
+  competition: Competition;
+  ovr: number;
+  potential: number;
+  age: number;
+  form: number;
+  reputation: number;
+  value: number;
+  agent: Agent | null;
+  playerCountry: string;
+  currentClubStrength: number;
+  minutesPct: number;
+}
+
+/**
+ * How badly a club wants this player, 0-100.
+ * Clubs sign players near their own level; big clubs also gamble on young potential.
+ */
+export function transferInterest(input: InterestInput): number {
+  const clubLevel = clubBaseOvr(input.club);
+  const gap = input.ovr - clubLevel;
+
+  // Best fit is a player slightly better than the current squad average.
+  const fitScore = 100 * Math.exp(-((gap - 2) ** 2) / 90);
+
+  const potentialGap = Math.max(0, input.potential - input.ovr);
+  const youthAppeal = input.age <= 23 ? clamp(potentialGap * (input.club.reputation / 100) * 1.6, 0, 45) : 0;
+
+  const formScore = (input.form - 50) * 0.28;
+  const repScore = (input.reputation - clubLevel * 0.6) * 0.22;
+  const minutesScore = (input.minutesPct - 0.35) * 22;
+
+  const affordability = logistic((input.club.finances * 1.6e6 - input.value) / 8e6) * 26 - 8;
+  const reach = agentReach(input.agent, input.club, input.playerCountry);
+
+  const raw = (fitScore * 0.55 + youthAppeal + formScore + repScore + minutesScore + affordability) * reach;
+  return clamp(raw, 0, 100);
+}
+
+function roleForOvr(ovr: number, clubLevel: number, age: number): SquadRole {
+  const gap = ovr - clubLevel;
+  if (age <= 18) return gap > 0 ? 'prospect' : 'futureProspect';
+  if (gap >= 8) return 'star';
+  if (gap >= 4) return 'key';
+  if (gap >= 1) return 'important';
+  if (gap >= -3) return 'starter';
+  if (gap >= -7) return 'rotation';
+  if (gap >= -11) return 'bench';
+  return 'fringe';
+}
+
+const ROLE_MINUTES: Record<SquadRole, number> = {
+  academy: 0.05,
+  futureProspect: 0.08,
+  prospect: 0.2,
+  fringe: 0.12,
+  bench: 0.25,
+  rotation: 0.45,
+  starter: 0.68,
+  important: 0.78,
+  key: 0.86,
+  star: 0.9,
+};
+
+export function expectedMinutesFor(role: SquadRole): number {
+  return ROLE_MINUTES[role];
+}
+
+export interface OfferGenInput {
+  state: CareerState;
+  index: PackIndex;
+  rng: Rng;
+  minutesPct: number;
+  maxOffers?: number;
+}
+
+/** Scan the world for clubs that would move for the player right now. */
+export function generateOffers(input: OfferGenInput): TransferOffer[] {
+  const { state, index, rng } = input;
+  const player = state.player;
+  const season = state.world.season;
+  const age = season - player.birthYear;
+  const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
+  const currentClub = player.clubId ? state.world.clubs[player.clubId] : undefined;
+  const currentComp = currentClub ? index.competitionById.get(currentClub.competitionId) : undefined;
+
+  const value = marketValue(player, {
+    season,
+    leagueReputation: currentComp?.reputation ?? 40,
+    contract: state.contract,
+    internationalCaps: state.nationalTeam.caps,
+  });
+
+  const candidates: { club: Club; comp: Competition; interest: number }[] = [];
+  for (const club of Object.values(state.world.clubs)) {
+    if (club.id === player.clubId) continue;
+    const comp = index.competitionById.get(club.competitionId);
+    if (!comp) continue;
+    const interest = transferInterest({
+      club,
+      competition: comp,
+      ovr,
+      potential: player.potential,
+      age,
+      form: player.form,
+      reputation: player.reputation,
+      value,
+      agent: state.agent,
+      playerCountry: player.birthCountry,
+      currentClubStrength: currentClub?.strength ?? 40,
+      minutesPct: input.minutesPct,
+    });
+    if (interest > 42) candidates.push({ club, comp, interest });
+  }
+
+  candidates.sort((a, b) => b.interest - a.interest);
+  const shortlist = candidates.slice(0, 16);
+  const chosen: TransferOffer[] = [];
+  const maxOffers = input.maxOffers ?? 4;
+
+  for (const candidate of rng.shuffle(shortlist)) {
+    if (chosen.length >= maxOffers) break;
+    // Interest is not the same as actually bidding.
+    if (!rng.chance(clamp((candidate.interest - 40) / 90, 0.05, 0.75))) continue;
+
+    const clubLevel = clubBaseOvr(candidate.club);
+    const role = roleForOvr(ovr, clubLevel, age);
+    const isLoan = age <= 21 && ovr < clubLevel - 4 && rng.chance(0.35);
+
+    const feeMultiplier = clamp(rng.range(0.75, 1.55) * (1 + (candidate.interest - 60) / 200), 0.5, 2.2);
+    const fee = isLoan ? 0 : Math.round((value * feeMultiplier) / 50_000) * 50_000;
+    const wage = expectedWage(player, ovr, candidate.club.finances, candidate.comp, age);
+
+    chosen.push({
+      id: `offer_${season}_${state.world.week}_${candidate.club.id}`,
+      clubId: candidate.club.id,
+      fee,
+      salaryPerWeek: Math.round(wage * rng.range(0.9, 1.25)),
+      years: isLoan ? 1 : age < 21 ? rng.int(3, 5) : age < 30 ? rng.int(3, 4) : rng.int(1, 2),
+      squadRole: isLoan ? 'starter' : role,
+      expectedMinutesPct: expectedMinutesFor(isLoan ? 'starter' : role),
+      isLoan,
+      season,
+      week: state.world.week,
+      interestLevel: Math.round(candidate.interest),
+      competitionId: candidate.club.competitionId,
+    });
+  }
+
+  return chosen;
+}
+
+/** Whether the current club wants to keep the player when the contract runs down. */
+export function renewalIntent(
+  rng: Rng,
+  ovr: number,
+  clubLevel: number,
+  age: number,
+  minutesPct: number,
+  managerTrust: number,
+): 'extend' | 'letExpire' | 'release' {
+  const score =
+    (ovr - clubLevel) * 3 + minutesPct * 40 + (managerTrust - 50) * 0.4 - Math.max(0, age - 31) * 6 + rng.gauss(0, 6);
+  if (score > 8) return 'extend';
+  if (score > -12) return 'letExpire';
+  return 'release';
+}

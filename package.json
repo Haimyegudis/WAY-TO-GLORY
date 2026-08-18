@@ -1,0 +1,22 @@
+{
+  "name": "football-career",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/engine",
+    "packages/data",
+    "packages/app"
+  ],
+  "scripts": {
+    "test": "npm run test -w @fc/engine",
+    "data:build": "npm run build -w @fc/data",
+    "dev": "npm run dev -w @fc/app",
+    "build": "npm run build -w @fc/app",
+    "soak": "npm run soak -w @fc/engine"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.7.2"
+  }
+}
