@@ -1,5 +1,5 @@
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
-import { competitionName } from '../lib/names.js';
+import { competitionLabel, competitionName } from '../lib/names.js';
 import { clubName, clubShortName } from '../lib/club.js';
 import { toHebrew } from '../lib/transliterate.js';
 import { getPack, useGame } from '../state/store.js';
@@ -14,7 +14,7 @@ export function MarketScreen() {
   const signAgent = useGame((s) => s.signAgent);
   const pack = getPack();
 
-  const competition = (id: string) => competitionName(pack.competitions.find((c) => c.id === id), lang) || id;
+  const competition = (id: string) => competitionLabel(id, pack, lang, t);
 
   return (
     <div className="screen stack">

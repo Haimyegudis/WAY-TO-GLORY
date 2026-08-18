@@ -1,5 +1,5 @@
 import { useLang, useT } from '../i18n/index.js';
-import { competitionName } from '../lib/names.js';
+import { competitionLabel, competitionName } from '../lib/names.js';
 import { clubName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
 import { ClubCard, Crest, Meter } from '../components/ui.js';
@@ -12,7 +12,7 @@ export function AcademyChoice() {
   const choose = useGame((s) => s.chooseAcademy);
   const pack = getPack();
 
-  const competition = (id: string) => competitionName(pack.competitions.find((c) => c.id === id), lang) || id;
+  const competition = (id: string) => competitionLabel(id, pack, lang, t);
 
   return (
     <>

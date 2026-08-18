@@ -1,13 +1,14 @@
 import { useState } from 'react';
+import type { CareerState, EuroState } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { clubName, clubShortName } from '../lib/club.js';
 import { competitionName, playerName } from '../lib/names.js';
 import { useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
-import { Card, Crest, Empty, Meter } from '../components/ui.js';
+import { Card, ClubLine, Crest, Empty, Meter } from '../components/ui.js';
 import { clubColor } from '../lib/club.js';
 
-type Tab = 'table' | 'squad' | 'scorers';
+type Tab = 'table' | 'squad' | 'scorers' | 'europe';
 
 export function ClubScreen() {
   const t = useT();
@@ -56,12 +57,99 @@ export function ClubScreen() {
         <button aria-pressed={tab === 'table'} onClick={() => setTab('table')}>{t('club.table')}</button>
         <button aria-pressed={tab === 'squad'} onClick={() => setTab('squad')}>{t('club.squad')}</button>
         <button aria-pressed={tab === 'scorers'} onClick={() => setTab('scorers')}>{t('club.scorers')}</button>
+        {europeanRun(state) && (
+          <button aria-pressed={tab === 'europe'} onClick={() => setTab('europe')}>{t('competition.europe')}</button>
+        )}
       </div>
 
       {tab === 'table' && <LeagueTable />}
       {tab === 'squad' && <SquadList />}
       {tab === 'scorers' && <Scorers />}
+      {tab === 'europe' && <EuropeanRun />}
     </div>
+  );
+}
+
+
+/** The European competition the user's club is in this season, if any. */
+function europeanRun(state: CareerState): EuroState | null {
+  const clubId = state.player.clubId;
+  if (!clubId) return null;
+  for (const competition of Object.values(state.world.europe ?? {}) as EuroState[]) {
+    const inGroup = competition.groups.some((g) => g.clubIds.includes(clubId));
+    const inKnockout = competition.ties.some((tie) => tie.homeClubId === clubId || tie.awayClubId === clubId);
+    if (inGroup || inKnockout) return competition;
+  }
+  return null;
+}
+
+/** The group table and the ties, which is all a player needs to know about the draw. */
+function EuropeanRun() {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
+  const state = useGame((s) => s.state)!;
+  const competition = europeanRun(state);
+  if (!competition) return <Empty>—</Empty>;
+
+  const clubId = state.player.clubId;
+  const group = competition.groups.find((g) => g.clubIds.includes(clubId ?? ''));
+  const ties = competition.ties.filter((tie) => tie.homeClubId === clubId || tie.awayClubId === clubId);
+
+  return (
+    <Card title={t(`competition.${competition.id}`)}>
+      <p className="eyebrow" style={{ marginBlockEnd: 8 }}>
+        {t(`competition.stage.${competition.stage === 'done' ? 'final' : competition.stage}`)}
+      </p>
+
+      {group && (
+        <div className="table-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th className="start">{t('competition.group', { letter: group.letter })}</th>
+                <th className="n">{t('club.pld')}</th>
+                <th className="n">{t('club.gd')}</th>
+                <th className="n">{t('club.pts')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.values(group.table)
+                .sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
+                .map((row) => (
+                  <tr key={row.clubId} className={row.clubId === clubId ? 'row-me' : ''}>
+                    <td className="start">
+                      <ClubLine club={state.world.clubs[row.clubId]} size="sm" />
+                    </td>
+                    <td className="n">{row.played}</td>
+                    <td className="n">{row.goalsFor - row.goalsAgainst}</td>
+                    <td className="n">{row.points}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {ties.length > 0 && (
+        <ul className="list" style={{ marginBlockStart: 10 }}>
+          {ties.map((tie, i) => {
+            const opponentId = tie.homeClubId === clubId ? tie.awayClubId : tie.homeClubId;
+            return (
+              <li key={`${tie.stage}-${i}`} className="list-item">
+                <span className="chip">{t(`competition.stage.${tie.stage}`)}</span>
+                <span className="grow" style={{ fontSize: 13 }}>
+                  <ClubLine club={state.world.clubs[opponentId]} size="sm" />
+                </span>
+                <span className="num" style={{ fontSize: 13 }}>
+                  {tie.result ? `${tie.result[0]}\u2013${tie.result[1]}` : `${tie.week}\u2032`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{lang === 'he' ? '' : ''}</p>
+    </Card>
   );
 }
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Rng, clamp, interpolate } from '../src/rng.js';
 import { overall, ratingAt, skillProfile, skillRating, tacticalFit } from '../src/positions.js';
+import { createEuroCompetition, qualifiersFromGroups } from '../src/europe.js';
+import { playTournament, tournamentFor } from '../src/tournament.js';
 import { ageFactor, developWeek, headroom, updateCondition } from '../src/development.js';
 import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
 import { buildAttributes, generatePlayer } from '../src/generate.js';
@@ -558,5 +560,82 @@ describe('ovr agrees with the headline ratings', () => {
     attributes.tackling = clamp(attributes.tackling + 10, 1, 99);
     const afterTackling = ratingAt(attributes, 'ST');
     expect(afterFinishing - before).toBeGreaterThan(afterTackling - before);
+  });
+});
+
+describe('europe', () => {
+  it('runs a full season and crowns three winners', () => {
+    const { state, index } = startedCareer({ seed: 21 });
+    for (let i = 0; i < 53; i++) advanceWeek(state, index);
+
+    const winners = state.world.history.europeanWinners ?? [];
+    const tiers = new Set(winners.map((w) => w.tier));
+    expect(winners.length).toBeGreaterThanOrEqual(3);
+    expect(tiers.has('ucl')).toBe(true);
+    expect(tiers.has('uel')).toBe(true);
+  });
+
+  it('qualifies clubs from the league table, not at random', () => {
+    const { state, index } = startedCareer({ seed: 22 });
+    for (let i = 0; i < 53; i++) advanceWeek(state, index);
+
+    // Every club now in a European competition is a first-tier club somewhere.
+    for (const competition of Object.values(state.world.europe ?? {})) {
+      for (const group of competition.groups) {
+        for (const clubId of group.clubIds) {
+          expect(state.world.clubs[clubId]?.tier).toBe(1);
+        }
+      }
+    }
+  });
+
+  it('gives the group winners and runners-up a knockout place', () => {
+    const rng = new Rng(4);
+    const clubIds = Array.from({ length: 16 }, (_, i) => `club${i}`);
+    const competition = createEuroCompetition(rng, 'uel', clubIds, 2025)!;
+    expect(competition.groups).toHaveLength(4);
+    // Six matchdays for every club: three opponents, home and away.
+    for (const group of competition.groups) {
+      const played = competition.fixtures.filter(
+        (f) => group.clubIds.includes(f.homeClubId) || group.clubIds.includes(f.awayClubId),
+      );
+      expect(played).toHaveLength(12);
+    }
+    const through = qualifiersFromGroups(competition);
+    expect(through).toHaveLength(8);
+  });
+});
+
+describe('awards', () => {
+  it('hands out the honours every season and names a winner', () => {
+    const { state, index } = startedCareer({ seed: 23 });
+    for (let i = 0; i < 53 * 2; i++) advanceWeek(state, index);
+
+    const awards = state.world.history.awards ?? [];
+    expect(awards.length).toBeGreaterThan(6);
+    for (const award of awards) {
+      expect(award.playerName ?? '').not.toBe('');
+    }
+    // The Ballon d'Or is contested by the whole of football, not one division.
+    const ballon = awards.filter((a) => a.award === 'ballonDOr');
+    expect(ballon.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('summer tournaments', () => {
+  it('runs a World Cup in the right years and a Euro between them', () => {
+    expect(tournamentFor(2025)).toBe('worldCup');   // summer of 2026
+    expect(tournamentFor(2026)).toBe(null);
+    expect(tournamentFor(2027)).toBe('euro');       // summer of 2028
+    expect(tournamentFor(2029)).toBe('worldCup');   // summer of 2030
+  });
+
+  it('gives caps and goals to a player who is there', () => {
+    const rng = new Rng(9);
+    const { state } = startedCareer({ seed: 24 });
+    const result = playTournament(rng, 'worldCup', state.player, 'ISR', 78, 2029, 0.9);
+    expect(result.matches.length).toBeGreaterThanOrEqual(3);
+    expect(result.caps).toBeGreaterThan(0);
+    expect(result.goals).toBeGreaterThanOrEqual(0);
   });
 });

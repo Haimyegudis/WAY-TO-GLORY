@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { MatchResult } from '@fc/engine';
 import { formatSeason, useLang, useT } from '../i18n/index.js';
-import { competitionName } from '../lib/names.js';
+import { competitionLabel, competitionName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { clubShortName } from '../lib/club.js';
 import { Card, Crest, Empty, RatingBadge, ResultDot, Stat } from '../components/ui.js';
@@ -40,7 +40,7 @@ export function MatchesScreen() {
     { minutes: 0, goals: 0, assists: 0, rating: 0, conceded: 0, cleanSheets: 0 },
   );
 
-  const competition = (id: string) => competitionName(pack.competitions.find((c) => c.id === id), lang) || t('club.cup');
+  const competition = (id: string) => competitionLabel(id, pack, lang, t);
 
   return (
     <div className="screen stack">

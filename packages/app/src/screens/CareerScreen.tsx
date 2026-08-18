@@ -124,6 +124,50 @@ export function CareerScreen() {
         )}
       </Card>
 
+      <Card title={t('career.honours')}>
+        {(state.awards ?? []).length === 0 && (state.awardNominations ?? []).length === 0 ? (
+          <Empty>{t('career.noHonours')}</Empty>
+        ) : (
+          <div className="stack" style={{ gap: 10 }}>
+            {(state.awards ?? []).slice().reverse().map((award, i) => (
+              <div key={`${award.season}-${award.award}-${i}`} className="list-item">
+                <span className="chip chip-amber">{t(`award.${award.award}`)}</span>
+                <span className="grow faint num" style={{ fontSize: 12 }}>{formatSeason(award.season)}</span>
+                {award.detail !== undefined && (
+                  <span className="num" style={{ fontSize: 12.5 }}>
+                    {t('award.goalsDetail', { goals: award.detail })}
+                  </span>
+                )}
+              </div>
+            ))}
+            {(state.awardNominations ?? []).length > 0 && (
+              <p className="faint" style={{ fontSize: 12 }}>
+                {t('career.shortlisted', { count: (state.awardNominations ?? []).length })}
+              </p>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {(state.tournaments ?? []).length > 0 && (
+        <Card title={t('career.tournaments')}>
+          <ul className="list">
+            {(state.tournaments ?? []).slice().reverse().map((tournament, i) => (
+              <li key={`${tournament.season}-${tournament.id}-${i}`} className="list-item">
+                <span className="grow" style={{ fontSize: 13.5 }}>
+                  {t(`tournament.${tournament.id}`)} <span className="faint num">{formatSeason(tournament.season)}</span>
+                </span>
+                <span className="chip">{t(`tournament.finish.${tournament.finish}`)}</span>
+                <span className="num faint" style={{ fontSize: 12 }}>
+                  {tournament.caps}/{tournament.goals}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t('career.capsGoalsHint')}</p>
+        </Card>
+      )}
+
       <Card title={t('career.achievements')}>
         {state.achievements.length === 0 ? (
           <Empty>—</Empty>

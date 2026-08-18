@@ -85,22 +85,24 @@ export interface CountrySeed {
   nameHe: string;
   reputation: number;
   nameLocale: string;
+  cupName: string;
+  cupNameHe: string;
 }
 
 export const COUNTRIES: CountrySeed[] = [
-  { code: 'ENG', name: 'England', nameHe: 'אנגליה', reputation: 90, nameLocale: 'en' },
-  { code: 'ESP', name: 'Spain', nameHe: 'ספרד', reputation: 93, nameLocale: 'es' },
-  { code: 'ITA', name: 'Italy', nameHe: 'איטליה', reputation: 88, nameLocale: 'it' },
-  { code: 'GER', name: 'Germany', nameHe: 'גרמניה', reputation: 90, nameLocale: 'de' },
-  { code: 'ISR', name: 'Israel', nameHe: 'ישראל', reputation: 55, nameLocale: 'he' },
-  { code: 'FRA', name: 'France', nameHe: 'צרפת', reputation: 92, nameLocale: 'fr' },
-  { code: 'POR', name: 'Portugal', nameHe: 'פורטוגל', reputation: 87, nameLocale: 'pt' },
-  { code: 'NED', name: 'Netherlands', nameHe: 'הולנד', reputation: 85, nameLocale: 'nl' },
-  { code: 'TUR', name: 'Turkey', nameHe: 'טורקיה', reputation: 70, nameLocale: 'tr' },
-  { code: 'BEL', name: 'Belgium', nameHe: 'בלגיה', reputation: 82, nameLocale: 'fr' },
-  { code: 'AUT', name: 'Austria', nameHe: 'אוסטריה', reputation: 72, nameLocale: 'de' },
-  { code: 'GRE', name: 'Greece', nameHe: 'יוון', reputation: 66, nameLocale: 'gr' },
-  { code: 'SCO', name: 'Scotland', nameHe: 'סקוטלנד', reputation: 66, nameLocale: 'en' },
+  { code: 'ENG', name: 'England', nameHe: 'אנגליה', reputation: 90, nameLocale: 'en' , cupName: 'FA Cup', cupNameHe: 'גביע האנגלי' },
+  { code: 'ESP', name: 'Spain', nameHe: 'ספרד', reputation: 93, nameLocale: 'es' , cupName: 'Copa del Rey', cupNameHe: 'קופה דל ריי' },
+  { code: 'ITA', name: 'Italy', nameHe: 'איטליה', reputation: 88, nameLocale: 'it' , cupName: 'Coppa Italia', cupNameHe: 'גביע איטליה' },
+  { code: 'GER', name: 'Germany', nameHe: 'גרמניה', reputation: 90, nameLocale: 'de' , cupName: 'DFB-Pokal', cupNameHe: 'גביע גרמניה' },
+  { code: 'ISR', name: 'Israel', nameHe: 'ישראל', reputation: 55, nameLocale: 'he' , cupName: 'State Cup', cupNameHe: 'גביע המדינה' },
+  { code: 'FRA', name: 'France', nameHe: 'צרפת', reputation: 92, nameLocale: 'fr' , cupName: 'Coupe de France', cupNameHe: 'גביע צרפת' },
+  { code: 'POR', name: 'Portugal', nameHe: 'פורטוגל', reputation: 87, nameLocale: 'pt' , cupName: 'Taça de Portugal', cupNameHe: 'גביע פורטוגל' },
+  { code: 'NED', name: 'Netherlands', nameHe: 'הולנד', reputation: 85, nameLocale: 'nl' , cupName: 'KNVB Beker', cupNameHe: 'גביע הולנד' },
+  { code: 'TUR', name: 'Turkey', nameHe: 'טורקיה', reputation: 70, nameLocale: 'tr' , cupName: 'Türkiye Kupası', cupNameHe: 'גביע טורקיה' },
+  { code: 'BEL', name: 'Belgium', nameHe: 'בלגיה', reputation: 82, nameLocale: 'fr' , cupName: 'Belgian Cup', cupNameHe: 'גביע בלגיה' },
+  { code: 'AUT', name: 'Austria', nameHe: 'אוסטריה', reputation: 72, nameLocale: 'de' , cupName: 'ÖFB-Cup', cupNameHe: 'גביע אוסטריה' },
+  { code: 'GRE', name: 'Greece', nameHe: 'יוון', reputation: 66, nameLocale: 'gr' , cupName: 'Greek Cup', cupNameHe: 'גביע יוון' },
+  { code: 'SCO', name: 'Scotland', nameHe: 'סקוטלנד', reputation: 66, nameLocale: 'en' , cupName: 'Scottish Cup', cupNameHe: 'גביע סקוטלנד' },
 ];
 
 /** Clubs whose global standing is bigger than this season's results suggest. */

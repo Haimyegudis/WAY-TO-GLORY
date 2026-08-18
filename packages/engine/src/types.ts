@@ -186,6 +186,9 @@ export interface Country {
   reputation: number;
   competitionIds: string[];
   nameLocale: string;             // which name pool generated players use
+  /** The domestic cup, by its real name. */
+  cupName?: string;
+  cupNameHe?: string;
 }
 
 export interface SeasonStats {
@@ -524,10 +527,16 @@ export interface WorldState {
   seasonStats: Record<string, SeasonStats>; // playerId -> current season stats
   /** Domestic cups, one per country, rebuilt each season. */
   cups: Record<string, import('./cup.js').CupState>;
+  /** The three European competitions, rebuilt each season from who qualified. */
+  europe?: Record<string, import('./europe.js').EuroState>;
+  /** Who qualified for next season's Europe, decided when this season ends. */
+  europeNext?: Record<string, string[]>;
   history: {
     champions: { season: number; competitionId: string; clubId: string }[];
     topScorers: { season: number; competitionId: string; playerId: string; goals: number }[];
     cupWinners: { season: number; cupId: string; clubId: string }[];
+    europeanWinners?: { season: number; tier: string; clubId: string }[];
+    awards?: { season: number; award: string; playerId: string; playerName?: string; detail?: number }[];
   };
 }
 
@@ -554,6 +563,12 @@ export interface CareerState {
   matchLog: MatchResult[];           // recent matches only (compacted)
   lastMatch: MatchResult | null;
   trophies: { season: number; competitionId: string; kind: 'league' | 'cup' | 'promotion' }[];
+  /** Individual honours the player has won, newest last. */
+  awards?: { season: number; award: string; competitionId?: string; detail?: number }[];
+  /** Summer tournaments he played in: World Cups and European Championships. */
+  tournaments?: import('./tournament.js').TournamentResult[];
+  /** Honours he was shortlisted for but did not win - being in the conversation counts. */
+  awardNominations?: { season: number; award: string }[];
   inbox: InboxMessage[];
   news: NewsItem[];
   achievements: Achievement[];

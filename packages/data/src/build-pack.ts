@@ -278,6 +278,8 @@ async function main(): Promise<void> {
     reputation: c.reputation,
     competitionIds: competitions.filter((comp) => comp.country === c.code).map((comp) => comp.id),
     nameLocale: c.nameLocale,
+    cupName: c.cupName,
+    cupNameHe: c.cupNameHe,
   })).filter((c) => c.competitionIds.length > 0);
 
   const pack: DataPack = {

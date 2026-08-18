@@ -35,8 +35,23 @@ import {
   type SeasonEndOutcome,
 } from './league.js';
 import { createCup, drawRound, isCupFinal, isCupSemi, recordTieResult, type CupState } from './cup.js';
+import {
+  applyEuroResult,
+  createEuroCompetition,
+  drawEuroRound,
+  euroPrize,
+  europeanQualifiers,
+  groupStageComplete,
+  qualifiersFromGroups,
+  resolveEuroRound,
+  EURO_TIERS,
+  type EuroState,
+  type EuroTier,
+} from './europe.js';
 import { isInjured, rollInjury, tickInjuries, trainingInjuryChance } from './injury.js';
 import { marketValue } from './value.js';
+import { decideAwards, awardFame, awardReputation, type AwardResult } from './awards.js';
+import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { generateAgentOffers } from './agents.js';
 import { generateOffers, isTransferWindow, renewalIntent, expectedMinutesFor } from './transfer.js';
 import {
@@ -189,6 +204,46 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     drawRound(rng, cup);
     state.world.cups[cup.id] = cup;
   }
+
+  initEurope(state, rng);
+}
+
+/**
+ * Sets up the European competitions from whoever qualified last season. In the very
+ * first season there is no table to read yet, so the entrants are the strongest clubs
+ * in each country - which is, near enough, who would have qualified anyway.
+ */
+function initEurope(state: CareerState, rng: Rng): void {
+  const season = state.world.season;
+  const qualified = state.world.europeNext ?? defaultEuropeanEntrants(state);
+  state.world.europe = {};
+
+  for (const tier of EURO_TIERS) {
+    const clubIds = (qualified[tier] ?? []).filter((id) => state.world.clubs[id]);
+    const competition = createEuroCompetition(rng, tier, clubIds, season);
+    if (competition) state.world.europe[tier] = competition;
+  }
+  state.world.europeNext = undefined;
+}
+
+/** First season only: seed Europe with the best clubs of every top division. */
+function defaultEuropeanEntrants(state: CareerState): Record<string, string[]> {
+  const byCountry = new Map<string, Club[]>();
+  for (const club of Object.values(state.world.clubs)) {
+    if (club.tier !== 1) continue;
+    const list = byCountry.get(club.country) ?? [];
+    list.push(club);
+    byCountry.set(club.country, list);
+  }
+
+  const out: Record<string, string[]> = { ucl: [], uel: [], uecl: [] };
+  for (const clubs of byCountry.values()) {
+    const ranked = clubs.sort((a, b) => b.strength - a.strength);
+    out.ucl!.push(...ranked.slice(0, 3).map((c) => c.id));
+    out.uel!.push(...ranked.slice(3, 5).map((c) => c.id));
+    out.uecl!.push(...ranked.slice(5, 7).map((c) => c.id));
+  }
+  return out;
 }
 
 export interface AcademyOffer {
@@ -686,7 +741,124 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
   }
 
   const cupResult = simulateCupWeek(state, index, rng, club);
-  return userResult ?? cupResult;
+  const euroResult = simulateEuroWeek(state, index, rng, club);
+  // A European night is the match of the week when there is one.
+  return euroResult ?? userResult ?? cupResult;
+}
+
+/**
+ * The midweek. Group games first, then the knockout ties, and when a round is fully
+ * played the next one is drawn - so the bracket unfolds while the season runs rather
+ * than being decided up front.
+ */
+function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club): MatchResult | null {
+  const europe = state.world.europe;
+  if (!europe) return null;
+  const week = state.world.week;
+  let userResult: MatchResult | null = null;
+
+  for (const competition of Object.values(europe)) {
+    if (isFinished(competition)) continue;
+
+    if (isGroupStage(competition)) {
+      for (const fixture of competition.fixtures) {
+        if (fixture.played || fixture.week !== week) continue;
+        const home = state.world.clubs[fixture.homeClubId];
+        const away = state.world.clubs[fixture.awayClubId];
+        if (!home || !away) { fixture.played = true; continue; }
+
+        if (fixture.homeClubId === club.id || fixture.awayClubId === club.id) {
+          const result = playUserMatch(state, index, rng, fixture.homeClubId, fixture.awayClubId, competition.id, 'europeanNight');
+          fixture.played = true;
+          fixture.result = [result.homeGoals, result.awayGoals];
+          applyEuroResult(competition, fixture.homeClubId, fixture.awayClubId, result.homeGoals, result.awayGoals);
+          userResult = result;
+          continue;
+        }
+
+        const [hg, ag] = simulateQuickResult(rng, { homeRating: clubRating(home), awayRating: clubRating(away) });
+        fixture.played = true;
+        fixture.result = [hg, ag];
+        applyEuroResult(competition, fixture.homeClubId, fixture.awayClubId, hg, ag);
+      }
+
+      if (groupStageComplete(competition)) {
+        competition.alive = qualifiersFromGroups(competition);
+        payEuroPrize(state, competition, 'group');
+        drawEuroRound(rng, competition);
+      }
+      continue;
+    }
+
+    for (const tie of competition.ties) {
+      if (tie.played || tie.week !== week) continue;
+      const home = state.world.clubs[tie.homeClubId];
+      const away = state.world.clubs[tie.awayClubId];
+      if (!home || !away) { tie.played = true; continue; }
+
+      if (tie.homeClubId === club.id || tie.awayClubId === club.id) {
+        const importance: MatchImportance = tie.stage === 'final' ? 'cupFinal' : tie.stage === 'sf' ? 'cupSemi' : 'europeanNight';
+        const result = playUserMatch(state, index, rng, tie.homeClubId, tie.awayClubId, competition.id, importance);
+        tie.played = true;
+        tie.result = [result.homeGoals, result.awayGoals];
+        userResult = result;
+        continue;
+      }
+
+      const [hg, ag] = simulateQuickResult(rng, { homeRating: clubRating(home), awayRating: clubRating(away) });
+      tie.played = true;
+      tie.result = [hg, ag];
+    }
+
+    const stageBefore: EuroState['stage'] = competition.stage;
+    resolveEuroRound(rng, competition);
+    // Read it back through the wider type: resolveEuroRound can end the competition.
+    const stageAfter: EuroState['stage'] = competition.stage;
+    if (stageAfter !== stageBefore) {
+      payEuroPrize(state, competition, stageBefore);
+      if (stageAfter === 'done' && competition.winner) {
+        recordEuroWin(state, competition);
+      }
+    }
+  }
+
+  return userResult;
+}
+
+/** Read through a function so the compiler keeps the full stage type in the loop. */
+function isFinished(competition: EuroState): boolean {
+  return competition.stage === 'done';
+}
+
+/** A type guard, so the compiler does not decide the stage can never end. */
+function isGroupStage(competition: EuroState): boolean {
+  return competition.stage === 'group';
+}
+
+/** Money for the run, which is what a European place is worth to a club. */
+function payEuroPrize(state: CareerState, competition: EuroState, stage: EuroState['stage']): void {
+  const club = userClub(state);
+  if (!club || !competition.alive.includes(club.id)) return;
+  // Club money is modelled as wage power, so a European run raises what the club can
+  // pay and what it is worth rather than crediting a transfer kitty it does not have.
+  const share = euroPrize(competition.id, stage, false) / 40_000_000;
+  club.finances = clamp(club.finances + share * 4, 0, 100);
+  club.reputation = clamp(club.reputation + share, 0, 100);
+}
+
+function recordEuroWin(state: CareerState, competition: EuroState): void {
+  const winner = competition.winner!;
+  const history = state.world.history;
+  history.europeanWinners = history.europeanWinners ?? [];
+  history.europeanWinners.push({ season: competition.season, tier: competition.id, clubId: winner });
+
+  const club = userClub(state);
+  if (club && club.id === winner) {
+    state.trophies.push({ season: competition.season, competitionId: competition.id, kind: 'cup' });
+    unlock(state, 'europeanTrophy', { competition: competition.id });
+    pushNews(state, `news.europe.${competition.id}Won`, { club: club.name }, 'high');
+    state.player.fame = clamp(state.player.fame + (competition.id === 'ucl' ? 12 : competition.id === 'uel' ? 7 : 4), 0, 100);
+  }
 }
 
 /** Spread a club's goals across its modelled players so the scoring charts mean something. */
@@ -1069,7 +1241,17 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     });
   }
 
+  // Who plays in Europe next season, decided from the final tables before promotion
+  // and relegation shuffle anybody between divisions.
+  decideEuropeanQualification(state, index);
+
   applyPromotionRelegation(state, index, outcomes);
+
+  // The summer: a World Cup or a Euro, if his country is at one and he is in the squad.
+  playSummerTournament(state, index, rng);
+
+  // Individual honours, decided before the world ages and the season rolls over.
+  applyAwards(state, index, rng);
 
   // Career record for the season.
   const record: CareerSeasonRecord = {
@@ -1216,6 +1398,129 @@ const SQUAD_ROLE_ORDER: SquadRole[] = [
  * mismatch in the counts would slowly inflate one division and starve another until
  * a league had fifty clubs in it.
  */
+
+/**
+ * Reads every top division's final table, hands out the continental places it is
+ * entitled to, and gives the domestic cup winner a Europa League place. The result
+ * is stored for the next season's draw.
+ */
+
+/**
+ * Hands out the season's individual awards and records what they did to the player:
+ * a trophy in the cabinet if he won one, a note if he was only shortlisted, and the
+ * fame that comes with being talked about at all.
+ */
+
+/**
+ * The tournament at the end of the season. He has to be a senior international with a
+ * national side that qualified - which is decided the same way a call-up is, from how
+ * much he plays and at what level - and then the country goes as far as it goes.
+ */
+function playSummerTournament(state: CareerState, index: PackIndex, rng: Rng): void {
+  const player = state.player;
+  const nt = state.nationalTeam;
+  const season = state.world.season;
+  const id = tournamentFor(season);
+  if (!id) return;
+  if (nt.level !== 'senior' || !nt.countryCode) return;
+
+  const country = index.countryByCode.get(nt.countryCode);
+  if (!country) return;
+
+  // Qualifying: the bigger nations are almost always there, the smaller ones are not.
+  const qualifyOdds = clamp(0.2 + (country.reputation - 55) / 70, 0.1, 0.95);
+  if (!rng.chance(qualifyOdds)) {
+    pushInbox(state, 'national', `inbox.tournament.missed.${id}`, { country: country.name });
+    return;
+  }
+
+  const result = playTournament(rng, id, player, country.code, country.reputation, season, minutesPct(state));
+  state.tournaments = state.tournaments ?? [];
+  state.tournaments.push(result);
+
+  nt.caps += result.caps;
+  nt.goals += result.goals;
+  player.fame = clamp(player.fame + tournamentFame(result), 0, 100);
+  player.reputation = clamp(player.reputation + tournamentFame(result) * 0.35, 0, 100);
+
+  pushNews(state, `news.tournament.${result.finish}`, { country: country.name, tournament: id }, 'high');
+  pushInbox(state, 'national', `inbox.tournament.${result.finish}`, {
+    country: country.name,
+    caps: result.caps,
+    goals: result.goals,
+  });
+
+  if (result.finish === 'winner') {
+    unlock(state, id === 'worldCup' ? 'wonWorldCup' : 'wonEuros', { country: country.name });
+    state.trophies.push({ season, competitionId: id, kind: 'cup' });
+  }
+}
+
+function applyAwards(state: CareerState, index: PackIndex, rng: Rng): void {
+  const season = state.world.season;
+  const results: AwardResult[] = decideAwards(rng, state, index);
+  const history = state.world.history;
+  history.awards = history.awards ?? [];
+
+  for (const result of results) {
+    history.awards.push({
+      season,
+      award: result.award,
+      playerId: result.playerId,
+      playerName: result.playerName,
+      ...(result.detail !== undefined ? { detail: result.detail } : {}),
+    });
+
+    const isUser = result.playerId === state.player.id;
+    const shortlisted = result.shortlist.includes(state.player.id);
+
+    if (isUser) {
+      state.awards = state.awards ?? [];
+      state.awards.push({
+        season,
+        award: result.award,
+        ...(result.competitionId ? { competitionId: result.competitionId } : {}),
+        ...(result.detail !== undefined ? { detail: result.detail } : {}),
+      });
+      state.player.fame = clamp(state.player.fame + awardFame(result.award), 0, 100);
+      state.player.reputation = clamp(state.player.reputation + awardReputation(result.award), 0, 100);
+      state.player.morale = clamp(state.player.morale + 6, 0, 100);
+      unlock(state, `award.${result.award}`, result.detail !== undefined ? { detail: result.detail } : undefined);
+      pushNews(state, `news.award.${result.award}`, { player: `${state.player.firstName} ${state.player.lastName}` }, 'high');
+      pushInbox(state, 'media', `inbox.award.${result.award}`, result.detail !== undefined ? { detail: result.detail } : undefined);
+    } else if (shortlisted) {
+      state.awardNominations = state.awardNominations ?? [];
+      state.awardNominations.push({ season, award: result.award });
+      state.player.fame = clamp(state.player.fame + awardFame(result.award) * 0.25, 0, 100);
+      pushInbox(state, 'media', `inbox.awardShortlist.${result.award}`);
+    }
+  }
+}
+
+function decideEuropeanQualification(state: CareerState, index: PackIndex): void {
+  const next: Record<string, string[]> = { ucl: [], uel: [], uecl: [] };
+
+  for (const compState of Object.values(state.world.competitions)) {
+    const competition = index.competitionById.get(compState.competitionId);
+    if (!competition?.europeanSlots) continue;
+
+    const order = sortedTable(compState).map((row) => row.clubId);
+    const cup = Object.values(state.world.cups).find((c) => c.country === competition.country);
+    const cupWinner = cup?.winner ?? null;
+    const qualified = europeanQualifiers(order, competition.europeanSlots, cupWinner);
+    for (const tier of EURO_TIERS) next[tier]!.push(...qualified[tier]);
+  }
+
+  // The holders are in next season's competition whatever they did at home.
+  for (const competition of Object.values(state.world.europe ?? {})) {
+    if (!competition.winner) continue;
+    const tier: EuroTier = competition.id === 'ucl' ? 'ucl' : 'ucl';
+    if (!next[tier]!.includes(competition.winner)) next[tier]!.push(competition.winner);
+  }
+
+  state.world.europeNext = next;
+}
+
 function applyPromotionRelegation(
   state: CareerState,
   index: PackIndex,
