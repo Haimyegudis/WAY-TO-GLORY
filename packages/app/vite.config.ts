@@ -30,8 +30,19 @@ export default defineConfig({
         // 425 club badges are 30MB of install for a phone, and a career only ever
         // shows a handful of them. They are cached the first time they are drawn
         // instead, which keeps the install small and still works offline afterwards.
-        globIgnores: ['**/crests/**', '**/crests.html'],
+        globIgnores: ['**/crests/**', '**/crests.html', '**/audio/**'],
         runtimeCaching: [
+          {
+            // The soundtrack is cached the first time it is heard, not on install.
+            urlPattern: /\/audio\/.*\.mp3$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'soundtrack',
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 180 },
+              cacheableResponse: { statuses: [0, 200] },
+              rangeRequests: true,
+            },
+          },
           {
             urlPattern: /\/crests\/.*\.png$/,
             handler: 'CacheFirst',

@@ -145,7 +145,14 @@ const SINGLE: Record<string, string> = {
 
 const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
 
-function transliterateWord(word: string): string {
+/**
+ * Languages where a final 'e' is silent. In English "Kane" ends on the n; in Turkish,
+ * Italian, Spanish or Portuguese "Efe", "Conte" and "Vicente" end on the vowel, and
+ * dropping it gives you "אף" instead of "אפה".
+ */
+const SILENT_FINAL_E = new Set(['ENG', 'SCO', 'WAL', 'IRL', 'USA', 'AUS', 'FRA']);
+
+function transliterateWord(word: string, silentFinalE = true): string {
   const lower = word.toLowerCase();
   const known = KNOWN[lower.replace(/[^a-z]/g, '')];
   if (known) return known;
@@ -180,6 +187,13 @@ function transliterateWord(word: string): string {
     if (VOWELS.has(ch)) {
       const atStart = i === 0;
       const atEnd = i === lower.length - 1;
+      // A final 'e' is a syllable in most languages, and writing it keeps the letter
+      // before it out of its final form: "Efe" is אפה, never אף.
+      if (ch === 'e' && atEnd && !silentFinalE && out.length > 0) {
+        out += 'ה';
+        i++;
+        continue;
+      }
       if (ch === 'a') {
         // Only the first and last vowel get a letter; the middle ones are implied,
         // which is how Hebrew actually spells a foreign name.
@@ -206,15 +220,17 @@ function transliterateWord(word: string): string {
 
 const CACHE = new Map<string, string>();
 
-export function toHebrew(name: string): string {
-  const cached = CACHE.get(name);
+export function toHebrew(name: string, countryCode?: string): string {
+  const silentFinalE = countryCode === undefined || SILENT_FINAL_E.has(countryCode);
+  const key = `${countryCode ?? '-'}|${name}`;
+  const cached = CACHE.get(key);
   if (cached) return cached;
   const result = name
     .split(/\s+/)
-    .map((word) => transliterateWord(word))
+    .map((word) => transliterateWord(word, silentFinalE))
     .filter(Boolean)
     .join(' ')
     .trim();
-  CACHE.set(name, result);
+  CACHE.set(key, result);
   return result || name;
 }

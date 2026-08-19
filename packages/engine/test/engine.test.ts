@@ -9,6 +9,7 @@ import { buildAttributes, generatePlayer } from '../src/generate.js';
 import { pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
+import { generateOffers, isTransferWindow } from '../src/transfer.js';
 import { indexPack, validatePack } from '../src/data.js';
 import {
   advanceWeek,
@@ -661,5 +662,40 @@ describe('summer tournaments', () => {
     expect(result.matches.length).toBeGreaterThanOrEqual(3);
     expect(result.caps).toBeGreaterThan(0);
     expect(result.goals).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('transfer offers', () => {
+  it('does not offer a division below to a player who is playing', () => {
+    const { state, index } = startedCareer({ seed: 71 });
+    const club = state.world.clubs[state.player.clubId!]!;
+    // A regular in the side, at a second-tier club.
+    const offers = generateOffers({ state, index, rng: new Rng(4), minutesPct: 0.7 });
+    for (const offer of offers) {
+      const suitor = state.world.clubs[offer.clubId]!;
+      expect(suitor.tier).toBeLessThanOrEqual(club.tier);
+    }
+  });
+
+  it('opens the door lower when he never plays', () => {
+    const { state, index } = startedCareer({ seed: 72 });
+    const offers = generateOffers({ state, index, rng: new Rng(5), minutesPct: 0.02 });
+    // Nothing is guaranteed, but nothing may be two divisions down either.
+    const club = state.world.clubs[state.player.clubId!]!;
+    for (const offer of offers) {
+      const suitor = state.world.clubs[offer.clubId]!;
+      expect(suitor.tier).toBeLessThanOrEqual(club.tier + 1);
+    }
+  });
+
+  it('keeps windows to the weeks a country actually has them', () => {
+    // England: July to the start of September, and January.
+    expect(isTransferWindow(3, 'ENG')).toBe(true);
+    expect(isTransferWindow(15, 'ENG')).toBe(false);
+    expect(isTransferWindow(28, 'ENG')).toBe(true);
+    // Israel runs a little later at both ends.
+    expect(isTransferWindow(1, 'ISR')).toBe(false);
+    expect(isTransferWindow(11, 'ISR')).toBe(true);
+    expect(isTransferWindow(33, 'ISR')).toBe(true);
   });
 });

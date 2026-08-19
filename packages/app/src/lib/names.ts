@@ -21,8 +21,9 @@ export function playerName(player: Player | null | undefined, lang: Lang = 'en')
   if (!player) return '';
   const name = `${player.firstName} ${player.lastName}`;
   if (lang !== 'he') return name;
-  // Hebrew-generated players already read in Hebrew; everyone else is transliterated.
-  return /[\u0590-\u05FF]/.test(name) ? name : toHebrew(name);
+  // Hebrew-generated players already read in Hebrew; everyone else is transliterated,
+  // with the rules of the language he is named in.
+  return /[\u0590-\u05FF]/.test(name) ? name : toHebrew(name, player.birthCountry);
 }
 
 /**

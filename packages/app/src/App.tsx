@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGame, type Screen } from './state/store.js';
 import { useT } from './i18n/index.js';
 import { Menu } from './screens/Menu.js';
+import { ThemeMusic } from './components/ThemeMusic.js';
 import { CreatePlayer } from './screens/CreatePlayer.js';
 import { AcademyChoice } from './screens/AcademyChoice.js';
 import { Hub } from './screens/Hub.js';
@@ -57,9 +58,12 @@ export function App() {
     );
   }
 
-  if (phase === 'menu') return <Menu />;
-  if (phase === 'create') return <CreatePlayer />;
-  if (phase === 'academy') return <AcademyChoice />;
+  // The theme plays over the title screen and the making of a player, and stops when
+  // the career starts.
+  const music = <ThemeMusic playing={phase === 'menu' || phase === 'create' || phase === 'academy'} />;
+  if (phase === 'menu') return <>{music}<Menu /></>;
+  if (phase === 'create') return <>{music}<CreatePlayer /></>;
+  if (phase === 'academy') return <>{music}<AcademyChoice /></>;
   return <Game />;
 }
 
@@ -76,6 +80,9 @@ function Game() {
   return (
     <>
       <Stadium dim={dim} />
+      {/* The ground while he is out there; the season loop everywhere else. */}
+      <ThemeMusic playing={watchingMatch} track="matchday" />
+      <ThemeMusic playing={!watchingMatch} track="season" />
       <div className="app">
         {screen === 'hub' && <Hub />}
         {screen === 'match' && <MatchCentre />}

@@ -58,7 +58,15 @@ import { marketValue } from './value.js';
 import { decideAwards, awardFame, awardReputation, type AwardResult } from './awards.js';
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { generateAgentOffers } from './agents.js';
-import { generateLoanOffers, generateOffers, isTransferWindow, renewalIntent, expectedMinutesFor } from './transfer.js';
+import {
+  generateLoanOffers,
+  generateOffers,
+  isTransferWindow,
+  isWindowApproaching,
+  windowIdFor,
+  renewalIntent,
+  expectedMinutesFor,
+} from './transfer.js';
 import {
   INTERNATIONAL_WEEKS,
   commitToCountry,
@@ -641,13 +649,13 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   const listed = Boolean(state.flags['transferListed']);
   // Clubs come once per window, not every fortnight, and nobody plays for three clubs
   // in one season: two moves is the limit, the way registration rules work.
-  const windowId = `${season}:${week < 20 ? 'summer' : 'winter'}`;
+  const windowId = windowIdFor(season, week, club?.country);
   const approachedThisWindow = state.flags['offerWindow'] === windowId;
   const movesThisSeason = Number(state.flags['movesThisSeason'] ?? 0);
   const offerChance = listed ? 0.5 : state.flags['transferRequested'] ? 0.42 : 0.28;
 
   if (
-    isTransferWindow(week) &&
+    isTransferWindow(week, club?.country) &&
     club &&
     settled &&
     !approachedThisWindow &&
@@ -670,10 +678,22 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   }
 
   // 7. Agent offers early in the career.
-  if (!state.agent && state.agentOffers.length === 0 && player.reputation >= 10 && rng.chance(0.25)) {
+  const agentSeason = club?.country;
+  const agentWindowOpen = isTransferWindow(week, agentSeason) || isWindowApproaching(week, agentSeason);
+  if (
+    !state.agent &&
+    state.agentOffers.length === 0 &&
+    player.reputation >= 10 &&
+    agentWindowOpen &&
+    state.flags['agentWindow'] !== windowId &&
+    rng.chance(0.5)
+  ) {
     const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
     state.agentOffers = generateAgentOffers(rng, index, player, ovr, season - player.birthYear);
-    if (state.agentOffers.length > 0) openAgentDecision(state, state.agentOffers);
+    if (state.agentOffers.length > 0) {
+      state.flags['agentWindow'] = windowId;
+      openAgentDecision(state, state.agentOffers);
+    }
   }
 
   // 8. Career events. Only another event blocks one: a transfer approach sitting on
@@ -1620,6 +1640,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   state.world.week = 1;
   state.flags['movesThisSeason'] = 0;
   state.flags['offerWindow'] = '';
+  state.flags['agentWindow'] = '';
   state.world.seasonStats = {};
   player.condition.yellowCards = {};
   player.condition.suspensions = [];

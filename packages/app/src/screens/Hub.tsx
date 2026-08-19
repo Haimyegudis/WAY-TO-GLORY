@@ -1,5 +1,5 @@
 import { currentOvr, potentialLabel, relationshipLabel, skillProfile } from '@fc/engine';
-import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
+import { formatMoney, formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
 import { myClub, myPosition, nextFixture, seasonLine, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, localiseArgs } from '../lib/club.js';
@@ -12,6 +12,9 @@ export function Hub() {
   const state = useGame((s) => s.state)!;
   const goto = useGame((s) => s.goto);
   const markInboxRead = useGame((s) => s.markInboxRead);
+  const openMessage = useGame((s) => s.openMessage);
+  const openMessageId = useGame((s) => s.openMessageId);
+  const openedMessage = openMessageId ? state.inbox.find((m) => m.id === openMessageId) ?? null : null;
 
   const player = state.player;
   const club = myClub(state);
@@ -196,20 +199,49 @@ export function Hub() {
           <p className="faint" style={{ fontSize: 13 }}>—</p>
         ) : (
           <ul className="list">
-            {state.inbox.slice(0, 6).map((message) => (
+            {state.inbox.slice(0, 8).map((message) => (
               <li key={message.id} className="list-item">
-                <i className={`dot ${message.read ? 'dot-read' : ''}`} />
-                <div className="grow">
-                  <p style={{ fontSize: 13.5 }}>{t(message.titleKey, localiseArgs(message.args, pack.clubs, lang))}</p>
-                  <p className="faint" style={{ fontSize: 10.5 }}>
-                    {formatSeason(message.season)} · {t('hub.week', { week: message.week })}
-                  </p>
-                </div>
+                <button className="inbox-row" onClick={() => openMessage(message.id)}>
+                  <i className={`dot ${message.read ? 'dot-read' : ''}`} />
+                  <span className="grow" style={{ minWidth: 0 }}>
+                    <span className="inbox-from">{t(`inboxFrom.${message.category}`)}</span>
+                    <span className={`inbox-title ${message.read ? '' : 'unread'}`}>
+                      {t(message.titleKey, localiseArgs(message.args, pack.clubs, lang))}
+                    </span>
+                    <span className="inbox-when faint">
+                      {formatSeason(message.season)} · {t('hub.week', { week: message.week })}
+                    </span>
+                  </span>
+                  <span className="inbox-chevron">›</span>
+                </button>
               </li>
             ))}
           </ul>
         )}
       </Card>
+
+      {openedMessage && (
+        <div className="sheet-backdrop" onClick={() => openMessage(null)}>
+          <div className="sheet mail" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-grip" />
+            <p className="eyebrow">{t(`inboxFrom.${openedMessage.category}`)}</p>
+            <h2 className="headline" style={{ marginBlockStart: 4 }}>
+              {t(openedMessage.titleKey, localiseArgs(openedMessage.args, pack.clubs, lang))}
+            </h2>
+            <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 4 }}>
+              {formatSeason(openedMessage.season)} · {t('hub.week', { week: openedMessage.week })}
+            </p>
+            <p style={{ fontSize: 13.5, marginBlockStart: 12, lineHeight: 1.6 }}>
+              {hasTranslation(lang, `${openedMessage.titleKey}.body`)
+                ? t(`${openedMessage.titleKey}.body`, localiseArgs(openedMessage.args, pack.clubs, lang))
+                : t(openedMessage.titleKey, localiseArgs(openedMessage.args, pack.clubs, lang))}
+            </p>
+            <button className="btn btn-primary btn-block" style={{ marginBlockStart: 16 }} onClick={() => openMessage(null)}>
+              {t('action.close')}
+            </button>
+          </div>
+        </div>
+      )}
 
       <Card title={t('hub.money')}>
         <div className="row-between">

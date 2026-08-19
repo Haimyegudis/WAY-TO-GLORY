@@ -216,8 +216,13 @@ function pickSecondary(rng: Rng, pos: Position): Position[] {
 }
 
 /** Rough club strength -> squad quality. A 90-reputation club fields ~80 OVR players. */
+/**
+ * The level a club's squad plays at, on the same scale as a player's rating and the
+ * same mapping the match engine uses. Keeping the two in step is what makes "this club
+ * is a step up" mean the same thing everywhere.
+ */
 export function clubBaseOvr(club: Club): number {
-  return clamp(Math.round(38 + club.strength * 0.46), 40, 88);
+  return clamp(Math.round(30 + club.strength * 0.62), 35, 92);
 }
 
 const SQUAD_TEMPLATE: { pos: Position; count: number }[] = [

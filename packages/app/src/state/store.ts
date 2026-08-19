@@ -82,6 +82,9 @@ interface GameStore {
   updateTraining: (plan: Partial<TrainingPlan>) => void;
   retire: () => void;
   markInboxRead: () => void;
+  /** The message being read, like opening one in a mail app. */
+  openMessage: (id: string | null) => void;
+  openMessageId: string | null;
   endLive: () => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
@@ -106,6 +109,7 @@ export const useGame = create<GameStore>((set, get) => ({
   lastTick: null,
   result: null,
   liveMatchId: null,
+  openMessageId: null,
 
   async boot() {
     const raw = await idbGet<string>(SAVE_KEY);
@@ -258,6 +262,20 @@ export const useGame = create<GameStore>((set, get) => ({
 
   endLive() {
     set({ liveMatchId: null });
+  },
+
+  openMessage(id) {
+    const { state } = get();
+    if (id && state) {
+      // Opening it is reading it.
+      const message = state.inbox.find((m) => m.id === id);
+      if (message && !message.read) {
+        message.read = true;
+        persist(state);
+        set({ state: { ...state } });
+      }
+    }
+    set({ openMessageId: id });
   },
 
   markInboxRead() {

@@ -12,14 +12,58 @@ import type {
   TransferOffer,
 } from './types.js';
 
-export const SUMMER_WINDOW: [number, number] = [1, 6];
-export const WINTER_WINDOW: [number, number] = [25, 29];
+export const SUMMER_WINDOW: [number, number] = [1, 9];
+export const WINTER_WINDOW: [number, number] = [27, 31];
 
-export function isTransferWindow(week: number): boolean {
+/**
+ * When each country's windows are open, in season weeks, with week 1 as the start of
+ * July. Most of Europe runs 1 July to 1 September and the whole of January; the ones
+ * listed here differ enough to be worth writing down. Everyone else takes the default.
+ */
+const COUNTRY_WINDOWS: Record<string, { summer: [number, number]; winter: [number, number] }> = {
+  ENG: { summer: [1, 9], winter: [27, 31] },
+  ESP: { summer: [1, 9], winter: [27, 31] },
+  ITA: { summer: [1, 9], winter: [27, 31] },
+  GER: { summer: [1, 9], winter: [27, 31] },
+  FRA: { summer: [1, 9], winter: [27, 31] },
+  POR: { summer: [1, 9], winter: [27, 31] },
+  NED: { summer: [1, 9], winter: [27, 31] },
+  BEL: { summer: [1, 10], winter: [27, 31] },
+  TUR: { summer: [1, 10], winter: [27, 31] },
+  GRE: { summer: [1, 10], winter: [27, 32] },
+  SCO: { summer: [1, 9], winter: [27, 31] },
+  AUT: { summer: [1, 9], winter: [27, 32] },
+  // The Israeli window opens a little later and the winter one runs into February.
+  ISR: { summer: [2, 11], winter: [27, 33] },
+  // Countries playing a spring-to-autumn calendar move their windows with it.
+  SWE: { summer: [5, 12], winter: [30, 36] },
+  NOR: { summer: [5, 12], winter: [30, 36] },
+  DEN: { summer: [1, 9], winter: [27, 32] },
+};
+
+function windowsFor(country?: string): { summer: [number, number]; winter: [number, number] } {
+  return (country && COUNTRY_WINDOWS[country]) || { summer: SUMMER_WINDOW, winter: WINTER_WINDOW };
+}
+
+/** True in the weeks leading up to a window, when agents start making calls. */
+export function isWindowApproaching(week: number, country?: string, lead = 4): boolean {
+  const { summer, winter } = windowsFor(country);
+  const before = (range: [number, number]) => week >= range[0] - lead && week < range[0];
+  return before(summer) || before(winter);
+}
+
+export function isTransferWindow(week: number, country?: string): boolean {
+  const { summer, winter } = windowsFor(country);
   return (
-    (week >= SUMMER_WINDOW[0] && week <= SUMMER_WINDOW[1]) ||
-    (week >= WINTER_WINDOW[0] && week <= WINTER_WINDOW[1])
+    (week >= summer[0] && week <= summer[1]) ||
+    (week >= winter[0] && week <= winter[1])
   );
+}
+
+/** Which window a week belongs to, for "one approach per window" bookkeeping. */
+export function windowIdFor(season: number, week: number, country?: string): string {
+  const { summer } = windowsFor(country);
+  return `${season}:${week <= summer[1] + 6 ? 'summer' : 'winter'}`;
 }
 
 /** Which countries a club can realistically scout the player in. */
@@ -129,11 +173,35 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     internationalCaps: state.nationalTeam.caps,
   });
 
+  const currentLevel = currentClub ? clubBaseOvr(currentClub) : 30;
+  const currentReputation = currentComp?.reputation ?? 30;
+  const listed = Boolean(state.flags['transferListed']);
+  const shortOfMinutes = input.minutesPct < 0.25;
+  // A player at Napoli is not offered a place in the Israeli third tier. A club has to
+  // be a step forward, or at least a sideways move that gets him playing - unless he
+  // has been told he can leave, in which case he takes what he can get.
+  // Divisions matter more than a strength number here: the bands overlap, so a
+  // mid-table second-tier club and a good third-tier club look similar on paper while
+  // being nothing alike as a move.
+  const currentTier = currentClub?.tier ?? 3;
+  const desperate = listed || input.minutesPct < 0.12;
+  const floor = desperate ? currentLevel - 10 : currentLevel - 2;
+  const competitionFloor = desperate ? currentReputation - 12 : currentReputation - 3;
+
   const candidates: { club: Club; comp: Competition; interest: number }[] = [];
   for (const club of Object.values(state.world.clubs)) {
     if (club.id === player.clubId) continue;
     const comp = index.competitionById.get(club.competitionId);
     if (!comp) continue;
+
+    // A club well below his level, or a division well below the one he plays in, has
+    // no business bidding for him.
+    if (clubBaseOvr(club) < floor) continue;
+    if (comp.reputation < competitionFloor) continue;
+    // A division below is only on the table for someone who is not playing at all,
+    // and two divisions below never is.
+    if (club.tier > currentTier && !desperate) continue;
+    if (club.tier > currentTier + 1) continue;
     const interest = transferInterest({
       club,
       competition: comp,

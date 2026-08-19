@@ -791,3 +791,26 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tie-note { font-size: 9.5px; color: var(--muted); }
 .option:disabled { opacity: 0.45; cursor: default; }
 .option:disabled:hover { transform: none; }
+
+/* The inbox reads like a mail app: sender, subject, when, and a chevron in. */
+.inbox-row {
+  display: flex; align-items: flex-start; gap: 9px; width: 100%;
+  background: none; border: 0; padding: 2px 0; text-align: start; color: inherit; font: inherit; cursor: pointer;
+}
+.inbox-row:hover .inbox-title { color: var(--gold); }
+.inbox-from { display: block; font-size: 10.5px; color: var(--muted); letter-spacing: 0.04em; }
+.inbox-title { display: block; font-size: 13.5px; line-height: 1.35; }
+.inbox-title.unread { font-weight: 700; }
+.inbox-when { display: block; font-size: 10.5px; }
+.inbox-chevron { color: var(--faint); font-size: 18px; line-height: 1; flex: none; }
+.sheet.mail { max-height: 76vh; overflow-y: auto; }
+
+/* A quiet way to turn the sound off, out of the way of everything else. */
+.music-toggle {
+  position: fixed; inset-block-start: 12px; inset-inline-end: 12px; z-index: 40;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(8, 17, 34, 0.72); border: 1px solid var(--line);
+  color: var(--text); font-size: 15px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.music-toggle:active { transform: scale(0.94); }
