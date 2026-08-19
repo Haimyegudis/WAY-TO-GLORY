@@ -10,6 +10,7 @@ import { pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/milestones.js';
+import type { MilestoneId } from '../src/milestones.js';
 import { generateOffers, isTransferWindow } from '../src/transfer.js';
 import { indexPack, validatePack } from '../src/data.js';
 import {
@@ -790,6 +791,31 @@ describe('the press', () => {
     const { state } = startedCareer();
     const decision = askHim(state, 'derby');
     expect(answerMedia(state, decision.id, 'nothing-he-said')).toBeNull();
+  });
+
+  it('has a question written for every moment it can raise', () => {
+    const ids: MilestoneId[] = [
+      'debut', 'firstGoal', 'derby', 'bigMatch', 'firstAfterTransfer', 'againstOldClub',
+      'transferRumour', 'trophyNight', 'hatTrick', 'sentOff', 'dropped', 'goalDrought',
+      'badRun', 'punditCriticism', 'rivalDig', 'injuryReturn', 'nationalCallUp',
+      'youthBreakout', 'relegationFight', 'contractStandoff',
+    ];
+    for (const id of ids) {
+      const question = milestoneById(id);
+      expect(question, `${id} has no question`).toBeDefined();
+      expect(question!.answers.length, `${id} needs at least two answers`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('gives him something to stake on every new moment', () => {
+    const staked: MilestoneId[] = [
+      'hatTrick', 'dropped', 'goalDrought', 'badRun', 'punditCriticism', 'rivalDig',
+      'injuryReturn', 'nationalCallUp', 'youthBreakout', 'relegationFight', 'contractStandoff',
+    ];
+    for (const id of staked) {
+      const question = milestoneById(id)!;
+      expect(question.answers.some((a) => a.backsItUp), `${id} has nothing to stake`).toBe(true);
+    }
   });
 
   it('never offers an answer that costs nothing at all', () => {

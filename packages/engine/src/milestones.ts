@@ -30,7 +30,22 @@ export type MilestoneId =
   | 'firstAfterTransfer'
   | 'againstOldClub'
   | 'transferRumour'
-  | 'trophyNight';
+  | 'trophyNight'
+  // The weeks nobody plans for. A microphone after a hat-trick and a microphone after
+  // a red card are the same microphone, and they are the ones that decide how he is
+  // written about for the rest of the season.
+  | 'hatTrick'
+  | 'sentOff'
+  | 'dropped'
+  | 'goalDrought'
+  | 'badRun'
+  | 'punditCriticism'
+  | 'rivalDig'
+  | 'injuryReturn'
+  | 'nationalCallUp'
+  | 'youthBreakout'
+  | 'relegationFight'
+  | 'contractStandoff';
 
 export interface MilestoneAnswer {
   id: string;
@@ -46,6 +61,11 @@ export interface MilestoneAnswer {
    * up and it is worth more than he said; fail and it costs him more than he saved.
    */
   backsItUp?: { attribute: AttributeKey; swing: number };
+  /**
+   * Somebody he has just made an enemy of. Football gives you the fixture back, and when
+   * it does, everything he does in it is worth double in both directions.
+   */
+  grudge?: { against: 'nextOpponent' | 'oldClub' };
 }
 
 export interface MilestoneQuestion {
@@ -237,6 +257,364 @@ export const MILESTONES: MilestoneQuestion[] = [
         relationships: { fans: 8, media: 7 },
         fame: 6,
         backsItUp: { attribute: 'decisions', swing: 2.2 },
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // The weeks nobody schedules. These are the ones that decide whether a career is
+  // written about as a rise or as a warning.
+  // ---------------------------------------------------------------------------
+
+  {
+    id: 'hatTrick',
+    answers: [
+      {
+        // Three goals and he talks about the wingers. Nobody believes him, everybody
+        // likes him for it.
+        id: 'passers',
+        personality: { professionalism: 1.2, ambition: -0.7 },
+        relationships: { teammates: 11, manager: 5, media: -4 },
+        fame: -1,
+        morale: 4,
+      },
+      {
+        // Says out loud what number he is going to finish the season on.
+        id: 'nameTheNumber',
+        attributes: { finishing: 1.5 },
+        personality: { ambition: 1.7, pressureHandling: -1.1 },
+        relationships: { fans: 11, media: 9, teammates: -4 },
+        fame: 6,
+        reputation: 2,
+        backsItUp: { attribute: 'finishing', swing: 2.6 },
+      },
+      {
+        // Points out that he has been doing this for months and nobody was watching.
+        id: 'aboutTime',
+        attributes: { composure: -0.8 },
+        personality: { determination: 1.4, professionalism: -0.9 },
+        relationships: { media: -7, manager: -3, fans: 5 },
+        reputation: 2,
+      },
+    ],
+  },
+  {
+    id: 'sentOff',
+    answers: [
+      {
+        // Takes it. Costs him nothing except the part of him that wanted to say more.
+        id: 'ownIt',
+        personality: { discipline: 1.6, determination: -0.6 },
+        relationships: { manager: 8, board: 5, fans: -4 },
+        morale: -4,
+      },
+      {
+        // Says the referee decided it before the whistle. The association reads it too.
+        id: 'blameTheRef',
+        personality: { discipline: -1.4, determination: 1.2 },
+        relationships: { fans: 9, teammates: 5, board: -9, manager: -6, media: -5 },
+        fame: 3,
+      },
+      {
+        // Says the other one went down. Now there is a name attached to it.
+        id: 'heDived',
+        attributes: { composure: -1 },
+        personality: { determination: 1.5, professionalism: -1.2 },
+        relationships: { fans: 7, media: 6, manager: -5 },
+        fame: 4,
+        grudge: { against: 'nextOpponent' },
+      },
+    ],
+  },
+  {
+    id: 'dropped',
+    answers: [
+      {
+        // Says he will train his way back in. The manager hears exactly that.
+        id: 'trainBack',
+        attributes: { workRate: 1.3 },
+        personality: { professionalism: 1.4, ambition: -0.8 },
+        relationships: { manager: 9, teammates: 4, media: -5 },
+        morale: -3,
+      },
+      {
+        // Says he is one of the best players at this club and everyone knows it.
+        id: 'bestHere',
+        attributes: { composure: 1.2 },
+        personality: { ambition: 1.8, loyalty: -1.2 },
+        relationships: { fans: 8, media: 8, manager: -11, teammates: -5 },
+        reputation: 3,
+        backsItUp: { attribute: 'composure', swing: 2.8 },
+      },
+      {
+        // Refuses to make it a story. The story runs anyway, smaller.
+        id: 'noStory',
+        attributes: { concentration: 1 },
+        personality: { professionalism: 0.9 },
+        relationships: { media: -6, manager: 3 },
+        morale: -2,
+      },
+    ],
+  },
+  {
+    id: 'goalDrought',
+    answers: [
+      {
+        // Says the goals are coming. Every striker says it. He has now said it publicly.
+        id: 'theyllCome',
+        attributes: { finishing: 1.3 },
+        personality: { consistency: 1.1, pressureHandling: -1 },
+        relationships: { fans: 6, media: 4, manager: -3 },
+        backsItUp: { attribute: 'finishing', swing: 2.4 },
+      },
+      {
+        // Says he is not being played where he scores. It is true. It is also a complaint.
+        id: 'wrongRole',
+        personality: { ambition: 1.3, professionalism: -1 },
+        relationships: { manager: -9, media: 5, teammates: -3 },
+        morale: 3,
+      },
+      {
+        // Talks about the work he does without the ball. Dull, honest, and the coaching
+        // staff notice.
+        id: 'theOtherWork',
+        attributes: { workRate: 1.2, positioning: 0.9 },
+        personality: { professionalism: 1.2, ambition: -0.9 },
+        relationships: { manager: 6, fans: -5, media: -4 },
+      },
+    ],
+  },
+  {
+    id: 'badRun',
+    answers: [
+      {
+        // Admits he has been poor. Nobody expects it, so it lands.
+        id: 'admit',
+        attributes: { concentration: 1.1 },
+        personality: { professionalism: 1.5, determination: -0.5 },
+        relationships: { fans: 7, media: 6, board: -4 },
+        morale: -5,
+      },
+      {
+        // Says he will be the best player on the pitch on Saturday.
+        id: 'saturday',
+        attributes: { composure: 1.3 },
+        personality: { determination: 1.6, pressureHandling: -1.2 },
+        relationships: { fans: 9, media: 7, teammates: -4 },
+        fame: 4,
+        backsItUp: { attribute: 'composure', swing: 3 },
+      },
+      {
+        // Says the whole side has been poor. Which is true, and which the dressing room
+        // will hear as him spreading it around.
+        id: 'notJustMe',
+        personality: { determination: 1, loyalty: -1.3 },
+        relationships: { teammates: -10, manager: -4, media: 5 },
+        morale: 2,
+      },
+    ],
+  },
+  {
+    id: 'punditCriticism',
+    answers: [
+      {
+        // Says he does not watch it. He watched it four times.
+        id: 'dontWatch',
+        attributes: { concentration: 1.2 },
+        personality: { professionalism: 1.3, determination: -0.6 },
+        relationships: { manager: 5, media: -5, fans: -3 },
+      },
+      {
+        // Names him back, on the record, with the years he last played.
+        id: 'nameHimBack',
+        attributes: { composure: -1.2 },
+        personality: { determination: 1.7, discipline: -1.4 },
+        relationships: { fans: 13, teammates: 5, media: -8, board: -6 },
+        fame: 7,
+        reputation: 2,
+      },
+      {
+        // Says he will answer it on the pitch, and puts a number on when.
+        id: 'answerOnThePitch',
+        attributes: { composure: 1.1 },
+        personality: { determination: 1.4, pressureHandling: -1 },
+        relationships: { fans: 8, media: 5, manager: -3 },
+        backsItUp: { attribute: 'composure', swing: 2.7 },
+      },
+    ],
+  },
+  {
+    id: 'rivalDig',
+    answers: [
+      {
+        // Lets it go. The crowd wanted more; the manager wanted exactly this.
+        id: 'letItGo',
+        personality: { professionalism: 1.4, determination: -0.7 },
+        relationships: { manager: 7, board: 4, fans: -7, media: -4 },
+      },
+      {
+        // Answers it. Now the fixture has a name on it.
+        id: 'answerHim',
+        attributes: { composure: -1 },
+        personality: { determination: 1.6, discipline: -1.2 },
+        relationships: { fans: 12, media: 8, manager: -5 },
+        fame: 6,
+        grudge: { against: 'nextOpponent' },
+      },
+      {
+        // Says he had to look him up. Colder than shouting, and it travels further.
+        id: 'whoIsHe',
+        attributes: { composure: 1.2 },
+        personality: { ambition: 1.3, professionalism: -0.8 },
+        relationships: { fans: 10, media: 9, teammates: -3 },
+        fame: 5,
+        backsItUp: { attribute: 'composure', swing: 2.5 },
+        grudge: { against: 'nextOpponent' },
+      },
+    ],
+  },
+  {
+    id: 'injuryReturn',
+    answers: [
+      {
+        // Says he is taking it week by week. The medical staff exhale.
+        id: 'weekByWeek',
+        attributes: { stamina: 1.1 },
+        personality: { professionalism: 1.5, ambition: -0.9 },
+        relationships: { manager: 7, board: 5, media: -5 },
+        fame: -2,
+      },
+      {
+        // Says he is stronger than before he went down.
+        id: 'strongerNow',
+        attributes: { strength: 1.4 },
+        personality: { determination: 1.5, pressureHandling: -0.9 },
+        relationships: { fans: 9, media: 7, manager: -4 },
+        fame: 3,
+        backsItUp: { attribute: 'strength', swing: 2.5 },
+      },
+      {
+        // Talks about the months in the gym nobody saw. Honest, and it costs him the
+        // aura he had before.
+        id: 'theDarkMonths',
+        attributes: { concentration: 1.2 },
+        personality: { determination: 1.6, ambition: -0.7 },
+        relationships: { fans: 8, teammates: 6, media: 4, board: -3 },
+        morale: -3,
+      },
+    ],
+  },
+  {
+    id: 'nationalCallUp',
+    answers: [
+      {
+        // The proudest day. Says so, plainly, and means it.
+        id: 'proudest',
+        personality: { professionalism: 1.2, ambition: -0.6 },
+        relationships: { fans: 9, media: 5, teammates: 4, board: -3 },
+        morale: 7,
+      },
+      {
+        // Says he intends to keep the shirt.
+        id: 'keepTheShirt',
+        attributes: { composure: 1.3 },
+        personality: { ambition: 1.8, loyalty: -1 },
+        relationships: { media: 8, fans: 7, manager: -4 },
+        fame: 5,
+        reputation: 3,
+        backsItUp: { attribute: 'composure', swing: 2.6 },
+      },
+      {
+        // Says it should have come a year ago. It probably should have.
+        id: 'overdue',
+        personality: { ambition: 1.5, professionalism: -1.1 },
+        relationships: { media: -7, board: -4, fans: 6 },
+        reputation: 2,
+      },
+    ],
+  },
+  {
+    id: 'youthBreakout',
+    answers: [
+      {
+        // A sixteen year old saying the right things. The academy staff nod.
+        id: 'stayGrounded',
+        personality: { professionalism: 1.6, ambition: -0.8 },
+        relationships: { manager: 8, teammates: 5, media: -4 },
+        morale: 3,
+      },
+      {
+        // Says he is ready for the first team now, at sixteen, into a microphone.
+        id: 'readyNow',
+        attributes: { composure: 1.2 },
+        personality: { ambition: 1.9, pressureHandling: -1.3 },
+        relationships: { fans: 8, media: 9, manager: -7, teammates: -5 },
+        fame: 5,
+        reputation: 3,
+        backsItUp: { attribute: 'composure', swing: 2.8 },
+      },
+      {
+        // Thanks the coach who has had him since he was twelve.
+        id: 'theCoach',
+        personality: { loyalty: 1.7, ambition: -1 },
+        relationships: { manager: 6, board: 5, media: -3 },
+        morale: 5,
+        fame: -1,
+      },
+    ],
+  },
+  {
+    id: 'relegationFight',
+    answers: [
+      {
+        // Says the squad is good enough. Says it in a week when it plainly is not.
+        id: 'goodEnough',
+        attributes: { composure: 1.2 },
+        personality: { determination: 1.5, pressureHandling: -1.1 },
+        relationships: { teammates: 9, board: 6, media: -5 },
+        backsItUp: { attribute: 'composure', swing: 2.7 },
+      },
+      {
+        // Says the club has not been run well enough. True, and it goes upstairs.
+        id: 'blameUpstairs',
+        personality: { determination: 1.4, professionalism: -1.3 },
+        relationships: { fans: 12, teammates: 6, board: -14, manager: -4 },
+        fame: 4,
+      },
+      {
+        // Says nothing anyone can use. Survives the week, loses the room a little.
+        id: 'sayNothing',
+        attributes: { concentration: 1 },
+        personality: { professionalism: 1 },
+        relationships: { media: -6, fans: -5, board: 4 },
+      },
+    ],
+  },
+  {
+    id: 'contractStandoff',
+    answers: [
+      {
+        // Says he is happy here. The club stops worrying and stops improving the offer.
+        id: 'happyHere',
+        personality: { loyalty: 1.6, ambition: -1.3 },
+        relationships: { board: 10, fans: 9, manager: 6 },
+        reputation: -2,
+      },
+      {
+        // Says his future is being decided by people above him. Everyone knows who.
+        id: 'notInMyHands',
+        personality: { ambition: 1.5, loyalty: -1.2 },
+        relationships: { board: -11, fans: -6, media: 7 },
+        reputation: 3,
+      },
+      {
+        // Says he will sign the day the club shows him the plan. Reasonable, and public,
+        // which makes it a deadline.
+        id: 'showMeThePlan',
+        attributes: { composure: 1.1 },
+        personality: { ambition: 1.2, professionalism: -0.6 },
+        relationships: { board: -5, fans: 5, media: 4 },
+        backsItUp: { attribute: 'composure', swing: 2.3 },
       },
     ],
   },
