@@ -1186,6 +1186,9 @@ function raiseMilestone(state: CareerState, id: MilestoneId, force = false): voi
     options: question.answers.map((answer) => ({
       id: answer.id,
       labelKey: `milestone.${id}.${answer.id}`,
+      // What it will cost him, said before he says it. He is allowed to be reckless;
+      // he is not allowed to be reckless by accident.
+      riskKey: `milestone.${id}.${answer.id}.${answer.risk}`,
       effects: [],
     })),
     blocking: true,

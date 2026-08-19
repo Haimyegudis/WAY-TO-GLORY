@@ -49,6 +49,11 @@ export type MilestoneId =
 
 export interface MilestoneAnswer {
   id: string;
+  /**
+   * How exposed the answer leaves him, shown next to it before he gives it. The player
+   * should never have to guess whether he is about to say something that costs him.
+   */
+  risk: 'low' | 'medium' | 'high';
   /** Attributes moved, up or down, when this answer is given. */
   attributes?: Partial<Record<AttributeKey, number>>;
   personality?: Partial<Record<PersonalityKey, number>>;
@@ -90,6 +95,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says the right things, gives nothing away, disappoints nobody and excites nobody.
         id: 'humble',
+        risk: 'low',
         personality: { professionalism: 1.2, ambition: -0.6 },
         relationships: { manager: 5, media: -2 },
         morale: 2,
@@ -97,6 +103,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Tells the country he belongs here. Now he has to look like he does.
         id: 'bold',
+        risk: 'high',
         attributes: { composure: 1.4 },
         personality: { ambition: 1.4, pressureHandling: -0.8 },
         relationships: { fans: 7, media: 6, teammates: -4 },
@@ -106,6 +113,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Thanks the people who got him here. Cheap, warm, and forgotten by Tuesday.
         id: 'family',
+        risk: 'low',
         personality: { loyalty: 1.2 },
         relationships: { fans: 4, media: -1 },
         morale: 4,
@@ -117,11 +125,13 @@ export const MILESTONES: MilestoneQuestion[] = [
     answers: [
       {
         id: 'team',
+        risk: 'low',
         personality: { professionalism: 1 },
         relationships: { teammates: 8, manager: 4, media: -3 },
       },
       {
         id: 'moreToCome',
+        risk: 'high',
         attributes: { finishing: 1.2 },
         personality: { ambition: 1.2, consistency: -0.7 },
         relationships: { media: 6, fans: 5 },
@@ -136,6 +146,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Refuses to give them anything to pin on the dressing-room wall.
         id: 'respect',
+        risk: 'medium',
         attributes: { concentration: 1 },
         personality: { professionalism: 0.8 },
         relationships: { manager: 5, fans: -5 },
@@ -144,6 +155,7 @@ export const MILESTONES: MilestoneQuestion[] = [
         // Tells the other lot exactly what is coming. The crowd loves it. The other lot
         // read it too.
         id: 'fire',
+        risk: 'high',
         attributes: { composure: -1.1 },
         personality: { determination: 1.4, discipline: -1 },
         relationships: { fans: 12, media: 7, manager: -4 },
@@ -152,6 +164,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       },
       {
         id: 'deflect',
+        risk: 'medium',
         personality: { professionalism: 0.6 },
         relationships: { media: -6, manager: 3 },
         morale: -2,
@@ -163,12 +176,14 @@ export const MILESTONES: MilestoneQuestion[] = [
     answers: [
       {
         id: 'businessAsUsual',
+        risk: 'low',
         attributes: { concentration: 1.1 },
         personality: { pressureHandling: 1 },
         relationships: { manager: 4, media: -3 },
       },
       {
         id: 'ourNight',
+        risk: 'high',
         attributes: { composure: 1.2 },
         personality: { ambition: 1.1, pressureHandling: -0.9 },
         relationships: { fans: 8, teammates: 4, media: 5 },
@@ -183,6 +198,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Promises the new crowd everything before he has kicked a ball for them.
         id: 'promise',
+        risk: 'high',
         personality: { ambition: 1.2, pressureHandling: -1 },
         relationships: { fans: 10, media: 5, teammates: -3 },
         reputation: 2,
@@ -190,6 +206,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       },
       {
         id: 'settleIn',
+        risk: 'low',
         attributes: { concentration: 1 },
         personality: { adaptability: 1.3, ambition: -0.5 },
         relationships: { teammates: 7, manager: 4, fans: -3 },
@@ -202,12 +219,14 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Will not celebrate. The old crowd remembers that; the new one notices too.
         id: 'wontCelebrate',
+        risk: 'medium',
         personality: { loyalty: 1.5 },
         relationships: { fans: -6, media: 3 },
         morale: -3,
       },
       {
         id: 'movedOn',
+        risk: 'high',
         attributes: { composure: 1.1, concentration: -0.6 },
         personality: { determination: 1.2 },
         relationships: { fans: 8, media: 5 },
@@ -221,18 +240,21 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Denies everything. The club is delighted. The bigger club reads it as a no.
         id: 'deny',
+        risk: 'low',
         personality: { loyalty: 1.4, ambition: -1 },
         relationships: { board: 8, manager: 6, fans: 6 },
       },
       {
         // Refuses to rule it out, which in this business is a yes.
         id: 'flattered',
+        risk: 'high',
         personality: { ambition: 1.6, loyalty: -1.2 },
         relationships: { board: -8, fans: -7, manager: -5, media: 6 },
         reputation: 3,
       },
       {
         id: 'noComment',
+        risk: 'medium',
         attributes: { concentration: 0.8 },
         relationships: { media: -5 },
       },
@@ -245,6 +267,7 @@ export const MILESTONES: MilestoneQuestion[] = [
         // Hands the night to everybody else. The dressing room will not forget it, and
         // neither will the people writing about somebody else's season.
         id: 'creditThem',
+        risk: 'medium',
         personality: { professionalism: 1.3, ambition: -0.8 },
         relationships: { teammates: 10, manager: 6, board: 4, media: -4 },
         morale: 6,
@@ -252,6 +275,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       },
       {
         id: 'firstOfMany',
+        risk: 'high',
         attributes: { composure: 1 },
         personality: { ambition: 1.6, consistency: -0.8 },
         relationships: { fans: 8, media: 7 },
@@ -273,6 +297,7 @@ export const MILESTONES: MilestoneQuestion[] = [
         // Three goals and he talks about the wingers. Nobody believes him, everybody
         // likes him for it.
         id: 'passers',
+        risk: 'medium',
         personality: { professionalism: 1.2, ambition: -0.7 },
         relationships: { teammates: 11, manager: 5, media: -4 },
         fame: -1,
@@ -281,6 +306,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says out loud what number he is going to finish the season on.
         id: 'nameTheNumber',
+        risk: 'high',
         attributes: { finishing: 1.5 },
         personality: { ambition: 1.7, pressureHandling: -1.1 },
         relationships: { fans: 11, media: 9, teammates: -4 },
@@ -291,6 +317,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Points out that he has been doing this for months and nobody was watching.
         id: 'aboutTime',
+        risk: 'medium',
         attributes: { composure: -0.8 },
         personality: { determination: 1.4, professionalism: -0.9 },
         relationships: { media: -7, manager: -3, fans: 5 },
@@ -304,6 +331,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Takes it. Costs him nothing except the part of him that wanted to say more.
         id: 'ownIt',
+        risk: 'medium',
         personality: { discipline: 1.6, determination: -0.6 },
         relationships: { manager: 8, board: 5, fans: -4 },
         morale: -4,
@@ -311,6 +339,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says the referee decided it before the whistle. The association reads it too.
         id: 'blameTheRef',
+        risk: 'high',
         personality: { discipline: -1.4, determination: 1.2 },
         relationships: { fans: 9, teammates: 5, board: -9, manager: -6, media: -5 },
         fame: 3,
@@ -318,6 +347,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says the other one went down. Now there is a name attached to it.
         id: 'heDived',
+        risk: 'high',
         attributes: { composure: -1 },
         personality: { determination: 1.5, professionalism: -1.2 },
         relationships: { fans: 7, media: 6, manager: -5 },
@@ -332,6 +362,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he will train his way back in. The manager hears exactly that.
         id: 'trainBack',
+        risk: 'medium',
         attributes: { workRate: 1.3 },
         personality: { professionalism: 1.4, ambition: -0.8 },
         relationships: { manager: 9, teammates: 4, media: -5 },
@@ -340,6 +371,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he is one of the best players at this club and everyone knows it.
         id: 'bestHere',
+        risk: 'high',
         attributes: { composure: 1.2 },
         personality: { ambition: 1.8, loyalty: -1.2 },
         relationships: { fans: 8, media: 8, manager: -11, teammates: -5 },
@@ -349,6 +381,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Refuses to make it a story. The story runs anyway, smaller.
         id: 'noStory',
+        risk: 'medium',
         attributes: { concentration: 1 },
         personality: { professionalism: 0.9 },
         relationships: { media: -6, manager: 3 },
@@ -362,6 +395,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says the goals are coming. Every striker says it. He has now said it publicly.
         id: 'theyllCome',
+        risk: 'high',
         attributes: { finishing: 1.3 },
         personality: { consistency: 1.1, pressureHandling: -1 },
         relationships: { fans: 6, media: 4, manager: -3 },
@@ -370,6 +404,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he is not being played where he scores. It is true. It is also a complaint.
         id: 'wrongRole',
+        risk: 'high',
         personality: { ambition: 1.3, professionalism: -1 },
         relationships: { manager: -9, media: 5, teammates: -3 },
         morale: 3,
@@ -378,6 +413,7 @@ export const MILESTONES: MilestoneQuestion[] = [
         // Talks about the work he does without the ball. Dull, honest, and the coaching
         // staff notice.
         id: 'theOtherWork',
+        risk: 'medium',
         attributes: { workRate: 1.2, positioning: 0.9 },
         personality: { professionalism: 1.2, ambition: -0.9 },
         relationships: { manager: 6, fans: -5, media: -4 },
@@ -390,6 +426,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Admits he has been poor. Nobody expects it, so it lands.
         id: 'admit',
+        risk: 'medium',
         attributes: { concentration: 1.1 },
         personality: { professionalism: 1.5, determination: -0.5 },
         relationships: { fans: 7, media: 6, board: -4 },
@@ -398,6 +435,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he will be the best player on the pitch on Saturday.
         id: 'saturday',
+        risk: 'high',
         attributes: { composure: 1.3 },
         personality: { determination: 1.6, pressureHandling: -1.2 },
         relationships: { fans: 9, media: 7, teammates: -4 },
@@ -408,6 +446,7 @@ export const MILESTONES: MilestoneQuestion[] = [
         // Says the whole side has been poor. Which is true, and which the dressing room
         // will hear as him spreading it around.
         id: 'notJustMe',
+        risk: 'high',
         personality: { determination: 1, loyalty: -1.3 },
         relationships: { teammates: -10, manager: -4, media: 5 },
         morale: 2,
@@ -420,6 +459,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he does not watch it. He watched it four times.
         id: 'dontWatch',
+        risk: 'medium',
         attributes: { concentration: 1.2 },
         personality: { professionalism: 1.3, determination: -0.6 },
         relationships: { manager: 5, media: -5, fans: -3 },
@@ -427,6 +467,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Names him back, on the record, with the years he last played.
         id: 'nameHimBack',
+        risk: 'high',
         attributes: { composure: -1.2 },
         personality: { determination: 1.7, discipline: -1.4 },
         relationships: { fans: 13, teammates: 5, media: -8, board: -6 },
@@ -436,6 +477,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he will answer it on the pitch, and puts a number on when.
         id: 'answerOnThePitch',
+        risk: 'high',
         attributes: { composure: 1.1 },
         personality: { determination: 1.4, pressureHandling: -1 },
         relationships: { fans: 8, media: 5, manager: -3 },
@@ -449,12 +491,14 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Lets it go. The crowd wanted more; the manager wanted exactly this.
         id: 'letItGo',
+        risk: 'medium',
         personality: { professionalism: 1.4, determination: -0.7 },
         relationships: { manager: 7, board: 4, fans: -7, media: -4 },
       },
       {
         // Answers it. Now the fixture has a name on it.
         id: 'answerHim',
+        risk: 'high',
         attributes: { composure: -1 },
         personality: { determination: 1.6, discipline: -1.2 },
         relationships: { fans: 12, media: 8, manager: -5 },
@@ -464,6 +508,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he had to look him up. Colder than shouting, and it travels further.
         id: 'whoIsHe',
+        risk: 'high',
         attributes: { composure: 1.2 },
         personality: { ambition: 1.3, professionalism: -0.8 },
         relationships: { fans: 10, media: 9, teammates: -3 },
@@ -479,6 +524,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he is taking it week by week. The medical staff exhale.
         id: 'weekByWeek',
+        risk: 'medium',
         attributes: { stamina: 1.1 },
         personality: { professionalism: 1.5, ambition: -0.9 },
         relationships: { manager: 7, board: 5, media: -5 },
@@ -487,6 +533,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he is stronger than before he went down.
         id: 'strongerNow',
+        risk: 'high',
         attributes: { strength: 1.4 },
         personality: { determination: 1.5, pressureHandling: -0.9 },
         relationships: { fans: 9, media: 7, manager: -4 },
@@ -497,6 +544,7 @@ export const MILESTONES: MilestoneQuestion[] = [
         // Talks about the months in the gym nobody saw. Honest, and it costs him the
         // aura he had before.
         id: 'theDarkMonths',
+        risk: 'low',
         attributes: { concentration: 1.2 },
         personality: { determination: 1.6, ambition: -0.7 },
         relationships: { fans: 8, teammates: 6, media: 4, board: -3 },
@@ -510,6 +558,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // The proudest day. Says so, plainly, and means it.
         id: 'proudest',
+        risk: 'low',
         personality: { professionalism: 1.2, ambition: -0.6 },
         relationships: { fans: 9, media: 5, teammates: 4, board: -3 },
         morale: 7,
@@ -517,6 +566,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he intends to keep the shirt.
         id: 'keepTheShirt',
+        risk: 'high',
         attributes: { composure: 1.3 },
         personality: { ambition: 1.8, loyalty: -1 },
         relationships: { media: 8, fans: 7, manager: -4 },
@@ -527,6 +577,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says it should have come a year ago. It probably should have.
         id: 'overdue',
+        risk: 'medium',
         personality: { ambition: 1.5, professionalism: -1.1 },
         relationships: { media: -7, board: -4, fans: 6 },
         reputation: 2,
@@ -539,6 +590,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // A sixteen year old saying the right things. The academy staff nod.
         id: 'stayGrounded',
+        risk: 'medium',
         personality: { professionalism: 1.6, ambition: -0.8 },
         relationships: { manager: 8, teammates: 5, media: -4 },
         morale: 3,
@@ -546,6 +598,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he is ready for the first team now, at sixteen, into a microphone.
         id: 'readyNow',
+        risk: 'high',
         attributes: { composure: 1.2 },
         personality: { ambition: 1.9, pressureHandling: -1.3 },
         relationships: { fans: 8, media: 9, manager: -7, teammates: -5 },
@@ -556,6 +609,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Thanks the coach who has had him since he was twelve.
         id: 'theCoach',
+        risk: 'low',
         personality: { loyalty: 1.7, ambition: -1 },
         relationships: { manager: 6, board: 5, media: -3 },
         morale: 5,
@@ -569,6 +623,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says the squad is good enough. Says it in a week when it plainly is not.
         id: 'goodEnough',
+        risk: 'high',
         attributes: { composure: 1.2 },
         personality: { determination: 1.5, pressureHandling: -1.1 },
         relationships: { teammates: 9, board: 6, media: -5 },
@@ -577,6 +632,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says the club has not been run well enough. True, and it goes upstairs.
         id: 'blameUpstairs',
+        risk: 'high',
         personality: { determination: 1.4, professionalism: -1.3 },
         relationships: { fans: 12, teammates: 6, board: -14, manager: -4 },
         fame: 4,
@@ -584,6 +640,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says nothing anyone can use. Survives the week, loses the room a little.
         id: 'sayNothing',
+        risk: 'medium',
         attributes: { concentration: 1 },
         personality: { professionalism: 1 },
         relationships: { media: -6, fans: -5, board: 4 },
@@ -596,6 +653,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says he is happy here. The club stops worrying and stops improving the offer.
         id: 'happyHere',
+        risk: 'low',
         personality: { loyalty: 1.6, ambition: -1.3 },
         relationships: { board: 10, fans: 9, manager: 6 },
         reputation: -2,
@@ -603,6 +661,7 @@ export const MILESTONES: MilestoneQuestion[] = [
       {
         // Says his future is being decided by people above him. Everyone knows who.
         id: 'notInMyHands',
+        risk: 'high',
         personality: { ambition: 1.5, loyalty: -1.2 },
         relationships: { board: -11, fans: -6, media: 7 },
         reputation: 3,
@@ -611,6 +670,7 @@ export const MILESTONES: MilestoneQuestion[] = [
         // Says he will sign the day the club shows him the plan. Reasonable, and public,
         // which makes it a deadline.
         id: 'showMeThePlan',
+        risk: 'high',
         attributes: { composure: 1.1 },
         personality: { ambition: 1.2, professionalism: -0.6 },
         relationships: { board: -5, fans: 5, media: 4 },

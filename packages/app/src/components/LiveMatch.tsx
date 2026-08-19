@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MatchEvent, MatchResult } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
+import { competitionLabel } from '../lib/names.js';
 import { clubShortName } from '../lib/club.js';
-import { useGame } from '../state/store.js';
+import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { Crest } from './ui.js';
 import { Pitch2D } from './Pitch2D.js';
@@ -57,6 +58,9 @@ export function LiveMatch({
   const state = useGame((s) => s.state)!;
   const home = club(state, match.homeClubId);
   const away = club(state, match.awayClubId);
+  // Which competition this is. A Sunday morning in the youth league and a Saturday in
+  // the first division look identical on a scoreboard, and they are not the same match.
+  const competition = competitionLabel(match.competitionId, getPack(), lang, t);
 
   // Coming off the bench, there is nothing to watch before you are on: the first hour
   // is already history, so it is shown as a summary and the clock starts where you do.
@@ -194,6 +198,9 @@ export function LiveMatch({
 
   return (
     <div className="live">
+      <p className="eyebrow" style={{ textAlign: 'center', marginBlockEnd: 6, color: 'var(--amber)' }}>
+        {competition}
+      </p>
       <div className="live-board">
         <div className="live-side">
           <Crest club={home} size="lg" />

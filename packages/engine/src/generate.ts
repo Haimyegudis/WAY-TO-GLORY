@@ -107,7 +107,26 @@ export function buildPersonality(rng: Rng, bias = 0): Personality {
   return p;
 }
 
-export function pickName(rng: Rng, pool: NamePool): { firstName: string; lastName: string } {
+export function pickName(
+  rng: Rng,
+  pool: NamePool,
+  /**
+   * Names already handed out. A country's pool is finite, and without this the same
+   * man turns up twice: once in an academy and once in the first team he is trying to
+   * get into, which reads as a bug however innocent the arithmetic is.
+   */
+  taken?: Set<string>,
+): { firstName: string; lastName: string } {
+  for (let tries = 0; tries < 24; tries++) {
+    const firstName = rng.pick(pool.first);
+    const lastName = rng.pick(pool.last);
+    const full = `${firstName} ${lastName}`;
+    if (!taken || !taken.has(full)) {
+      taken?.add(full);
+      return { firstName, lastName };
+    }
+  }
+  // The pool is exhausted for this country; a repeat is better than an empty shirt.
   return { firstName: rng.pick(pool.first), lastName: rng.pick(pool.last) };
 }
 
@@ -134,11 +153,13 @@ export interface GenerateOptions {
   potential?: number;
   isUser?: boolean;
   personalityBias?: number;
+  /** Names already in use in this world, so nobody is generated twice. */
+  taken?: Set<string>;
 }
 
 export function generatePlayer(rng: Rng, index: PackIndex, opts: GenerateOptions): Player {
   const pool = poolFor(index, opts.countryCode);
-  const { firstName, lastName } = pickName(rng, pool);
+  const { firstName, lastName } = pickName(rng, pool, opts.taken);
   const attributes = buildAttributes(rng, opts.pos, opts.targetOvr);
 
   // Build first, then rate: a tall centre back and a small winger with the same

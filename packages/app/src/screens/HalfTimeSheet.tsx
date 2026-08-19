@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { HalfTimeInstructionId, PendingHalfTime } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
-import { useGame } from '../state/store.js';
+import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { clubShortName } from '../lib/club.js';
 import { Crest } from '../components/ui.js';
+import { competitionLabel } from '../lib/names.js';
 
 /**
  * The dressing room.
@@ -30,7 +31,9 @@ export function HalfTimeSheet({ half }: { half: PendingHalfTime }) {
     <div className="sheet-backdrop">
       <div className="sheet" role="dialog" aria-modal="true" aria-label={t('halfTime.title')}>
         <div className="sheet-grip" />
-        <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('halfTime.title')}</p>
+        <p className="eyebrow" style={{ color: 'var(--amber)' }}>
+          {t('halfTime.title')} · {competitionLabel(half.competitionId, getPack(), lang, t)}
+        </p>
 
         <div className="live-board" style={{ marginBlock: '10px 14px' }}>
           <div className="live-side">

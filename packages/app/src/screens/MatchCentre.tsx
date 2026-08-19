@@ -2,9 +2,9 @@ import { useState } from 'react';
 import type { CareerState, MatchResult, PendingHalfTime } from '@fc/engine';
 import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubShortName } from '../lib/club.js';
-import { useGame } from '../state/store.js';
+import { getPack, useGame } from '../state/store.js';
 import { club, recentMatches } from '../state/selectors.js';
-import { playerName } from '../lib/names.js';
+import { competitionLabel, playerName } from '../lib/names.js';
 import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 import { LiveMatch } from '../components/LiveMatch.js';
 import { HalfTimeSheet } from './HalfTimeSheet.js';
@@ -121,7 +121,7 @@ export function MatchCentre() {
   return (
     <div className="screen stack">
       <div className="row-between">
-        <span className="eyebrow">{t('match.title')}</span>
+        <span className="eyebrow">{competitionLabel(match.competitionId, getPack(), lang, t)}</span>
         <span className="eyebrow">
           {formatSeason(match.season)} · {t('hub.week', { week: match.week })}
         </span>

@@ -128,6 +128,10 @@ export function MentorScreen() {
             <span className="num" style={{ fontSize: 12 }}>{Math.round(held?.bond ?? 0)}</span>
           </div>
           <Meter value={held?.bond ?? 0} tone="amber" />
+          {/* A bar with a number on it and no explanation is a bar nobody trusts. */}
+          <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6, lineHeight: 1.6 }}>
+            {t('mentor.bondHint')}
+          </p>
         </div>
       </Card>
 

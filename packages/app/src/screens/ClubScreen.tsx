@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { leaguePhaseTable, sortedTable, type CareerState, type EuroState } from '@fc/engine';
+import {
+  leaguePhaseTable,
+  sortedTable,
+  userYouthCompetitionId,
+  type CareerState,
+  type EuroState,
+} from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { clubName, clubShortName } from '../lib/club.js';
 import { competitionLabel, competitionName, playerName } from '../lib/names.js';
@@ -15,7 +21,10 @@ export function ClubScreen() {
   const t = useT();
   const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
-  const [tab, setTab] = useState<Tab>('table');
+  // A sixteen year old's league is the youth league. Opening his club on the first
+  // team's table would be showing him a competition he does not play in.
+  const inTheAgeGroup = Boolean(state.world.youth && userYouthCompetitionId(state));
+  const [tab, setTab] = useState<Tab>(inTheAgeGroup ? 'youth' : 'table');
   const home = myClub(state);
 
   if (!home) {
