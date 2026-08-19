@@ -719,7 +719,10 @@ export const useGame = create<GameStore>((set, get) => ({
       const message = state.inbox.find((entry) => entry.id === first);
       if (message) message.read = true;
     }
-    set({ pendingNews: rest, ...(state ? { state: { ...state } } : {}) });
+    // Anything the inbox has since dropped goes with it, so the queue can never stall
+    // behind a message that no longer exists.
+    const alive = state ? rest.filter((id) => state.inbox.some((entry) => entry.id === id)) : rest;
+    set({ pendingNews: alive, ...(state ? { state: { ...state } } : {}) });
   },
 
   showToast(message) {

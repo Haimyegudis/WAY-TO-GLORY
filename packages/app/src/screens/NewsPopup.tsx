@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { InboxMessage } from '@fc/engine';
 import { formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
@@ -23,9 +24,21 @@ export function NewsPopup() {
   const dismiss = useGame((s) => s.dismissNews);
   const pack = getPack();
 
-  if (!state || pending.length === 0) return null;
-  const message: InboxMessage | undefined = state.inbox.find((entry) => entry.id === pending[0]);
-  if (!message) return null;
+  const message: InboxMessage | undefined = state?.inbox.find((entry) => entry.id === pending[0]);
+
+  /*
+   * A message that is no longer there must not block the ones behind it.
+   *
+   * The inbox keeps the last eighty messages, so a busy run of weeks can evict one that
+   * is still sitting at the head of the queue - and the popup, finding nothing to draw,
+   * drew nothing and left the whole queue stuck behind it for the rest of the career.
+   * That is why the notifications stopped after the first few.
+   */
+  useEffect(() => {
+    if (state && pending.length > 0 && !message) dismiss();
+  }, [state, pending, message, dismiss]);
+
+  if (!state || pending.length === 0 || !message) return null;
 
   const question = message.decisionId
     ? state.pendingDecisions.find((decision) => decision.id === message.decisionId) ?? null
