@@ -10,6 +10,7 @@ export const he: Record<string, string> = {
 
   'action.continue': 'המשך',
   'action.continueTo': 'ממשיכים',
+  'action.doneWithMatch': 'חזרה למסך הראשי',
   'action.back': 'חזרה',
   'action.next': 'הבא',
   'action.confirm': 'אישור',

@@ -72,20 +72,27 @@ function Game() {
   const screen = useGame((s) => s.screen);
   const state = useGame((s) => s.state);
   const result = useGame((s) => s.result);
-  // Only the questions that change the career stop him. The rest are in his mail, and
-  // he answers them when he opens it.
-  const pending = state?.pendingDecisions.find((decision) => decision.blocking !== false) ?? null;
   const liveMatchId = useGame((s) => s.liveMatchId);
   // While a match is being watched, nothing else may advance the week from under it.
   const watchingMatch = screen === 'match' && liveMatchId !== null && liveMatchId === state?.lastMatch?.id;
+  // The dressing room at the interval counts as being in the match: he is standing
+  // there in his kit, and the game has not finished.
+  const inTheMatch = watchingMatch || state?.pendingHalfTime != null;
+  // Only the questions that change the career stop him. The rest are in his mail, and
+  // he answers them when he opens it. Nobody asks him anything while he is still
+  // playing: a reporter asking how the game went, at half time, is nonsense, so
+  // whatever is waiting waits behind the final whistle.
+  const pending = inTheMatch
+    ? null
+    : state?.pendingDecisions.find((decision) => decision.blocking !== false) ?? null;
   const dim = SCREEN_DIM[screen] ?? 0.84;
 
   return (
     <>
       <Stadium dim={dim} />
       {/* The ground while he is out there; the season loop everywhere else. */}
-      <ThemeMusic playing={watchingMatch} track="matchday" />
-      <ThemeMusic playing={!watchingMatch} track="season" />
+      <ThemeMusic playing={inTheMatch} track="matchday" />
+      <ThemeMusic playing={!inTheMatch} track="season" />
       <div className="app">
         {screen === 'hub' && <Hub />}
         {screen === 'match' && <MatchCentre />}
@@ -99,7 +106,7 @@ function Game() {
         {screen === 'settings' && <SettingsScreen />}
         {screen === 'mentor' && <MentorScreen />}
 
-        {!pending && !result && !state?.retired && !watchingMatch && <ContinueDock />}
+        {!pending && !result && !state?.retired && !inTheMatch && <ContinueDock />}
         <Tabs />
         {result && <ResultSheet result={result} />}
         {!result && pending && <DecisionSheet decision={pending} />}
@@ -130,14 +137,25 @@ function Stadium({ dim }: { dim: number }) {
 function ContinueDock() {
   const t = useT();
   const advance = useGame((s) => s.advance);
+  const goto = useGame((s) => s.goto);
+  const screen = useGame((s) => s.screen);
   const busy = useGame((s) => s.busy);
   const state = useGame((s) => s.state);
   const injured = (state?.player.condition.injuries.length ?? 0) > 0;
+  // The final whistle is not the start of the next week. Leaving the match report used
+  // to run the clock straight into the following fixture, so his mail, his training and
+  // everything else his club wanted from him went past unread. Now the whistle puts him
+  // back on his own screen, and the week only moves when he says so.
+  const afterMatch = screen === 'match' && state?.lastMatch != null;
 
   return (
     <div className="continue-dock">
-      <button className={`continue ${injured ? 'continue-alt' : ''}`} disabled={busy} onClick={() => advance(52)}>
-        {injured ? t('action.continueTo') : t('action.continue')}
+      <button
+        className={`continue ${injured && !afterMatch ? 'continue-alt' : ''}`}
+        disabled={busy}
+        onClick={() => (afterMatch ? goto('hub') : advance(52))}
+      >
+        {afterMatch ? t('action.doneWithMatch') : injured ? t('action.continueTo') : t('action.continue')}
       </button>
     </div>
   );

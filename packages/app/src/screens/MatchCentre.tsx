@@ -65,17 +65,21 @@ export function MatchCentre() {
   const match = state.lastMatch;
   const half = state.pendingHalfTime;
   const liveFrom = useGame((s) => s.liveFromMinute);
-  const [inTheRoom, setInTheRoom] = useState(false);
+  // Which match he has already walked off the pitch for. This is held per match rather
+  // than as a plain flag: the screen never unmounts between games, and a flag left
+  // standing from the last team talk sent the next match straight to the dressing room
+  // without a minute of the first half being played.
+  const [roomFor, setRoomFor] = useState<string | null>(null);
 
   // A match waiting on a team talk: the first half is watched, then the question.
   if (half) {
-    if (inTheRoom) return <HalfTimeSheet half={half} />;
+    if (roomFor === half.matchId) return <HalfTimeSheet half={half} />;
     return (
       <div className="screen">
         <LiveMatch
           match={firstHalfAsMatch(state, half)}
           to={45}
-          onFinish={() => setInTheRoom(true)}
+          onFinish={() => setRoomFor(half.matchId)}
         />
       </div>
     );

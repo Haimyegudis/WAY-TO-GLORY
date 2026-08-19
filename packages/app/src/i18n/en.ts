@@ -10,6 +10,7 @@ export const en: Record<string, string> = {
 
   'action.continue': 'Continue',
   'action.continueTo': 'Play on',
+  'action.doneWithMatch': 'Back to the hub',
   'action.back': 'Back',
   'action.next': 'Next',
   'action.confirm': 'Confirm',
