@@ -42,6 +42,7 @@ const SCREEN_DIM: Partial<Record<Screen, number>> = {
 export function App() {
   const phase = useGame((s) => s.phase);
   const boot = useGame((s) => s.boot);
+  useBackGesture();
 
   useEffect(() => {
     void boot();
@@ -71,7 +72,6 @@ export function App() {
 
 function Game() {
   const screen = useGame((s) => s.screen);
-  useBackToHub();
   const state = useGame((s) => s.state);
   const result = useGame((s) => s.result);
   const liveMatchId = useGame((s) => s.liveMatchId);
@@ -137,23 +137,36 @@ function Stadium({ dim }: { dim: number }) {
 }
 
 /**
- * The back gesture, which on a phone is a hardware button and on a browser is the arrow.
+ * The back gesture, which on a phone is a swipe from the edge and in a browser is the
+ * arrow.
  *
  * Left alone it leaves the game entirely, which is a brutal thing to do to somebody four
- * seasons into a career, so a state is kept on the history stack and put straight back
- * whenever it is popped: back becomes a step towards his own screen rather than the door
- * out. The one place it does nothing is a match in progress - there is no tab back to the
- * pitch, so walking away from a live game would strand him.
+ * seasons into a career. So the game keeps entries of its own on the history stack: the
+ * gesture pops one, the game puts another back in the same breath, and the browser never
+ * reaches the entry underneath - the one that would close the tab.
+ *
+ * Two are pushed on the way in rather than one, because a fast swipe on Android pops a
+ * second before the handler has run and a single spare entry is not a buffer.
+ *
+ * What the gesture then means is one step back through the screens he came through, and
+ * his own screen once that runs out. The one place it does nothing is a match in
+ * progress: there is no tab that leads back to the pitch, so walking away from a live
+ * game would strand him.
  */
-function useBackToHub(): void {
+function useBackGesture(): void {
   useEffect(() => {
-    window.history.pushState({ game: true }, '');
+    const spare = () => window.history.pushState({ game: true }, '');
+    spare();
+    spare();
     const onPop = () => {
-      window.history.pushState({ game: true }, '');
+      spare();
       const game = useGame.getState();
+      // Nothing to go back to before a career has been started, and nothing to go back
+      // from while a match is being played: in both cases the gesture is swallowed.
+      if (game.phase !== 'playing') return;
       const inTheMatch = game.liveMatchId !== null || game.state?.pendingHalfTime != null;
       if (inTheMatch) return;
-      if (game.screen !== 'hub') game.goto('hub');
+      game.back();
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);

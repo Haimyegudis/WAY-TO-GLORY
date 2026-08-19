@@ -123,6 +123,8 @@ export type Phase = 'loading' | 'menu' | 'create' | 'academy' | 'playing';
 interface GameStore {
   phase: Phase;
   screen: Screen;
+  /** The screens he came through, so the back gesture is a step and not an exit. */
+  trail: Screen[];
   state: CareerState | null;
   index: PackIndex | null;
   academyOffers: AcademyOffer[];
@@ -151,6 +153,8 @@ interface GameStore {
   /** Save, close this career and go back to the front screen. */
   leaveCareer: () => Promise<void>;
   goto: (screen: Screen) => void;
+  /** One step back: the screen before this one, or his own screen. */
+  back: () => void;
   startCreation: () => void;
   cancelCreation: () => void;
   createPlayer: (input: CreateCareerInput) => void;
@@ -208,6 +212,7 @@ function persistTo(id: string, state: CareerState, onSaved?: (saves: SaveSummary
 export const useGame = create<GameStore>((set, get) => ({
   phase: 'loading',
   screen: 'hub',
+  trail: [],
   state: null,
   index: null,
   academyOffers: [],
@@ -255,8 +260,22 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   goto(screen) {
+    const from = get().screen;
     rememberScreen(screen);
-    set({ screen });
+    // Where he was is worth keeping, but not twenty of them, and not the same screen
+    // twice in a row.
+    set({ screen, trail: from === screen ? get().trail : [...get().trail, from].slice(-10) });
+  },
+
+  back() {
+    const { screen, trail } = get();
+    const previous = trail[trail.length - 1];
+    // Back off the last screen is not the way out of the game: it lands on his own
+    // screen, and back from there does nothing at all.
+    const target = previous ?? (screen === 'hub' ? null : 'hub');
+    if (!target) return;
+    rememberScreen(target);
+    set({ screen: target, trail: previous ? trail.slice(0, -1) : [] });
   },
 
   startCreation() {
