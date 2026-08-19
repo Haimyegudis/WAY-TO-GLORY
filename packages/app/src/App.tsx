@@ -71,7 +71,9 @@ function Game() {
   const screen = useGame((s) => s.screen);
   const state = useGame((s) => s.state);
   const result = useGame((s) => s.result);
-  const pending = state?.pendingDecisions[0] ?? null;
+  // Only the questions that change the career stop him. The rest are in his mail, and
+  // he answers them when he opens it.
+  const pending = state?.pendingDecisions.find((decision) => decision.blocking !== false) ?? null;
   const liveMatchId = useGame((s) => s.liveMatchId);
   // While a match is being watched, nothing else may advance the week from under it.
   const watchingMatch = screen === 'match' && liveMatchId !== null && liveMatchId === state?.lastMatch?.id;

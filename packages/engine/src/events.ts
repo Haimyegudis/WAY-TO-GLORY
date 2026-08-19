@@ -74,11 +74,31 @@ export function pickEvent(
   return rng.weighted(eligible, (d) => d.weight);
 }
 
+/**
+ * Which questions are worth stopping his week for. A decision is a story if answering it
+ * changes the shape of the career: a move, a contract, an operation, an association, a
+ * job, real money. Everything else is colour - it still happens and it still counts, but
+ * it waits in the inbox and he answers it when he looks, or it passes without him.
+ */
+export function isStoryEvent(def: CareerEventDef): boolean {
+  return def.options.some((option) =>
+    option.effects.some(
+      (effect) =>
+        effect.kind === 'custom' ||
+        effect.kind === 'transferRequest' ||
+        effect.kind === 'squadRole' ||
+        effect.kind === 'learnPosition' ||
+        (effect.kind === 'money' && Math.abs(effect.value ?? 0) >= 100_000),
+    ),
+  );
+}
+
 export function toPendingDecision(
   def: CareerEventDef,
   absoluteWeek: number,
   args?: Record<string, string | number>,
 ): PendingDecision {
+  const story = isStoryEvent(def);
   return {
     id: `dec_${def.id}_${absoluteWeek}`,
     kind: 'event',
@@ -87,7 +107,9 @@ export function toPendingDecision(
     textKey: def.textKey,
     ...(args ? { textArgs: args } : {}),
     options: def.options,
-    expiresWeek: absoluteWeek + 3,
+    blocking: story,
+    // Colour keeps longer: it is sitting in a mailbox, not on a table with a club waiting.
+    expiresWeek: absoluteWeek + (story ? 3 : 6),
   };
 }
 

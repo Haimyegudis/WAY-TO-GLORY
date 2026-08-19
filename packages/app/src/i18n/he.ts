@@ -1465,4 +1465,5 @@ export const he: Record<string, string> = {
   'inbox.retirementNoPlan': 'ועכשיו?',
   'inbox.retirementNoPlan.body': 'אף אחד לא הכין אותך לשקט הזה. בלי תעודות, בלי עבודה בתקשורת, בלי תוכנית מעבר לחוזה הבא — והחוזה הבא לא מגיע.',
   'achievement.coachingBadges': 'מאמן מוסמך',
+  'inbox.needsAnswer': 'ממתין לתשובה',
 };

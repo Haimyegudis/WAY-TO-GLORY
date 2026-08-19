@@ -32,29 +32,46 @@ function SheetShell({ category, title, children }: { category: string; title: st
   );
 }
 
-function EventSheet({ decision }: { decision: PendingDecision }) {
+/**
+ * The answers themselves. The same buttons serve the sheet that stops his week and the
+ * message he opens in his own time, because it is the same question either way.
+ */
+export function DecisionOptions({ decision, onAnswered }: { decision: PendingDecision; onAnswered?: () => void }) {
   const t = useT();
   const decide = useGame((s) => s.decide);
+  const answer = (optionId: string) => {
+    // Answering from a message closes the message, so what changed is what he sees next.
+    onAnswered?.();
+    decide(decision.id, optionId);
+  };
+
+  return (
+    <div className="stack" style={{ gap: 9 }}>
+      {decision.options.map((option, i) => (
+        <button
+          key={option.id}
+          className="option"
+          style={{ animation: 'rise 0.3s ease both', animationDelay: `${70 + i * 55}ms` }}
+          onClick={() => answer(option.id)}
+        >
+          <span style={{ fontSize: 14.5, fontWeight: 600 }}>{t(`${decision.textKey}.${option.id}`)}</span>
+          {option.riskKey && (
+            <span className={`risk ${riskClass(option.riskKey)}`} style={{ display: 'block', marginBlockStart: 5 }}>
+              {t(option.riskKey)}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EventSheet({ decision }: { decision: PendingDecision }) {
+  const t = useT();
 
   return (
     <SheetShell category={t(`category.${decision.category}`)} title={t(decision.textKey, decision.textArgs)}>
-      <div className="stack" style={{ gap: 9 }}>
-        {decision.options.map((option, i) => (
-          <button
-            key={option.id}
-            className="option"
-            style={{ animation: 'rise 0.3s ease both', animationDelay: `${70 + i * 55}ms` }}
-            onClick={() => decide(decision.id, option.id)}
-          >
-            <span style={{ fontSize: 14.5, fontWeight: 600 }}>{t(`${decision.textKey}.${option.id}`)}</span>
-            {option.riskKey && (
-              <span className={`risk ${riskClass(option.riskKey)}`} style={{ display: 'block', marginBlockStart: 5 }}>
-                {t(option.riskKey)}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <DecisionOptions decision={decision} />
     </SheetShell>
   );
 }

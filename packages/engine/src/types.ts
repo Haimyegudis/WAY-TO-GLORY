@@ -505,6 +505,11 @@ export interface PendingDecision {
   offers?: TransferOffer[];
   /** Agents who want to represent him. */
   agents?: Agent[];
+  /**
+   * Whether this question stops his week. Moves, contracts, operations and countries do;
+   * the rest waits in the inbox until he opens it.
+   */
+  blocking: boolean;
   expiresWeek?: number;
 }
 

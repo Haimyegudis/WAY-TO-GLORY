@@ -82,7 +82,7 @@ import {
   simulateInternationalMatch,
   updateNationalInterest,
 } from './national.js';
-import { pickEvent, toPendingDecision, type EventContext } from './events.js';
+import { isStoryEvent, pickEvent, toPendingDecision, type EventContext } from './events.js';
 import {
   adjustRelationship,
   availableActions,
@@ -755,21 +755,34 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
   }
 
-  // 8. Career events. Only another event blocks one: a transfer approach sitting on
-  // the table should not stop the rest of his life happening.
-  const eventPending = state.pendingDecisions.some((d) => d.kind === 'event');
-  // A footballer's week has something in it more often than not: this is the rate at
-  // which life asks him a question, and at 0.22 the game felt like an empty calendar.
-  if (!eventPending && rng.chance(0.4)) {
+  // 8. Career events. His life keeps happening at the same rate; what changed is how
+  // much of it is allowed to stop him. A season holds a handful of real forks - a move,
+  // an operation, a contract - and a great deal of noise around them, and being asked
+  // twenty times a year to pick between two paragraphs turns every one of them into
+  // noise. So the forks block, the noise goes in the mailbox, and there is a ceiling on
+  // how many forks one season can hold.
+  const storyPending = state.pendingDecisions.some((d) => d.kind === 'event' && d.blocking !== false);
+  const colourPending = state.pendingDecisions.filter((d) => d.kind === 'event' && d.blocking === false).length;
+  const storiesThisSeason = Number(state.flags['storiesThisSeason'] ?? 0);
+
+  if (!storyPending && colourPending < 2 && rng.chance(0.36)) {
     const ctx = buildEventContext(state, index);
     const def = pickEvent(rng, index.pack.events, ctx, state);
     if (def) {
-      const decision = toPendingDecision(def, ctx.absoluteWeek);
-      state.pendingDecisions.push(decision);
-      pushInbox(state, def.category === 'media' ? 'media' : def.category, def.textKey, undefined, decision.id);
-      stopped = 'decision';
+      const story = isStoryEvent(def);
+      // Past the ceiling, the week's question is one he reads rather than one he is
+      // stopped for. The story keeps for another season.
+      if (!story || storiesThisSeason < STORIES_PER_SEASON) {
+        const decision = toPendingDecision(def, ctx.absoluteWeek);
+        state.pendingDecisions.push(decision);
+        pushInbox(state, def.category === 'media' ? 'media' : def.category, def.textKey, undefined, decision.id);
+        if (decision.blocking) {
+          state.flags['storiesThisSeason'] = storiesThisSeason + 1;
+          stopped = 'decision';
+        }
+      }
     }
-  } else if (state.pendingDecisions.length > 0) {
+  } else if (state.pendingDecisions.some((d) => d.blocking !== false)) {
     stopped = 'decision';
   }
 
@@ -828,6 +841,13 @@ const EASIER: Record<TrainingIntensity, TrainingIntensity> = {
   normal: 'light',
   light: 'light',
 };
+
+/**
+ * How many of his own stories in a season are allowed to stop him. Transfer approaches
+ * and agents stop him on top of these, because a club waiting for an answer cannot be
+ * left in a mailbox - which puts a season at seven or eight real forks in total.
+ */
+const STORIES_PER_SEASON = 5;
 
 /** An aggravation risk is spread over the weeks it takes to trust the leg again. */
 const AGGRAVATION_SPREAD = 6;
@@ -1824,6 +1844,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   state.flags['movesThisSeason'] = 0;
   state.flags['offerWindow'] = '';
   state.flags['agentWindow'] = '';
+  state.flags['storiesThisSeason'] = 0;
   // A brief to an agent, and a body being managed, both last a season and no longer.
   for (const brief of ['aimHigh', 'aimMinutes', 'exploringMove', 'openToLowerLeague', 'wantsLoan', 'reducedLoad']) {
     state.flags[brief] = false;
@@ -2370,6 +2391,7 @@ function checkRetirement(state: CareerState, rng: Rng): void {
     kind: 'event',
     eventId: 'retirement_choice',
     category: 'personal',
+    blocking: true,
     textKey: 'decision.retirement',
     textArgs: { age, ovr },
     options: [
@@ -2642,6 +2664,7 @@ function openOfferDecision(state: CareerState, offers: TransferOffer[]): void {
   const decision: PendingDecision = {
     id: `offer_${absoluteWeek}`,
     kind: 'transfer',
+    blocking: true,
     eventId: 'transferApproach',
     category: 'transfer',
     textKey: anyLoan ? 'decision.loanApproach' : 'decision.transferApproach',
@@ -2658,6 +2681,7 @@ function openAgentDecision(state: CareerState, agents: Agent[]): void {
   const decision: PendingDecision = {
     id: `agent_${absoluteWeek}`,
     kind: 'agent',
+    blocking: true,
     eventId: 'agentApproach',
     category: 'agent',
     textKey: 'decision.agentApproach',

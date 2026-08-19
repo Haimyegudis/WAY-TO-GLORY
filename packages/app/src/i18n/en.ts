@@ -1463,4 +1463,5 @@ export const en: Record<string, string> = {
   'inbox.retirementNoPlan': 'And now?',
   'inbox.retirementNoPlan.body': 'Nobody warned you how quiet it gets. There were no badges, no media work, no plan beyond the next contract - and the next contract is not coming.',
   'achievement.coachingBadges': 'Qualified coach',
+  'inbox.needsAnswer': 'Needs an answer',
 };
