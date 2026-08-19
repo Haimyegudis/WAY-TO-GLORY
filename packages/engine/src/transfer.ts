@@ -218,7 +218,15 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   // mid-table second-tier club and a good third-tier club look similar on paper while
   // being nothing alike as a move.
   const currentTier = currentClub?.tier ?? 3;
-  const desperate = listed || input.minutesPct < 0.12;
+  // What he told his agent to look for. A brief is not a wish list: it changes which
+  // clubs ring back. Asking only for the biggest names means fewer calls, not better
+  // ones, and saying he will drop a division opens doors that were shut.
+  const aimHigh = Boolean(state.flags['aimHigh']);
+  const aimMinutes = Boolean(state.flags['aimMinutes']);
+  const homecoming = Boolean(state.flags['wantsHomecoming']);
+  const lowerLeague = Boolean(state.flags['openToLowerLeague']);
+  const exploring = Boolean(state.flags['exploringMove']);
+  const desperate = listed || lowerLeague || input.minutesPct < 0.12;
   const floor = desperate ? currentLevel - 10 : currentLevel - 2;
   const competitionFloor = desperate ? currentReputation - 12 : currentReputation - 3;
 
@@ -251,22 +259,39 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       currentLeagueReputation: currentComp?.reputation ?? 30,
       minutesPct: input.minutesPct,
     });
-    if (interest > 42) candidates.push({ club, comp, interest });
+    let weighted = interest;
+    // Aiming high: only clubs that are a real step up are worth his agent's time.
+    if (aimHigh) {
+      const stepUp = clubBaseOvr(club) - currentLevel;
+      if (stepUp < 3) continue;
+      weighted += Math.min(stepUp, 12);
+    }
+    // Aiming for minutes: a club where he walks into the side, not one where he waits.
+    if (aimMinutes) {
+      const room = ovr - clubBaseOvr(club);
+      weighted += clamp(room * 2.2, -20, 16);
+    }
+    // Home is home, and the clubs there know exactly who he is.
+    if (homecoming && club.country === player.birthCountry) weighted += 18;
+    if (weighted > 42) candidates.push({ club, comp, interest: weighted });
   }
 
   candidates.sort((a, b) => b.interest - a.interest);
   const shortlist = candidates.slice(0, 16);
   const chosen: TransferOffer[] = [];
-  const maxOffers = input.maxOffers ?? 4;
+  // An agent working the phones brings back more; a player who only wants the elite
+  // hears from fewer people.
+  const maxOffers = Math.max(1, (input.maxOffers ?? 4) + (exploring ? 2 : 0) - (aimHigh ? 1 : 0));
 
   for (const candidate of rng.shuffle(shortlist)) {
     if (chosen.length >= maxOffers) break;
     // Interest is not the same as actually bidding.
-    if (!rng.chance(clamp((candidate.interest - 40) / 90, 0.05, 0.75))) continue;
+    if (!rng.chance(clamp((candidate.interest - 40) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
 
     const clubLevel = clubBaseOvr(candidate.club);
     const role = roleForOvr(ovr, clubLevel, age);
-    const isLoan = age <= 21 && ovr < clubLevel - 4 && rng.chance(0.35);
+    const isLoan =
+      Boolean(state.flags['wantsLoan']) || (age <= 21 && ovr < clubLevel - 4 && rng.chance(0.35));
 
     const feeMultiplier = clamp(rng.range(0.75, 1.55) * (1 + (candidate.interest - 60) / 200), 0.5, 2.2);
     const fee = isLoan ? 0 : Math.round((value * feeMultiplier) / 50_000) * 50_000;

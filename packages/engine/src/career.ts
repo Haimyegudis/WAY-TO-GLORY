@@ -114,7 +114,9 @@ import type {
   SquadRole,
   TickResult,
   TransferOffer,
-  CompetitionSeasonState,} from './types.js';
+  CompetitionSeasonState,
+  TrainingIntensity,
+} from './types.js';
 
 export const SCHEMA_VERSION = 1;
 export const GAME_VERSION = '0.1.0';
@@ -632,15 +634,19 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // An academy player is playing youth football we don't simulate match by match,
   // but he is playing: development must not treat him as a benched senior.
   const developmentMinutes = isAcademyPlayer(state) ? 0.68 : minutesPct(state);
+  // Agreeing to lighten the load is not a note in a file: he trains a step below what
+  // he asked for. Safer, and slower.
+  const lightLoad = Boolean(state.flags['reducedLoad']);
+  const weekPlan = lightLoad ? { ...state.training, intensity: EASIER[state.training.intensity] } : state.training;
   const trainingCtx = {
-    training: state.training,
+    training: weekPlan,
     coachQuality: club?.training ?? 45,
     facilities: club?.academy ?? 45,
     minutesPct: developmentMinutes,
     competitiveLevel: comp?.reputation ?? 35,
     inSeason: week >= FIRST_MATCH_WEEK && week <= LAST_MATCH_WEEK,
   };
-  updateCondition(player, state.training, playedThisWeek);
+  updateCondition(player, weekPlan, playedThisWeek);
   const dev = developWeek(rng, player, season, trainingCtx);
   if (Math.round(dev.ovrAfter) > Math.round(dev.ovrBefore)) {
     log.push(`ovr ${dev.ovrBefore} -> ${dev.ovrAfter}`);
@@ -651,7 +657,23 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   for (const injury of healed) {
     pushInbox(state, 'medical', 'inbox.injuryHealed', { type: `injury.${injury.type}` });
   }
-  if (!isInjured(player) && rng.chance(trainingInjuryChance(player, state.training, season))) {
+  // An injury that was rushed back can go again, and the risk was set by the treatment
+  // he chose. It rides for a few weeks after the return and then he is clear.
+  const aggWeeks = Number(state.flags['aggravationWeeks'] ?? 0);
+  if (aggWeeks > 0) {
+    state.flags['aggravationWeeks'] = aggWeeks - 1;
+    const weeklyRisk = Number(state.flags['aggravationRisk'] ?? 0) / AGGRAVATION_SPREAD;
+    if (weeklyRisk > 0 && rng.chance(weeklyRisk)) {
+      const again = rollInjury(rng, player, season, 1.7);
+      again.aggravated = true;
+      player.condition.injuries.push(again);
+      state.flags['aggravationWeeks'] = 0;
+      pushInbox(state, 'medical', 'inbox.injuryAggravated', { type: `injury.${again.type}`, weeks: again.weeksOut });
+      pushNews(state, 'news.injured', { weeks: again.weeksOut }, 'high');
+    }
+  }
+
+  if (!isInjured(player) && rng.chance(trainingInjuryChance(player, weekPlan, season))) {
     const injury = rollInjury(rng, player, season);
     player.condition.injuries.push(injury);
     pushInbox(state, 'medical', 'inbox.injuredTraining', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
@@ -697,7 +719,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     const share = minutesPct(state);
     // A young player who cannot get on the pitch is offered a loan instead of a move.
     const loans = generateLoanOffers({ state, index, rng, minutesPct: share });
-    const offers = loans.length > 0 && rng.chance(0.7)
+    const offers = loans.length > 0 && rng.chance(state.flags['wantsLoan'] ? 0.95 : 0.7)
       ? loans
       : generateOffers({ state, index, rng, minutesPct: share });
     if (offers.length > 0) {
@@ -711,6 +733,12 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 7. Agent offers early in the career.
   const agentSeason = club?.country;
   const agentWindowOpen = isTransferWindow(week, agentSeason) || isWindowApproaching(week, agentSeason);
+  if (state.flags['agentSwitchOffer'] && state.agent) {
+    // He said he would listen: the old one is gone and the shortlist is on the table.
+    state.flags['agentSwitchOffer'] = false;
+    state.agent = null;
+  }
+
   if (
     !state.agent &&
     state.agentOffers.length === 0 &&
@@ -793,6 +821,17 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
  * works: a run in the team, the crowd back onside, or simply time, all pull him back
  * up. Sustained problems still keep him low - the weekly hits are bigger than the pull.
  */
+/** One step down the intensity ladder, for a player who has been told to ease off. */
+const EASIER: Record<TrainingIntensity, TrainingIntensity> = {
+  extreme: 'intensive',
+  intensive: 'normal',
+  normal: 'light',
+  light: 'light',
+};
+
+/** An aggravation risk is spread over the weeks it takes to trust the leg again. */
+const AGGRAVATION_SPREAD = 6;
+
 function driftMorale(state: CareerState): void {
   const player = state.player;
   const rel = state.relationships;
@@ -1411,6 +1450,7 @@ function playUserMatch(
 
   const outcome = simulateUserMatch(rng, {
     mental: mentalFactor(state) * occasionFactor(state, importance),
+    penaltyTaker: Boolean(state.flags['penaltyTaker']),
     season: state.world.season,
     week: state.world.week,
     competitionId,
@@ -1776,12 +1816,18 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   if (careerApps >= 500) unlock(state, 'apps500');
   if (careerGoals >= 100) unlock(state, 'goals100');
 
+  settleSideBets(state, rng);
+
   // Roll the clock forward.
   state.world.season += 1;
   state.world.week = 1;
   state.flags['movesThisSeason'] = 0;
   state.flags['offerWindow'] = '';
   state.flags['agentWindow'] = '';
+  // A brief to an agent, and a body being managed, both last a season and no longer.
+  for (const brief of ['aimHigh', 'aimMinutes', 'exploringMove', 'openToLowerLeague', 'wantsLoan', 'reducedLoad']) {
+    state.flags[brief] = false;
+  }
   state.world.seasonStats = {};
   player.condition.yellowCards = {};
   player.condition.suspensions = [];
@@ -1799,6 +1845,46 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
  * are close enough to the first team's level, or once they are simply too old for
  * youth football - and a club that rates them will push them up sooner.
  */
+/**
+ * Money he put somewhere other than the bank, settled once a year. The family business
+ * either works or it does not, and holding out for a better boot deal either brings a
+ * bigger one or a season with no sponsor at all.
+ */
+function settleSideBets(state: CareerState, rng: Rng): void {
+  if (state.flags['investment']) {
+    state.flags['investment'] = false;
+    const roll = rng.next();
+    if (roll < 0.34) {
+      // The half million went out of the door when he signed; none of it comes back.
+      pushInbox(state, 'personal', 'inbox.investmentFailed', { amount: 500_000 });
+    } else if (roll < 0.72) {
+      const back = Math.round(rng.range(0.55, 0.95) * 500_000);
+      state.finances.balance += back;
+      state.finances.careerEarnings += back;
+      pushInbox(state, 'personal', 'inbox.investmentFlat', { amount: back });
+    } else {
+      const back = Math.round(rng.range(1.6, 3.4) * 500_000);
+      state.finances.balance += back;
+      state.finances.careerEarnings += back;
+      pushInbox(state, 'personal', 'inbox.investmentPaidOff', { amount: back });
+    }
+  }
+
+  if (state.flags['sponsorHoldOut']) {
+    state.flags['sponsorHoldOut'] = false;
+    // The bigger the name, the more sense holding out made.
+    if (rng.chance(clamp(0.3 + state.player.reputation / 200, 0.3, 0.85))) {
+      const deal = Math.round((60_000 + state.player.reputation * 9_000) * rng.range(1.1, 1.9));
+      state.finances.balance += deal;
+      state.finances.careerEarnings += deal;
+      state.player.fame = clamp(state.player.fame + 3, 0, 100);
+      pushInbox(state, 'personal', 'inbox.sponsorBetterDeal', { amount: deal });
+    } else {
+      pushInbox(state, 'personal', 'inbox.sponsorWalkedAway', {});
+    }
+  }
+}
+
 function updateSquadRole(state: CareerState, rng: Rng, actualMinutes: number): void {
   const player = state.player;
   const club = userClub(state);
@@ -2205,14 +2291,19 @@ function handleContractEnd(
   if (yearsLeft > 0) return;
 
   const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
-  const intent = renewalIntent(rng, ovr, clubBaseOvr(club), season - player.birthYear, actualMinutes, state.managerTrust);
+  // Holding out for more is a real bet: the club is slower to offer, and pays more if
+  // they still want him.
+  const heldOut = Boolean(state.flags['holdingOut']);
+  let intent = renewalIntent(rng, ovr, clubBaseOvr(club), season - player.birthYear, actualMinutes, state.managerTrust);
+  if (heldOut && intent === 'extend' && rng.chance(0.35)) intent = 'release';
+  state.flags['holdingOut'] = false;
 
   if (intent === 'extend') {
     const comp = index.competitionById.get(club.competitionId);
     const raise = 1 + clamp(performanceScore, -0.2, 0.8);
     state.contract = {
       ...contract,
-      salaryPerWeek: Math.round(contract.salaryPerWeek * raise * rng.range(1.05, 1.4)),
+      salaryPerWeek: Math.round(contract.salaryPerWeek * raise * rng.range(1.05, 1.4) * (heldOut ? 1.35 : 1)),
       startSeason: season + 1,
       endSeason: season + rng.int(2, 4),
       squadRole: player.squadRole,
@@ -2239,6 +2330,13 @@ function handleContractEnd(
 function checkRetirement(state: CareerState, rng: Rng): void {
   const player = state.player;
   const age = state.world.season - player.birthYear;
+
+  // He has already said it out loud, in an interview or to the club. Saying it is the
+  // decision; the season just has to finish first.
+  if (state.flags['wantsRetirement'] || state.flags['farewellSeason']) {
+    retire(state);
+    return;
+  }
   if (age < 31) return;
 
   const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
@@ -2303,6 +2401,15 @@ export function retire(state: CareerState): void {
     awards: (state.awards ?? []).length,
     clubs,
   });
+  // What he did about the day after the last day, while he still had a career to
+  // organise it around.
+  if (state.flags['coachingBadges']) {
+    pushInbox(state, 'personal', 'inbox.retirementCoaching', {});
+    unlock(state, 'coachingBadges');
+  } else if (state.flags['noFallbackPlan']) {
+    pushInbox(state, 'personal', 'inbox.retirementNoPlan', {});
+  }
+
   if (legacy.legendOf.length > 0) {
     const clubId = legacy.legendOf[0]!;
     pushInbox(state, 'club', 'inbox.retirementLegend', {

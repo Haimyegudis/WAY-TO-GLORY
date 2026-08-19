@@ -1,6 +1,7 @@
 import { Rng, clamp } from './rng.js';
 import { overall } from './positions.js';
-import { rollInjury } from './injury.js';
+import { applyTreatment, rollInjury } from './injury.js';
+import type { TreatmentChoice } from './injury.js';
 import { adjustRelationship, evaluateConsequences, track } from './social.js';
 import type {
   AppliedChange,
@@ -246,12 +247,150 @@ export function applyEffects(
         }
         break;
       case 'custom':
-        if (effect.key) state.flags[effect.key] = value || true;
+        if (effect.key) {
+          state.flags[effect.key] = value || true;
+          applyChoiceConsequence(rng, state, effect.key, changes);
+        }
         break;
     }
   }
 
   return { changes, injuryTriggered };
+}
+
+/** How long a rushed injury keeps threatening to go again. */
+const AGGRAVATION_WEEKS = 6;
+
+/**
+ * Answering the physio. Surgery costs weeks and gives them back whole; conservative
+ * treatment is quicker and leaves something behind; playing through means being on the
+ * pitch on Saturday and carrying the risk of it tearing properly.
+ */
+function applyTreatmentChoice(rng: Rng, state: CareerState, choice: TreatmentChoice, changes: AppliedChange[]): void {
+  const injury = state.player.condition.injuries[0];
+  if (!injury) return;
+  const weeksBefore = injury.weeksRemaining;
+  const outcome = applyTreatment(rng, injury, choice);
+
+  // The gamble is carried, not spent: the risk rides with him for the next few weeks,
+  // which is what makes playing through a tear an actual decision rather than free weeks.
+  state.flags['aggravationRisk'] = outcome.aggravationRisk;
+  state.flags['aggravationWeeks'] = AGGRAVATION_WEEKS;
+
+  if (outcome.recoveryQuality < 1) {
+    const legs: AttributeKey[] = ['pace', 'acceleration', 'agility', 'stamina'];
+    for (const key of legs) {
+      state.player.attributes[key] = clamp(Math.round(state.player.attributes[key] * outcome.recoveryQuality), 1, 99);
+    }
+  }
+  track(changes, 'change.weeksOut', weeksBefore, injury.weeksRemaining);
+}
+
+/**
+ * A choice that only wrote a flag was a choice that did nothing. These are the answers
+ * that bite the moment they are given; the rest are read later by the medical room, the
+ * transfer window or the last season.
+ */
+function applyChoiceConsequence(rng: Rng, state: CareerState, key: string, changes: AppliedChange[]): void {
+  const player = state.player;
+  const contract = state.contract;
+  switch (key) {
+    case 'treatmentSurgery':
+      applyTreatmentChoice(rng, state, 'surgery', changes);
+      return;
+    case 'treatmentConservative':
+      applyTreatmentChoice(rng, state, 'conservative', changes);
+      return;
+    case 'treatmentPlayThrough':
+      applyTreatmentChoice(rng, state, 'playThrough', changes);
+      return;
+
+    // Bonus money is traded against the wage: more on the line, less in the bank whatever
+    // happens. A striker should take goals, a squad player should take appearances.
+    case 'goalBonusDeal':
+      if (contract) {
+        const before = contract.goalBonus;
+        contract.goalBonus = Math.round(contract.goalBonus * 2.2 + contract.salaryPerWeek * 1.5);
+        contract.salaryPerWeek = Math.round(contract.salaryPerWeek * 0.92);
+        track(changes, 'change.goalBonus', before, contract.goalBonus);
+      }
+      return;
+    case 'appearanceBonusDeal':
+      if (contract) {
+        const before = contract.appearanceBonus;
+        contract.appearanceBonus = Math.round(contract.appearanceBonus * 2.2 + contract.salaryPerWeek * 0.6);
+        contract.salaryPerWeek = Math.round(contract.salaryPerWeek * 0.95);
+        track(changes, 'change.appearanceBonus', before, contract.appearanceBonus);
+      }
+      return;
+
+    // A release clause is a door that opens from the outside. The club accepts the price
+    // in exchange for the signature, and anyone who pays it takes him.
+    case 'releaseClause':
+      if (contract) {
+        const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
+        contract.releaseClause = Math.round(contract.salaryPerWeek * 52 * (3 + ovr / 20));
+        changes.push({
+          key: 'change.releaseClause',
+          delta: contract.releaseClause,
+          before: 0,
+          after: contract.releaseClause,
+          tone: 'neutral',
+        });
+      }
+      return;
+
+    // Declaring for a country is a door closing behind him: the other associations
+    // stop ringing, and the one he chose starts taking him seriously.
+    case 'ntCommit': {
+      const nt = state.nationalTeam;
+      const chosen = nt.countryCode ?? nt.eligibleCountries[0];
+      if (chosen) {
+        nt.eligibleCountries = [chosen];
+        nt.interest[chosen] = clamp((nt.interest[chosen] ?? 0) + 12, 0, 100);
+      }
+      return;
+    }
+    // Nobody is owed patience. Every association he keeps waiting looks elsewhere.
+    case 'ntWait':
+      for (const code of state.nationalTeam.eligibleCountries) {
+        state.nationalTeam.interest[code] = clamp((state.nationalTeam.interest[code] ?? 0) - 9, 0, 100);
+      }
+      return;
+    case 'ntSwitchInterest': {
+      const nt = state.nationalTeam;
+      const extra = player.citizenships.find((code) => !nt.eligibleCountries.includes(code));
+      if (extra) {
+        nt.eligibleCountries.push(extra);
+        nt.interest[extra] = clamp((nt.interest[extra] ?? 0) + 25, 0, 100);
+      }
+      return;
+    }
+
+    // Signing now is signing now: two more years at a better wage, and the question of
+    // his future stops being asked for a while.
+    case 'wantsRenewal':
+      if (contract) {
+        const before = contract.salaryPerWeek;
+        contract.salaryPerWeek = Math.round(before * 1.18);
+        contract.endSeason = Math.max(contract.endSeason, state.world.season + 2);
+        state.flags['holdingOut'] = false;
+        track(changes, 'change.money', before, contract.salaryPerWeek);
+      }
+      return;
+
+    // A penalty taken in front of everyone is how the job is won.
+    case 'tookBigPenalty':
+      state.flags['penaltyTaker'] = true;
+      return;
+
+    case 'agentFired':
+      if (state.agent) {
+        state.agent = null;
+        changes.push({ key: 'change.agentLeft', delta: -1, before: 0, after: 0, tone: 'bad' });
+      }
+      return;
+  }
 }
 
 export function resolveDecision(

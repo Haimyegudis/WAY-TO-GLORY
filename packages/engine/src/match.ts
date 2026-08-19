@@ -74,6 +74,8 @@ export interface UserMatchContext {
    * him, and the dressing room. 1 is level, below 1 is a player carrying something.
    */
   mental: number;
+  /** He is the club's penalty taker, so the ball is his when one is given. */
+  penaltyTaker: boolean;
 }
 
 /** Weight of a player being the one at the end of a chance. */
@@ -277,6 +279,33 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
         byUser: false,
         detailKey: 'match.event.oppGoal',
         score: userHome ? [userGoals, oppGoals] : [oppGoals, userGoals],
+      });
+    }
+  }
+
+  // Penalties. Taking them is worth goals over a season and nothing else in football
+  // is missed as publicly, which is the whole point of accepting the job.
+  if (ctx.penaltyTaker && ctx.minutes.played && rng.chance(0.15 * (ctx.minutes.minutes / 90))) {
+    const minute = rng.int(12, 90);
+    const nerve = ctx.user.attributes.composure * 0.45 + ctx.user.attributes.finishing * 0.55;
+    if (rng.chance(clamp(0.6 + nerve / 300 + (ctx.mental - 1) * 0.25, 0.45, 0.95))) {
+      userGoals++;
+      line.goals++;
+      events.push({
+        minute,
+        type: 'penaltyScored',
+        playerId: ctx.user.id,
+        byUser: true,
+        detailKey: 'match.event.penaltyScored',
+        score: userHome ? [userGoals, oppGoals] : [oppGoals, userGoals],
+      });
+    } else {
+      events.push({
+        minute,
+        type: 'penaltyMissed',
+        playerId: ctx.user.id,
+        byUser: true,
+        detailKey: 'match.event.penaltyMissed',
       });
     }
   }
