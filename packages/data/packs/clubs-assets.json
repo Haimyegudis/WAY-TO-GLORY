@@ -2788,7 +2788,9 @@
     "clubId": "isr_hapoel_migdal_haemek",
     "tried": true,
     "crest": "isr_hapoel_migdal_haemek.png",
-    "color": "#d91a21"
+    "color": "#e42125",
+    "source": "wikipedia:he",
+    "sourceRef": "HapoelMigdalHaEmekLogo.png"
   },
   "isr_hapoel_bikat_hayarden": {
     "clubId": "isr_hapoel_bikat_hayarden",
@@ -2838,7 +2840,9 @@
     "title": "AS Monaco FC",
     "nameHe": "מונקו (כדורגל)",
     "crest": "fra_as_monaco_fc.png",
-    "color": "#ff002e"
+    "color": "#ff002e",
+    "source": "wikipedia:he",
+    "sourceRef": "langhe-250px-LogoASMonacoFC2021.svg.png"
   },
   "fra_le_havre_ac": {
     "clubId": "fra_le_havre_ac",

@@ -97,7 +97,7 @@ async function json(url: string): Promise<any | null> {
   if (url.startsWith(SPORTSDB)) await throttle();
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      const response = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
+      const response = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(15_000) });
       if (response.ok) return await response.json();
       if (response.status === 429 || response.status >= 500) {
         // Give the window time to roll over rather than hammering it again.
@@ -275,7 +275,7 @@ async function main(): Promise<void> {
 
     if (hit) {
       try {
-        const image = await fetch(hit.url, { headers: { 'User-Agent': UA } });
+        const image = await fetch(hit.url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) });
         if (image.ok) {
           const bytes = Buffer.from(await image.arrayBuffer());
           if (looksLikeCrest(bytes)) {

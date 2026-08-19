@@ -41,7 +41,7 @@ async function json(url: string): Promise<any | null> {
   if (wait > 0) await sleep(wait);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
+      const response = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(15_000) });
       if (response.ok) return await response.json();
       if (response.status === 429 || response.status >= 500) {
         nextSlot = Date.now() + 4000;
