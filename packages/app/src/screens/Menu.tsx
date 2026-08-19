@@ -17,6 +17,8 @@ export function Menu() {
   const deleteSave = useGame((s) => s.deleteSave);
   const [artFailed, setArtFailed] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // The careers hide behind a button: a title screen is not a file manager.
+  const [listOpen, setListOpen] = useState(false);
 
   return (
     <>
@@ -71,9 +73,18 @@ export function Menu() {
           )}
 
           <div className="stack">
-            {saves.length > 0 && (
+            {saves.length > 0 && !listOpen && (
+              <button className="btn btn-amber btn-block" onClick={() => setListOpen(true)}>
+                {t('action.loadCareer')} ({saves.length})
+              </button>
+            )}
+
+            {saves.length > 0 && listOpen && (
               <div className="save-list">
-                <p className="eyebrow" style={{ marginBlockEnd: 6 }}>{t('home.careers')}</p>
+                <div className="row-between" style={{ marginBlockEnd: 6 }}>
+                  <p className="eyebrow">{t('home.careers')}</p>
+                  <button className="eyebrow" onClick={() => setListOpen(false)}>{t('action.close')}</button>
+                </div>
                 {saves.map((save) => (
                   <div key={save.id} className="save-row">
                     <button className="save-open" onClick={() => void loadSave(save.id)}>

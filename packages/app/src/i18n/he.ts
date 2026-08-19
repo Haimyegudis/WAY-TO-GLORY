@@ -1426,13 +1426,13 @@ export const he: Record<string, string> = {
   'settings.saves': 'קריירות במכשיר הזה',
 
   'settings.savesHint': 'המשחק נשמר לבד כל שבוע. זה שומר עכשיו, וכל הקריירות במכשיר מופיעות במסך הפתיחה.',
-\n'inbox.youthCallUp': 'הבוגרים ביקשו לראות אותך באימון ב{club}.',
+
+  'inbox.youthCallUp': 'הבוגרים ביקשו לראות אותך באימון ב{club}.',
   'inbox.youthCallUp.body': 'מהשבוע אתה מתאמן עם הבוגרים. לא הובטח כלום — הרבה נערים עולים לשבועיים וחוזרים — אבל המאמן רצה להסתכל, וזה קורה רק כשמישהו צפה בך בימי ראשון.',
   'news.youthCallUp': '{player} מתאמן עם הקבוצה הבוגרת ב{club}.',
   'achievement.firstTeamCallUp': 'זימון לקבוצה הבוגרת',
-  'inbox.promotedToFirstTeam.body': 'מיולי אתה שחקן בוגר. ליגת הנוער מאחוריך, ושם כבר אף אחד לא יתחשב בגיל שלך.',
-  'news.promotedToFirstTeam': '{player} עולה לסגל הבוגרים ב{club}.',
   'inbox.mustLeaveAcademy': 'אתה בן 18 וב{club} לא מעלים אותך לבוגרים. יש מועדונים שירצו לתת לך לשחק.',
   'inbox.mustLeaveAcademy.body': 'זה הרגע שבו הרבה קריירות נגמרות בשקט: המועדון שגידל אותך החליט שאתה לא בשבילו. המועדונים שעל השולחן קטנים יותר, וזה בדיוק העניין — לך לאן שתשחק.',
   'inbox.noOffersAtEighteen': 'בן 18, בלי מקום בסגל הבוגרים של {club}, ואף אחד לא פנה.',
-  'inbox.noOffersAtEighteen.body': 'קיץ קשה. תתאמן, תחכה לחלון, ותן למישהו סיבה להרים טלפון.',\n};
+  'inbox.noOffersAtEighteen.body': 'קיץ קשה. תתאמן, תחכה לחלון, ותן למישהו סיבה להרים טלפון.',
+};
