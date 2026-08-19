@@ -1,3 +1,4 @@
+import type { AvatarLook } from './look.js';
 import { Rng, clamp } from './rng.js';
 import { POSITION_WEIGHTS, positionGroup, ratingAt } from './positions.js';
 import type { NamePool, PackIndex, StarPlayerSeed } from './data.js';
@@ -394,6 +395,8 @@ export interface UserPlayerInput {
   secondaryPos: Position[];
   /** The number he wants on his back. */
   shirtNumber?: number;
+  /** What he looks like, chosen when he was made. */
+  look?: AvatarLook;
 }
 
 /** What a player in this position traditionally wears, used as the default. */
@@ -479,5 +482,6 @@ export function createUserPlayer(
     reputation: 5,
     fame: 2,
     isUser: true,
+    ...(input.look ? { look: input.look } : {}),
   };
 }

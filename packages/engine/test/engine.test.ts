@@ -1055,6 +1055,33 @@ describe('half time', () => {
     expect(checked, 'no interval ever came up').toBeGreaterThan(0);
   });
 
+  it('does not put an injured or banned boy on the pitch, in any competition', () => {
+    // The age group used to hand him ninety minutes unconditionally, so a hamstring tear
+    // with eight weeks to serve still turned out on Sunday morning.
+    const { state, index } = startedCareer({ seed: 909 });
+    let injuredWeeks = 0;
+    for (let i = 0; i < 52 * 5 && !state.retired; i++) {
+      const carrying = state.player.condition.injuries.length > 0
+        || state.player.condition.suspensions.some((ban) => ban.matchesRemaining > 0);
+      const before = state.matchLog.length;
+      const result = advanceWeek(state, index);
+      state.pendingDecisions = [];
+      if (result.stopped === 'halfTime' && state.pendingHalfTime) {
+        const held = state.pendingHalfTime;
+        resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+      }
+      if (!carrying) continue;
+      injuredWeeks++;
+      for (const match of state.matchLog.slice(0, state.matchLog.length - before)) {
+        expect(
+          match.userLine?.played,
+          `played ${match.competitionId} while unavailable`,
+        ).toBeFalsy();
+      }
+    }
+    expect(injuredWeeks, 'he was never unavailable, so nothing was tested').toBeGreaterThan(0);
+  });
+
   it('never leaves a team talk hanging once it has been answered', () => {
     // An answered break that is never cleared is not a harmless leftover: the app shows
     // the dressing room in place of the match report, for every match after it.

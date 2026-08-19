@@ -2488,11 +2488,19 @@ function playUserMatch(
     }),
     selectionCtx,
   );
-  const minutes = held?.minutes ?? (youthMatch
-    ? { played: true, started: true, minutes: 90, slot: player.primaryPos }
-    : pickable
-      ? capMinutes(resolveMinutes(rng, player.id, lineup, player), gate, player)
-      : { played: false, started: false, minutes: 0, slot: null });
+  /*
+   * Whether he plays, and for how long.
+   *
+   * The age group used to hand him ninety minutes unconditionally, which meant a boy
+   * with a hamstring tear and eight weeks to serve turned out on Sunday and played the
+   * whole match. Availability is availability: an injury or a ban keeps him off the
+   * pitch in the age group exactly as it does in the first team.
+   */
+  const minutes = held?.minutes ?? (!pickable
+    ? { played: false, started: false, minutes: 0, slot: null }
+    : youthMatch
+      ? { played: true, started: true, minutes: 90, slot: player.primaryPos }
+      : capMinutes(resolveMinutes(rng, player.id, lineup, player), gate, player));
 
   const opponentStarIds = state.world.squads[opponentId] ?? [];
   const opponentStars = youthMatch
