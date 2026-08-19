@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import type { CareerState, MatchResult, PendingHalfTime } from '@fc/engine';
 import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubShortName } from '../lib/club.js';
 import { useGame } from '../state/store.js';
@@ -5,6 +7,7 @@ import { club, recentMatches } from '../state/selectors.js';
 import { playerName } from '../lib/names.js';
 import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 import { LiveMatch } from '../components/LiveMatch.js';
+import { HalfTimeSheet } from './HalfTimeSheet.js';
 
 /** Three phrasings per repeated beat, chosen by minute, so reports do not repeat verbatim. */
 function variantKey(key: string, minute: number): string {
@@ -27,6 +30,32 @@ function namedFor(
   return player ? playerName(player, lang) : '';
 }
 
+/** The first half, dressed up as a match so the same playback can show it. */
+function firstHalfAsMatch(state: CareerState, half: PendingHalfTime): MatchResult {
+  return {
+    id: half.matchId,
+    season: state.world.season,
+    week: state.world.week,
+    competitionId: half.competitionId,
+    homeClubId: half.homeClubId,
+    awayClubId: half.awayClubId,
+    homeGoals: half.score[0],
+    awayGoals: half.score[1],
+    detailLevel: 1,
+    importance: half.importance,
+    userLine: {
+      played: true,
+      started: half.minutes.started,
+      minutes: Math.min(45, half.minutes.minutes),
+      position: half.minutes.slot,
+      goals: 0, assists: 0, shots: 0, keyPasses: 0, tackles: 0, saves: 0,
+      yellow: 0, red: 0, rating: half.rating, motm: false,
+      ...(half.minutes.cameOnMinute !== undefined ? { cameOnMinute: half.minutes.cameOnMinute } : {}),
+    },
+    events: half.firstHalfEvents,
+  };
+}
+
 export function MatchCentre() {
   const t = useT();
   const lang = useLang((s) => s.lang);
@@ -34,6 +63,23 @@ export function MatchCentre() {
   const liveMatchId = useGame((s) => s.liveMatchId);
   const endLive = useGame((s) => s.endLive);
   const match = state.lastMatch;
+  const half = state.pendingHalfTime;
+  const liveFrom = useGame((s) => s.liveFromMinute);
+  const [inTheRoom, setInTheRoom] = useState(false);
+
+  // A match waiting on a team talk: the first half is watched, then the question.
+  if (half) {
+    if (inTheRoom) return <HalfTimeSheet half={half} />;
+    return (
+      <div className="screen">
+        <LiveMatch
+          match={firstHalfAsMatch(state, half)}
+          to={45}
+          onFinish={() => setInTheRoom(true)}
+        />
+      </div>
+    );
+  }
 
   if (!match) {
     return (
@@ -47,7 +93,7 @@ export function MatchCentre() {
   if (liveMatchId === match.id) {
     return (
       <div className="screen">
-        <LiveMatch match={match} onFinish={endLive} />
+        <LiveMatch match={match} onFinish={endLive} {...(liveFrom > 0 ? { from: liveFrom } : {})} />
       </div>
     );
   }

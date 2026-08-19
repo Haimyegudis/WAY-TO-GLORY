@@ -22,6 +22,8 @@ import {
   indexPack,
   joinClub,
   resolveDecision,
+  resumeHalfTime as engineResumeHalfTime,
+  type HalfTimeInstructionId,
   askForTerms as engineAskForTerms,
   answerMedia as engineAnswerMedia,
   chooseMentor as engineChooseMentor,
@@ -137,6 +139,11 @@ interface GameStore {
    * a match the player was involved in; cleared once he has seen it out or skipped.
    */
   liveMatchId: string | null;
+  /**
+   * Where the playback picks up. Nought for a match watched from the start, forty-five
+   * for one resumed after a team talk - he does not sit through the first half twice.
+   */
+  liveFromMinute: number;
 
   boot: () => Promise<void>;
   /** Save, close this career and go back to the front screen. */
@@ -169,6 +176,8 @@ interface GameStore {
   openMessage: (id: string | null) => void;
   openMessageId: string | null;
   endLive: () => void;
+  /** Answer the dressing room and play the second half out. */
+  chooseHalfTime: (instructionId: HalfTimeInstructionId) => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
 }
@@ -206,6 +215,7 @@ export const useGame = create<GameStore>((set, get) => ({
   lastTick: null,
   result: null,
   liveMatchId: null,
+  liveFromMinute: 0,
   openMessageId: null,
 
   async boot() {
@@ -343,20 +353,44 @@ export const useGame = create<GameStore>((set, get) => ({
       // Every match his club plays stops the clock, whether he was in it or not:
       // watching from the bench is still his Saturday.
       if (result.stopped === 'match') break;
+      // Half time is the other reason a week stops mid-air: he is standing in a dressing
+      // room being told something, and nothing else happens until he answers.
+      if (result.stopped === 'halfTime') break;
       if (result.stopped !== 'week') break;
     }
 
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    const atTheBreak = result?.stopped === 'halfTime';
     set({
       state: { ...state },
       busy: false,
       lastTick: result?.stopped ?? null,
       // A match always opens the match screen, from any tab.
-      screen: result?.stopped === 'match' ? 'match' : get().screen,
+      screen: result?.stopped === 'match' || atTheBreak ? 'match' : get().screen,
       // A match he played gets watched minute by minute; one he sat out is just read.
       liveMatchId:
         result?.stopped === 'match' && state.lastMatch?.userLine?.played ? state.lastMatch.id : null,
+      liveFromMinute: 0,
+    });
+  },
+
+  chooseHalfTime(instructionId) {
+    const { state, index } = get();
+    if (!state || !index || !state.pendingHalfTime) return;
+    set({ busy: true });
+
+    const result = engineResumeHalfTime(state, index, instructionId);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({
+      state: { ...state },
+      busy: false,
+      lastTick: result.stopped,
+      screen: 'match',
+      liveMatchId: state.lastMatch?.userLine?.played ? state.lastMatch.id : null,
+      // He has already watched the first half; the playback picks up at the whistle.
+      liveFromMinute: 45,
     });
   },
 
@@ -500,7 +534,7 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     const settled = state?.lastResult ?? null;
     if (state) state.lastResult = null;
-    set({ liveMatchId: null, result: settled, ...(state ? { state: { ...state } } : {}) });
+    set({ liveMatchId: null, liveFromMinute: 0, result: settled, ...(state ? { state: { ...state } } : {}) });
   },
 
   openMessage(id) {

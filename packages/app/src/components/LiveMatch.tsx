@@ -39,7 +39,19 @@ function toneOf(event: MatchEvent): string {
  * clock runs, the moves arrive, and the player can sit through it or skip straight to
  * the whistle. If he comes off before the end, the rest is played out for him.
  */
-export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: () => void }) {
+export function LiveMatch({
+  match,
+  onFinish,
+  from,
+  to = 90,
+}: {
+  match: MatchResult;
+  onFinish: () => void;
+  /** Where the clock starts. Set when the second half is picked up after a team talk. */
+  from?: number;
+  /** Where it stops. 45 while the match is waiting on a decision in the dressing room. */
+  to?: number;
+}) {
   const t = useT();
   const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
@@ -48,7 +60,7 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
 
   // Coming off the bench, there is nothing to watch before you are on: the first hour
   // is already history, so it is shown as a summary and the clock starts where you do.
-  const entry = match.userLine?.cameOnMinute ?? 0;
+  const entry = from ?? match.userLine?.cameOnMinute ?? 0;
 
   const [minute, setMinute] = useState(entry);
   const [paused, setPaused] = useState(false);
@@ -69,7 +81,7 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
     () => events.filter((e) => e.minute <= minute && e.minute >= entry),
     [events, minute, entry],
   );
-  const done = minute >= 90;
+  const done = minute >= to;
 
   // The clock. One tick per minute, held for a beat on anything decisive so a goal
   // does not scroll past before it has been read.
@@ -169,8 +181,14 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
   }, [shown, minute, events, state, lang]);
 
   const lastScore = [...shown].reverse().find((e) => e.score)?.score;
-  const liveHome = done ? match.homeGoals : lastScore?.[0] ?? 0;
-  const liveAway = done ? match.awayGoals : lastScore?.[1] ?? 0;
+  // Coming back on for the second half, the board does not reset: the goals from the
+  // half he already watched are on it before a ball is kicked.
+  const carried = useMemo(
+    () => [...events].reverse().find((e) => e.score && e.minute < entry)?.score,
+    [events, entry],
+  );
+  const liveHome = done ? match.homeGoals : lastScore?.[0] ?? carried?.[0] ?? 0;
+  const liveAway = done ? match.awayGoals : lastScore?.[1] ?? carried?.[1] ?? 0;
 
   const feed = [...shown].reverse();
 
@@ -183,7 +201,7 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
         </div>
         <div className="live-score">
           <span className="num">{liveHome}–{liveAway}</span>
-          <span className="live-clock num">{done ? "90′" : `${minute}′`}</span>
+          <span className="live-clock num">{done ? `${to}′` : `${minute}′`}</span>
         </div>
         <div className="live-side">
           <Crest club={away} size="lg" />
@@ -261,7 +279,9 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
 
       <div className="live-controls">
         {done ? (
-          <button className="btn btn-primary grow" onClick={onFinish}>{t('live.report')}</button>
+          <button className="btn btn-primary grow" onClick={onFinish}>
+            {to < 90 ? t('live.toTheDressingRoom') : t('live.report')}
+          </button>
         ) : (
           <>
             <button className="btn" onClick={() => setPaused((p) => !p)}>
@@ -270,7 +290,7 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
             <button className="btn" aria-pressed={speed > 1} onClick={() => setSpeed((s) => (s >= 4 ? 1 : s * 2))}>
               ×{speed}
             </button>
-            <button className="btn btn-primary grow" onClick={() => setMinute(90)}>{t('live.skip')}</button>
+            <button className="btn btn-primary grow" onClick={() => setMinute(to)}>{t('live.skip')}</button>
           </>
         )}
       </div>
