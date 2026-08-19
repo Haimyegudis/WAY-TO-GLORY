@@ -250,7 +250,13 @@ export function Hub() {
 
       {openedMessage && (
         <div className="sheet-backdrop" onClick={() => openMessage(null)}>
-          <div className="sheet mail" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="sheet mail"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t(openedMessage.titleKey, localiseArgs(openedMessage.args, pack.clubs, lang))}
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="sheet-grip" />
             <p className="eyebrow">{t(`inboxFrom.${openedMessage.category}`)}</p>
             <h2 className="headline" style={{ marginBlockStart: 4 }}>

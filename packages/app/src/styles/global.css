@@ -101,6 +101,17 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
 .title { font-size: 26px; font-weight: 700; line-height: 1.12; }
 .headline { font-size: 19px; font-weight: 700; line-height: 1.2; }
 
+/*
+ * Small print used as a button - "see all", "mark read" - reads as a label but is pressed
+ * like a button, so it carries the hit area of one without the look of one.
+ */
+button.eyebrow {
+  min-block-size: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 2px;
+}
+
 .eyebrow {
   font-size: 11px;
   font-weight: 600;
@@ -819,6 +830,21 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 .picker:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 
+/*
+ * Anything that can be focused says so. This is for the keyboard, for switch access, and
+ * for anybody who has lost track of where they are on the screen - which on a phone in
+ * one hand is most people some of the time.
+ */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .card-pip { width: 9px; height: 12px; border-radius: 2px; display: inline-block; }
 .card-yellow { background: var(--amber); }
 .card-red { background: var(--red); }
@@ -856,6 +882,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .icon-btn {
   background: none; border: 0; color: var(--muted); font-size: 15px; line-height: 1;
   padding: 2px 4px; cursor: pointer;
+  /* A thumb is about nine millimetres across. The icon stays small; the thing you are
+     actually pressing does not. */
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .icon-btn:hover { color: var(--gold); }
 
@@ -882,3 +915,18 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 .save-delete:hover { color: var(--red); }
 .save-delete.danger { color: var(--red); border: 1px solid var(--red); }
+
+/*
+ * Some people get motion sick, and some people simply do not want a screen that moves.
+ * The interface still works exactly the same; it just arrives instead of sliding in.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

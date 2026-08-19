@@ -23,7 +23,7 @@ export function DecisionSheet({ decision }: { decision: PendingDecision }) {
 function SheetShell({ category, title, children }: { category: string; title: string; children: React.ReactNode }) {
   return (
     <div className="sheet-backdrop">
-      <div className="sheet">
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={title}>
         <div className="sheet-grip" />
         <p className="eyebrow" style={{ color: 'var(--amber)' }}>{category}</p>
         <h2 className="headline" style={{ marginBlock: '8px 16px' }}>{title}</h2>
