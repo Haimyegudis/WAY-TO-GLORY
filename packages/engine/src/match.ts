@@ -511,11 +511,26 @@ function resolveOpponentChance(
     }
   }
 
-  // A midfielder who has been told to chase everything gets in the way of some of it.
-  if (userOnPitch && group === 'MID' && mods.defending > 1 && rng.chance(clamp((mods.defending - 1) * 0.6, 0, 0.4))) {
-    line.tackles++;
-    half.events.push({ minute, type: 'tackle', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.userTackle' });
-    return;
+  /*
+   * Everybody else's share of the defending.
+   *
+   * Only defenders could win the ball, and a midfielder only when he had been told to
+   * chase, so an attacking midfielder finished a hundred and twenty matches with zero
+   * tackles - which is not a career, it is a rounding error. Midfielders defend as part
+   * of the job and forwards do it when they feel like it; how much of it he does is
+   * still what the instruction moves, which is the point of the instruction.
+   */
+  const shareOfWork = group === 'MID' ? 0.3 : 0.12;
+  if (userOnPitch && (group === 'MID' || group === 'ATT') && rng.chance(clamp(shareOfWork * mods.defending, 0.02, 0.65))) {
+    const work =
+      ctx.user.attributes.tackling * 0.4
+      + ctx.user.attributes.workRate * 0.3
+      + ctx.user.attributes.positioning * 0.3;
+    if (rng.chance(clamp(0.3 + (work - setup.oppDefenceRating) / 100, 0.08, 0.8) * mods.defending)) {
+      line.tackles++;
+      half.events.push({ minute, type: 'tackle', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.userTackle' });
+      return;
+    }
   }
 
   if (rng.chance(p)) {
