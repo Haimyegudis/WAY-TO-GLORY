@@ -180,18 +180,20 @@ export function MatchCentre() {
             const h = club(state, m.homeClubId);
             const a = club(state, m.awayClubId);
             return (
-              <li key={m.id} className="list-item">
-                <span className="faint num" style={{ fontSize: 11, minWidth: 26 }}>{m.week}</span>
-                <span className="grow row score-row" style={{ fontSize: 13, gap: 6, minWidth: 0 }}>
+              <li key={m.id} className="list-item fixture-row">
+                <span className="faint num" style={{ fontSize: 11 }}>{m.week}</span>
+                <span className="score-row" style={{ fontSize: 13 }}>
                   <Crest club={h} size="sm" />
                   <span className="num">{m.homeGoals}–{m.awayGoals}</span>
                   <Crest club={a} size="sm" />
                 </span>
-                {m.userLine?.played ? (
-                  <RatingBadge rating={m.userLine.rating} />
-                ) : (
-                  <span className="faint" style={{ fontSize: 11 }}>—</span>
-                )}
+                <span className="fixture-rating">
+                  {m.userLine?.played ? (
+                    <RatingBadge rating={m.userLine.rating} />
+                  ) : (
+                    <span className="faint" style={{ fontSize: 11 }}>—</span>
+                  )}
+                </span>
               </li>
             );
           })}

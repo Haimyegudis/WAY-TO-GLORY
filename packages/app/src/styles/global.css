@@ -431,6 +431,31 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
 }
 .list-item:last-child { border-block-end: 0; }
 
+/*
+ * A results list reads as a column of scores, so the score has to be in the same place
+ * on every line whatever else the line carries. Fixed tracks: the matchday, the
+ * scoreline, and a slot for the rating that is the same width whether there is a rating
+ * in it or a dash.
+ */
+.fixture-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+}
+.fixture-row .score-row {
+  display: grid;
+  grid-template-columns: 22px 46px 22px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.fixture-row .score-row .num { text-align: center; }
+.fixture-row .fixture-rating {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); flex: none; }
 .dot-read { background: var(--surface-3); }
 /* A message that is still a question, waiting in his own time rather than stopping him. */
@@ -438,6 +463,13 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
   background: var(--amber);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 26%, transparent);
 }
+
+/*
+ * The two lines that matter in a thirty-six club table: eighth place, above which a club
+ * is through, and twenty-fourth, below which its European season is over.
+ */
+.tbl tr.cut-direct td { border-block-end: 2px solid var(--green, #3ddc84); }
+.tbl tr.cut-playoff td { border-block-end: 2px solid var(--amber); }
 
 /* ---------------------------------------------------------------- tables */
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { sortedTable, type CareerState, type EuroState } from '@fc/engine';
+import { leaguePhaseTable, sortedTable, type CareerState, type EuroState } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { clubName, clubShortName } from '../lib/club.js';
 import { competitionLabel, competitionName, playerName } from '../lib/names.js';
@@ -77,7 +77,8 @@ function europeanRun(state: CareerState): EuroState | null {
   const clubId = state.player.clubId;
   if (!clubId) return null;
   for (const competition of Object.values(state.world.europe ?? {}) as EuroState[]) {
-    const inGroup = competition.groups.some((g) => g.clubIds.includes(clubId));
+    const inGroup =
+      Boolean(competition.leaguePhase?.[clubId]) || competition.groups.some((g) => g.clubIds.includes(clubId));
     const inKnockout = competition.ties.some((tie) => tie.homeClubId === clubId || tie.awayClubId === clubId);
     if (inGroup || inKnockout) return competition;
   }
@@ -149,9 +150,17 @@ function EuropeanRun() {
   const [selected, setSelected] = useState(mine?.id ?? competitions[0]?.id ?? '');
   const [view, setView] = useState<'table' | 'results' | 'knockout'>('table');
   const [groupLetter, setGroupLetter] = useState<string>('');
+  const [matchday, setMatchday] = useState<number>(0);
 
   if (competitions.length === 0) return <Empty>—</Empty>;
   const competition = competitions.find((c) => c.id === selected) ?? competitions[0]!;
+
+  // One table of thirty-six, or the eight groups a career saved under the old format is
+  // still playing.
+  const phase = competition.leaguePhase;
+  const phaseRows = phase ? leaguePhaseTable(competition) : [];
+  const matchdays = [...new Set(competition.fixtures.map((f) => f.round))].sort((a, b) => a - b);
+  const shownDay = matchdays.includes(matchday) ? matchday : matchdays[0] ?? 0;
 
   const myGroup = competition.groups.find((g) => g.clubIds.includes(myClubId ?? ''));
   const group =
@@ -194,7 +203,77 @@ function EuropeanRun() {
         </Card>
       )}
 
-      {competition.stage !== 'qualifying' && view !== 'knockout' && competition.groups.length > 0 && (
+      {competition.stage !== 'qualifying' && view === 'results' && phase && matchdays.length > 0 && (
+        <div className="row wrap" style={{ gap: 6 }}>
+          {matchdays.map((round) => (
+            <button
+              key={round}
+              className="chip"
+              aria-pressed={round === shownDay}
+              onClick={() => setMatchday(round)}
+            >
+              {t('europe.matchday', { round })}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {competition.stage !== 'qualifying' && view === 'table' && phase && (
+        <Card title={t('europe.leaguePhase')}>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th className="start">#</th>
+                <th className="n">{t('club.pld')}</th>
+                <th className="n">{t('club.gd')}</th>
+                <th className="n">{t('club.pts')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {phaseRows.map((row, i) => (
+                <tr
+                  key={row.clubId}
+                  className={`${row.clubId === myClubId ? 'me' : ''} ${i === 7 ? 'cut-direct' : i === 23 ? 'cut-playoff' : ''}`}
+                >
+                  <td className="start">
+                    <span className="row" style={{ gap: 7, minWidth: 0 }}>
+                      <span className="num faint" style={{ fontSize: 11 }}>{i + 1}</span>
+                      <Crest club={club(state, row.clubId)} size="sm" />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {clubShortName(club(state, row.clubId), lang) || row.clubId}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="n">{row.played}</td>
+                  <td className="n">{row.goalsFor - row.goalsAgainst}</td>
+                  <td className="n" style={{ fontWeight: 700 }}>{row.points}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="faint" style={{ fontSize: 11, marginBlockStart: 8 }}>{t('europe.cutLines')}</p>
+        </Card>
+      )}
+
+      {competition.stage !== 'qualifying' && view === 'results' && phase && (
+        <Card title={t('europe.matchday', { round: shownDay })}>
+          <ul className="list">
+            {competition.fixtures
+              .filter((fixture) => fixture.round === shownDay)
+              .map((fixture, i) => (
+                <TieRow
+                  key={`md-${i}`}
+                  label={`${fixture.week}`}
+                  homeClubId={fixture.homeClubId}
+                  awayClubId={fixture.awayClubId}
+                  result={fixture.result}
+                />
+              ))}
+          </ul>
+        </Card>
+      )}
+
+      {competition.stage !== 'qualifying' && view !== 'knockout' && !phase && competition.groups.length > 0 && (
         <div className="row wrap" style={{ gap: 6 }}>
           {competition.groups.map((entry) => (
             <button
@@ -210,7 +289,7 @@ function EuropeanRun() {
         </div>
       )}
 
-      {competition.stage !== 'qualifying' && view === 'table' && group && (
+      {competition.stage !== 'qualifying' && view === 'table' && !phase && group && (
         <Card title={t('competition.group', { letter: group.letter })}>
           <table className="tbl">
             <thead>
@@ -246,7 +325,7 @@ function EuropeanRun() {
         </Card>
       )}
 
-      {competition.stage !== 'qualifying' && view === 'results' && group && (
+      {competition.stage !== 'qualifying' && view === 'results' && !phase && group && (
         <Card title={t('competition.group', { letter: group.letter })}>
           <ul className="list">
             {competition.fixtures

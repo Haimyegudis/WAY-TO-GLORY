@@ -1472,4 +1472,12 @@ export const en: Record<string, string> = {
   'news.rivalSigned': '{club} sign {player}.',
   'inbox.clubSigned': '{player} signs, {fee}.',
   'inbox.clubSigned.body': 'New face in the dressing room on Monday. Not your position, so it is not your problem this time.',
+  'europe.leaguePhase': 'League phase',
+  'europe.matchday': 'Matchday {round}',
+  'europe.cutLines': 'Top 8 go straight to the last 16. 9th-24th play off for the other eight places. 25th and below are out.',
+  'competition.stage.playoff': 'Knockout play-off',
+  'inbox.europe.topEight': '{club} finish in the top eight. Straight to the last sixteen.',
+  'inbox.europe.topEight.body': 'Eight matches, a good enough table, and February off while the rest of them knock lumps out of each other in a play-off. This is what the format rewards: winning in October counts in March.',
+  'inbox.europe.playoff': '{club} finish outside the top eight. A play-off first.',
+  'inbox.europe.playoff.body': 'Two more matches to earn a place in the last sixteen, against somebody who wants it as badly as you do. Survive it and you are in the draw with clubs that have been resting.',
 };

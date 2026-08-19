@@ -1474,4 +1474,12 @@ export const he: Record<string, string> = {
   'news.rivalSigned': '{club} החתימו את {player}.',
   'inbox.clubSigned': '{player} חתם, {fee}.',
   'inbox.clubSigned.body': 'פרצוף חדש בחדר ההלבשה ביום שני. לא התפקיד שלך, אז הפעם זו הבעיה של מישהו אחר.',
+  'europe.leaguePhase': 'שלב הליגה',
+  'europe.matchday': 'מחזור {round}',
+  'europe.cutLines': '8 הראשונות עולות ישר לשמינית הגמר. מקומות 9–24 משחקות פלייאוף על שמונה המקומות הנותרים. מ־25 ומטה — הביתה.',
+  'competition.stage.playoff': 'פלייאוף',
+  'inbox.europe.topEight': '{club} סיימו בשמינייה הראשונה. ישר לשמינית הגמר.',
+  'inbox.europe.topEight.body': 'שמונה משחקים, טבלה טובה מספיק, ופברואר חופשי בזמן שכל השאר קורעים אחד את השני בפלייאוף. בדיוק בשביל זה נבנה הפורמט: ניצחון באוקטובר נספר במרץ.',
+  'inbox.europe.playoff': '{club} סיימו מחוץ לשמינייה. קודם פלייאוף.',
+  'inbox.europe.playoff.body': 'עוד שני משחקים כדי להשיג מקום בשמינית הגמר, מול מישהו שרוצה את זה בדיוק כמוך. תעבור את זה ותהיה בהגרלה מול קבוצות שנחו.',
 };

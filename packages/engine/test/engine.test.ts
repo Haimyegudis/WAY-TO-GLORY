@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Rng, clamp, interpolate } from '../src/rng.js';
 import { overall, ratingAt, skillProfile, skillRating, tacticalFit } from '../src/positions.js';
-import { createEuroCompetition, qualifiersFromGroups } from '../src/europe.js';
+import { createEuroCompetition, qualifiersFromLeaguePhase } from '../src/europe.js';
 import { playTournament, tournamentFor } from '../src/tournament.js';
 import { ageFactor, developWeek, headroom, updateCondition } from '../src/development.js';
 import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
@@ -603,6 +603,7 @@ describe('europe', () => {
 
     const entrants: string[] = [];
     for (const competition of Object.values(state.world.europe ?? {})) {
+      entrants.push(...Object.keys(competition.leaguePhase ?? {}));
       for (const group of competition.groups) entrants.push(...group.clubIds);
     }
     expect(entrants.length).toBeGreaterThan(20);
@@ -614,20 +615,51 @@ describe('europe', () => {
     for (const id of entrants) expect(state.world.clubs[id]).toBeDefined();
   });
 
-  it('gives the group winners and runners-up a knockout place', () => {
+  it('draws a league phase where everybody plays eight, four home and four away', () => {
     const rng = new Rng(4);
-    const clubIds = Array.from({ length: 16 }, (_, i) => `club${i}`);
-    const competition = createEuroCompetition(rng, 'uel', clubIds, 2025)!;
-    expect(competition.groups).toHaveLength(4);
-    // Six matchdays for every club: three opponents, home and away.
-    for (const group of competition.groups) {
-      const played = competition.fixtures.filter(
-        (f) => group.clubIds.includes(f.homeClubId) || group.clubIds.includes(f.awayClubId),
-      );
-      expect(played).toHaveLength(12);
+    const clubIds = Array.from({ length: 36 }, (_, i) => `club${i}`);
+    const competition = createEuroCompetition(rng, 'ucl', clubIds, 2025, (id) => 90 - Number(id.slice(4)))!;
+
+    expect(Object.keys(competition.leaguePhase ?? {})).toHaveLength(36);
+    expect(competition.groups).toHaveLength(0);
+
+    for (const clubId of clubIds) {
+      const home = competition.fixtures.filter((f) => f.homeClubId === clubId);
+      const away = competition.fixtures.filter((f) => f.awayClubId === clubId);
+      expect(home).toHaveLength(4);
+      expect(away).toHaveLength(4);
+
+      // Eight different opponents: nobody is played twice.
+      const opponents = new Set([...home.map((f) => f.awayClubId), ...away.map((f) => f.homeClubId)]);
+      expect(opponents.size).toBe(8);
+      expect(opponents.has(clubId)).toBe(false);
+
+      // And one match a week, over the eight matchdays.
+      const weeks = new Set([...home, ...away].map((f) => f.week));
+      expect(weeks.size).toBe(8);
     }
-    const through = qualifiersFromGroups(competition);
-    expect(through).toHaveLength(8);
+  });
+
+  it('sends the top eight straight through and puts 9th to 24th in a play-off', () => {
+    const rng = new Rng(9);
+    const clubIds = Array.from({ length: 36 }, (_, i) => `club${i}`);
+    const competition = createEuroCompetition(rng, 'ucl', clubIds, 2025)!;
+
+    // Hand out points so the table is decided rather than a pile of ties.
+    clubIds.forEach((clubId, i) => {
+      const row = competition.leaguePhase![clubId]!;
+      row.points = 36 - i;
+      row.goalsFor = 36 - i;
+    });
+
+    const { direct, playoff } = qualifiersFromLeaguePhase(competition);
+    expect(direct).toEqual(clubIds.slice(0, 8));
+    expect(playoff).toHaveLength(16);
+    // Ninth is seeded against twenty-fourth.
+    expect(playoff[0]).toBe('club8');
+    expect(playoff[1]).toBe('club23');
+    // And nobody from the bottom twelve is anywhere near it.
+    for (const clubId of clubIds.slice(24)) expect(playoff).not.toContain(clubId);
   });
 });
 

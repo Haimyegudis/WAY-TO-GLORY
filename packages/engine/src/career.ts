@@ -49,6 +49,9 @@ import {
   europeanQualifiers,
   groupStageComplete,
   qualifiersFromGroups,
+  qualifiersFromLeaguePhase,
+  setPlayoffField,
+  LEAGUE_PHASE_SIZE,
   resolveEuroRound,
   EURO_TIERS,
   type EuroState,
@@ -260,13 +263,13 @@ function initEurope(state: CareerState, rng: Rng): void {
   const qualified = state.world.europeNext ?? defaultEuropeanEntrants(state);
   state.world.europe = {};
 
-  const GROUP_PLACES = 32;
+  const GROUP_PLACES = LEAGUE_PHASE_SIZE;
   for (const tier of EURO_TIERS) {
     const seeded = (qualified[tier] ?? []).filter((id) => state.world.clubs[id]);
     const qualifiers = (qualified[`${tier}Qual`] ?? []).filter((id) => state.world.clubs[id]);
     if (seeded.length === 0 && qualifiers.length === 0) continue;
 
-    // Thirty-two places. More clubs than that have a claim on them, which is exactly
+    // Thirty-six places. More clubs than that have a claim on them, which is exactly
     // why there is a summer: the seeds are in, everyone else plays for what is left.
     const field = seeded.length + qualifiers.length;
     if (field < 8) continue;
@@ -1061,9 +1064,31 @@ function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: 
       }
 
       if (groupStageComplete(competition)) {
-        competition.alive = qualifiersFromGroups(competition);
         payEuroPrize(state, competition, 'group');
-        drawEuroRound(rng, competition);
+        if (competition.leaguePhase) {
+          // Top eight straight into the last sixteen, ninth to twenty-fourth into a
+          // play-off, and everybody below that is out before February.
+          const { direct, playoff } = qualifiersFromLeaguePhase(competition);
+          if (club) {
+            if (direct.includes(club.id)) {
+              pushInbox(state, 'club', 'inbox.europe.topEight', { club: club.name });
+            } else if (playoff.includes(club.id)) {
+              pushInbox(state, 'club', 'inbox.europe.playoff', { club: club.name });
+            } else if (competition.leaguePhase[club.id]) {
+              pushInbox(state, 'club', 'inbox.europe.knockedOut', { club: club.name });
+            }
+          }
+          if (playoff.length >= 2) {
+            setPlayoffField(competition, direct, playoff);
+            drawEuroRound(rng, competition, 'playoff');
+          } else {
+            competition.alive = direct;
+            drawEuroRound(rng, competition);
+          }
+        } else {
+          competition.alive = qualifiersFromGroups(competition);
+          drawEuroRound(rng, competition);
+        }
       }
       continue;
     }
@@ -1151,7 +1176,7 @@ function playQualifyingWeek(
   }
 
   const places = Math.max(0, (competition.seeded?.length ?? 0) + qualifying.alive.length);
-  const groupPlaces = Math.min(32, Math.max(8, places));
+  const groupPlaces = Math.min(LEAGUE_PHASE_SIZE, Math.max(8, places));
   const placesLeft = Math.max(0, groupPlaces - (competition.seeded?.length ?? 0));
 
   // A competition whose field already fits does not need a summer at all.
@@ -1162,9 +1187,12 @@ function playQualifyingWeek(
 
   // The summer is over: whoever is left joins the seeds and the groups are drawn.
   const field = qualifiedField(competition, groupPlaces);
-  const drawn = createEuroCompetition(rng, competition.id, field, competition.season);
+  const drawn = createEuroCompetition(rng, competition.id, field, competition.season, (id) =>
+    state.world.clubs[id]?.strength ?? 50,
+  );
   if (drawn) {
     competition.groups = drawn.groups;
+    competition.leaguePhase = drawn.leaguePhase;
     competition.fixtures = drawn.fixtures;
     competition.stage = 'group';
     if (club && field.includes(club.id)) {
