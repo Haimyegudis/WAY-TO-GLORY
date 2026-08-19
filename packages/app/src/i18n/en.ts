@@ -1728,6 +1728,7 @@ export const en: Record<string, string> = {
   'news.youth.champions': "{club}'s youth side win the youth league.",
   'news.youth.promoted': "{club}'s youth side go up.",
   'news.youth.relegated': "{club}'s youth side go down.",
+  'news.youthDebut': '{player} has made his first appearance for {country} {level}.',
   'milestone.claimMade': 'You said it out loud. Now you have to do it.',
   'milestone.claimKept': 'You said it, and you went and did it.',
   'milestone.claimBroken': 'You said it, and there was nothing behind it.',

@@ -1730,6 +1730,7 @@ export const he: Record<string, string> = {
   'news.youth.champions': 'הנוער של {club} אלוף ליגת הנוער.',
   'news.youth.promoted': 'הנוער של {club} עולה ליגה.',
   'news.youth.relegated': 'הנוער של {club} יורד ליגה.',
+  'news.youthDebut': '{player} עלה לראשונה ב{level} של {country}.',
   'milestone.claimMade': 'אמרת את זה בקול. עכשיו צריך גם לעשות.',
   'milestone.claimKept': 'אמרת, ויצאת ועשית.',
   'milestone.claimBroken': 'אמרת, ולא היה כיסוי.',

@@ -2502,7 +2502,11 @@ function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng,
   const age = season - player.birthYear;
   const comp = index.competitionById.get(club.competitionId);
 
-  updateNationalInterest({
+  const youthForm = state.world.youth?.form;
+  const youthPlayed = Object.values(state.world.youth?.competitions ?? {})
+    .find((c) => c.competitionId === userYouthCompetitionId(state))
+    ?.table[club.id]?.played ?? 0;
+  const nationalCtx = {
     player,
     age,
     season,
@@ -2511,20 +2515,16 @@ function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng,
     leagueReputation: comp?.reputation ?? 35,
     index,
     nt: state.nationalTeam,
-  });
+    youthMinutesPct: youthForm && youthPlayed > 0 ? clamp(youthForm.apps / youthPlayed, 0, 1) : 0,
+    youthRating: youthForm && youthForm.apps > 0 ? youthForm.ratingSum / youthForm.apps : 0,
+    youthGoals: youthForm?.goals ?? 0,
+  };
+
+  updateNationalInterest(nationalCtx);
 
   if (isInjured(player)) return;
 
-  const callUp = rollCallUp(rng, {
-    player,
-    age,
-    season,
-    minutesPct: minutesPct(state),
-    clubReputation: club.reputation,
-    leagueReputation: comp?.reputation ?? 35,
-    index,
-    nt: state.nationalTeam,
-  });
+  const callUp = rollCallUp(rng, nationalCtx);
   if (!callUp) return;
 
   const country = index.countryByCode.get(callUp.countryCode);
@@ -2546,6 +2546,17 @@ function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng,
   for (let i = 0; i < matches; i++) {
     const outcome = simulateInternationalMatch(rng, player, callUp.level, country.reputation);
     if (!outcome.played) continue;
+    if (!callUp.isSenior) {
+      nt.youthCaps = (nt.youthCaps ?? 0) + 1;
+      nt.youthGoals = (nt.youthGoals ?? 0) + outcome.goals;
+      if (nt.youthCaps === 1) {
+        pushNews(state, 'news.youthDebut', {
+          player: `${player.firstName} ${player.lastName}`,
+          country: country.name,
+          level: `national.level.${callUp.level}`,
+        }, 'medium');
+      }
+    }
     if (callUp.isSenior) {
       nt.caps++;
       nt.goals += outcome.goals;
@@ -2635,6 +2646,14 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   applyAwards(state, index, rng);
 
   if (trophies.length > 0) raiseMilestone(state, 'trophyNight', true);
+
+  // A season spent mostly on Sunday mornings is a youth season, and the career page
+  // should say so rather than filing thirty youth appearances under the first division.
+  const youthApps = state.world.youth?.form.apps ?? 0;
+  const youthDivision = userYouthCompetitionId(state);
+  if (youthDivision && youthApps > 0 && youthApps * 2 >= stats.apps) {
+    stats.competitionId = youthDivision;
+  }
 
   // Career record for the season.
   const record: CareerSeasonRecord = {

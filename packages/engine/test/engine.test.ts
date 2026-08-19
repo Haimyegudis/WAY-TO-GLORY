@@ -17,6 +17,7 @@ import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/mileston
 import type { MilestoneId } from '../src/milestones.js';
 import { generateOffers, isTransferWindow } from '../src/transfer.js';
 import { indexPack, validatePack } from '../src/data.js';
+import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
 import {
   advanceWeek,
   answerMedia,
@@ -1347,5 +1348,67 @@ describe('the age gate', () => {
         expect(line.started).toBe(false);
       }
     }
+  });
+});
+
+describe('the national youth sides', () => {
+  function boyWithAYouthSeason(targetOvr = 44) {
+    const index = indexPack(loadPack());
+    const player = generatePlayer(new Rng(21), index, {
+      clubId: 'c', pos: 'ST', age: 16, targetOvr, season: 2026, countryCode: 'ISR',
+    });
+    return { index, player, nt: initNationalTeam(player) };
+  }
+
+  /** A season of a coach watching: interest moves gradually, not in one week. */
+  function watchAllSeason(index: ReturnType<typeof indexPack>, player: ReturnType<typeof generatePlayer>,
+    nt: ReturnType<typeof initNationalTeam>, youth: { pct: number; rating: number; goals: number }) {
+    for (let i = 0; i < 12; i++) {
+      updateNationalInterest({
+        player, age: 16, season: 2026,
+        minutesPct: 0,
+        youthMinutesPct: youth.pct, youthRating: youth.rating, youthGoals: youth.goals,
+        clubReputation: 60, leagueReputation: 55,
+        index, nt,
+      });
+    }
+    return nt.interest['ISR'] ?? 0;
+  }
+
+  it('counts a season in the youth league when the senior one has not started', () => {
+    const { index, player, nt } = boyWithAYouthSeason();
+    const seen = watchAllSeason(index, player, nt, { pct: 0.9, rating: 7.8, goals: 18 });
+    const quiet = watchAllSeason(index, player, initNationalTeam(player), { pct: 0.2, rating: 6.2, goals: 0 });
+
+    expect(seen, `hot ${seen} against quiet ${quiet}`).toBeGreaterThan(quiet);
+    expect(seen, `a boy tearing up the youth league drew ${seen}`).toBeGreaterThan(55);
+  });
+
+  it('does not let youth form stand in for senior football at under-21', () => {
+    const { index, player, nt } = boyWithAYouthSeason();
+    expect(levelForAge(21)).toBe('u21');
+
+    updateNationalInterest({
+      player, age: 21, season: 2026,
+      minutesPct: 0,
+      youthMinutesPct: 1, youthRating: 8.5, youthGoals: 30,
+      clubReputation: 60, leagueReputation: 55,
+      index, nt,
+    });
+    // At twenty-one nobody cares what he did on a Sunday morning.
+    expect(nt.interest['ISR'] ?? 0).toBeLessThan(55);
+  });
+
+  it('remembers the shirts he wore before the senior one', () => {
+    const { state, index } = startedCareer({ seed: 1234 });
+    for (let i = 0; i < 52 * 5; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const nt = state.nationalTeam;
+    expect(nt.youthCaps).toBeGreaterThanOrEqual(0);
+    expect(nt.youthGoals).toBeGreaterThanOrEqual(0);
+    // Youth caps are not senior caps, whatever else happens.
+    if (nt.youthCaps > 0) expect(nt.callUpHistory.some((c) => c.level !== 'senior')).toBe(true);
   });
 });

@@ -36,6 +36,13 @@ export interface CallUpContext {
   leagueReputation: number;
   index: PackIndex;
   nt: NationalTeamState;
+  /**
+   * His youth season. A sixteen year old has no senior minutes by definition, and the
+   * under-17 coach is not waiting for him to get some - he is watching the age group.
+   */
+  youthMinutesPct?: number;
+  youthRating?: number;
+  youthGoals?: number;
 }
 
 /**
@@ -47,11 +54,25 @@ export function updateNationalInterest(ctx: CallUpContext): void {
   const level = levelForAge(ctx.age);
   if (!level) return;
 
+  // Below under-21, a boy with no senior minutes is judged on the football he is
+  // actually playing. Doing it in an academy is not the same as doing it in a first
+  // team, so it is worth less - but it is not worth nothing, which is what it was.
+  const onYouthForm =
+    (level === 'u17' || level === 'u19') && ctx.minutesPct < 0.1 && (ctx.youthMinutesPct ?? 0) > 0;
+
   for (const code of ctx.nt.eligibleCountries) {
     const country = ctx.index.countryByCode.get(code);
     if (!country) continue;
     const bar = nationalStandard(country.reputation, level);
-    const playingBonus = clamp((ctx.minutesPct - 0.3) * 26, -12, 16);
+    const playingBonus = onYouthForm
+      ? clamp(
+        ((ctx.youthMinutesPct ?? 0) - 0.3) * 20
+        + ((ctx.youthRating ?? 6.4) - 6.6) * 14
+        + Math.min(8, (ctx.youthGoals ?? 0) * 0.7),
+        -12,
+        20,
+      )
+      : clamp((ctx.minutesPct - 0.3) * 26, -12, 16);
     const stageBonus = clamp((ctx.leagueReputation - 40) * 0.22, -8, 14);
     // A player exactly at the standard is a genuine squad candidate, not a hopeful.
     const raw = 52 + (ovr - bar) * 4.5 + playingBonus + stageBonus + (ctx.player.reputation - 40) * 0.25;
