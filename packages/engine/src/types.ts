@@ -419,11 +419,29 @@ export interface NationalTeamState {
   interest: Record<string, number>;   // countryCode -> 0-100 interest
 }
 
+/**
+ * A branch of a gamble. The option is taken, then this is rolled: it either comes off
+ * or it does not, and the same choice can play out differently on another career.
+ */
+export interface EventOutcome {
+  /** Suffix for the copy shown afterwards: `event.<id>.<option>.<key>`. */
+  key: string;
+  /** Relative likelihood before the player's own qualities are taken into account. */
+  weight: number;
+  /** What tilts the roll: the player's standing, his form, or the manager's trust. */
+  swayedBy?: 'reputation' | 'form' | 'managerTrust' | 'determination' | 'fame';
+  /** How strongly it is tilted. Positive means the quality makes this outcome likelier. */
+  sway?: number;
+  effects: EventEffect[];
+}
+
 export interface CareerEventOption {
   id: string;
   labelKey: string;
   riskKey?: string;
   effects: EventEffect[];
+  /** When present, one of these is rolled after the option's own effects are applied. */
+  outcomes?: EventOutcome[];
 }
 
 export interface EventEffect {

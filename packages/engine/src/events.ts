@@ -264,6 +264,33 @@ export function resolveDecision(
 
   const outcome = applyEffects(rng, state, option.effects, decision.textArgs);
 
+  // Some choices are gambles: the option is taken, and then it either comes off or it
+  // does not. What tilts the roll is the player himself - his standing, his form, the
+  // trust he has built - so the same decision reads differently on another career.
+  let branchKey: string | null = null;
+  if (option.outcomes && option.outcomes.length > 0) {
+    const branch = rng.weighted(option.outcomes, (candidate) => {
+      const quality = (() => {
+        switch (candidate.swayedBy) {
+          case 'reputation': return state.player.reputation;
+          case 'form': return state.player.form;
+          case 'managerTrust': return state.relationships.manager;
+          case 'determination': return state.player.personality.determination;
+          case 'fame': return state.player.fame;
+          default: return 50;
+        }
+      })();
+      const tilt = ((quality - 50) / 50) * (candidate.sway ?? 0);
+      return Math.max(0.05, candidate.weight * (1 + tilt));
+    });
+    if (branch) {
+      branchKey = branch.key;
+      const extra = applyEffects(rng, state, branch.effects, decision.textArgs);
+      outcome.changes.push(...extra.changes);
+      outcome.injuryTriggered = outcome.injuryTriggered || extra.injuryTriggered;
+    }
+  }
+
   const def = defs.find((d) => d.id === decision.eventId);
   const absoluteWeek = state.world.season * 52 + state.world.week;
   if (def) {
@@ -281,7 +308,9 @@ export function resolveDecision(
   const result: DecisionResult = {
     changes: outcome.changes,
     consequences,
-    narrativeKey: decision.textKey + '.' + option.id + '.outcome',
+    narrativeKey: branchKey
+      ? `${decision.textKey}.${option.id}.${branchKey}`
+      : `${decision.textKey}.${option.id}.outcome`,
   };
   state.lastResult = result;
   return result;

@@ -22,6 +22,7 @@ import { STARS } from './stars.js';
 import { EVENTS } from './events.js';
 import { EVENTS_EXTRA } from './events-extra.js';
 import { EVENTS_LIFESTYLE } from './events-lifestyle.js';
+import { EVENTS_DILEMMAS } from './events-dilemmas.js';
 import { HEBREW_CLUB_NAMES } from './hebrew-clubs.js';
 import { CLUB_COLORS } from './club-colors.js';
 import { RIVALRIES } from './rivalries.js';
@@ -319,7 +320,7 @@ async function main(): Promise<void> {
     clubs,
     names: NAME_POOLS,
     stars: mergeStars(clubs),
-    events: [...EVENTS, ...EVENTS_EXTRA, ...EVENTS_LIFESTYLE],
+    events: [...EVENTS, ...EVENTS_EXTRA, ...EVENTS_LIFESTYLE, ...EVENTS_DILEMMAS],
   };
 
   const problems = validatePack(pack);
