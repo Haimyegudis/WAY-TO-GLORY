@@ -1212,7 +1212,12 @@ function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImpo
  * Answering the press. The trade is applied and handed straight back, so what he said
  * is followed by what it cost him; any claim inside it is left for the pitch to settle.
  */
-export function answerMedia(state: CareerState, decisionId: string, optionId: string): DecisionResult | null {
+export function answerMedia(
+  state: CareerState,
+  index: PackIndex,
+  decisionId: string,
+  optionId: string,
+): DecisionResult | null {
   const at = state.pendingDecisions.findIndex((decision) => decision.id === decisionId);
   if (at === -1) return null;
   const decision = state.pendingDecisions[at]!;
@@ -1223,8 +1228,54 @@ export function answerMedia(state: CareerState, decisionId: string, optionId: st
 
   state.pendingDecisions.splice(at, 1);
   const result = applyMilestoneAnswer(state, answer);
+
+  // Naming somebody costs nothing at the microphone. It costs later.
+  if (answer.grudge) {
+    const target = resolveGrudgeTarget(state, index, answer.grudge.against);
+    if (target) {
+      state.flags['grudgeClubId'] = target;
+      state.flags['grudgeUntilWeek'] = state.world.season * 52 + state.world.week + 20;
+      pushNews(
+        state,
+        'news.grudge',
+        { player: `${state.player.firstName} ${state.player.lastName}`, club: state.world.clubs[target]?.name ?? '' },
+        'medium',
+      );
+    }
+  }
+
   state.lastResult = result;
   return result;
+}
+
+/**
+ * The club he has an open account with, while the account is still open. Saying
+ * something about a side in public buys him a fixture with an edge on it, and the edge
+ * expires if the fixture never comes.
+ */
+export function grudgeClubId(state: CareerState): string | null {
+  const id = state.flags['grudgeClubId'];
+  if (typeof id !== 'string' || id === '') return null;
+  const until = Number(state.flags['grudgeUntilWeek'] ?? 0);
+  if (state.world.season * 52 + state.world.week > until) return null;
+  return state.world.clubs[id] ? id : null;
+}
+
+/** The club a public dig lands on: whoever is next, or the club that sold him. */
+function resolveGrudgeTarget(state: CareerState, index: PackIndex, against: 'nextOpponent' | 'oldClub'): string | null {
+  if (against === 'oldClub') {
+    const previous = state.flags['previousClubId'];
+    return typeof previous === 'string' && state.world.clubs[previous] ? previous : null;
+  }
+  const club = userClub(state);
+  if (!club) return null;
+  const compState = state.world.competitions[club.competitionId];
+  const fixture = compState?.fixtures.find(
+    (f) => !f.played && f.week >= state.world.week && (f.homeClubId === club.id || f.awayClubId === club.id),
+  );
+  if (!fixture) return null;
+  void index;
+  return fixture.homeClubId === club.id ? fixture.awayClubId : fixture.homeClubId;
 }
 
 /** Announces the week's fixture if it is worth announcing, and says what kind it is. */
@@ -1265,6 +1316,10 @@ function matchImportanceFor(
   const opponentId = homeClubId === club.id ? awayClubId : homeClubId;
   const opponent = state.world.clubs[opponentId];
   if (!opponent) return 'normal';
+
+  // Something he said in public. It does not matter whether these two clubs have any
+  // history: he gave this fixture a name himself, and now he has to go and play in it.
+  if (grudgeClubId(state) === opponentId) return 'rival';
 
   if (club.rivals?.includes(opponentId)) {
     return club.city && opponent.city && club.city === opponent.city ? 'derby' : 'rival';
@@ -1828,7 +1883,7 @@ function playUserMatch(
     ?? (opponentStars.length >= 8 ? teamRatingFromSquad(opponentStars) : clubRating(opponent));
 
   const outcome = simulateUserMatch(rng, {
-    mental: mentalFactor(state) * occasionFactor(state, importance),
+    mental: mentalFactor(state) * occasionFactor(state, importance) * grudgeFactor(state, opponentId, userIsHome),
     penaltyTaker: Boolean(state.flags['penaltyTaker']),
     season: state.world.season,
     week: state.world.week,
@@ -1863,6 +1918,8 @@ function playUserMatch(
     player.condition.suspensions = player.condition.suspensions.filter((s) => s.matchesRemaining > 0);
   }
 
+  settleGrudge(state, opponentId, result);
+
   // The debut is decided after the fact: it is the first match he actually got on the
   // pitch for, not every match the club played while he watched from outside.
   const appsBefore = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
@@ -1896,6 +1953,60 @@ function playUserMatch(
  * who can handle it is worth something real; the same crowd on a player who cannot,
  * or one the fans have turned on, is worth the same amount the other way.
  */
+/**
+ * The fixture he talked his way into, once it has been played.
+ *
+ * He put his name on this one in public, so it is worth double in both directions: a
+ * good afternoon here is remembered for a year, and a bad one is remembered longer.
+ * Either way the account is closed - he does not get to keep collecting on one quote.
+ */
+function settleGrudge(state: CareerState, opponentId: string, result: MatchResult): void {
+  if (grudgeClubId(state) !== opponentId) return;
+  const line = result.userLine;
+  const opponent = state.world.clubs[opponentId];
+  state.flags['grudgeClubId'] = '';
+  state.flags['grudgeUntilWeek'] = 0;
+  if (!line?.played) {
+    // He said it and then did not play. That is its own kind of answer.
+    state.relationships.fans = clamp(state.relationships.fans - 4, 0, 100);
+    state.relationships.media = clamp(state.relationships.media - 3, 0, 100);
+    pushInbox(state, 'media', 'inbox.grudge.absent', { club: opponent?.name ?? '' });
+    return;
+  }
+
+  const swing = line.rating >= 7.0 ? 1 : line.rating < 6.3 ? -1 : 0;
+  if (swing === 0) {
+    pushInbox(state, 'media', 'inbox.grudge.quiet', { club: opponent?.name ?? '' });
+    return;
+  }
+
+  const scale = 1 + line.goals * 0.5;
+  state.player.reputation = clamp(state.player.reputation + swing * 3 * scale, 0, 100);
+  state.player.fame = clamp(state.player.fame + swing * 4 * scale, 0, 100);
+  state.relationships.fans = clamp(state.relationships.fans + swing * 9, 0, 100);
+  state.relationships.media = clamp(state.relationships.media + swing * 6, 0, 100);
+  state.player.morale = clamp(state.player.morale + swing * 7, 0, 100);
+  pushInbox(state, 'media', swing > 0 ? 'inbox.grudge.won' : 'inbox.grudge.lost', { club: opponent?.name ?? '' });
+  pushNews(
+    state,
+    swing > 0 ? 'news.grudge.won' : 'news.grudge.lost',
+    { player: `${state.player.firstName} ${state.player.lastName}`, club: opponent?.name ?? '' },
+    'high',
+  );
+}
+
+/**
+ * Playing at a ground he has given a reason to hate him.
+ *
+ * Away at the club he named, the noise is personal, and a player who cannot handle
+ * that hears every bit of it. At home the same crowd is behind him instead.
+ */
+function grudgeFactor(state: CareerState, opponentId: string, userIsHome: boolean): number {
+  if (grudgeClubId(state) !== opponentId) return 1;
+  const nerve = (state.player.personality.pressureHandling - 50) / 50;   // -1 .. 1
+  return userIsHome ? 1 + 0.03 + nerve * 0.02 : 1 - 0.07 + nerve * 0.05;
+}
+
 export function occasionFactor(state: CareerState, importance: MatchImportance): number {
   const weight = importanceWeight(importance) - 1;
   if (weight <= 0) return 1;
@@ -3240,6 +3351,8 @@ export function acceptOffer(state: CareerState, index: PackIndex, offerId: strin
   if (!offer) return false;
   const rng = mainRng(state);
   const previousClubId = state.player.clubId;
+  // The club he is leaving, remembered by name: the fixture list will bring it back.
+  if (previousClubId) state.flags['previousClubId'] = previousClubId;
 
   joinClub(state, index, offer.clubId, {
     salary: offer.salaryPerWeek,

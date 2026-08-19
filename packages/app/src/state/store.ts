@@ -361,13 +361,13 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   decide(decisionId, optionId) {
-    const { state } = get();
-    if (!state) return;
+    const { state, index } = get();
+    if (!state || !index) return;
 
     // A question from the press is not a scripted event: the answer is a trade applied
     // straight to his attributes, and any claim in it is settled the next time he plays.
     if (decisionId.startsWith('milestone_')) {
-      const mediaResult = engineAnswerMedia(state, decisionId, optionId);
+      const mediaResult = engineAnswerMedia(state, index, decisionId, optionId);
       const mediaSlot = get().activeSaveId;
       if (mediaSlot) persistTo(mediaSlot, state, (saves) => set({ saves }));
       set({ state: { ...state }, result: mediaResult });

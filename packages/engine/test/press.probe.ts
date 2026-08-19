@@ -20,7 +20,7 @@ for (const seed of [4, 11]) {
       if (d.eventId.startsWith('milestone:')) {
         const kind = d.eventId.replace('milestone:', '');
         seen[kind] = (seen[kind] ?? 0) + 1;
-        answerMedia(state, d.id, d.options[rng.int(0, d.options.length - 1)]!.id);
+        answerMedia(state, index, d.id, d.options[rng.int(0, d.options.length - 1)]!.id);
         continue;
       }
       if (d.kind === 'event' && d.options.length > 0) {

@@ -17,6 +17,7 @@ import {
   advanceWeek,
   answerMedia,
   createCareer,
+  grudgeClubId,
   currentOvr,
   getAcademyOffers,
   joinClub,
@@ -763,9 +764,9 @@ describe('the press', () => {
   }
 
   it('hands back what the answer changed', () => {
-    const { state } = startedCareer();
+    const { state, index } = startedCareer();
     const decision = askHim(state, 'debut');
-    const result = answerMedia(state, decision.id, decision.options[0]!.id);
+    const result = answerMedia(state, index, decision.id, decision.options[0]!.id);
 
     expect(result).not.toBeNull();
     expect(result!.changes.length).toBeGreaterThan(0);
@@ -788,9 +789,9 @@ describe('the press', () => {
   });
 
   it('refuses an answer that was never on the table', () => {
-    const { state } = startedCareer();
+    const { state, index } = startedCareer();
     const decision = askHim(state, 'derby');
-    expect(answerMedia(state, decision.id, 'nothing-he-said')).toBeNull();
+    expect(answerMedia(state, index, decision.id, 'nothing-he-said')).toBeNull();
   });
 
   it('has a question written for every moment it can raise', () => {
@@ -837,6 +838,21 @@ describe('the press', () => {
     // Six seasons of football produces more than one question, from more than one cause.
     expect(asked.length).toBeGreaterThan(3);
     expect(new Set(asked.map((entry) => entry.id)).size).toBeGreaterThan(1);
+  });
+
+  it('turns a fixture he talked about into a rival fixture, then closes the account', () => {
+    const { state, index } = startedCareer({ seed: 909 });
+    const club = state.world.clubs[state.player.clubId!]!;
+    const opponentId = Object.values(state.world.clubs)
+      .find((c) => c.competitionId === club.competitionId && c.id !== club.id)!.id;
+
+    state.flags['grudgeClubId'] = opponentId;
+    state.flags['grudgeUntilWeek'] = state.world.season * 52 + state.world.week + 20;
+    expect(grudgeClubId(state)).toBe(opponentId);
+
+    // An account nobody collects on expires rather than following him for ever.
+    state.flags['grudgeUntilWeek'] = state.world.season * 52 + state.world.week - 1;
+    expect(grudgeClubId(state)).toBeNull();
   });
 
   it('never offers an answer that costs nothing at all', () => {
