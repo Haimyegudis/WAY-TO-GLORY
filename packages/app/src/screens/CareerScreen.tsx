@@ -6,6 +6,7 @@ import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { competitionLabel } from '../lib/names.js';
 import { Card, Chip, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
+import { SeasonChart } from '../components/SeasonChart.js';
 
 /** Age pill colour: youth, prime, veteran - the shape of a career at a glance. */
 
@@ -171,6 +172,40 @@ export function CareerScreen() {
           <span className="num">{formatMoney(summary.careerEarnings, lang)}</span>
         </div>
       </Card>
+
+      {/*
+        * The shape of the career, before the table of it.
+        *
+        * The table below answers "what did I do in 2031"; it never answers "am I getting
+        * better", which is the question a player actually has. Three small charts do,
+        * one measure each - a rating out of ten and three thousand minutes have no
+        * business sharing an axis.
+        */}
+      {state.seasonHistory.length >= 2 && (
+        <Card title={t('career.shape')}>
+          <SeasonChart
+            label={t('career.ovrBySeason')}
+            points={state.seasonHistory.map((r) => ({ season: r.season, value: r.ovrEnd }))}
+            format={(v: number) => String(Math.round(v))}
+            seasonLabel={formatSeason}
+          />
+          <SeasonChart
+            label={t('career.minutesBySeason')}
+            points={state.seasonHistory.map((r) => ({ season: r.season, value: r.minutes }))}
+            format={(v: number) => String(Math.round(v))}
+            seasonLabel={formatSeason}
+          />
+          <SeasonChart
+            label={t('career.ratingBySeason')}
+            points={state.seasonHistory.map((r) => ({
+              season: r.season,
+              value: r.ratedApps > 0 ? r.ratingSum / r.ratedApps : 0,
+            }))}
+            format={(v: number) => (v > 0 ? v.toFixed(2) : '—')}
+            seasonLabel={formatSeason}
+          />
+        </Card>
+      )}
 
       <Card title={t('career.history')}>
         {state.seasonHistory.length === 0 ? (

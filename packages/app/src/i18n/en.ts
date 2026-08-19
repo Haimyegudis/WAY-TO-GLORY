@@ -251,6 +251,10 @@ export const en: Record<string, string> = {
 
   // ---------------------------------------------------------------- career
   'career.title': 'Career',
+  'career.shape': 'How it has gone',
+  'career.ovrBySeason': 'Rating at the end of each season',
+  'career.minutesBySeason': 'Minutes played per season',
+  'career.ratingBySeason': 'Average match rating',
   'career.history': 'Season by season',
   'career.achievements': 'Achievements',
   'career.records': 'Records',

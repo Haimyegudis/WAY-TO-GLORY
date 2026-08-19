@@ -247,6 +247,10 @@ export const he: Record<string, string> = {
 
   // ---------------------------------------------------------------- career
   'career.title': 'קריירה',
+  'career.shape': 'איך זה נראה לאורך השנים',
+  'career.ovrBySeason': 'ציון בסוף עונה',
+  'career.minutesBySeason': 'דקות משחק בעונה',
+  'career.ratingBySeason': 'ציון ממוצע למשחק',
   'career.history': 'עונה אחר עונה',
   'career.achievements': 'הישגים',
   'career.records': 'שיאים',

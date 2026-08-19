@@ -1204,3 +1204,23 @@ select:focus-visible,
   from { opacity: 0; transform: scale(0.86); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/*
+ * A career, season by season. One measure per chart: a rating out of ten and three
+ * thousand minutes do not share a scale, and putting them on one pair of axes is the
+ * oldest mistake in charting. Thin marks, a recessive floor, and the only number
+ * printed is the one being pointed at.
+ */
+.season-chart { margin-block-start: 12px; }
+.season-chart svg { display: block; touch-action: pan-y; }
+.season-chart-base { stroke: rgba(255, 255, 255, 0.14); stroke-width: 1; }
+.season-chart-line {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.season-chart-area { fill: rgba(240, 190, 90, 0.14); stroke: none; }
+.season-chart-dot { fill: var(--amber); stroke: var(--surface-2); stroke-width: 2; }
+.season-chart-crosshair { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; stroke-dasharray: 2 3; }
