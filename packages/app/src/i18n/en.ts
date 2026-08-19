@@ -1352,4 +1352,16 @@ export const en: Record<string, string> = {
   'event.money_league_offer.take_the_money.comfortable': 'The money is life-changing. The football is not, and people stopped talking about you.',
   'event.money_league_offer.take_the_money.reinvented': 'You are the best player there by a distance, and you are enjoying football again.',
   'event.money_league_offer.stay_competitive.outcome': 'You turned it down. The supporters found out, and they will not forget it.',
+
+'europe.tables': 'Tables',
+  'europe.results': 'Results',
+  'europe.topTwo': 'The top two go through.',
+  'europe.notDrawn': 'Not drawn yet.',
+  'europe.winner': 'Winners',
+
+'inbox.europe.qualified.ucl': 'You are through. {club} are in the Champions League group stage.',
+  'inbox.europe.qualified.uel': 'You are through to the Europa League group stage.',
+  'inbox.europe.qualified.uecl': 'You are through to the Conference League group stage.',
+  'inbox.europe.knockedOut': 'Out in qualifying. The European season is over before the league has started.',
+  'news.europe.qualified': '{club} come through qualifying.',
 };

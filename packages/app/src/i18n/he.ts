@@ -1354,4 +1354,16 @@ export const he: Record<string, string> = {
   'event.money_league_offer.take_the_money.comfortable': 'הכסף משנה חיים. הכדורגל לא, והפסיקו לדבר עליך.',
   'event.money_league_offer.take_the_money.reinvented': 'אתה השחקן הכי טוב שם בהפרש, ואתה נהנה מכדורגל מחדש.',
   'event.money_league_offer.stay_competitive.outcome': 'סירבת. האוהדים גילו, והם לא ישכחו את זה.',
+
+'europe.tables': 'טבלאות',
+  'europe.results': 'תוצאות',
+  'europe.topTwo': 'שתי הראשונות עולות.',
+  'europe.notDrawn': 'עוד לא נערכה הגרלה.',
+  'europe.winner': 'הזוכה',
+
+'inbox.europe.qualified.ucl': 'עברתם. {club} בשלב הבתים של ליגת האלופות.',
+  'inbox.europe.qualified.uel': 'עברתם לשלב הבתים של הליגה האירופית.',
+  'inbox.europe.qualified.uecl': 'עברתם לשלב הבתים של ליגת הכנס.',
+  'inbox.europe.knockedOut': 'נפילה במוקדמות. העונה האירופית נגמרה עוד לפני שהליגה התחילה.',
+  'news.europe.qualified': '{club} עוברת את המוקדמות.',
 };

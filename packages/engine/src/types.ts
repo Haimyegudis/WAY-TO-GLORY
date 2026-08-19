@@ -176,7 +176,15 @@ export interface Competition {
   groups?: number;                // for split third tiers
   promotion?: { auto: number; playoff?: number; to?: string };
   relegation?: { auto: number; playoff?: number; to?: string };
-  europeanSlots?: { ucl?: number; uel?: number; uecl?: number };
+  /**
+   * Places in Europe. The plain fields go straight into the group stage; the `Qual`
+   * fields have to be won in the summer, which is how a champion of a smaller league
+   * reaches the Champions League - or does not.
+   */
+  europeanSlots?: {
+    ucl?: number; uel?: number; uecl?: number;
+    uclQual?: number; uelQual?: number; ueclQual?: number;
+  };
   cards: CardRules;
   reputation: number;             // 0-100
   seasonStartMonth: number;       // 1-12

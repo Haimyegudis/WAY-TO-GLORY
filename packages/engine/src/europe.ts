@@ -25,7 +25,10 @@ const KNOCKOUT_WEEKS: Record<EuroKnockoutStage, number[]> = {
 };
 
 export type EuroKnockoutStage = 'r16' | 'qf' | 'sf' | 'final';
-export type EuroStage = 'group' | EuroKnockoutStage | 'done';
+export type EuroStage = 'qualifying' | 'group' | EuroKnockoutStage | 'done';
+
+/** Summer weeks, before the domestic season starts. */
+export const QUALIFYING_WEEKS = [1, 2, 3];
 
 export interface EuroGroup {
   letter: string;
@@ -43,9 +46,23 @@ export interface EuroTie {
   result?: [number, number];
 }
 
+export interface EuroQualifyingTie {
+  round: number;
+  week: number;
+  homeClubId: string;
+  awayClubId: string;
+  played: boolean;
+  result?: [number, number];
+  winner?: string;
+}
+
 export interface EuroState {
   id: EuroTier;
   season: number;
+  /** Clubs that go straight into the groups, held while the qualifiers are played. */
+  seeded?: string[];
+  /** The summer rounds, and who is left in them. */
+  qualifying?: { round: number; alive: string[]; ties: EuroQualifyingTie[] };
   groups: EuroGroup[];
   fixtures: Fixture[];
   ties: EuroTie[];
@@ -65,6 +82,98 @@ const GROUP_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
  * by playing fewer groups rather than inventing clubs - small nations do not always
  * fill a bracket in a game with thirteen countries in it.
  */
+/**
+ * A competition that has to be qualified for.
+ *
+ * The clubs with a place already are held aside; everyone else plays a single-leg
+ * knockout across three summer weeks for whatever places are left. This is why a
+ * champion of a smaller league is not simply in the Champions League: he has to get
+ * past two ties in July first, and most years he does not.
+ */
+export function createEuroWithQualifying(
+  rng: Rng,
+  id: EuroTier,
+  seeded: string[],
+  qualifiers: string[],
+  season: number,
+  groupPlaces: number,
+): EuroState {
+  const placesLeft = Math.max(0, groupPlaces - seeded.length);
+  const alive = rng.shuffle(qualifiers.slice());
+
+  const state: EuroState = {
+    id,
+    season,
+    seeded: seeded.slice(),
+    qualifying: { round: 0, alive, ties: [] },
+    groups: [],
+    fixtures: [],
+    ties: [],
+    stage: 'qualifying',
+    alive: [],
+  };
+
+  if (alive.length === 0 || placesLeft === 0) return state;
+  drawQualifyingRound(rng, state, placesLeft);
+  return state;
+}
+
+/**
+ * Pairs whoever is left. Once the field is down to the number of places on offer, the
+ * rest go through without playing - which is what a bye is.
+ */
+export function drawQualifyingRound(rng: Rng, state: EuroState, placesLeft: number): void {
+  const qualifying = state.qualifying;
+  if (!qualifying) return;
+  if (qualifying.alive.length <= placesLeft) return;
+
+  const round = qualifying.round + 1;
+  const week = QUALIFYING_WEEKS[Math.min(round - 1, QUALIFYING_WEEKS.length - 1)]!;
+  qualifying.round = round;
+
+  // Only as many ties as we need to shrink the field to the places available.
+  const mustGo = qualifying.alive.length - placesLeft;
+  const tieCount = Math.min(Math.floor(qualifying.alive.length / 2), Math.max(1, mustGo));
+  const pool = rng.shuffle(qualifying.alive.slice());
+
+  for (let i = 0; i < tieCount; i++) {
+    const home = pool[i * 2];
+    const away = pool[i * 2 + 1];
+    if (!home || !away) break;
+    qualifying.ties.push({ round, week, homeClubId: home, awayClubId: away, played: false });
+  }
+}
+
+/** Settles a qualifying round and either draws the next one or fills the groups. */
+export function resolveQualifyingRound(rng: Rng, state: EuroState, placesLeft: number): boolean {
+  const qualifying = state.qualifying;
+  if (!qualifying) return false;
+  const ties = qualifying.ties.filter((tie) => tie.round === qualifying.round);
+  if (ties.length === 0 || !ties.every((tie) => tie.played)) return false;
+
+  const eliminated = new Set<string>();
+  for (const tie of ties) {
+    const [home, away] = tie.result ?? [0, 0];
+    const winner = home === away ? (rng.chance(0.55) ? tie.homeClubId : tie.awayClubId) : home > away ? tie.homeClubId : tie.awayClubId;
+    tie.winner = winner;
+    eliminated.add(winner === tie.homeClubId ? tie.awayClubId : tie.homeClubId);
+  }
+  qualifying.alive = qualifying.alive.filter((clubId) => !eliminated.has(clubId));
+
+  if (qualifying.alive.length > placesLeft && qualifying.round < QUALIFYING_WEEKS.length) {
+    drawQualifyingRound(rng, state, placesLeft);
+    return false;
+  }
+  return true;
+}
+
+/** Everyone who ends the summer with a place: the seeds plus whoever came through. */
+export function qualifiedField(state: EuroState, groupPlaces: number): string[] {
+  const seeded = state.seeded ?? [];
+  const survivors = state.qualifying?.alive ?? [];
+  return [...seeded, ...survivors].slice(0, groupPlaces);
+}
+
 export function createEuroCompetition(rng: Rng, id: EuroTier, clubIds: string[], season: number): EuroState | null {
   const entrants = rng.shuffle(clubIds.slice());
   const groupCount = Math.min(8, Math.floor(entrants.length / 4));
@@ -184,7 +293,7 @@ export function drawEuroRound(rng: Rng, state: EuroState): void {
  */
 export function resolveEuroRound(rng: Rng, state: EuroState): void {
   if (state.stage === 'group' || state.stage === 'done') return;
-  const stage = state.stage;
+  const stage = state.stage as EuroKnockoutStage;
   const ties = state.ties.filter((t) => t.stage === stage);
   if (ties.length === 0 || !ties.every((t) => t.played)) return;
 
@@ -269,7 +378,7 @@ export function europeanQualifiers(
 export function euroPrize(tier: EuroTier, stage: EuroStage, champion: boolean): number {
   const base: Record<EuroTier, number> = { ucl: 18_000_000, uel: 5_000_000, uecl: 2_000_000 };
   const multiplier: Record<EuroStage, number> = {
-    group: 1, r16: 1.5, qf: 2.1, sf: 2.9, final: 3.6, done: 3.6,
+    qualifying: 0.35, group: 1, r16: 1.5, qf: 2.1, sf: 2.9, final: 3.6, done: 3.6,
   };
   return Math.round(base[tier] * multiplier[stage] * (champion ? 1.35 : 1));
 }

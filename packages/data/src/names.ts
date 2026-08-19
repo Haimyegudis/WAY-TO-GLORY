@@ -3,6 +3,57 @@ import type { NamePool } from '@fc/engine';
 /** Name pools for procedurally generated players, one per locale. */
 export const NAME_POOLS: NamePool[] = [
   {
+    locale: 'ua',
+    first: ['Andriy', 'Oleksandr', 'Serhiy', 'Vitaliy', 'Bohdan', 'Yuriy', 'Denys', 'Mykola', 'Ruslan', 'Taras', 'Ihor', 'Roman', 'Vadym', 'Artem', 'Maksym', 'Yevhen', 'Volodymyr', 'Dmytro', 'Oleh', 'Pavlo', 'Nazar', 'Illia', 'Kyrylo', 'Stanislav', 'Anton', 'Vasyl', 'Ostap', 'Marko', 'Levko', 'Danylo'],
+    last: ['Shevchenko', 'Kovalenko', 'Bondarenko', 'Tkachenko', 'Kravchuk', 'Melnyk', 'Boyko', 'Marchenko', 'Lysenko', 'Rudenko', 'Sydorenko', 'Hrytsenko', 'Pavlenko', 'Zinchenko', 'Yaremchuk', 'Malinovskyi', 'Stepanenko', 'Kharatin', 'Bilyk', 'Hutsulyak', 'Dovbyk', 'Mudryk', 'Tsyhankov', 'Sobol', 'Karavaev', 'Trubin', 'Buletsa', 'Vanat', 'Brazhko', 'Shaparenko'],
+  },
+  {
+    locale: 'cz',
+    first: ['Jakub', 'Tomas', 'Petr', 'Martin', 'Ondrej', 'Lukas', 'David', 'Vojtech', 'Filip', 'Adam', 'Jan', 'Michal', 'Daniel', 'Matej', 'Patrik', 'Radek', 'Marek', 'Vaclav', 'Josef', 'Karel', 'Milan', 'Stanislav', 'Zdenek', 'Ladislav', 'Antonin', 'Roman', 'Pavel', 'Jiri', 'Miroslav', 'Dominik'],
+    last: ['Novak', 'Svoboda', 'Novotny', 'Dvorak', 'Cerny', 'Prochazka', 'Kucera', 'Vesely', 'Horak', 'Nemec', 'Pospisil', 'Marek', 'Kral', 'Benes', 'Fiala', 'Sedlacek', 'Dolezal', 'Zeman', 'Kolar', 'Ruzicka', 'Soucek', 'Coufal', 'Schick', 'Hlozek', 'Barak', 'Jankto', 'Krejci', 'Masopust', 'Vydra', 'Holes'],
+  },
+  {
+    locale: 'hr',
+    first: ['Marko', 'Ivan', 'Luka', 'Josip', 'Ante', 'Mateo', 'Nikola', 'Filip', 'Dario', 'Tomislav', 'Domagoj', 'Petar', 'Karlo', 'Mislav', 'Bruno', 'Andrej', 'Borna', 'Duje', 'Fran', 'Toni', 'Stipe', 'Roko', 'Lovro', 'Josko', 'Dominik', 'Kristijan', 'Marin', 'Franjo', 'Matija', 'Ivica'],
+    last: ['Horvat', 'Kovacevic', 'Babic', 'Maric', 'Novak', 'Juric', 'Kovacic', 'Vukovic', 'Peric', 'Matic', 'Modric', 'Perisic', 'Brozovic', 'Gvardiol', 'Sosa', 'Petkovic', 'Pasalic', 'Sucic', 'Livaja', 'Stanisic', 'Erlic', 'Vlasic', 'Majer', 'Ivanusec', 'Baturina', 'Moro', 'Sutalo', 'Budimir', 'Kramaric', 'Jakic'],
+  },
+  {
+    locale: 'rs',
+    first: ['Nikola', 'Marko', 'Stefan', 'Aleksandar', 'Milos', 'Nemanja', 'Luka', 'Filip', 'Dusan', 'Uros', 'Lazar', 'Vukasin', 'Petar', 'Dragan', 'Bogdan', 'Andrija', 'Veljko', 'Strahinja', 'Ognjen', 'Mihailo', 'Nenad', 'Vladimir', 'Milan', 'Zoran', 'Ivan', 'Sasa', 'Bojan', 'Predrag', 'Djordje', 'Relja'],
+    last: ['Jovanovic', 'Petrovic', 'Nikolic', 'Markovic', 'Djordjevic', 'Stojanovic', 'Ilic', 'Stankovic', 'Pavlovic', 'Milosevic', 'Mitrovic', 'Vlahovic', 'Tadic', 'Kostic', 'Zivkovic', 'Lukic', 'Gudelj', 'Veljkovic', 'Radonjic', 'Samardzic', 'Milinkovic', 'Grujic', 'Babic', 'Erakovic', 'Rajkovic', 'Terzic', 'Maksimovic', 'Jovic', 'Simic', 'Krstic'],
+  },
+  {
+    locale: 'dk',
+    first: ['Mikkel', 'Kasper', 'Frederik', 'Emil', 'Rasmus', 'Anders', 'Magnus', 'Jonas', 'Nikolaj', 'Christian', 'Mads', 'Lasse', 'Oliver', 'Victor', 'Simon', 'Andreas', 'Jesper', 'Marcus', 'Tobias', 'Sebastian', 'Alexander', 'Joachim', 'Nicolai', 'Patrick', 'Daniel', 'Martin', 'Soren', 'Thomas', 'Jeppe', 'Villads'],
+    last: ['Jensen', 'Nielsen', 'Hansen', 'Pedersen', 'Andersen', 'Christensen', 'Larsen', 'Sorensen', 'Rasmussen', 'Jorgensen', 'Petersen', 'Madsen', 'Kristensen', 'Olsen', 'Thomsen', 'Christiansen', 'Poulsen', 'Johansen', 'Knudsen', 'Mortensen', 'Skov', 'Damsgaard', 'Hojbjerg', 'Dolberg', 'Braithwaite', 'Wind', 'Maehle', 'Kjaer', 'Andreasen', 'Bruun'],
+  },
+  {
+    locale: 'no',
+    first: ['Erling', 'Martin', 'Kristian', 'Sander', 'Jonas', 'Mathias', 'Andreas', 'Marius', 'Sondre', 'Emil', 'Fredrik', 'Henrik', 'Magnus', 'Ole', 'Jorgen', 'Even', 'Simen', 'Tobias', 'Aron', 'Leo', 'Iver', 'Kasper', 'Vetle', 'Filip', 'Petter', 'Anders', 'Sindre', 'Elias', 'Herman', 'Oskar'],
+    last: ['Hansen', 'Johansen', 'Olsen', 'Larsen', 'Andersen', 'Pedersen', 'Nilsen', 'Kristiansen', 'Jensen', 'Karlsen', 'Johnsen', 'Pettersen', 'Eriksen', 'Berg', 'Haaland', 'Odegaard', 'Sorloth', 'Berge', 'Elyounoussi', 'Ryerson', 'Aursnes', 'Strand', 'Nusa', 'Bobb', 'Ostigard', 'Thorsby', 'Nordtveit', 'Hauge', 'Solbakken', 'Myhre'],
+  },
+  {
+    locale: 'se',
+    first: ['Viktor', 'Emil', 'Anton', 'Oscar', 'Gustav', 'Hugo', 'Elias', 'Axel', 'Isak', 'Filip', 'Alexander', 'Jesper', 'Simon', 'Kevin', 'Sebastian', 'Adam', 'Erik', 'Ludwig', 'Marcus', 'Robin', 'Joel', 'Linus', 'Melker', 'Noah', 'Rasmus', 'Samuel', 'Theo', 'Vilmer', 'Albin', 'Nils'],
+    last: ['Andersson', 'Johansson', 'Karlsson', 'Nilsson', 'Eriksson', 'Larsson', 'Olsson', 'Persson', 'Svensson', 'Gustafsson', 'Lindberg', 'Berg', 'Isak', 'Gyokeres', 'Elanga', 'Kulusevski', 'Forsberg', 'Olsen', 'Bergvall', 'Ayari', 'Nygren', 'Hjulmand', 'Claesson', 'Ekdal', 'Krafth', 'Lindelof', 'Danielson', 'Holm', 'Sundberg', 'Ahlberg'],
+  },
+  {
+    locale: 'pl',
+    first: ['Jakub', 'Piotr', 'Michal', 'Bartosz', 'Kacper', 'Mateusz', 'Filip', 'Szymon', 'Adam', 'Krzysztof', 'Damian', 'Pawel', 'Marcin', 'Tomasz', 'Lukasz', 'Sebastian', 'Dawid', 'Kamil', 'Rafal', 'Wojciech', 'Grzegorz', 'Karol', 'Przemyslaw', 'Arkadiusz', 'Bartlomiej', 'Maciej', 'Jan', 'Nikodem', 'Oliwier', 'Igor'],
+    last: ['Nowak', 'Kowalski', 'Wisniewski', 'Wojcik', 'Kowalczyk', 'Kaminski', 'Lewandowski', 'Zielinski', 'Szymanski', 'Wozniak', 'Dabrowski', 'Kozlowski', 'Jankowski', 'Mazur', 'Krawczyk', 'Piotrowski', 'Grabowski', 'Nowicki', 'Pawlowski', 'Michalski', 'Zalewski', 'Milik', 'Bednarek', 'Frankowski', 'Skorupski', 'Cash', 'Kiwior', 'Buksa', 'Slisz', 'Urbanski'],
+  },
+  {
+    locale: 'ro',
+    first: ['Andrei', 'Alexandru', 'Ionut', 'Cristian', 'Gabriel', 'Razvan', 'Vlad', 'Bogdan', 'Marius', 'Florin', 'Denis', 'Stefan', 'Nicolae', 'Adrian', 'Daniel', 'Mihai', 'Valentin', 'Sergiu', 'Catalin', 'Robert', 'Darius', 'Octavian', 'Claudiu', 'Iulian', 'Dragos', 'Silviu', 'Paul', 'Lucian', 'Ovidiu', 'Rares'],
+    last: ['Popescu', 'Ionescu', 'Popa', 'Stan', 'Dumitru', 'Radu', 'Munteanu', 'Constantin', 'Georgescu', 'Marin', 'Stoica', 'Barbu', 'Nistor', 'Tudor', 'Dobre', 'Coman', 'Cicaldau', 'Hagi', 'Mitrita', 'Puscas', 'Dragusin', 'Marin', 'Man', 'Sorescu', 'Baluta', 'Chiriches', 'Nedelcearu', 'Cordea', 'Olaru', 'Birligea'],
+  },
+  {
+    locale: 'hu',
+    first: ['Bence', 'Adam', 'Daniel', 'Mate', 'Balazs', 'Peter', 'Zsolt', 'Gergo', 'Tamas', 'Attila', 'Roland', 'Krisztian', 'Norbert', 'Marton', 'Levente', 'Andras', 'Laszlo', 'Zoltan', 'Istvan', 'Gabor', 'Milan', 'Botond', 'Kevin', 'Patrik', 'Barnabas', 'Csaba', 'Erik', 'Akos', 'Donat', 'Imre'],
+    last: ['Nagy', 'Kovacs', 'Toth', 'Szabo', 'Horvath', 'Varga', 'Kiss', 'Molnar', 'Nemeth', 'Farkas', 'Balogh', 'Papp', 'Lakatos', 'Takacs', 'Juhasz', 'Meszaros', 'Olah', 'Simon', 'Racz', 'Fekete', 'Szoboszlai', 'Sallai', 'Gulacsi', 'Orban', 'Schafer', 'Bolla', 'Kerkez', 'Styles', 'Varga', 'Csoboth'],
+  },
+
+  {
     locale: 'en',
     first: ['Jack', 'Harry', 'Callum', 'Ollie', 'Reece', 'Tyler', 'Kyle', 'Lewis', 'Josh', 'Mason', 'Alfie', 'Charlie', 'Dan', 'Connor', 'Ethan', 'Jamie', 'Louie', 'Ryan', 'Sam', 'Freddie', 'Marcus', 'Jordan', 'Aaron', 'Nathan', 'Elliot', 'Kieran', 'Dominic', 'Toby', 'Leon', 'Curtis'],
     last: ['Smith', 'Wright', 'Baker', 'Hughes', 'Turner', 'Bennett', 'Clarke', 'Fletcher', 'Nolan', 'Whitfield', 'Ashcroft', 'Doyle', 'Redmond', 'Grant', 'Kavanagh', 'Sinclair', 'Howells', 'Ramsey', 'Duffield', 'Pearson', 'Stokes', 'Radford', 'Bramley', 'Colston', 'Hedges', 'Marsden', 'Alderton', 'Prescott', 'Vaughan', 'Winstone'],

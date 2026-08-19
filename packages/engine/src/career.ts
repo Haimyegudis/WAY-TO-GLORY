@@ -38,6 +38,11 @@ import { createCup, drawRound, isCupFinal, isCupSemi, recordTieResult, type CupS
 import {
   applyEuroResult,
   createEuroCompetition,
+  createEuroWithQualifying,
+  drawQualifyingRound,
+  qualifiedField,
+  resolveQualifyingRound,
+  QUALIFYING_WEEKS,
   drawEuroRound,
   euroPrize,
   europeanQualifiers,
@@ -205,6 +210,7 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     state.world.cups[cup.id] = cup;
   }
 
+  loadEuropeanSlots(index);
   initEurope(state, rng);
 }
 
@@ -218,32 +224,68 @@ function initEurope(state: CareerState, rng: Rng): void {
   const qualified = state.world.europeNext ?? defaultEuropeanEntrants(state);
   state.world.europe = {};
 
+  const GROUP_PLACES = 32;
   for (const tier of EURO_TIERS) {
-    const clubIds = (qualified[tier] ?? []).filter((id) => state.world.clubs[id]);
-    const competition = createEuroCompetition(rng, tier, clubIds, season);
-    if (competition) state.world.europe[tier] = competition;
+    const seeded = (qualified[tier] ?? []).filter((id) => state.world.clubs[id]);
+    const qualifiers = (qualified[`${tier}Qual`] ?? []).filter((id) => state.world.clubs[id]);
+    if (seeded.length === 0 && qualifiers.length === 0) continue;
+
+    // Thirty-two places. More clubs than that have a claim on them, which is exactly
+    // why there is a summer: the seeds are in, everyone else plays for what is left.
+    const field = seeded.length + qualifiers.length;
+    if (field < 8) continue;
+    const places = Math.min(GROUP_PLACES, field);
+    state.world.europe[tier] = createEuroWithQualifying(rng, tier, seeded, qualifiers, season, places);
   }
   state.world.europeNext = undefined;
 }
 
 /** First season only: seed Europe with the best clubs of every top division. */
 function defaultEuropeanEntrants(state: CareerState): Record<string, string[]> {
-  const byCountry = new Map<string, Club[]>();
+  // The first season has no table to read, so the strongest clubs in each country take
+  // that country's places - the same allocation the real competitions use, which is
+  // why there is no three-Israeli-club Champions League.
+  const out: Record<string, string[]> = { ucl: [], uel: [], uecl: [], uclQual: [], uelQual: [], ueclQual: [] };
+  const index = state.world.competitions;
+  void index;
+
+  const byCompetition = new Map<string, Club[]>();
   for (const club of Object.values(state.world.clubs)) {
     if (club.tier !== 1) continue;
-    const list = byCountry.get(club.country) ?? [];
+    const list = byCompetition.get(club.competitionId) ?? [];
     list.push(club);
-    byCountry.set(club.country, list);
+    byCompetition.set(club.competitionId, list);
   }
 
-  const out: Record<string, string[]> = { ucl: [], uel: [], uecl: [] };
-  for (const clubs of byCountry.values()) {
-    const ranked = clubs.sort((a, b) => b.strength - a.strength);
-    out.ucl!.push(...ranked.slice(0, 3).map((c) => c.id));
-    out.uel!.push(...ranked.slice(3, 5).map((c) => c.id));
-    out.uecl!.push(...ranked.slice(5, 7).map((c) => c.id));
+  for (const [competitionId, clubs] of byCompetition) {
+    const slots = EUROPEAN_SLOTS.get(competitionId);
+    if (!slots) continue;
+    const ranked = clubs.sort((a, b) => b.strength - a.strength).map((c) => c.id);
+    let cursor = 0;
+    const take = (count: number | undefined): string[] => {
+      if (!count) return [];
+      const picked = ranked.slice(cursor, cursor + count);
+      cursor += count;
+      return picked;
+    };
+    out.ucl!.push(...take(slots.ucl));
+    out.uclQual!.push(...take(slots.uclQual));
+    out.uel!.push(...take(slots.uel));
+    out.uelQual!.push(...take(slots.uelQual));
+    out.uecl!.push(...take(slots.uecl));
+    out.ueclQual!.push(...take(slots.ueclQual));
   }
   return out;
+}
+
+/** Filled from the pack the first time it is needed, so allocation stays data-driven. */
+const EUROPEAN_SLOTS = new Map<string, NonNullable<Competition['europeanSlots']>>();
+
+function loadEuropeanSlots(index: PackIndex): void {
+  if (EUROPEAN_SLOTS.size > 0) return;
+  for (const competition of index.pack.competitions) {
+    if (competition.europeanSlots) EUROPEAN_SLOTS.set(competition.id, competition.europeanSlots);
+  }
 }
 
 export interface AcademyOffer {
@@ -880,6 +922,12 @@ function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: 
   for (const competition of Object.values(europe)) {
     if (isFinished(competition)) continue;
 
+    if (competition.stage === 'qualifying') {
+      const result = playQualifyingWeek(state, index, rng, club, competition);
+      if (result) userResult = result;
+      continue;
+    }
+
     if (isGroupStage(competition)) {
       for (const fixture of competition.fixtures) {
         if (fixture.played || fixture.week !== week) continue;
@@ -953,6 +1001,73 @@ function isFinished(competition: EuroState): boolean {
 /** A type guard, so the compiler does not decide the stage can never end. */
 function isGroupStage(competition: EuroState): boolean {
   return competition.stage === 'group';
+}
+
+
+/**
+ * A summer week. The qualifiers are single ties, and for a club from a smaller league
+ * they are the whole season in ninety minutes: win them and there is a group stage,
+ * lose one and the European campaign is over before the league has kicked off.
+ */
+function playQualifyingWeek(
+  state: CareerState,
+  index: PackIndex,
+  rng: Rng,
+  club: Club | null,
+  competition: EuroState,
+): MatchResult | null {
+  const qualifying = competition.qualifying;
+  if (!qualifying) return null;
+  const week = state.world.week;
+  let userResult: MatchResult | null = null;
+
+  for (const tie of qualifying.ties) {
+    if (tie.played || tie.week !== week) continue;
+    const home = state.world.clubs[tie.homeClubId];
+    const away = state.world.clubs[tie.awayClubId];
+    if (!home || !away) { tie.played = true; continue; }
+
+    if (club && (tie.homeClubId === club.id || tie.awayClubId === club.id)) {
+      const result = playUserMatch(state, index, rng, tie.homeClubId, tie.awayClubId, competition.id, 'europeanNight');
+      tie.played = true;
+      tie.result = [result.homeGoals, result.awayGoals];
+      userResult = result;
+      continue;
+    }
+
+    const [hg, ag] = simulateQuickResult(rng, { homeRating: clubRating(home), awayRating: clubRating(away) });
+    tie.played = true;
+    tie.result = [hg, ag];
+  }
+
+  const places = Math.max(0, (competition.seeded?.length ?? 0) + qualifying.alive.length);
+  const groupPlaces = Math.min(32, Math.max(8, places));
+  const placesLeft = Math.max(0, groupPlaces - (competition.seeded?.length ?? 0));
+
+  // A competition whose field already fits does not need a summer at all.
+  const noQualifyingNeeded = qualifying.ties.length === 0 && qualifying.alive.length <= placesLeft;
+  const settled = noQualifyingNeeded || resolveQualifyingRound(rng, competition, placesLeft);
+  if (!settled) return userResult;
+  if (qualifying.ties.some((tie) => !tie.played)) return userResult;
+
+  // The summer is over: whoever is left joins the seeds and the groups are drawn.
+  const field = qualifiedField(competition, groupPlaces);
+  const drawn = createEuroCompetition(rng, competition.id, field, competition.season);
+  if (drawn) {
+    competition.groups = drawn.groups;
+    competition.fixtures = drawn.fixtures;
+    competition.stage = 'group';
+    if (club && field.includes(club.id)) {
+      pushInbox(state, 'club', `inbox.europe.qualified.${competition.id}`, { club: club.name });
+      pushNews(state, `news.europe.qualified`, { club: club.name }, 'high');
+    } else if (club && (competition.seeded ?? []).concat(qualifying.alive).length > 0
+      && qualifying.ties.some((tie) => tie.homeClubId === club.id || tie.awayClubId === club.id)) {
+      pushInbox(state, 'club', 'inbox.europe.knockedOut', { club: club.name });
+    }
+  } else {
+    competition.stage = 'done';
+  }
+  return userResult;
 }
 
 /** Money for the run, which is what a European place is worth to a club. */
@@ -1703,7 +1818,9 @@ function applyAwards(state: CareerState, index: PackIndex, rng: Rng): void {
 }
 
 function decideEuropeanQualification(state: CareerState, index: PackIndex): void {
-  const next: Record<string, string[]> = { ucl: [], uel: [], uecl: [] };
+  const next: Record<string, string[]> = {
+    ucl: [], uel: [], uecl: [], uclQual: [], uelQual: [], ueclQual: [],
+  };
 
   for (const compState of Object.values(state.world.competitions)) {
     const competition = index.competitionById.get(compState.competitionId);
@@ -1712,8 +1829,30 @@ function decideEuropeanQualification(state: CareerState, index: PackIndex): void
     const order = sortedTable(compState).map((row) => row.clubId);
     const cup = Object.values(state.world.cups).find((c) => c.country === competition.country);
     const cupWinner = cup?.winner ?? null;
-    const qualified = europeanQualifiers(order, competition.europeanSlots, cupWinner);
-    for (const tier of EURO_TIERS) next[tier]!.push(...qualified[tier]);
+    const slots = competition.europeanSlots;
+
+    let cursor = 0;
+    const take = (count: number | undefined): string[] => {
+      if (!count) return [];
+      const picked = order.slice(cursor, cursor + count).filter(Boolean);
+      cursor += count;
+      return picked;
+    };
+
+    next.ucl!.push(...take(slots.ucl));
+    next.uclQual!.push(...take(slots.uclQual));
+    next.uel!.push(...take(slots.uel));
+    next.uelQual!.push(...take(slots.uelQual));
+    next.uecl!.push(...take(slots.uecl));
+    next.ueclQual!.push(...take(slots.ueclQual));
+
+    // The cup winner takes a Europa League place, or a qualifying place if the country
+    // has none to give away.
+    if (cupWinner && !Object.values(next).some((list) => list.includes(cupWinner))) {
+      if (slots.uel) next.uel!.push(cupWinner);
+      else if (slots.uelQual) next.uelQual!.push(cupWinner);
+      else if (slots.ueclQual) next.ueclQual!.push(cupWinner);
+    }
   }
 
   // The holders are in next season's competition whatever they did at home.

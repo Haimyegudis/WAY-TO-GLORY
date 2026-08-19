@@ -12,9 +12,14 @@ export interface CompetitionSeed {
   promotionTo?: string;
   relegationAuto?: number;
   relegationTo?: string;
+  /** Places that go straight into the group stage. */
   ucl?: number;
   uel?: number;
   uecl?: number;
+  /** Places that have to be won through the summer qualifying rounds. */
+  uclQual?: number;
+  uelQual?: number;
+  ueclQual?: number;
   cards: CardRules;
   /** Set when the club list is authored by hand rather than imported. */
   manual?: boolean;
@@ -42,6 +47,22 @@ const ISRAEL_CARDS: CardRules = {
 };
 
 export const COMPETITIONS: CompetitionSeed[] = [
+  // Countries we do not simulate below the top flight, but whose champions are in
+  // Europe every August. Ten or so clubs each: enough for a real table and a real
+  // route into the qualifying rounds.
+  { id: 'sui.1', name: 'Swiss Super League', nameHe: 'הליגה השווייצרית', country: 'SUI', tier: 1, reputation: 60, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'ukr.1', name: 'Ukrainian Premier League', nameHe: 'הליגה האוקראינית', country: 'UKR', tier: 1, reputation: 58, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'cze.1', name: 'Czech First League', nameHe: 'הליגה הצ׳כית', country: 'CZE', tier: 1, reputation: 57, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'cro.1', name: 'Croatian First League', nameHe: 'הליגה הקרואטית', country: 'CRO', tier: 1, reputation: 56, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'srb.1', name: 'Serbian SuperLiga', nameHe: 'הליגה הסרבית', country: 'SRB', tier: 1, reputation: 55, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'den.1', name: 'Danish Superliga', nameHe: 'הליגה הדנית', country: 'DEN', tier: 1, reputation: 57, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'nor.1', name: 'Eliteserien', nameHe: 'הליגה הנורווגית', country: 'NOR', tier: 1, reputation: 54, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'swe.1', name: 'Allsvenskan', nameHe: 'הליגה השוודית', country: 'SWE', tier: 1, reputation: 54, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'pol.1', name: 'Ekstraklasa', nameHe: 'הליגה הפולנית', country: 'POL', tier: 1, reputation: 53, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'rou.1', name: 'Liga I', nameHe: 'הליגה הרומנית', country: 'ROU', tier: 1, reputation: 52, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'hun.1', name: 'Nemzeti Bajnokság I', nameHe: 'הליגה ההונגרית', country: 'HUN', tier: 1, reputation: 50, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+  { id: 'cyp.1', name: 'Cypriot First Division', nameHe: 'הליגה הקפריסאית', country: 'CYP', tier: 1, reputation: 49, rounds: 2, uclQual: 1, uelQual: 1, ueclQual: 1, cards: STANDARD_CARDS, manual: true },
+
   // England
   { id: 'en.1', name: 'Premier League', nameHe: 'פרמייר ליג', country: 'ENG', tier: 1, reputation: 95, rounds: 2, relegationAuto: 3, relegationTo: 'en.2', ucl: 4, uel: 2, uecl: 1, cards: STANDARD_CARDS },
   { id: 'en.2', name: 'Championship', nameHe: "צ'מפיונשיפ", country: 'ENG', tier: 2, reputation: 72, rounds: 2, promotionAuto: 3, promotionTo: 'en.1', relegationAuto: 3, relegationTo: 'en.3', cards: STANDARD_CARDS },
@@ -63,20 +84,20 @@ export const COMPETITIONS: CompetitionSeed[] = [
   { id: 'de.3', name: '3. Liga', nameHe: 'ליגה 3', country: 'GER', tier: 3, reputation: 50, rounds: 2, promotionAuto: 2, promotionTo: 'de.2', relegationAuto: 0, cards: LOWER_CARDS },
 
   // Israel
-  { id: 'il.1', name: 'Ligat HaAl', nameHe: 'ליגת העל', country: 'ISR', tier: 1, reputation: 54, rounds: 2, relegationAuto: 2, relegationTo: 'il.2', uecl: 2, cards: ISRAEL_CARDS, manual: true },
+  { id: 'il.1', name: 'Ligat HaAl', nameHe: 'ליגת העל', country: 'ISR', tier: 1, reputation: 54, rounds: 2, relegationAuto: 2, relegationTo: 'il.2', uclQual: 1, uelQual: 1, ueclQual: 2, cards: ISRAEL_CARDS, manual: true },
   { id: 'il.2', name: 'Liga Leumit', nameHe: 'ליגה לאומית', country: 'ISR', tier: 2, reputation: 40, rounds: 2, promotionAuto: 2, promotionTo: 'il.1', relegationAuto: 2, relegationTo: 'il.3', cards: ISRAEL_CARDS, manual: true },
   { id: 'il.3', name: 'Liga Alef', nameHe: "ליגה א'", country: 'ISR', tier: 3, reputation: 30, rounds: 2, promotionAuto: 2, promotionTo: 'il.2', relegationAuto: 0, cards: ISRAEL_CARDS, manual: true },
 
   // Extra countries: depth for the transfer market.
-  { id: 'fr.1', name: 'Ligue 1', nameHe: 'ליג 1', country: 'FRA', tier: 1, reputation: 82, rounds: 2, relegationAuto: 2, relegationTo: 'fr.2', ucl: 3, uel: 2, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'fr.1', name: 'Ligue 1', nameHe: 'ליג 1', country: 'FRA', tier: 1, reputation: 82, rounds: 2, relegationAuto: 2, relegationTo: 'fr.2', ucl: 3, uclQual: 1, uel: 2, uecl: 1, cards: STANDARD_CARDS },
   { id: 'fr.2', name: 'Ligue 2', nameHe: 'ליג 2', country: 'FRA', tier: 2, reputation: 60, rounds: 2, promotionAuto: 2, promotionTo: 'fr.1', relegationAuto: 2, cards: STANDARD_CARDS },
-  { id: 'pt.1', name: 'Primeira Liga', nameHe: 'ליגה פורטוגלית', country: 'POR', tier: 1, reputation: 76, rounds: 2, relegationAuto: 2, ucl: 2, uel: 2, uecl: 1, cards: STANDARD_CARDS },
-  { id: 'nl.1', name: 'Eredivisie', nameHe: 'ארדיוויזי', country: 'NED', tier: 1, reputation: 74, rounds: 2, relegationAuto: 2, ucl: 2, uel: 2, uecl: 1, cards: STANDARD_CARDS },
-  { id: 'tr.1', name: 'Super Lig', nameHe: 'סופר ליג', country: 'TUR', tier: 1, reputation: 70, rounds: 2, relegationAuto: 3, ucl: 2, uel: 2, uecl: 1, cards: STANDARD_CARDS },
-  { id: 'be.1', name: 'Pro League', nameHe: 'ליגה בלגית', country: 'BEL', tier: 1, reputation: 66, rounds: 2, relegationAuto: 2, ucl: 2, uel: 1, uecl: 1, cards: STANDARD_CARDS },
-  { id: 'at.1', name: 'Bundesliga (AUT)', nameHe: 'בונדסליגה אוסטרית', country: 'AUT', tier: 1, reputation: 62, rounds: 2, relegationAuto: 1, ucl: 1, uel: 1, uecl: 1, cards: STANDARD_CARDS },
-  { id: 'gr.1', name: 'Super League', nameHe: 'סופר ליג יוונית', country: 'GRE', tier: 1, reputation: 60, rounds: 2, relegationAuto: 2, ucl: 1, uel: 1, uecl: 1, cards: STANDARD_CARDS },
-  { id: 'sco.1', name: 'Scottish Premiership', nameHe: 'ליגה סקוטית', country: 'SCO', tier: 1, reputation: 58, rounds: 2, relegationAuto: 1, ucl: 1, uel: 1, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'pt.1', name: 'Primeira Liga', nameHe: 'ליגה פורטוגלית', country: 'POR', tier: 1, reputation: 76, rounds: 2, relegationAuto: 2, ucl: 2, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'nl.1', name: 'Eredivisie', nameHe: 'ארדיוויזי', country: 'NED', tier: 1, reputation: 74, rounds: 2, relegationAuto: 2, ucl: 2, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'tr.1', name: 'Super Lig', nameHe: 'סופר ליג', country: 'TUR', tier: 1, reputation: 70, rounds: 2, relegationAuto: 3, ucl: 1, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'be.1', name: 'Pro League', nameHe: 'ליגה בלגית', country: 'BEL', tier: 1, reputation: 66, rounds: 2, relegationAuto: 2, ucl: 1, uclQual: 1, uel: 1, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'at.1', name: 'Bundesliga (AUT)', nameHe: 'בונדסליגה אוסטרית', country: 'AUT', tier: 1, reputation: 62, rounds: 2, relegationAuto: 1, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'gr.1', name: 'Super League', nameHe: 'סופר ליג יוונית', country: 'GRE', tier: 1, reputation: 60, rounds: 2, relegationAuto: 2, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
+  { id: 'sco.1', name: 'Scottish Premiership', nameHe: 'ליגה סקוטית', country: 'SCO', tier: 1, reputation: 58, rounds: 2, relegationAuto: 1, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
 ];
 
 export interface CountrySeed {
@@ -90,6 +111,19 @@ export interface CountrySeed {
 }
 
 export const COUNTRIES: CountrySeed[] = [
+  { code: 'SUI', name: 'Switzerland', nameHe: 'שווייץ', reputation: 62, nameLocale: 'de', cupName: 'Swiss Cup', cupNameHe: 'גביע שווייץ' },
+  { code: 'UKR', name: 'Ukraine', nameHe: 'אוקראינה', reputation: 60, nameLocale: 'ua', cupName: 'Ukrainian Cup', cupNameHe: 'גביע אוקראינה' },
+  { code: 'CZE', name: 'Czechia', nameHe: 'צ׳כיה', reputation: 59, nameLocale: 'cz', cupName: 'Czech Cup', cupNameHe: 'גביע צ׳כיה' },
+  { code: 'CRO', name: 'Croatia', nameHe: 'קרואטיה', reputation: 60, nameLocale: 'hr', cupName: 'Croatian Cup', cupNameHe: 'גביע קרואטיה' },
+  { code: 'SRB', name: 'Serbia', nameHe: 'סרביה', reputation: 58, nameLocale: 'rs', cupName: 'Serbian Cup', cupNameHe: 'גביע סרביה' },
+  { code: 'DEN', name: 'Denmark', nameHe: 'דנמרק', reputation: 59, nameLocale: 'dk', cupName: 'Danish Cup', cupNameHe: 'גביע דנמרק' },
+  { code: 'NOR', name: 'Norway', nameHe: 'נורווגיה', reputation: 56, nameLocale: 'no', cupName: 'Norwegian Cup', cupNameHe: 'גביע נורווגיה' },
+  { code: 'SWE', name: 'Sweden', nameHe: 'שוודיה', reputation: 56, nameLocale: 'se', cupName: 'Svenska Cupen', cupNameHe: 'גביע שוודיה' },
+  { code: 'POL', name: 'Poland', nameHe: 'פולין', reputation: 55, nameLocale: 'pl', cupName: 'Polish Cup', cupNameHe: 'גביע פולין' },
+  { code: 'ROU', name: 'Romania', nameHe: 'רומניה', reputation: 54, nameLocale: 'ro', cupName: 'Romanian Cup', cupNameHe: 'גביע רומניה' },
+  { code: 'HUN', name: 'Hungary', nameHe: 'הונגריה', reputation: 52, nameLocale: 'hu', cupName: 'Magyar Kupa', cupNameHe: 'גביע הונגריה' },
+  { code: 'CYP', name: 'Cyprus', nameHe: 'קפריסין', reputation: 50, nameLocale: 'gr', cupName: 'Cypriot Cup', cupNameHe: 'גביע קפריסין' },
+
   { code: 'ENG', name: 'England', nameHe: 'אנגליה', reputation: 90, nameLocale: 'en' , cupName: 'FA Cup', cupNameHe: 'גביע האנגלי' },
   { code: 'ESP', name: 'Spain', nameHe: 'ספרד', reputation: 93, nameLocale: 'es' , cupName: 'Copa del Rey', cupNameHe: 'קופה דל ריי' },
   { code: 'ITA', name: 'Italy', nameHe: 'איטליה', reputation: 88, nameLocale: 'it' , cupName: 'Coppa Italia', cupNameHe: 'גביע איטליה' },

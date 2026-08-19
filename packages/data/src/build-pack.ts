@@ -17,6 +17,7 @@ import {
 import { SOURCES } from './sources.js';
 import { COMPETITIONS, COUNTRIES, REPUTATION_OVERRIDES, type CompetitionSeed } from './competitions.js';
 import { MANUAL_CLUBS } from './manual-clubs.js';
+import { EURO_GUESTS } from './euro-guests.js';
 import { NAME_POOLS } from './names.js';
 import { STARS } from './stars.js';
 import { EVENTS } from './events.js';
@@ -221,7 +222,20 @@ async function main(): Promise<void> {
       records = source.kind === 'json' ? parseJsonLeague(text) : parseTxtLeague(text);
     }
 
-    if (records.length === 0 && manualList) {
+    // Countries whose top clubs we know from the football database rather than from a
+    // league file: real names, real badges, ranked by the standing of the club.
+    const guests = EURO_GUESTS.filter((guest) => guest.competitionId === seed.id);
+    if (records.length === 0 && guests.length > 0) {
+      guests.forEach((guest, i) => {
+        const strength = Math.round(seed.reputation + 12 - (i * 24) / Math.max(1, guests.length - 1));
+        const club = buildClub(seed, guest.name, strength, guest.city, true);
+        club.id = guest.id;
+        club.shortName = guest.shortName;
+        if (guest.crest) club.crest = guest.crest;
+        if (guest.color) club.color = guest.color;
+        clubs.push(club);
+      });
+    } else if (records.length === 0 && manualList) {
       for (const entry of manualList) {
         clubs.push(buildClub(seed, entry.name, entry.strength, entry.city, true));
       }
@@ -249,8 +263,17 @@ async function main(): Promise<void> {
       rounds: seed.rounds,
       ...(seed.promotionAuto ? { promotion: { auto: seed.promotionAuto, ...(seed.promotionTo ? { to: seed.promotionTo } : {}) } } : {}),
       ...(seed.relegationAuto ? { relegation: { auto: seed.relegationAuto, ...(seed.relegationTo ? { to: seed.relegationTo } : {}) } } : {}),
-      ...(seed.ucl || seed.uel || seed.uecl
-        ? { europeanSlots: { ...(seed.ucl ? { ucl: seed.ucl } : {}), ...(seed.uel ? { uel: seed.uel } : {}), ...(seed.uecl ? { uecl: seed.uecl } : {}) } }
+      ...(seed.ucl || seed.uel || seed.uecl || seed.uclQual || seed.uelQual || seed.ueclQual
+        ? {
+            europeanSlots: {
+              ...(seed.ucl ? { ucl: seed.ucl } : {}),
+              ...(seed.uel ? { uel: seed.uel } : {}),
+              ...(seed.uecl ? { uecl: seed.uecl } : {}),
+              ...(seed.uclQual ? { uclQual: seed.uclQual } : {}),
+              ...(seed.uelQual ? { uelQual: seed.uelQual } : {}),
+              ...(seed.ueclQual ? { ueclQual: seed.ueclQual } : {}),
+            },
+          }
         : {}),
       cards: seed.cards,
       reputation: seed.reputation,

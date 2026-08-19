@@ -35,11 +35,18 @@ export function teamRatingFromSquad(squad: Player[]): number {
   return sum / eleven.length;
 }
 
+/**
+ * A club's playing level on the same scale as a player's OVR, so a fourth-tier side
+ * really is a fourth-tier side when it draws a giant. The old mapping squeezed every
+ * club into a narrow band, which is why cup ties and European nights kept ending 1-0
+ * instead of the 4-0 the gap deserved.
+ */
 export function clubRating(club: Club): number {
-  return 38 + club.strength * 0.46;
+  return 30 + club.strength * 0.62;
 }
 
-const HOME_ADVANTAGE = 2.4;
+/** Worth about half a goal a game, which is what home advantage is actually worth. */
+const HOME_ADVANTAGE = 3.4;
 
 /** Expected goals for a side, from the rating gap. */
 export function expectedGoals(attackRating: number, defenceRating: number, home: boolean): number {
