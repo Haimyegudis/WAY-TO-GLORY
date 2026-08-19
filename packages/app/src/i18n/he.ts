@@ -168,6 +168,8 @@ export const he: Record<string, string> = {
   'train.title': 'אימונים',
   'train.intensity': 'עומס',
   'train.focus': 'דגש',
+  'train.diet.cost': '{cost} לשבוע · נשאר לך {left} מהמשכורת',
+  'train.diet.free': 'לא עולה כלום.',
   'train.diet': 'תזונה',
   'train.intensity.light': 'קל',
   'train.intensity.normal': 'רגיל',
@@ -320,6 +322,8 @@ export const he: Record<string, string> = {
   'severity.careerThreatening': 'מסכנת קריירה',
 
   // ---------------------------------------------------------------- inbox and news
+  'inbox.dietUnaffordable': 'לא היה כסף לתזונה שביקשת.',
+  'inbox.dietUnaffordable.body': 'החשבון על {cost} ליטול הגיע והחשבון שלך לא כיסה אותו. עברת מ{diet} ל{now} עד שיהיה לך ממה לשלם. זה לא נורא — זה פשוט מה שיש.',
   'inbox.welcomeAcademy': 'ברוך הבא לאקדמיה של {club}.',
   'inbox.promotedToFirstTeam': '{club} העלו אותך לסגל הבוגרים.',
   'inbox.injuryHealed': 'החלמת מפציעת {type}.',

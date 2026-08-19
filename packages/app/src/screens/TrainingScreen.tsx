@@ -7,7 +7,8 @@ import {
   type TrainingFocus,
   type TrainingIntensity,
 } from '@fc/engine';
-import { useT } from '../i18n/index.js';
+import { formatMoney, useLang, useT } from '../i18n/index.js';
+import { dietCost } from '@fc/engine';
 import { useGame } from '../state/store.js';
 import { Meter, Card } from '../components/ui.js';
 
@@ -75,6 +76,9 @@ export function TrainingScreen() {
   const plan = state.training;
   const player = state.player;
   const isKeeper = player.primaryPos === 'GK';
+  const lang = useLang((s) => s.lang);
+  const wage = state.contract?.salaryPerWeek ?? 0;
+  const weeklyDiet = dietCost(plan.diet, wage);
 
   return (
     <div className="screen stack">
@@ -110,6 +114,16 @@ export function TrainingScreen() {
             </div>
             <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>
               {t(`train.diet.${plan.diet}.desc`)}
+            </p>
+            {/* Eating like a professional is a bill, and a bill is worth seeing before
+                it arrives: what it costs a week, and what is left of the wage after it. */}
+            <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 4 }}>
+              {weeklyDiet > 0
+                ? t('train.diet.cost', {
+                    cost: formatMoney(weeklyDiet, lang),
+                    left: formatMoney(Math.max(0, wage - weeklyDiet), lang),
+                  })
+                : t('train.diet.free')}
             </p>
           </div>
 

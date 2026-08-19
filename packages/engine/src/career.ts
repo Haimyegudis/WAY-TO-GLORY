@@ -18,6 +18,7 @@ import {
 } from './generate.js';
 import {
   developWeek,
+  dietCost,
   driftPotential,
   updateCondition,
   updateForm,
@@ -948,7 +949,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     pushNews(state, 'news.injured', { weeks: injury.weeksOut }, 'high');
   }
 
-  // 4. Wages.
+  // 4. Wages, and what he spends on himself.
   if (state.contract) {
     // The agent's commission is real money, taken off the wage every week he is signed.
     const gross = state.contract.salaryPerWeek;
@@ -956,6 +957,30 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     state.finances.balance += gross - commission;
     state.finances.careerEarnings += gross - commission;
     if (commission > 0) state.flags['agentFeesPaid'] = Number(state.flags['agentFeesPaid'] ?? 0) + commission;
+
+    // Eating like a professional is a bill. It is paid out of what he has, and when he
+    // cannot cover it he eats a step worse - which is the point of the wage.
+    const cost = dietCost(state.training.diet, gross);
+    if (cost > 0) {
+      if (state.finances.balance >= cost) {
+        state.finances.balance -= cost;
+        state.flags['dietPaid'] = Number(state.flags['dietPaid'] ?? 0) + cost;
+      } else {
+        const cheaper: Record<string, CareerState['training']['diet']> = {
+          nutritionist: 'professional',
+          professional: 'normal',
+        };
+        const stepped = cheaper[state.training.diet];
+        if (stepped) {
+          pushInbox(state, 'personal', 'inbox.dietUnaffordable', {
+            cost,
+            diet: `train.diet.${state.training.diet}`,
+            now: `train.diet.${stepped}`,
+          });
+          state.training = { ...state.training, diet: stepped };
+        }
+      }
+    }
   }
 
   // 5. National team.

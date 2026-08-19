@@ -168,6 +168,8 @@ export const en: Record<string, string> = {
   'train.title': 'Training',
   'train.intensity': 'Load',
   'train.focus': 'Focus',
+  'train.diet.cost': '{cost} a week · {left} of the wage left',
+  'train.diet.free': 'Costs you nothing.',
   'train.diet': 'Diet',
   'train.intensity.light': 'Light',
   'train.intensity.normal': 'Normal',
@@ -324,6 +326,8 @@ export const en: Record<string, string> = {
   'severity.careerThreatening': 'Career threatening',
 
   // ---------------------------------------------------------------- inbox and news
+  'inbox.dietUnaffordable': 'You could not pay for the way you eat.',
+  'inbox.dietUnaffordable.body': 'The bill came to {cost} and your account did not cover it, so you have dropped from {diet} to {now} until it does. Not a disaster - just what you can afford.',
   'inbox.welcomeAcademy': 'Welcome to the {club} academy.',
   'inbox.promotedToFirstTeam': '{club} have moved you up to the first team squad.',
   'inbox.injuryHealed': 'You are fit again after a {type} problem.',

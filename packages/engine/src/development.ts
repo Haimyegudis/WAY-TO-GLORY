@@ -46,6 +46,29 @@ const DIET_RECOVERY: Record<TrainingPlan['diet'], number> = {
   poor: 0.7, normal: 1.0, professional: 1.2, nutritionist: 1.35,
 };
 /**
+ * What a diet costs, in money, every week.
+ *
+ * A cook who weighs your food and a nutritionist who plans your month are people, and
+ * people are paid. It is a share of the wage rather than a flat fee - the same standard
+ * of eating costs a Premier League forward and a boy in the third tier very different
+ * money - with a floor under it so a fifteen year old on nothing cannot buy the best
+ * table in football out of pocket money.
+ */
+export const DIET_COST: Record<TrainingPlan['diet'], { share: number; floor: number }> = {
+  poor: { share: 0, floor: 0 },
+  normal: { share: 0, floor: 0 },
+  professional: { share: 0.03, floor: 120 },
+  nutritionist: { share: 0.08, floor: 420 },
+};
+
+/** What he pays this week for eating the way he has chosen to eat. */
+export function dietCost(diet: TrainingPlan['diet'], weeklyWage: number): number {
+  const rate = DIET_COST[diet];
+  if (rate.share === 0) return 0;
+  return Math.round(Math.max(rate.floor, weeklyWage * rate.share));
+}
+
+/**
  * What a diet costs you in the head. A weighed, policed week is hard to live with
  * month after month, so the stricter plans pull morale down a little every week while
  * the body benefits. Small numbers on purpose: one good run of games outweighs them.
