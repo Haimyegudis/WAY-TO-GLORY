@@ -1,4 +1,12 @@
-import { currentOvr, potentialLabel, relationshipLabel, skillProfile } from '@fc/engine';
+import {
+  currentOvr,
+  potentialLabel,
+  relationshipLabel,
+  scoringRank,
+  skillProfile,
+  sortedTable,
+  userYouthCompetition,
+} from '@fc/engine';
 import { formatMoney, formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
 import { myClub, myPosition, nextFixture, seasonLine, weeksInjured } from '../state/selectors.js';
@@ -95,16 +103,17 @@ export function Hub() {
         </div>
       </Card>
 
-      {state.world.youth && (state.world.youthForm?.apps ?? 0) > 0 && (
+      {state.world.youth && state.world.youth.form.apps > 0 && (
         <Card title={t('hub.youth')}>
           <p style={{ fontSize: 13.5 }}>
             {t('hub.youthLine', {
-              apps: state.world.youthForm!.apps,
-              goals: state.world.youthForm!.goals,
-              assists: state.world.youthForm!.assists,
-              rating: (state.world.youthForm!.ratingSum / Math.max(1, state.world.youthForm!.apps)).toFixed(2),
+              apps: state.world.youth.form.apps,
+              goals: state.world.youth.form.goals,
+              assists: state.world.youth.form.assists,
+              rating: (state.world.youth.form.ratingSum / Math.max(1, state.world.youth.form.apps)).toFixed(2),
             })}
           </p>
+          <YouthStanding />
           <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t('hub.youthHint')}</p>
         </Card>
       )}
@@ -339,5 +348,31 @@ function RelationRow({ label, value }: { label: string; value: number }) {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * Where he stands in his own age group: his club's place in the youth table and his own
+ * place in its scoring chart. A sixteen year old has no league position of his own, so
+ * this is the only standing that means anything to him yet.
+ */
+function YouthStanding() {
+  const t = useT();
+  const state = useGame((s) => s.state)!;
+  const comp = userYouthCompetition(state);
+  const clubId = state.player.clubId;
+  if (!comp || !clubId) return null;
+
+  const rows = sortedTable(comp);
+  const place = rows.findIndex((row) => row.clubId === clubId) + 1;
+  if (place === 0) return null;
+  const rank = scoringRank(state);
+
+  return (
+    <p style={{ fontSize: 12.5, marginBlockStart: 6 }}>
+      {rank > 0
+        ? t('hub.youthStandingScoring', { place, teams: rows.length, rank })
+        : t('hub.youthStanding', { place, teams: rows.length })}
+    </p>
   );
 }

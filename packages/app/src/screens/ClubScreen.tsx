@@ -6,9 +6,10 @@ import { competitionLabel, competitionName, playerName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
 import { Card, ClubLine, Crest, Empty, Meter } from '../components/ui.js';
+import { YouthScreen } from './YouthScreen.js';
 import { clubColor } from '../lib/club.js';
 
-type Tab = 'table' | 'squad' | 'scorers' | 'europe';
+type Tab = 'table' | 'squad' | 'scorers' | 'europe' | 'youth';
 
 export function ClubScreen() {
   const t = useT();
@@ -57,6 +58,10 @@ export function ClubScreen() {
         <button aria-pressed={tab === 'table'} onClick={() => setTab('table')}>{t('club.table')}</button>
         <button aria-pressed={tab === 'squad'} onClick={() => setTab('squad')}>{t('club.squad')}</button>
         <button aria-pressed={tab === 'scorers'} onClick={() => setTab('scorers')}>{t('club.scorers')}</button>
+        {/* The age group has its own table, its own chart and its own boys. */}
+        {state.world.youth && (
+          <button aria-pressed={tab === 'youth'} onClick={() => setTab('youth')}>{t('youth.tab')}</button>
+        )}
         {/* Europe is there whether or not his own club is in it: he wants to follow it. */}
         {Object.keys(state.world.europe ?? {}).length > 0 && (
           <button aria-pressed={tab === 'europe'} onClick={() => setTab('europe')}>{t('competition.europe')}</button>
@@ -66,6 +71,7 @@ export function ClubScreen() {
       {tab === 'table' && <LeagueTable />}
       {tab === 'squad' && <SquadList />}
       {tab === 'scorers' && <Scorers />}
+      {tab === 'youth' && <YouthScreen />}
       {tab === 'europe' && <EuropeanRun />}
     </div>
   );
@@ -417,9 +423,8 @@ function LeagueTable() {
   const [selected, setSelected] = useState(myCompetition);
 
   const leagues = pack.competitions.filter((competition) => state.world.competitions[competition.id]);
-  const youth = state.world.youth;
 
-  const compState = selected === youth?.competitionId ? youth : state.world.competitions[selected];
+  const compState = state.world.competitions[selected];
   const rows = compState ? sortedTable(compState) : [];
 
   return (
@@ -437,9 +442,6 @@ function LeagueTable() {
               {competitionName(competition, lang)}
             </option>
           ))}
-          {youth && (
-            <option value={youth.competitionId}>{competitionLabel(youth.competitionId, pack, lang, t)}</option>
-          )}
         </select>
       }
     >
@@ -595,9 +597,6 @@ function Scorers() {
               {competitionName(competition, lang)}
             </option>
           ))}
-          {youth && (
-            <option value={youth.competitionId}>{competitionLabel(youth.competitionId, pack, lang, t)}</option>
-          )}
         </select>
       }
     >
