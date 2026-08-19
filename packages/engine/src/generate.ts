@@ -280,6 +280,8 @@ export interface SquadGenOptions {
   /** Real named players to seed into this squad before generating the rest. */
   stars?: StarPlayerSeed[];
   size?: number;
+  /** Names already in this world, so a boy and a senior are never the same man. */
+  taken?: Set<string>;
 }
 
 export function generateSquad(rng: Rng, opts: SquadGenOptions): Player[] {
@@ -317,6 +319,7 @@ export function generateSquad(rng: Rng, opts: SquadGenOptions): Player[] {
           season,
           countryCode: country,
           squadRole: i === 0 ? 'starter' : i === 1 ? 'rotation' : 'bench',
+          ...(opts.taken ? { taken: opts.taken } : {}),
         }),
       );
       slot++;

@@ -117,6 +117,7 @@ import {
 import { resolveYouthSeason } from './youth-awards.js';
 import {
   ageYouthWorld,
+  namesInUse,
   stockYouthDivision,
   youthSquad,
   youthStatsFor,
@@ -672,10 +673,12 @@ export function ensureModelledSquads(state: CareerState, index: PackIndex, rng: 
 
   const keep = new Set<string>();
   const season = state.world.season;
+  // Every name already spoken for in this world, so nobody is generated twice.
+  const taken = namesInUse(state);
 
   if (!state.world.squads[clubId] || state.world.squads[clubId]!.length < 18) {
     const stars = index.starsByClub.get(clubId) ?? [];
-    const squad = generateSquad(rng, { club, season, index, stars });
+    const squad = generateSquad(rng, { club, season, index, stars, taken });
     state.world.squads[clubId] = squad.map((p) => p.id);
     for (const p of squad) state.world.players[p.id] = p;
   }
@@ -702,6 +705,7 @@ export function ensureModelledSquads(state: CareerState, index: PackIndex, rng: 
           season,
           countryCode: rival.country,
           squadRole: 'starter',
+          taken,
         }),
       );
     }

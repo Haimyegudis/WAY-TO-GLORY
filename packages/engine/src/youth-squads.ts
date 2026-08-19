@@ -61,7 +61,13 @@ export function emptyYouthStats(season: number, clubId: string, competitionId: s
  * The best of them is a year or two from the first team; the rest never make it, which
  * is what the youth league is.
  */
-export function generateYouthSquad(rng: Rng, index: PackIndex, club: Club, season: number): Player[] {
+export function generateYouthSquad(
+  rng: Rng,
+  index: PackIndex,
+  club: Club,
+  season: number,
+  taken?: Set<string>,
+): Player[] {
   const players: Player[] = [];
   const homeCountry = club.country;
   const otherCountries = index.pack.countries.map((c) => c.code).filter((c) => c !== homeCountry);
@@ -88,6 +94,7 @@ export function generateYouthSquad(rng: Rng, index: PackIndex, club: Club, seaso
           season,
           countryCode: country,
           squadRole: 'academy',
+          ...(taken ? { taken } : {}),
         }),
       );
       slot++;
@@ -122,11 +129,12 @@ export function stockYouthDivision(
     delete youth.squads[clubId];
   }
 
+  const taken = namesInUse(state);
   for (const clubId of wanted) {
     if (youth.squads[clubId]?.length) continue;
     const club = state.world.clubs[clubId];
     if (!club) continue;
-    const squad = generateYouthSquad(rng, index, club, state.world.season);
+    const squad = generateYouthSquad(rng, index, club, state.world.season, taken);
     youth.squads[clubId] = squad.map((p) => p.id);
     for (const player of squad) {
       youth.players[player.id] = player;
@@ -147,6 +155,7 @@ export function ageYouthWorld(rng: Rng, state: CareerState, index: PackIndex): P
   if (!youth) return [];
   const season = state.world.season;
   const leavers: Player[] = [];
+  const taken = namesInUse(state);
 
   for (const [clubId, ids] of Object.entries(youth.squads)) {
     const club = state.world.clubs[clubId];
@@ -187,6 +196,7 @@ export function ageYouthWorld(rng: Rng, state: CareerState, index: PackIndex): P
         season,
         countryCode: club.country,
         squadRole: 'academy',
+        taken,
       });
       youth.players[player.id] = player;
       youth.stats[player.id] = emptyYouthStats(season, clubId, competitionId);
@@ -211,6 +221,23 @@ function developYouthPlayer(rng: Rng, player: Player): void {
   for (const key of touched) {
     player.attributes[key] = clamp(player.attributes[key] + gain / touched.length * rng.range(0.5, 1.8), 1, 99);
   }
+}
+
+/**
+ * Every name already spoken for in this world: the senior squads we model, the boys,
+ * and the player himself. Handed to the generator so a sixteen year old and the centre
+ * forward he is trying to replace are not the same man with two birthdays.
+ */
+export function namesInUse(state: CareerState): Set<string> {
+  const taken = new Set<string>();
+  for (const player of Object.values(state.world.players)) {
+    taken.add(`${player.firstName} ${player.lastName}`);
+  }
+  for (const player of Object.values(state.world.youth?.players ?? {})) {
+    taken.add(`${player.firstName} ${player.lastName}`);
+  }
+  taken.add(`${state.player.firstName} ${state.player.lastName}`);
+  return taken;
 }
 
 /** Everybody in one youth squad, as players. */
