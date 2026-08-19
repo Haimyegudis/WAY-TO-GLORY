@@ -48,6 +48,60 @@ import {
 } from '@fc/engine';
 import packJson from '@fc/data/pack';
 
+/**
+ * Where he was, kept outside the save itself.
+ *
+ * The careers live in IndexedDB, which is asynchronous; this is one string in
+ * localStorage saying which of them was open and on what screen, so a reload can go
+ * straight back there instead of to the title.
+ */
+const OPEN_SLOT_KEY = 'fc.openSlot.v1';
+const OPEN_SCREEN_KEY = 'fc.openScreen.v1';
+
+function rememberedSlot(): string | null {
+  try {
+    return window.localStorage.getItem(OPEN_SLOT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function rememberSlot(id: string): void {
+  try {
+    window.localStorage.setItem(OPEN_SLOT_KEY, id);
+  } catch {
+    // A browser with storage switched off still plays; it just forgets where it was.
+  }
+}
+
+function forgetSlot(): void {
+  try {
+    window.localStorage.removeItem(OPEN_SLOT_KEY);
+    window.localStorage.removeItem(OPEN_SCREEN_KEY);
+  } catch {
+    // Nothing to do.
+  }
+}
+
+function rememberedScreen(): Screen {
+  try {
+    const held = window.localStorage.getItem(OPEN_SCREEN_KEY);
+    // A match in progress is not somewhere to come back to: the playback is gone, so he
+    // returns to the hub and carries on from there.
+    return held && held !== 'match' ? (held as Screen) : 'hub';
+  } catch {
+    return 'hub';
+  }
+}
+
+function rememberScreen(screen: Screen): void {
+  try {
+    window.localStorage.setItem(OPEN_SCREEN_KEY, screen);
+  } catch {
+    // Nothing to do.
+  }
+}
+
 export type Screen =
   | 'hub'
   | 'club'
@@ -85,6 +139,8 @@ interface GameStore {
   liveMatchId: string | null;
 
   boot: () => Promise<void>;
+  /** Save, close this career and go back to the front screen. */
+  leaveCareer: () => Promise<void>;
   goto: (screen: Screen) => void;
   startCreation: () => void;
   cancelCreation: () => void;
@@ -155,6 +211,27 @@ export const useGame = create<GameStore>((set, get) => ({
   async boot() {
     await migrateLegacySave();
     const saves = await listSaves();
+
+    // Reloading the page should not throw him back to the title screen. The last career
+    // he had open is remembered, and the app comes back exactly where it was - which
+    // matters most on a phone, where the browser reloads a tab whenever it feels like it.
+    const last = rememberedSlot();
+    if (last && saves.some((slot) => slot.id === last)) {
+      const state = await readSave(last);
+      if (state) {
+        set({
+          state,
+          index: indexPack(pack),
+          phase: 'playing',
+          screen: rememberedScreen(),
+          activeSaveId: last,
+          saves,
+          hasSave: true,
+        });
+        return;
+      }
+    }
+
     set({ saves, hasSave: saves.length > 0, phase: 'menu' });
   },
 
@@ -164,6 +241,7 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   goto(screen) {
+    rememberScreen(screen);
     set({ screen });
   },
 
@@ -188,6 +266,8 @@ export const useGame = create<GameStore>((set, get) => ({
     joinClub(state, index, clubId, { asAcademy: true });
     const id = activeSaveId ?? newSaveId();
     persistTo(id, state, (saves) => set({ saves }));
+    rememberSlot(id);
+    rememberScreen('hub');
     set({ state: { ...state }, phase: 'playing', screen: 'hub', hasSave: true, activeSaveId: id });
   },
 
@@ -197,6 +277,8 @@ export const useGame = create<GameStore>((set, get) => ({
     if (!target) return;
     const state = await readSave(target);
     if (!state) return;
+    rememberSlot(target);
+    rememberScreen('hub');
     set({
       state,
       index: indexPack(pack),
@@ -208,12 +290,40 @@ export const useGame = create<GameStore>((set, get) => ({
     });
   },
 
+  /**
+   * Putting this career down and going back to the front. It is saved on the way out -
+   * nobody should have to think about whether they saved before leaving - and the slot
+   * is forgotten so the next reload opens the menu rather than dropping him back in.
+   */
+  async leaveCareer() {
+    const { state, activeSaveId } = get();
+    if (state && activeSaveId) {
+      persistTo(activeSaveId, state, () => {});
+    }
+    forgetSlot();
+    const saves = await listSaves();
+    set({
+      state: null,
+      index: null,
+      activeSaveId: null,
+      phase: 'menu',
+      screen: 'hub',
+      result: null,
+      lastTick: null,
+      liveMatchId: null,
+      openMessageId: null,
+      saves,
+      hasSave: saves.length > 0,
+    });
+  },
+
   async deleteSave(id) {
     const { activeSaveId } = get();
     const target = id ?? activeSaveId;
     if (!target) return;
     const saves = await deleteSaveSlot(target);
     const wasActive = target === activeSaveId;
+    if (wasActive) forgetSlot();
     set({
       saves,
       hasSave: saves.length > 0,

@@ -1620,4 +1620,6 @@ export const he: Record<string, string> = {
   'live.goal': 'גול',
   'live.assistBy': 'בישול {player}',
   'live.replay': 'שידור חוזר',
+  'settings.saveAndLeave': 'שמור והתחל קריירה אחרת',
+  'settings.saveAndLeaveHint': 'הקריירה הזאת נשמרת לתא שלה ונשארת שם. אתה חוזר למסך הפתיחה, ומשם אפשר להתחיל חדשה או להיכנס לכל אחת מהאחרות.',
 };

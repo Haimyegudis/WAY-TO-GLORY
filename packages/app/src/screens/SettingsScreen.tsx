@@ -16,6 +16,7 @@ export function SettingsScreen() {
   const state = useGame((s) => s.state)!;
   const goto = useGame((s) => s.goto);
   const deleteSave = useGame((s) => s.deleteSave);
+  const leaveCareer = useGame((s) => s.leaveCareer);
   const [confirming, setConfirming] = useState(false);
 
   const download = () => {
@@ -53,6 +54,17 @@ export function SettingsScreen() {
           {t('settings.saveNow')}
         </button>
         <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{t('settings.savesHint')}</p>
+
+        {/* Putting this one down without losing it: it is written to its slot on the way
+            out, and the front screen is where new careers start. */}
+        <button
+          className="btn btn-quiet btn-block"
+          style={{ marginBlockStart: 10 }}
+          onClick={() => { void leaveCareer(); }}
+        >
+          {t('settings.saveAndLeave')}
+        </button>
+        <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{t('settings.saveAndLeaveHint')}</p>
       </Card>
 
       <Card title={t('settings.sound')}>
