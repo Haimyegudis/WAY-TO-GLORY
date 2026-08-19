@@ -1464,4 +1464,12 @@ export const en: Record<string, string> = {
   'inbox.retirementNoPlan.body': 'Nobody warned you how quiet it gets. There were no badges, no media work, no plan beyond the next contract - and the next contract is not coming.',
   'achievement.coachingBadges': 'Qualified coach',
   'inbox.needsAnswer': 'Needs an answer',
+  'news.windowHeadline': '{club} sign {player} for {fee}.',
+  'inbox.teammateLeft': '{player} has left {club}.',
+  'inbox.teammateLeft.body': 'Cleared his peg out on Thursday and was gone by Friday. That is how it goes: one week he is next to you in the warm-up, the next he is playing for somebody else.',
+  'inbox.rivalSigned': '{club} have signed {player} - {pos}, {fee}.',
+  'inbox.rivalSigned.body': 'He plays where you play and he did not come to sit on the bench. Nobody has told you anything, and nobody will; you find out on the teamsheet.',
+  'news.rivalSigned': '{club} sign {player}.',
+  'inbox.clubSigned': '{player} signs, {fee}.',
+  'inbox.clubSigned.body': 'New face in the dressing room on Monday. Not your position, so it is not your problem this time.',
 };

@@ -1466,4 +1466,12 @@ export const he: Record<string, string> = {
   'inbox.retirementNoPlan.body': 'אף אחד לא הכין אותך לשקט הזה. בלי תעודות, בלי עבודה בתקשורת, בלי תוכנית מעבר לחוזה הבא — והחוזה הבא לא מגיע.',
   'achievement.coachingBadges': 'מאמן מוסמך',
   'inbox.needsAnswer': 'ממתין לתשובה',
+  'news.windowHeadline': '{club} חתמו על {player} תמורת {fee}.',
+  'inbox.teammateLeft': '{player} עזב את {club}.',
+  'inbox.teammateLeft.body': 'רוקן את הארונית ביום חמישי וביום שישי כבר לא היה. ככה זה עובד: שבוע אחד הוא לידך בחימום, ובשבוע הבא הוא שחקן של מישהו אחר.',
+  'inbox.rivalSigned': '{club} החתימו את {player} — {pos}, {fee}.',
+  'inbox.rivalSigned.body': 'הוא משחק בדיוק במקום שלך, והוא לא הגיע כדי לשבת על הספסל. אף אחד לא אמר לך כלום ואף אחד גם לא יגיד; אתה תגלה בהרכב.',
+  'news.rivalSigned': '{club} החתימו את {player}.',
+  'inbox.clubSigned': '{player} חתם, {fee}.',
+  'inbox.clubSigned.body': 'פרצוף חדש בחדר ההלבשה ביום שני. לא התפקיד שלך, אז הפעם זו הבעיה של מישהו אחר.',
 };

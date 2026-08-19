@@ -35,6 +35,7 @@ import {
   type SeasonEndOutcome,
 } from './league.js';
 import { createCup, drawRound, isCupFinal, isCupSemi, recordTieResult, type CupState } from './cup.js';
+import { runAbstractMarket, runSquadWindow, type SquadMove } from './market.js';
 import {
   applyEuroResult,
   createEuroCompetition,
@@ -1823,6 +1824,11 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   }
   updateStanding(state, index, actualMinutes);
 
+  // The summer window, at both resolutions: the whole world trades money for strength,
+  // and the clubs we know by name actually buy and sell people.
+  runAbstractMarket(rng, state, index);
+  reportWindow(state, index, runSquadWindow(rng, state, index));
+
   // Age the modelled world and develop it a season's worth.
   advanceModelledPlayers(state, index, rng);
 
@@ -2217,6 +2223,57 @@ function applyPromotionRelegation(
 }
 
 /** AI players age, develop, and eventually get replaced by academy graduates. */
+/**
+ * What the window means for him. A signing at another club is a line in the paper; a
+ * signing at his own, in his position and better than he is, is next season.
+ */
+function reportWindow(state: CareerState, index: PackIndex, moves: SquadMove[]): void {
+  const player = state.player;
+  const clubId = player.clubId;
+  if (!clubId) return;
+  const club = state.world.clubs[clubId];
+  if (!club) return;
+
+  const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
+  const mine = moves.filter((move) => move.clubId === clubId);
+
+  // The biggest piece of business anywhere gets reported, wherever it happened.
+  const headline = moves
+    .filter((move) => move.direction === 'in' && move.fee > 0)
+    .sort((a, b) => b.fee - a.fee)[0];
+  if (headline) {
+    const buyer = state.world.clubs[headline.clubId];
+    pushNews(
+      state,
+      'news.windowHeadline',
+      { player: headline.playerName, club: buyer?.name ?? '', fee: headline.fee },
+      'medium',
+    );
+  }
+
+  for (const move of mine) {
+    if (move.direction === 'out') {
+      pushInbox(state, 'club', 'inbox.teammateLeft', { player: move.playerName, club: club.name });
+      continue;
+    }
+
+    // A rival for his shirt, or just a name on the teamsheet.
+    const samePosition = move.position === player.primaryPos || player.secondaryPos.includes(move.position);
+    if (samePosition && move.rating >= ovr) {
+      pushInbox(state, 'club', 'inbox.rivalSigned', {
+        player: move.playerName,
+        pos: `position.${move.position}`,
+        fee: move.fee,
+      });
+      pushNews(state, 'news.rivalSigned', { player: move.playerName, club: club.name }, 'high');
+      // He is not dropped by decree, but he is behind somebody now.
+      state.managerTrust = clamp(state.managerTrust - 4, 0, 100);
+    } else if (move.fee > 0) {
+      pushInbox(state, 'club', 'inbox.clubSigned', { player: move.playerName, fee: move.fee });
+    }
+  }
+}
+
 function advanceModelledPlayers(state: CareerState, index: PackIndex, rng: Rng): void {
   const season = state.world.season;
   for (const [clubId, ids] of Object.entries(state.world.squads)) {
