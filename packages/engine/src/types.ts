@@ -1,6 +1,7 @@
 /** Core domain model. Everything here is plain data so it can be JSON-serialised into a save. */
 import type { QualifyingCampaign } from './qualifying.js';
 import type { MentorState } from './mentor.js';
+import type { LifeState } from './life.js';
 
 export type Position =
   | 'GK'
@@ -659,6 +660,8 @@ export interface CareerState {
   seasonHistory: CareerSeasonRecord[];
   /** What the manager asked of him this season, and what it is worth. */
   seasonGoal?: SeasonGoal;
+  /** Sponsors, and the things he has bought with what football paid him. */
+  life?: LifeState;
   matchLog: MatchResult[];           // recent matches only (compacted)
   lastMatch: MatchResult | null;
   trophies: { season: number; competitionId: string; kind: 'league' | 'cup' | 'promotion' }[];

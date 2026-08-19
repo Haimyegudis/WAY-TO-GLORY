@@ -29,6 +29,9 @@ import {
   answerMedia as engineAnswerMedia,
   answerMentor as engineAnswerMentor,
   answerSeasonGoal as engineAnswerSeasonGoal,
+  buyItem as engineBuyItem,
+  declineSponsors as engineDeclineSponsors,
+  signSponsor as engineSignSponsor,
   chooseMentor as engineChooseMentor,
   askMentor as engineAskMentor,
   takeMentorAdvice as engineTakeMentorAdvice,
@@ -118,7 +121,8 @@ export type Screen =
   | 'matches'
   | 'national'
   | 'social'
-  | 'mentor';
+  | 'mentor'
+  | 'life';
 export type Phase = 'loading' | 'menu' | 'create' | 'academy' | 'playing';
 
 interface GameStore {
@@ -200,6 +204,11 @@ interface GameStore {
   chooseHalfTime: (instructionId: HalfTimeInstructionId) => void;
   /** How often the dressing room stops his match. */
   setHalfTimeTalks: (frequency: HalfTimeFrequency) => void;
+  /** Put his name on somebody's poster, or send them all away. */
+  signSponsor: (offerId: string) => void;
+  declineSponsors: () => void;
+  /** Spend what football paid him on something outside it. */
+  buyLifeItem: (itemId: string) => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
 }
@@ -637,6 +646,34 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     for (const message of state.inbox) message.read = true;
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
+  },
+
+  signSponsor(offerId) {
+    const { state } = get();
+    if (!state) return;
+    engineSignSponsor(state, offerId);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
+  },
+
+  declineSponsors() {
+    const { state } = get();
+    if (!state) return;
+    engineDeclineSponsors(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
+  },
+
+  buyLifeItem(itemId) {
+    const { state } = get();
+    if (!state) return;
+    const bought = engineBuyItem(state, itemId);
+    if (!bought) return;
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state } });

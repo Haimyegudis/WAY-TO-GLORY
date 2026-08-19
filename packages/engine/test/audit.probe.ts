@@ -17,6 +17,7 @@ import {
   userSquad,
 } from '../src/career.js';
 import { resolveDecision } from '../src/events.js';
+import { LIFE_ITEMS, buyItem, canBuy, declineSponsors, signSponsor } from '../src/life.js';
 import { ATTRIBUTE_KEYS } from '../src/types.js';
 import type { CareerState, Player } from '../src/types.js';
 import { overall } from '../src/positions.js';
@@ -185,6 +186,19 @@ function auditWeek(seed: number, state: CareerState, index: PackIndex): void {
     if (nt.goals > nt.caps * 5) flag(seed, state, `more goals than a career of caps allows: ${nt.goals}/${nt.caps}`);
   }
 
+  // The life outside football.
+  const life = state.life;
+  if (life) {
+    for (const deal of life.sponsors) {
+      if (!Number.isFinite(deal.weekly) || deal.weekly < 0) flag(seed, state, `sponsor pays nonsense: ${deal.weekly}`);
+      if (state.world.season - deal.signedSeason > deal.seasons) {
+        flag(seed, state, `sponsor deal outlived its term: ${deal.kind}`);
+      }
+    }
+    if (new Set(life.owned).size !== life.owned.length) flag(seed, state, 'the same thing owned twice');
+    if (life.offers.length > 3) flag(seed, state, `too many offers at once: ${life.offers.length}`);
+  }
+
   // The inbox and the decisions in front of him.
   if (state.inbox.length > 400) flag(seed, state, `inbox never emptied: ${state.inbox.length}`);
   const blocking = state.pendingDecisions.filter((d) => d.blocking !== false);
@@ -214,6 +228,8 @@ for (let s = 0; s < seedCount; s++) {
     offers: 0,
     injuries: 0,
     goals: 0,
+    sponsors: 0,
+    bought: 0,
     clubs: new Set<string>([state.player.clubId ?? '']),
   };
 
@@ -272,6 +288,18 @@ for (let s = 0; s < seedCount; s++) {
       }
     }
 
+    // Sign what is offered half the time, and buy what he can afford.
+    if (state.life?.offers.length) {
+      counts.sponsors++;
+      if (rng.chance(0.6)) signSponsor(state, state.life.offers[0]!.id);
+      else declineSponsors(state);
+    }
+    if (rng.chance(0.02)) {
+      for (const item of LIFE_ITEMS) {
+        if (canBuy(state, item.id) === 'yes') { buyItem(state, item.id); counts.bought++; break; }
+      }
+    }
+
     if (state.player.condition.injuries.length > 0) counts.injuries++;
     if (state.player.clubId) counts.clubs.add(state.player.clubId);
     auditWeek(seed, state, index);
@@ -282,7 +310,8 @@ for (let s = 0; s < seedCount; s++) {
   console.log(
     `seed ${seed}: ${counts.weeks} weeks, retired at ${age} on ovr ${ovr}, ` +
       `${counts.matches} match stops, ${counts.halfTimes} team talks, ${counts.media} press, ` +
-      `${counts.events} events, ${counts.offers} offers, ${counts.goals} season targets, ${counts.clubs.size} clubs, ` +
+      `${counts.events} events, ${counts.offers} offers, ${counts.goals} season targets, ` +
+      `${counts.sponsors} sponsor calls, ${counts.bought} things bought, ${counts.clubs.size} clubs, ` +
       `${state.inbox.length} in the inbox`,
   );
 }

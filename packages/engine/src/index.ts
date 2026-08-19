@@ -16,6 +16,7 @@ export * from './mentor.js';
 export * from './market.js';
 export * from './awards.js';
 export * from './season-goal.js';
+export * from './life.js';
 export * from './youth.js';
 export * from './youth-squads.js';
 export * from './youth-awards.js';

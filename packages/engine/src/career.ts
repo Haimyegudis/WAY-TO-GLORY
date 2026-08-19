@@ -16,6 +16,7 @@ import {
   starToPlayer,
   type UserPlayerInput,
 } from './generate.js';
+import { raiseSponsorOffers, runLifeWeek } from './life.js';
 import {
   goalProgress,
   goalVerdict,
@@ -953,6 +954,22 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     player.condition.injuries.push(injury);
     pushInbox(state, 'medical', 'inbox.injuredTraining', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
     pushNews(state, 'news.injured', { weeks: injury.weeksOut }, 'high');
+  }
+
+  // 3b. The life outside football: what the sponsors pay, what the house costs, and
+  // whether anybody new wants him on a poster this week.
+  const life = runLifeWeek(state);
+  for (const deal of life.expired) {
+    pushInbox(state, 'sponsor', 'inbox.sponsorEnded', { kind: `life.sponsor.${deal.kind}` });
+  }
+  if (!state.retired) {
+    const offers = raiseSponsorOffers(rng, state);
+    if (offers.length > 0) {
+      pushInbox(state, 'sponsor', 'inbox.sponsorOffer', {
+        kind: `life.sponsor.${offers[0]!.kind}`,
+        weekly: offers[0]!.weekly,
+      });
+    }
   }
 
   // 4. Wages, and what he spends on himself.

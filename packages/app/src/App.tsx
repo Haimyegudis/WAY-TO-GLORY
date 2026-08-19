@@ -17,6 +17,7 @@ import { SocialScreen } from './screens/SocialScreen.js';
 import { SettingsScreen } from './screens/SettingsScreen.js';
 import { DecisionSheet } from './screens/DecisionSheet.js';
 import { MentorScreen } from './screens/MentorScreen.js';
+import { LifeScreen } from './screens/LifeScreen.js';
 import { ResultSheet } from './screens/ResultSheet.js';
 import { nextFixture, openHalfTime } from './state/selectors.js';
 import { primeWhistles } from './components/whistle.js';
@@ -114,6 +115,7 @@ function Game() {
         {screen === 'social' && <SocialScreen />}
         {screen === 'settings' && <SettingsScreen />}
         {screen === 'mentor' && <MentorScreen />}
+        {screen === 'life' && <LifeScreen />}
 
         {!pending && !result && !state?.retired && !inTheMatch && <ContinueDock />}
         <Tabs />
@@ -346,6 +348,7 @@ const MORE: { id: Screen; key: string; hint: string }[] = [
   { id: 'club', key: 'nav.tables', hint: 'nav.tables.hint' },
   { id: 'matches', key: 'nav.results', hint: 'nav.results.hint' },
   { id: 'mentor', key: 'nav.mentor', hint: 'nav.mentor.hint' },
+  { id: 'life', key: 'nav.life', hint: 'nav.life.hint' },
   { id: 'national', key: 'nav.national', hint: 'nav.national.hint' },
   { id: 'career', key: 'nav.career', hint: 'nav.career.hint' },
   { id: 'settings', key: 'nav.settings', hint: 'nav.settings.hint' },
