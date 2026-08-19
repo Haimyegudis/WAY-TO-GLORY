@@ -33,7 +33,32 @@ const ALL = process.argv.includes('--all');
 /** The free, documented test key. Fine for a few hundred lookups. */
 const SPORTSDB = 'https://www.thesportsdb.com/api/v1/json/3';
 
-/** Our three-letter codes to the country names TheSportsDB uses. */
+/**
+ * Our three-letter codes to the country names TheSportsDB uses. Some countries are
+ * spelled more than one way in that database ("Netherlands" and "The Netherlands"),
+ * and a country mismatch is what rejects an otherwise perfect match, so all the
+ * spellings we have seen are listed.
+ */
+const COUNTRY_ALTS: Record<string, string[]> = {
+  NED: ['Netherlands', 'The Netherlands', 'Holland'],
+  ENG: ['England'],
+  TUR: ['Turkey', 'Türkiye'],
+  GRE: ['Greece'],
+  GER: ['Germany'],
+};
+
+/** Clubs whose database name is nothing like ours; searching for it directly works. */
+const SEARCH_ALIASES: Record<string, string> = {
+  fra_stade_rennais_fc_1901: 'Rennes',
+  fra_montpellier_hsc: 'Montpellier',
+  ned_psv: 'PSV Eindhoven',
+  ned_az: 'AZ Alkmaar',
+  ned_sc_heerenveen: 'Heerenveen',
+  eng_nottingham_forest_fc: 'Nottingham Forest',
+  gre_ae_kifisias: 'Kifisia',
+  isr_ironi_nesher: 'Hapoel Nesher',
+};
+
 const COUNTRY: Record<string, string> = {
   ENG: 'England', SCO: 'Scotland', WAL: 'Wales', IRL: 'Ireland',
   ESP: 'Spain', ITA: 'Italy', GER: 'Germany', FRA: 'France', POR: 'Portugal',
@@ -112,9 +137,11 @@ function similarity(a: string, b: string): number {
 interface Found { url: string; source: string; ref: string }
 
 /** Primary source: a football database that knows the sport and the country. */
-async function fromSportsDb(club: { name: string; shortName?: string; country: string }): Promise<Found | null> {
+async function fromSportsDb(club: { id?: string; name: string; shortName?: string; country: string }): Promise<Found | null> {
   const wanted = COUNTRY[club.country];
-  const queries = [club.name, club.shortName].filter((q): q is string => Boolean(q));
+  const accepted = new Set([...(COUNTRY_ALTS[club.country] ?? []), ...(wanted ? [wanted] : [])]);
+  const alias = club.id ? SEARCH_ALIASES[club.id] : undefined;
+  const queries = [alias, club.name, club.shortName].filter((q): q is string => Boolean(q));
 
   for (const query of queries) {
     const data = await json(`${SPORTSDB}/searchteams.php?t=${encodeURIComponent(query)}`);
@@ -132,9 +159,12 @@ async function fromSportsDb(club: { name: string; shortName?: string; country: s
         similarity(team.strTeamShort ?? '', club.shortName ?? club.name),
       );
       // A country match is what stops "Boavista" landing on the Brazilian side.
-      const countryScore = wanted && team.strCountry === wanted ? 1 : wanted ? -0.6 : 0;
-      const score = alt + countryScore;
-      if (alt < 0.5) continue;
+      const countryOk = accepted.size === 0 || accepted.has(team.strCountry);
+      const countryScore = countryOk ? 1 : -0.6;
+      // An alias is a deliberate hand-match, so the name does not have to look alike.
+      const nameScore = alias && query === alias ? Math.max(alt, 0.8) : alt;
+      const score = nameScore + countryScore;
+      if (nameScore < 0.5) continue;
       if (!best || score > best.score) best = { badge, id: team.idTeam, score };
     }
 
@@ -189,6 +219,22 @@ async function fromWikipedia(club: { name: string; nameHe?: string }): Promise<F
       if (url) return { url, source: `wikipedia:${attempt.lang}`, ref: candidate.name };
     }
   }
+  // Last resort: the article's lead image, but only when the file is *named* like a
+  // badge. Nottingham Forest's crest lives there and nowhere else we can reach, while
+  // a stadium photo is called something else entirely, so the name is the filter.
+  for (const attempt of attempts) {
+    const data = await json(
+      `https://${attempt.lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(attempt.title)}`,
+    );
+    if (!data || data.type === 'disambiguation') continue;
+    const source: string | undefined = data.originalimage?.source ?? data.thumbnail?.source;
+    if (!source) continue;
+    const file = decodeURIComponent(source.split('?')[0]!.split('/').pop() ?? '');
+    if (!/(logo|crest|badge|emblem|escudo|stemma|wappen)/i.test(file)) continue;
+    // Ask for a bigger render than the 330px thumbnail the summary hands back.
+    return { url: source.split('?')[0]!.replace(/\/\d+px-/, '/256px-'), source: `wikipedia:${attempt.lang}`, ref: file };
+  }
+
   return null;
 }
 
@@ -199,7 +245,9 @@ function looksLikeCrest(bytes: Buffer): boolean {
   const height = bytes.readUInt32BE(20);
   if (width < 40 || height < 40) return false;
   const ratio = width / height;
-  return ratio > 0.5 && ratio < 1.8;
+  // Most badges are square-ish, but plenty of clubs use a wordmark that is wider than
+  // it is tall. A photograph is wider still, so the line sits at 2.2.
+  return ratio > 0.45 && ratio < 2.2;
 }
 
 async function main(): Promise<void> {
@@ -222,7 +270,7 @@ async function main(): Promise<void> {
   for (const club of todo) {
     const record: ClubAsset = index[club.id] ?? { clubId: club.id };
     const hit =
-      (await fromSportsDb({ name: club.name, shortName: club.shortName, country: club.country })) ??
+      (await fromSportsDb({ id: club.id, name: club.name, shortName: club.shortName, country: club.country })) ??
       (await fromWikipedia({ name: club.name, nameHe: club.nameHe ?? record.nameHe }));
 
     if (hit) {

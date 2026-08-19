@@ -51,7 +51,12 @@ npx tsx packages/data/src/fetch-squads.ts         # שחקנים אמיתיים 
 npx tsx packages/data/src/fetch-club-assets.ts    # שמות בעברית מוויקיפדיה
 npx tsx packages/data/src/build-pack.ts           # בונה את pack.json
 npx tsx packages/data/src/copy-assets.ts          # מעתיק סמלים ל-app/public
+npx tsx packages/data/src/verify-crests.ts        # מוודא שכל סמל שייך באמת לקבוצה
+npx tsx packages/data/src/crest-sheet.ts          # עמוד בדיקה: /crests.html
 ```
+
+אם האינדקס והקבצים יצאו מסנכרון (למשל שתי הורדות רצו במקביל):
+`npx tsx packages/data/src/repair-assets.ts` בונה את האינדקס מחדש מהקבצים שעל הדיסק.
 
 ### תמונות רקע
 

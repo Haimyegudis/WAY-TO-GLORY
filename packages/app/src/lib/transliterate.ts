@@ -46,7 +46,73 @@ const RULES: [RegExp, string][] = [
   [/^oa/i, 'ו'],
   [/^ue/i, 'ו'],
   [/^ui/i, 'וי'],
+  // Endings and clusters that a Hebrew speaker writes a particular way.
+  [/^tz$/i, 'ץ'],
+  [/^tz/i, 'צ'],
+  [/^ts$/i, 'ץ'],
+  [/^cz/i, "צ'"],
+  [/^sz/i, 'ש'],
+  [/^wski$/i, 'בסקי'],
+  [/^owski$/i, 'ובסקי'],
+  [/^aard/i, 'ארד'],
+  [/^aa/i, 'א'],
+  [/^ee$/i, 'י'],
+  [/^ck$/i, 'ק'],
+  [/^gn/i, 'ני'],
+  [/^kh/i, 'ח'],
 ];
+
+/**
+ * Names that every Hebrew speaker already knows how to spell, where letter-by-letter
+ * transliteration gets it wrong. Kept short on purpose: it is a correction list for
+ * the common cases, not a dictionary.
+ */
+const KNOWN: Record<string, string> = {
+  peretz: 'פרץ',
+  perez: 'פרס',
+  cohen: 'כהן',
+  levy: 'לוי',
+  levi: 'לוי',
+  elad: 'אלעד',
+  madmon: 'מדמון',
+  dor: 'דור',
+  yosef: 'יוסף',
+  david: 'דוד',
+  moshe: 'משה',
+  shlomo: 'שלמה',
+  itay: 'איתי',
+  omri: 'עומרי',
+  eli: 'אלי',
+  gal: 'גל',
+  ofir: 'אופיר',
+  idan: 'עידן',
+  ilay: 'עילאי',
+  amir: 'אמיר',
+  yarden: 'ירדן',
+  raz: 'רז',
+  liel: 'ליאל',
+  shon: 'שון',
+  bar: 'בר',
+  ben: 'בן',
+  lewandowski: 'לבנדובסקי',
+  odegaard: 'אדגור',
+  mbappe: 'מבאפה',
+  haaland: 'הלאנד',
+  bellingham: "בלינגהאם",
+  vinicius: "ויניסיוס",
+  rodrygo: 'רודריגו',
+  messi: 'מסי',
+  ronaldo: 'רונאלדו',
+  neymar: 'ניימאר',
+  salah: 'סלאח',
+  kane: 'קיין',
+  saka: 'סאקה',
+  rice: 'רייס',
+  saliba: 'סאליבה',
+  raya: 'ראיה',
+  foden: 'פודן',
+  maddison: 'מדיסון',
+};
 
 const SINGLE: Record<string, string> = {
   a: 'א',
@@ -81,6 +147,8 @@ const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
 
 function transliterateWord(word: string): string {
   const lower = word.toLowerCase();
+  const known = KNOWN[lower.replace(/[^a-z]/g, '')];
+  if (known) return known;
   let out = '';
   let i = 0;
 
@@ -112,7 +180,12 @@ function transliterateWord(word: string): string {
     if (VOWELS.has(ch)) {
       const atStart = i === 0;
       const atEnd = i === lower.length - 1;
-      if (ch === 'a') out += atStart ? 'א' : atEnd ? 'ה' : 'א';
+      if (ch === 'a') {
+        // Only the first and last vowel get a letter; the middle ones are implied,
+        // which is how Hebrew actually spells a foreign name.
+        const previous = out.at(-1);
+        out += atStart ? 'א' : atEnd ? 'ה' : previous === 'א' ? '' : 'א';
+      }
       else if (ch === 'e') out += atStart ? 'א' : '';
       else if (ch === 'i') out += 'י';
       else if (ch === 'o') out += 'ו';

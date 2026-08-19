@@ -1222,4 +1222,11 @@ export const he: Record<string, string> = {
 
 
   'national.tournamentLine': '{caps} משחקים · {goals} שערים · ציון {rating}',
+
+'match.importance.rival': 'משחק יריבות',
+  'match.importance.titleDecider': 'קרב אליפות',
+  'match.importance.relegationSixPointer': 'קרב הישרדות',
+  'match.importance.europeanNight': 'ערב אירופי',
+  'match.importance.debut': 'בכורה',
+  'match.importance.firstProMatch': 'משחק מקצועני ראשון',
 };

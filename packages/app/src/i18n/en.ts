@@ -1220,4 +1220,11 @@ export const en: Record<string, string> = {
 
 
   'national.tournamentLine': '{caps} matches · {goals} goals · rating {rating}',
+
+'match.importance.rival': 'Rivalry',
+  'match.importance.titleDecider': 'Title decider',
+  'match.importance.relegationSixPointer': 'Relegation six-pointer',
+  'match.importance.europeanNight': 'European night',
+  'match.importance.debut': 'Debut',
+  'match.importance.firstProMatch': 'First professional match',
 };
