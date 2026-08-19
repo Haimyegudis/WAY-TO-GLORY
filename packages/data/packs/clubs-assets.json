@@ -128,7 +128,11 @@
     "clubId": "eng_nottingham_forest_fc",
     "tried": true,
     "title": "Nottingham Forest F.C.",
-    "nameHe": "נוטינגהאם פורסט"
+    "nameHe": "נוטינגהאם פורסט",
+    "crest": "eng_nottingham_forest_fc.png",
+    "source": "manual",
+    "sourceRef": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e5/Nottingham_Forest_F.C._logo.svg/120px-Nottingham_Forest_F.C._logo.svg.png",
+    "color": "#dd0000"
   },
   "eng_brentford_fc": {
     "clubId": "eng_brentford_fc",
@@ -2483,7 +2487,11 @@
     "tried": true,
     "title": "Nikita Stoinov",
     "nameHe": "ניקיטה סטויאנוב",
-    "retried": true
+    "retried": true,
+    "crest": "isr_maccabi_bnei_raina.png",
+    "source": "manual",
+    "sourceRef": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/330px-Instagram_logo_2016.svg.png?utm_source=he.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "color": "#f14d5a"
   },
   "isr_ironi_tiberias": {
     "clubId": "isr_ironi_tiberias",
@@ -3891,7 +3899,11 @@
   "gre_aris_saloniki": {
     "clubId": "gre_aris_saloniki",
     "tried": true,
-    "title": "Derby of Thessaloniki"
+    "title": "Derby of Thessaloniki",
+    "crest": "gre_aris_saloniki.png",
+    "source": "manual",
+    "sourceRef": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e4/Aris_Thessaloniki_F.C._logo.svg/330px-Aris_Thessaloniki_F.C._logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "color": "#fcd011"
   },
   "gre_asteras_tripolis": {
     "clubId": "gre_asteras_tripolis",
