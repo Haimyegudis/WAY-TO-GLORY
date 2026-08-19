@@ -20,8 +20,29 @@ export function compact(state: CareerState): CareerState {
     matchLog: recentMatches.map((m) => (m.season < season ? { ...m, events: undefined } : m)),
     news: state.news.slice(0, 40),
     inbox: state.inbox.slice(0, 50),
-    world: { ...state.world, ...(state.world.youth ? { youth: compactYouth(state.world.youth, season) } : {}) },
+    world: {
+      ...state.world,
+      ...(state.world.youth ? { youth: compactYouth(state.world.youth, season) } : {}),
+      competitions: forgetOldScorers(state.world.competitions, season),
+    },
   };
+}
+
+/**
+ * Who scored in each fixture is worth keeping for the season being played and worth
+ * nothing afterwards: the season charts and the history already hold what matters.
+ */
+function forgetOldScorers(
+  competitions: CareerState['world']['competitions'],
+  season: number,
+): CareerState['world']['competitions'] {
+  const out: CareerState['world']['competitions'] = {};
+  for (const [id, comp] of Object.entries(competitions)) {
+    out[id] = comp.season >= season
+      ? comp
+      : { ...comp, fixtures: comp.fixtures.map((f) => ({ ...f, goals: undefined })) };
+  }
+  return out;
 }
 
 /**

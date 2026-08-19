@@ -180,6 +180,7 @@ import type {
   TickResult,
   TransferOffer,
   CompetitionSeasonState,
+  Fixture,
   TrainingIntensity,
   UserMatchLine,
 } from './types.js';
@@ -1510,8 +1511,8 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
         fixture.played = true;
         fixture.result = [result.homeGoals, result.awayGoals];
         applyResult(compState, fixture.homeClubId, fixture.awayClubId, result.homeGoals, result.awayGoals);
-        attributeGoals(state, rng, compState, fixture.homeClubId, result.homeGoals, result);
-        attributeGoals(state, rng, compState, fixture.awayClubId, result.awayGoals, result);
+        attributeGoals(state, rng, compState, fixture.homeClubId, result.homeGoals, result, fixture);
+        attributeGoals(state, rng, compState, fixture.awayClubId, result.awayGoals, result, fixture);
         userResult = result;
         continue;
       }
@@ -1525,8 +1526,8 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
       applyResult(compState, fixture.homeClubId, fixture.awayClubId, hg, ag);
 
       if (isUserComp) {
-        attributeGoals(state, rng, compState, fixture.homeClubId, hg, null);
-        attributeGoals(state, rng, compState, fixture.awayClubId, ag, null);
+        attributeGoals(state, rng, compState, fixture.homeClubId, hg, null, fixture);
+        attributeGoals(state, rng, compState, fixture.awayClubId, ag, null, fixture);
         attributeCards(state, rng, compState, fixture.homeClubId);
         attributeCards(state, rng, compState, fixture.awayClubId);
       }
@@ -1829,7 +1830,7 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
         applyResult(comp, fixture.homeClubId, fixture.awayClubId, result.homeGoals, result.awayGoals);
         userResult = result;
 
-        recordYouthMatch(state, comp, result, fixture.homeClubId, fixture.awayClubId);
+        recordYouthMatch(state, comp, result, fixture.homeClubId, fixture.awayClubId, fixture);
 
         const line = result.userLine;
         if (line?.played) {
@@ -1856,8 +1857,8 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
       applyResult(comp, fixture.homeClubId, fixture.awayClubId, hg, ag);
 
       if (modelled) {
-        spreadYouthGoals(state, rng, comp, home.id, hg);
-        spreadYouthGoals(state, rng, comp, away.id, ag);
+        spreadYouthGoals(state, rng, comp, home.id, hg, fixture);
+        spreadYouthGoals(state, rng, comp, away.id, ag, fixture);
       }
     }
   }
@@ -1900,6 +1901,7 @@ function recordYouthMatch(
   result: MatchResult,
   homeClubId: string,
   awayClubId: string,
+  fixture?: Fixture,
 ): void {
   const youth = state.world.youth;
   if (!youth) return;
@@ -1912,6 +1914,15 @@ function recordYouthMatch(
       comp.scorers[event.playerId] = (comp.scorers[event.playerId] ?? 0) + 1;
       if (event.playerId !== state.player.id) {
         youthStatsFor(youth, event.playerId, season, clubId, comp.competitionId).goals += 1;
+      }
+      if (fixture) {
+        const assist = (result.events ?? []).find((e) => e.type === 'assist' && e.minute === event.minute);
+        fixture.goals = fixture.goals ?? [];
+        fixture.goals.push({
+          playerId: event.playerId,
+          clubId,
+          ...(assist?.playerId ? { assistId: assist.playerId } : {}),
+        });
       }
     }
     if (event.type === 'assist') {
@@ -1944,6 +1955,7 @@ function spreadYouthGoals(
   comp: CompetitionSeasonState,
   clubId: string,
   goals: number,
+  fixture?: Fixture,
 ): void {
   const youth = state.world.youth;
   if (!youth) return;
@@ -1962,6 +1974,7 @@ function spreadYouthGoals(
     if (!scorer) continue;
     comp.scorers[scorer.id] = (comp.scorers[scorer.id] ?? 0) + 1;
     youthStatsFor(youth, scorer.id, season, clubId, comp.competitionId).goals += 1;
+    let assistId: string | undefined;
 
     if (rng.chance(0.62)) {
       const others = squad.filter((p) => p.id !== scorer.id);
@@ -1970,7 +1983,12 @@ function spreadYouthGoals(
         comp.assists = comp.assists ?? {};
         comp.assists[creator.id] = (comp.assists[creator.id] ?? 0) + 1;
         youthStatsFor(youth, creator.id, season, clubId, comp.competitionId).assists += 1;
+        assistId = creator.id;
       }
+    }
+    if (fixture) {
+      fixture.goals = fixture.goals ?? [];
+      fixture.goals.push({ playerId: scorer.id, clubId, ...(assistId ? { assistId } : {}) });
     }
   }
 }
@@ -1995,13 +2013,24 @@ function attributeGoals(
   clubId: string,
   goals: number,
   userMatch: MatchResult | null,
+  /** The fixture these goals belong to, so a results page can name them. */
+  fixture?: Fixture,
 ): void {
   if (goals <= 0) return;
+  const record = (playerId: string, assistId?: string) => {
+    if (!fixture) return;
+    fixture.goals = fixture.goals ?? [];
+    fixture.goals.push({ playerId, clubId, ...(assistId ? { assistId } : {}) });
+  };
 
   if (userMatch && clubId === state.player.clubId) {
     for (const event of userMatch.events ?? []) {
       if (event.type === 'goal' && event.playerId) {
         compState.scorers[event.playerId] = (compState.scorers[event.playerId] ?? 0) + 1;
+        const assist = (userMatch.events ?? []).find(
+          (e) => e.type === 'assist' && e.minute === event.minute,
+        );
+        record(event.playerId, assist?.playerId);
       }
       if (event.type === 'assist' && event.playerId) {
         compState.assists = compState.assists ?? {};
@@ -2027,6 +2056,7 @@ function attributeGoals(
     });
     if (!scorer) continue;
     compState.scorers[scorer.id] = (compState.scorers[scorer.id] ?? 0) + 1;
+    let assistId: string | undefined;
 
     // Most goals are made by someone. Creators are weighted the way the match engine
     // weights them, so the assist chart reads like the scoring chart's other half.
@@ -2042,8 +2072,10 @@ function attributeGoals(
       if (creator) {
         compState.assists = compState.assists ?? {};
         compState.assists[creator.id] = (compState.assists[creator.id] ?? 0) + 1;
+        assistId = creator.id;
       }
     }
+    record(scorer.id, assistId);
   }
 }
 

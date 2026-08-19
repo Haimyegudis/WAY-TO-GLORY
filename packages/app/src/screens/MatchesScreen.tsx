@@ -5,6 +5,7 @@ import { competitionLabel, competitionName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { clubShortName } from '../lib/club.js';
 import { Card, Crest, Empty, RatingBadge, ResultDot, Stat } from '../components/ui.js';
+import { RoundScreen } from './RoundScreen.js';
 
 /**
  * Every match of the season: the result, and what he did in it. This is the page a
@@ -19,6 +20,8 @@ export function MatchesScreen() {
 
   const seasons = [...new Set(state.matchLog.map((m) => m.season))].sort((a, b) => b - a);
   const [season, setSeason] = useState(seasons[0] ?? state.world.season);
+  // Two questions live on this page: how am I doing, and what happened last weekend.
+  const [view, setView] = useState<'mine' | 'round'>('mine');
 
   const matches = state.matchLog
     .filter((m) => m.season === season)
@@ -42,8 +45,24 @@ export function MatchesScreen() {
 
   const competition = (id: string) => competitionLabel(id, pack, lang, t);
 
+  if (view === 'round') {
+    return (
+      <div className="stack" style={{ gap: 0 }}>
+        <div className="seg" style={{ margin: '12px 14px 0' }}>
+          <button aria-pressed={false} onClick={() => setView('mine')}>{t('matches.mine')}</button>
+          <button aria-pressed>{t('matches.round')}</button>
+        </div>
+        <RoundScreen />
+      </div>
+    );
+  }
+
   return (
     <div className="screen stack">
+      <div className="seg">
+        <button aria-pressed onClick={() => setView('mine')}>{t('matches.mine')}</button>
+        <button aria-pressed={false} onClick={() => setView('round')}>{t('matches.round')}</button>
+      </div>
       <header className="row-between">
         <div>
           <p className="eyebrow">{t('matches.title')}</p>

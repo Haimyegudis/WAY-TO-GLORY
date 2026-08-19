@@ -360,6 +360,17 @@ export interface Fixture {
   awayClubId: string;
   played: boolean;
   result?: [number, number];
+  /**
+   * Who scored them, for the divisions we model player by player. A round of results
+   * with no names in it is a row of numbers; this is what makes it a matchday.
+   */
+  goals?: FixtureGoal[];
+}
+
+export interface FixtureGoal {
+  playerId: string;
+  clubId: string;
+  assistId?: string;
 }
 
 export type TrainingIntensity = 'light' | 'normal' | 'intensive' | 'extreme';
