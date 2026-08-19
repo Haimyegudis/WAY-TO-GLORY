@@ -1619,4 +1619,5 @@ export const he: Record<string, string> = {
   'action.praiseClubInMedia.creep': 'החבר׳ה ראו את הריאיון. מישהו עשה חיקוי בחדר אוכל.',
   'live.goal': 'גול',
   'live.assistBy': 'בישול {player}',
+  'live.replay': 'שידור חוזר',
 };

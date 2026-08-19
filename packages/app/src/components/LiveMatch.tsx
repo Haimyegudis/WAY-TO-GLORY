@@ -76,8 +76,17 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
   useEffect(() => {
     if (paused || done) return;
     const next = minute + 1;
-    const notable = events.some((e) => e.minute === next && DECISIVE.has(e.type));
-    const delay = (notable ? 2400 : 620) / speed;
+    // How long to sit on what is on screen now. This used to look at the minute we were
+    // about to move to, so the clock paused just before a goal and then moved straight
+    // off it - the goal itself flashed past in the time given to a throw-in, and the
+    // replay was cut off before it started.
+    const notable = events.some((e) => e.minute === minute && DECISIVE.has(e.type));
+    // A goal is the move, the net, the board and then the whole thing again in slow
+    // motion, so the clock waits for all of it rather than moving on mid-replay.
+    const isGoal = events.some(
+      (e) => e.minute === minute && (e.type === 'goal' || e.type === 'concede' || e.type === 'penaltyScored'),
+    );
+    const delay = (isGoal ? 6200 : notable ? 2400 : 620) / speed;
     const id = window.setTimeout(() => setMinute(next), delay);
     return () => window.clearTimeout(id);
   }, [minute, paused, speed, done, events]);
@@ -103,25 +112,60 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
     return player ? playerName(player, lang) : '';
   };
 
-  // The move on the pitch is the last thing that happened, ambient colour included -
-  // a corner and a cleared header are what make the ball move between the goals.
-  const onPitch = [...shown].reverse()[0] ?? null;
+  // The move on the pitch is the most important thing that happened this minute, not
+  // simply the last line printed. A goal and its assist arrive on the same minute and
+  // the assist is written second, which is why the goal itself was never being animated.
+  const onPitch = useMemo(() => {
+    if (shown.length === 0) return null;
+    const rank = (event: MatchEvent): number => {
+      switch (event.type) {
+        case 'goal':
+        case 'concede':
+        case 'penaltyScored':
+          return 6;
+        case 'penaltyMissed':
+        case 'woodwork':
+          return 5;
+        case 'red':
+        case 'injury':
+          return 4;
+        case 'save':
+        case 'miss':
+        case 'oppMiss':
+          return 3;
+        case 'corner':
+        case 'freeKick':
+          return 2;
+        default:
+          return 1;
+      }
+    };
+    const latest = shown[shown.length - 1]!.minute;
+    const thisMinute = shown.filter((event) => event.minute === latest);
+    return thisMinute.reduce((best, event) => (rank(event) > rank(best) ? event : best), thisMinute[0]!);
+  }, [shown]);
 
   // A goal is held on screen with the two names that made it: the man who scored and,
   // when there was one, the man who put it on a plate.
   const goalMoment = useMemo(() => {
     const goal = [...shown].reverse().find((e) => e.type === 'goal' || e.type === 'penaltyScored' || e.type === 'concede');
     if (!goal || minute - goal.minute > 1) return null;
-    const assist = events.find(
-      (e) => e.type === 'assist' && Math.abs(e.minute - goal.minute) <= 1,
-    );
+
+    // The assist the engine wrote for this goal is the one on the same minute.
+    const assist = events.find((e) => e.type === 'assist' && e.minute === goal.minute);
     const named = (event?: MatchEvent) => {
       if (!event) return '';
       if (event.playerId === state.player.id) return playerName(state.player, lang);
       const who = event.playerId ? state.world.players[event.playerId] : undefined;
       return who ? playerName(who, lang) : '';
     };
-    return { scorer: named(goal), assist: named(assist), ours: goal.type !== 'concede' };
+    return {
+      scorer: named(goal),
+      assist: named(assist),
+      ours: goal.type !== 'concede',
+      minute: goal.minute,
+      score: goal.score,
+    };
   }, [shown, minute, events, state, lang]);
 
   const lastScore = [...shown].reverse().find((e) => e.score)?.score;
@@ -158,11 +202,23 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
           homeSquad={(state.world.squads[match.homeClubId] ?? []).flatMap((id) => { const found = state.world.players[id]; return found ? [found] : []; })}
           awaySquad={(state.world.squads[match.awayClubId] ?? []).flatMap((id) => { const found = state.world.players[id]; return found ? [found] : []; })}
           {...(state.player.shirtNumber !== undefined ? { userNumber: state.player.shirtNumber } : {})}
+          replayLabel={t('live.replay')}
         />
         {goalMoment && (
-          <div className={`goal-flash ${goalMoment.ours ? '' : 'goal-flash-against'}`}>
+          <div className={`goal-card ${goalMoment.ours ? '' : 'goal-card-against'}`} role="status">
             <span className="goal-word">{t('live.goal')}</span>
-            {goalMoment.scorer && <span className="goal-scorer">{goalMoment.scorer}</span>}
+            <span className="goal-line">
+              <Crest club={home} size="sm" />
+              <b className="num">{goalMoment.score ? goalMoment.score[0] : liveHome}</b>
+              <span className="goal-dash">–</span>
+              <b className="num">{goalMoment.score ? goalMoment.score[1] : liveAway}</b>
+              <Crest club={away} size="sm" />
+            </span>
+            {goalMoment.scorer && (
+              <span className="goal-scorer">
+                {goalMoment.scorer} <span className="num goal-minute">{goalMoment.minute}′</span>
+              </span>
+            )}
             {goalMoment.assist && <span className="goal-assist">{t('live.assistBy', { player: goalMoment.assist })}</span>}
           </div>
         )}

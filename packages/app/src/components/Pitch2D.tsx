@@ -84,7 +84,9 @@ const SHAPE: { x: number; y: number; number: number }[] = [
 function playFor(event: MatchEvent, rightwards: boolean): Play {
   const flip = (x: number) => (rightwards ? x : PITCH_LENGTH - x);
   const mirror = (y: number) => (rightwards ? y : PITCH_WIDTH - y);
-  const goalMouth = { x: flip(104), y: mirror(34) };
+  // Past the line, into the net. Stopping the ball on the goal line was the reason a
+  // goal did not look like a goal.
+  const inTheNet = { x: rightwards ? PITCH_LENGTH + 1.4 : -1.4, y: mirror(34) };
   const centre = { x: PITCH_LENGTH / 2, y: PITCH_WIDTH / 2 };
 
   const build = (beats: Beat[], flash?: Play['flash']): Play => ({ beats, rightwards, ...(flash ? { flash } : {}) });
@@ -109,7 +111,7 @@ function playFor(event: MatchEvent, rightwards: boolean): Play {
           { x: flip(55), y: mirror(46), ms: 520, kind: 'pass' },
           { x: flip(72), y: mirror(52), ms: 480, kind: 'carry' },
           { x: flip(86), y: mirror(38), ms: 430, kind: 'cross' },
-          { ...goalMouth, ms: 320, kind: 'shot' },
+          { ...inTheNet, ms: 300, kind: 'shot' },
         ],
         'goal',
       );
@@ -118,7 +120,7 @@ function playFor(event: MatchEvent, rightwards: boolean): Play {
       return build(
         [
           { x: flip(94), y: mirror(34), ms: 700, kind: 'set' },
-          { ...goalMouth, ms: 300, kind: 'shot' },
+          { ...inTheNet, ms: 280, kind: 'shot' },
         ],
         'goal',
       );
@@ -244,6 +246,7 @@ export function Pitch2D({
   homeSquad,
   awaySquad,
   userNumber,
+  replayLabel,
 }: {
   home: Club | null | undefined;
   away: Club | null | undefined;
@@ -253,10 +256,18 @@ export function Pitch2D({
   awaySquad?: { shirtNumber?: number }[];
   /** His own shirt, so he can find himself on the pitch. */
   userNumber?: number;
+  /** The word for a second look at the goal, in his language. */
+  replayLabel: string;
 }) {
   const [ball, setBall] = useState({ x: PITCH_LENGTH / 2, y: PITCH_WIDTH / 2 });
   const [travel, setTravel] = useState(600);
   const [flash, setFlash] = useState<Play['flash'] | null>(null);
+  const [netHit, setNetHit] = useState(false);
+  const [replaying, setReplaying] = useState(false);
+  const held = useRef<MatchEvent | null>(null);
+  held.current = event;
+  // What actually identifies this moment: the minute it happened on and what it was.
+  const beat = event ? `${event.minute}:${event.type}:${event.detailKey ?? ''}` : '';
   const [attackingRight, setAttackingRight] = useState(true);
   const timers = useRef<number[]>([]);
 
@@ -265,40 +276,68 @@ export function Pitch2D({
   const homeNumbers = useMemo(() => numbersFor(homeSquad), [homeSquad]);
   const awayNumbers = useMemo(() => numbersFor(awaySquad), [awaySquad]);
 
-  // Whose move this is. The user's side always attacks the way it is set up to attack,
-  // so a goal he is involved in always runs toward the same net.
+  // Whose move this is, taken from the line the player is reading rather than guessed:
+  // the commentary already says whether it was their corner or ours, so the ball goes
+  // the way the text says it went.
   useEffect(() => {
+    const event = held.current;
     if (!event) return;
-    const conceding = event.type === 'concede' || event.type === 'oppMiss';
-    const usAttacking = !conceding;
-    const rightwards = userIsHome ? usAttacking : !usAttacking;
+    const theirs =
+      event.type === 'concede' ||
+      event.type === 'oppMiss' ||
+      /opp/i.test(event.detailKey ?? '');
+    const rightwards = userIsHome ? !theirs : theirs;
     setAttackingRight(rightwards);
 
     const play = playFor(event, rightwards);
     for (const id of timers.current) window.clearTimeout(id);
     timers.current = [];
 
-    let elapsed = 0;
-    for (const beat of play.beats) {
-      const id = window.setTimeout(() => {
-        setTravel(beat.ms);
-        setBall({ x: beat.x, y: beat.y });
-      }, elapsed);
-      timers.current.push(id);
-      elapsed += beat.ms;
-    }
+    const run = (beats: typeof play.beats, slow: number, offset: number) => {
+      let at = offset;
+      for (const beat of beats) {
+        const ms = Math.round(beat.ms * slow);
+        const id = window.setTimeout(() => {
+          setTravel(ms);
+          setBall({ x: beat.x, y: beat.y });
+        }, at);
+        timers.current.push(id);
+        at += ms;
+      }
+      return at;
+    };
 
-    if (play.flash) {
-      const id = window.setTimeout(() => setFlash(play.flash!), Math.max(0, elapsed - 300));
-      const clear = window.setTimeout(() => setFlash(null), elapsed + 1400);
-      timers.current.push(id, clear);
+    let elapsed = run(play.beats, 1, 0);
+
+    if (play.flash === 'goal') {
+      // The net moves, the board comes up, and then the whole thing is shown again at
+      // half speed - which is what everybody actually watches a goal for.
+      timers.current.push(window.setTimeout(() => setFlash('goal'), Math.max(0, elapsed - 260)));
+      timers.current.push(window.setTimeout(() => setNetHit(true), Math.max(0, elapsed - 260)));
+      timers.current.push(window.setTimeout(() => setNetHit(false), elapsed + 700));
+
+      const replayFrom = elapsed + 1500;
+      timers.current.push(window.setTimeout(() => setReplaying(true), replayFrom));
+      const replayEnd = run(play.beats, 1.7, replayFrom);
+      timers.current.push(window.setTimeout(() => setNetHit(true), replayEnd - 200));
+      timers.current.push(
+        window.setTimeout(() => {
+          setReplaying(false);
+          setNetHit(false);
+          setFlash(null);
+        }, replayEnd + 700),
+      );
+      elapsed = replayEnd;
+    } else if (play.flash) {
+      timers.current.push(window.setTimeout(() => setFlash(play.flash!), Math.max(0, elapsed - 300)));
+      timers.current.push(window.setTimeout(() => setFlash(null), elapsed + 1200));
     }
 
     return () => {
       for (const id of timers.current) window.clearTimeout(id);
       timers.current = [];
     };
-  }, [event, userIsHome]);
+  }, [beat, userIsHome]);
 
   const homePlayers = positionsFor(ball.x, ball.y, attackingRight, true);
   const awayPlayers = positionsFor(ball.x, ball.y, attackingRight, false);
@@ -316,6 +355,10 @@ export function Pitch2D({
           <pattern id="mow" width="13.125" height={PITCH_WIDTH} patternUnits="userSpaceOnUse">
             <rect width="13.125" height={PITCH_WIDTH} fill="#2f6d3a" />
             <rect x="6.5625" width="6.5625" height={PITCH_WIDTH} fill="#357a41" />
+          </pattern>
+          <pattern id="net" width="0.9" height="0.9" patternUnits="userSpaceOnUse">
+            <rect width="0.9" height="0.9" fill="rgba(255,255,255,0.10)" />
+            <path d="M0 0 H0.9 M0 0 V0.9" stroke="rgba(255,255,255,0.45)" strokeWidth="0.09" />
           </pattern>
         </defs>
 
@@ -338,8 +381,12 @@ export function Pitch2D({
           <path
             d={`M ${PITCH_LENGTH - 16.5} ${PITCH_WIDTH / 2 - 7.3} A 9.15 9.15 0 0 0 ${PITCH_LENGTH - 16.5} ${PITCH_WIDTH / 2 + 7.3}`}
           />
-          <rect x="-2" y={(PITCH_WIDTH - 7.32) / 2} width="2" height="7.32" fill="rgba(255,255,255,0.16)" />
-          <rect x={PITCH_LENGTH} y={(PITCH_WIDTH - 7.32) / 2} width="2" height="7.32" fill="rgba(255,255,255,0.16)" />
+          <g className={netHit && !attackingRight ? 'net net-hit' : 'net'}>
+            <rect x="-2.6" y={(PITCH_WIDTH - 7.32) / 2} width="2.6" height="7.32" fill="url(#net)" stroke="rgba(255,255,255,0.85)" strokeWidth="0.3" />
+          </g>
+          <g className={netHit && attackingRight ? 'net net-hit' : 'net'}>
+            <rect x={PITCH_LENGTH} y={(PITCH_WIDTH - 7.32) / 2} width="2.6" height="7.32" fill="url(#net)" stroke="rgba(255,255,255,0.85)" strokeWidth="0.3" />
+          </g>
         </g>
 
         <g fill="rgba(255,255,255,0.8)">
@@ -393,6 +440,7 @@ export function Pitch2D({
           <circle r="0.42" fill="#1b1b1b" />
         </g>
       </svg>
+      {replaying && <span className="pitch-replay">{replayLabel}</span>}
     </div>
   );
 }

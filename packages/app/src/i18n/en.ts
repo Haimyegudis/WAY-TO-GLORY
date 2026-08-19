@@ -1617,4 +1617,5 @@ export const en: Record<string, string> = {
   'action.praiseClubInMedia.creep': 'The lads saw the interview. Somebody did an impression of it in the canteen.',
   'live.goal': 'GOAL',
   'live.assistBy': 'assist {player}',
+  'live.replay': 'REPLAY',
 };
