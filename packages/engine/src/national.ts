@@ -134,6 +134,8 @@ export function initNationalTeam(player: Player): NationalTeamState {
     level: 'none',
     caps: 0,
     goals: 0,
+    youthCaps: 0,
+    youthGoals: 0,
     callUpHistory: [],
     capturedBySenior: false,
     interest: Object.fromEntries(player.citizenships.map((c) => [c, 0])),

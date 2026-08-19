@@ -1162,6 +1162,74 @@ describe('the youth league', () => {
     expect(boot.playerName).toBeTruthy();
   });
 
+  it('carries a schema 1 career across without losing it', () => {
+    const { state } = startedCareer({ seed: 55 });
+    // A save written before the youth pyramid existed: one shadow table, a loose form
+    // counter, and a national record with no youth caps in it.
+    const old = JSON.parse(JSON.stringify(state)) as Record<string, any>;
+    old.schemaVersion = 1;
+    old.world.youth = {
+      competitionId: 'isr.1.youth',
+      season: state.world.season,
+      clubIds: [],
+      table: {},
+      fixtures: [{ round: 1, week: 4, homeClubId: 'a', awayClubId: 'b', played: false }],
+      currentRound: 0,
+      scorers: {},
+      finished: false,
+    };
+    old.world.youthForm = { apps: 9, goals: 2, assists: 1, ratingSum: 61 };
+    delete old.nationalTeam.youthCaps;
+    delete old.nationalTeam.youthGoals;
+
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      gameVersion: '0.1.0',
+      savedAt: '2026-01-01T00:00:00.000Z',
+      state: old,
+    });
+    const loaded = deserialize(raw);
+
+    expect(loaded.schemaVersion).toBe(2);
+    expect(loaded.world.youth).toBeUndefined();
+    expect(loaded.world.youthLegacy).toBeDefined();
+    expect(loaded.nationalTeam.youthCaps).toBe(0);
+    expect(loaded.nationalTeam.youthGoals).toBe(0);
+    expect(loaded.player.id).toBe(state.player.id);
+  });
+
+  it('rebuilds the pyramid for a migrated career at the next season', () => {
+    const { state, index } = startedCareer({ seed: 56 });
+    state.world.youth = undefined;
+    state.world.youthLegacy = undefined;
+
+    for (let i = 0; i < 60; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      if (state.world.youth) break;
+    }
+    expect(state.world.youth, 'a migrated career never got its academy back').toBeDefined();
+  });
+
+  it('does not carry every boy who ever played into the save', () => {
+    const { state, index } = startedCareer({ seed: 57 });
+    for (let i = 0; i < 52 * 3; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const written = deserialize(serialize(state));
+    const youth = written.world.youth;
+    if (!youth) return;
+
+    const inSquads = new Set(Object.values(youth.squads).flat());
+    for (const id of Object.keys(youth.players)) {
+      expect(inSquads.has(id), 'a boy who left is still in the save').toBe(true);
+    }
+    for (const record of Object.values(youth.stats)) {
+      expect(record.season).toBeGreaterThanOrEqual(written.world.season);
+    }
+  });
+
   it('keeps the age group an age group year after year', () => {
     const { state, index } = startedCareer({ seed: 909 });
     for (let i = 0; i < 52 * 3; i++) {

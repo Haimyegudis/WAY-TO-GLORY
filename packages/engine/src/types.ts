@@ -424,6 +424,9 @@ export interface NationalTeamState {
   level: 'none' | 'u17' | 'u19' | 'u21' | 'senior';
   caps: number;
   goals: number;
+  /** Appearances at u17, u19 and u21. A youth career is a career and is remembered. */
+  youthCaps: number;
+  youthGoals: number;
   callUpHistory: { season: number; level: string; countryCode: string }[];
   capturedBySenior: boolean;          // has played a competitive senior cap
   interest: Record<string, number>;   // countryCode -> 0-100 interest
