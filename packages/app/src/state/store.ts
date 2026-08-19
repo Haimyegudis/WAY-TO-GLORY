@@ -154,6 +154,14 @@ interface GameStore {
   /** Shown in a sheet right after a choice, so the player sees what it did. */
   result: DecisionResult | null;
   /**
+   * The match the match screen is about: the one he was taken into, plays back, and
+   * then reads the report of. A week can hold a youth match and a cup tie, and without
+   * following one by id the screen followed whichever the engine wrote last - which is
+   * how a boy watching his Sunday morning ended up in somebody else's cup tie at half
+   * time.
+   */
+  focusMatchId: string | null;
+  /**
    * The match id currently being watched minute by minute. Set when the week stops on
    * a match the player was involved in; cleared once he has seen it out or skipped.
    */
@@ -248,6 +256,7 @@ export const useGame = create<GameStore>((set, get) => ({
   toast: null,
   lastTick: null,
   result: null,
+  focusMatchId: null,
   liveMatchId: null,
   liveFromMinute: 0,
   openMessageId: null,
@@ -426,6 +435,7 @@ export const useGame = create<GameStore>((set, get) => ({
       lastTick: result?.stopped ?? null,
       // A match always opens the match screen, from any tab.
       screen: result?.stopped === 'match' || atTheBreak ? 'match' : get().screen,
+      focusMatchId: result?.stopped === 'match' ? state.lastMatch?.id ?? null : get().focusMatchId,
       // A match he played gets watched minute by minute; one he sat out is just read.
       liveMatchId:
         result?.stopped === 'match' && state.lastMatch?.userLine?.played ? state.lastMatch.id : null,
@@ -438,7 +448,12 @@ export const useGame = create<GameStore>((set, get) => ({
     if (!state || !index || !state.pendingHalfTime) return;
     set({ busy: true });
 
+    // Which match he is standing in the dressing room of, before the week is walked
+    // again: the second half he comes out for has to be that match's, not the cup tie
+    // the same week happens to hold.
+    const answeredId = state.pendingHalfTime?.matchId ?? null;
     const result = engineResumeHalfTime(state, index, instructionId);
+    const played = answeredId ? state.matchLog.find((match) => match.id === answeredId) ?? null : null;
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({
@@ -446,7 +461,8 @@ export const useGame = create<GameStore>((set, get) => ({
       busy: false,
       lastTick: result.stopped,
       screen: 'match',
-      liveMatchId: state.lastMatch?.userLine?.played ? state.lastMatch.id : null,
+      focusMatchId: played?.id ?? state.lastMatch?.id ?? null,
+      liveMatchId: played?.userLine?.played ? played.id : null,
       // He has already watched the first half; the playback picks up at the whistle.
       liveFromMinute: 45,
     });

@@ -80,7 +80,9 @@ function Game() {
   const result = useGame((s) => s.result);
   const liveMatchId = useGame((s) => s.liveMatchId);
   // While a match is being watched, nothing else may advance the week from under it.
-  const watchingMatch = screen === 'match' && liveMatchId !== null && liveMatchId === state?.lastMatch?.id;
+  // Which match that is comes from the id being followed, not from whichever match the
+  // engine wrote last: a youth match and a cup tie can land in the same week.
+  const watchingMatch = screen === 'match' && liveMatchId !== null;
   // The dressing room at the interval counts as being in the match: he is standing
   // there in his kit, and the game has not finished. Only while he is actually on the
   // match screen, though - a half time left open on some other tab, or reloaded into,

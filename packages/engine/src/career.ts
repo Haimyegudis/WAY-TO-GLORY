@@ -892,6 +892,16 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     return { state, stopped: 'halfTime', log };
   }
   if (userMatch) {
+    /*
+     * The match of the week, and the one the game will open on.
+     *
+     * Every match he plays writes itself to lastMatch as it finishes, so a week holding
+     * a youth match and a cup tie ended up pointing at whichever was simulated last -
+     * and the app, which plays back lastMatch, took him out of the youth match he was
+     * watching and into somebody else's. simulateWeekFixtures already decides which of
+     * a week's matches is the one that matters; it now gets the last word.
+     */
+    state.lastMatch = userMatch;
     playedThisWeek += userMatch.userLine?.minutes ?? 0;
     stopped = 'match';
     log.push(`match ${userMatch.homeClubId} ${userMatch.homeGoals}-${userMatch.awayGoals} ${userMatch.awayClubId}`);

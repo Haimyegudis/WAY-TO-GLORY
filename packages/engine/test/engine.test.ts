@@ -1033,6 +1033,28 @@ describe('half time', () => {
     }
   });
 
+  it('finishes the match the team talk belonged to, whatever else that week held', () => {
+    // A week can hold a Sunday morning in the age group and a cup tie two days later.
+    // The interval belongs to one of them, and that is the match that has to be played
+    // out and put in the log - the app follows it by id, and following "the last match
+    // written" is how a boy watching his youth match ended up in somebody else's tie.
+    const { state, index } = startedCareer({ seed: 8181 });
+    let checked = 0;
+    for (let i = 0; i < 52 * 4 && !state.retired; i++) {
+      const result = advanceWeek(state, index);
+      state.pendingDecisions = [];
+      if (result.stopped !== 'halfTime') continue;
+      const held = state.pendingHalfTime!;
+      const answeredId = held.matchId;
+      resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+      const played = state.matchLog.find((match) => match.id === answeredId);
+      expect(played, `the match the interval belonged to was never finished: ${answeredId}`).toBeDefined();
+      expect(played!.competitionId, 'the finished match changed competition').toBe(held.competitionId);
+      checked++;
+    }
+    expect(checked, 'no interval ever came up').toBeGreaterThan(0);
+  });
+
   it('never leaves a team talk hanging once it has been answered', () => {
     // An answered break that is never cleared is not a harmless leftover: the app shows
     // the dressing room in place of the match report, for every match after it.

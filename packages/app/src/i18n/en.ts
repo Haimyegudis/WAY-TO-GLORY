@@ -755,6 +755,9 @@ export const en: Record<string, string> = {
   'market.transfer': 'Transfer',
 
   'matches.title': 'Season results',
+  'matches.all': 'All',
+  'matches.senior': 'Seniors',
+  'matches.youth': 'Youth',
   'matches.list': 'Match by match',
   'matches.none': 'No matches played yet.',
   'matches.missed': 'Missed',

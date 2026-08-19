@@ -751,6 +751,9 @@ export const he: Record<string, string> = {
   'market.transfer': 'העברה',
 
   'matches.title': 'תוצאות העונה',
+  'matches.all': 'הכל',
+  'matches.senior': 'בוגרים',
+  'matches.youth': 'נוער',
   'matches.list': 'משחק אחר משחק',
   'matches.none': 'עוד לא שיחקת השנה.',
   'matches.missed': 'פספסת',

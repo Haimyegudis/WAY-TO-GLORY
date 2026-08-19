@@ -58,7 +58,11 @@ export function MatchCentre() {
   const state = useGame((s) => s.state)!;
   const liveMatchId = useGame((s) => s.liveMatchId);
   const endLive = useGame((s) => s.endLive);
-  const match = state.lastMatch;
+  // The match this screen is about. Following an id rather than "the last one written"
+  // is what keeps a youth match and a cup tie in the same week apart.
+  const focusMatchId = useGame((s) => s.focusMatchId);
+  const match =
+    (focusMatchId ? state.matchLog.find((entry) => entry.id === focusMatchId) : null) ?? state.lastMatch;
   const half = openHalfTime(state);
   const liveFrom = useGame((s) => s.liveFromMinute);
   // Which match he has already walked off the pitch for. This is held per match rather

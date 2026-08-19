@@ -23,8 +23,20 @@ export function MatchesScreen() {
   // Two questions live on this page: how am I doing, and what happened last weekend.
   const [view, setView] = useState<'mine' | 'round'>('mine');
 
-  const matches = state.matchLog
-    .filter((m) => m.season === season)
+  /*
+   * Sunday morning and Saturday afternoon are two different careers, and adding them up
+   * together tells him nothing: thirty appearances reads like a season in the first team
+   * when twenty of them were in the age group. The list and the totals above it follow
+   * whichever football he is asking about.
+   */
+  const seasonMatches = state.matchLog.filter((m) => m.season === season);
+  const isYouth = (id: string) => id.endsWith('.youth');
+  const hasYouth = seasonMatches.some((m) => isYouth(m.competitionId));
+  const hasSenior = seasonMatches.some((m) => !isYouth(m.competitionId));
+  const [side, setSide] = useState<'all' | 'senior' | 'youth'>('all');
+
+  const matches = seasonMatches
+    .filter((m) => (side === 'all' ? true : side === 'youth' ? isYouth(m.competitionId) : !isYouth(m.competitionId)))
     .slice()
     .sort((a, b) => b.week - a.week);
 
@@ -86,6 +98,14 @@ export function MatchesScreen() {
           </select>
         )}
       </header>
+
+      {hasYouth && hasSenior && (
+        <div className="seg">
+          <button aria-pressed={side === 'all'} onClick={() => setSide('all')}>{t('matches.all')}</button>
+          <button aria-pressed={side === 'senior'} onClick={() => setSide('senior')}>{t('matches.senior')}</button>
+          <button aria-pressed={side === 'youth'} onClick={() => setSide('youth')}>{t('matches.youth')}</button>
+        </div>
+      )}
 
       <Card>
         <div className="statrow">
