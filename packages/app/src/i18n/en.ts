@@ -1206,6 +1206,12 @@ export const en: Record<string, string> = {
   'train.effect.fatigue': 'Fatigue',
   'train.effect.injury': 'Injury risk',
   'train.effect.recovery': 'Recovery',
+  'train.diet.effects': 'What this diet does',
+  'train.diet.effect.growth': 'Attribute growth',
+  'train.diet.effect.recovery': 'Recovery from fatigue',
+  'train.diet.effect.injury': 'Injury risk',
+  'train.diet.effect.morale': 'Morale, per week',
+  'train.diet.effect.none': 'no change',
 
 
   'create.buildEffects': 'What this build gives you',

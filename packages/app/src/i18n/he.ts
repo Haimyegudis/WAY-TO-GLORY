@@ -1202,6 +1202,12 @@ export const he: Record<string, string> = {
   'train.effect.fatigue': 'עייפות',
   'train.effect.injury': 'סיכון פציעה',
   'train.effect.recovery': 'התאוששות',
+  'train.diet.effects': 'מה התזונה הזאת עושה',
+  'train.diet.effect.growth': 'קצב שיפור הציונים',
+  'train.diet.effect.recovery': 'התאוששות מעייפות',
+  'train.diet.effect.injury': 'סיכון פציעה',
+  'train.diet.effect.morale': 'מורל (מנטלי) בשבוע',
+  'train.diet.effect.none': 'ללא שינוי',
 
 
   'train.diet.poor': 'מרושלת',

@@ -39,10 +39,10 @@ const INTENSITY_DEV: Record<TrainingPlan['intensity'], number> = {
 const INTENSITY_FATIGUE: Record<TrainingPlan['intensity'], number> = {
   light: -3.5, normal: 1.2, intensive: 4.5, extreme: 9,
 };
-const DIET_FACTOR: Record<TrainingPlan['diet'], number> = {
+export const DIET_FACTOR: Record<TrainingPlan['diet'], number> = {
   poor: 0.8, normal: 1.0, professional: 1.12, nutritionist: 1.2,
 };
-const DIET_RECOVERY: Record<TrainingPlan['diet'], number> = {
+export const DIET_RECOVERY: Record<TrainingPlan['diet'], number> = {
   poor: 0.7, normal: 1.0, professional: 1.2, nutritionist: 1.35,
 };
 /**
@@ -73,7 +73,12 @@ export function dietCost(diet: TrainingPlan['diet'], weeklyWage: number): number
  * month after month, so the stricter plans pull morale down a little every week while
  * the body benefits. Small numbers on purpose: one good run of games outweighs them.
  */
-const DIET_MORALE: Record<TrainingPlan['diet'], number> = {
+/** How much more or less likely a week of training is to hurt him. */
+export const DIET_INJURY: Record<TrainingPlan['diet'], number> = {
+  poor: 1.3, normal: 1, professional: 0.88, nutritionist: 0.8,
+};
+
+export const DIET_MORALE: Record<TrainingPlan['diet'], number> = {
   poor: 0.4, normal: 0, professional: -0.3, nutritionist: -0.85,
 };
 
@@ -323,4 +328,32 @@ export function playerAge(player: Player, season: number): number {
 
 export function positionalGroupOf(player: Player) {
   return positionGroup(player.primaryPos);
+}
+
+/**
+ * What eating that way actually does, in the engine's own numbers.
+ *
+ * Choosing a diet used to say "recovery, up a bit" and leave the rest to be discovered
+ * over a season. These are the four figures the simulation really uses - how fast his
+ * attributes grow, how fast he recovers, how likely he is to get hurt, and what it does
+ * to his head - so the choice can be made with the same information the engine has.
+ */
+export interface DietEffect {
+  /** Attribute growth, as a multiplier: 1.12 is twelve per cent faster. */
+  growth: number;
+  /** Recovery from fatigue, as a multiplier. */
+  recovery: number;
+  /** Risk of injury in training, as a multiplier. */
+  injury: number;
+  /** Morale, per week, in points. */
+  morale: number;
+}
+
+export function dietEffect(diet: TrainingPlan['diet']): DietEffect {
+  return {
+    growth: DIET_FACTOR[diet],
+    recovery: DIET_RECOVERY[diet],
+    injury: DIET_INJURY[diet],
+    morale: DIET_MORALE[diet],
+  };
 }

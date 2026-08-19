@@ -8,7 +8,7 @@ import {
   type TrainingIntensity,
 } from '@fc/engine';
 import { formatMoney, useLang, useT } from '../i18n/index.js';
-import { dietCost } from '@fc/engine';
+import { dietCost, dietEffect } from '@fc/engine';
 import { useGame } from '../state/store.js';
 import { Meter, Card } from '../components/ui.js';
 
@@ -69,6 +69,34 @@ function planEffects(plan: { intensity: TrainingIntensity; diet: DietLevel; focu
   return [...byIntensity[plan.intensity], byDiet[plan.diet], { key: `train.focus.${plan.focus}`, arrow: '↑', tone: 'good' }];
 }
 
+/**
+ * The diet, in the engine's own numbers.
+ *
+ * A multiplier of 1.12 is "twelve per cent faster", and a morale figure is points a
+ * week; both are shown signed so the cost of eating like a professional is as visible as
+ * the benefit. Anything that does nothing says so rather than showing +0%.
+ */
+function dietLines(diet: DietLevel): { key: string; text: string; tone: 'good' | 'bad' | 'neutral' }[] {
+  const effect = dietEffect(diet);
+  const percent = (value: number, goodWhenUp: boolean) => {
+    const change = Math.round((value - 1) * 100);
+    return {
+      text: `${change > 0 ? '+' : ''}${change}%`,
+      tone: (change === 0 ? 'neutral' : (change > 0) === goodWhenUp ? 'good' : 'bad') as 'good' | 'bad' | 'neutral',
+    };
+  };
+  const morale = {
+    text: `${effect.morale > 0 ? '+' : ''}${effect.morale}`,
+    tone: (effect.morale === 0 ? 'neutral' : effect.morale > 0 ? 'good' : 'bad') as 'good' | 'bad' | 'neutral',
+  };
+  return [
+    { key: 'train.diet.effect.growth', ...percent(effect.growth, true) },
+    { key: 'train.diet.effect.recovery', ...percent(effect.recovery, true) },
+    { key: 'train.diet.effect.injury', ...percent(effect.injury, false) },
+    { key: 'train.diet.effect.morale', ...morale },
+  ];
+}
+
 export function TrainingScreen() {
   const t = useT();
   const state = useGame((s) => s.state)!;
@@ -125,6 +153,28 @@ export function TrainingScreen() {
                   })
                 : t('train.diet.free')}
             </p>
+
+            {/* What the food is actually doing: the four numbers the engine really
+                multiplies by, rather than one arrow next to the word "recovery". */}
+            <div className="card" style={{ background: 'var(--surface-2)', padding: 10, marginBlockStart: 8 }}>
+              <p className="eyebrow" style={{ marginBlockEnd: 6 }}>{t('train.diet.effects')}</p>
+              <ul className="list">
+                {dietLines(plan.diet).map((line) => (
+                  <li key={line.key} className="list-item" style={{ padding: '5px 0' }}>
+                    <span className="grow" style={{ fontSize: 12.5 }}>{t(line.key)}</span>
+                    <span
+                      className="num"
+                      style={{
+                        fontSize: 12.5,
+                        color: line.tone === 'good' ? 'var(--green)' : line.tone === 'bad' ? 'var(--red)' : 'var(--muted)',
+                      }}
+                    >
+                      {line.tone === 'neutral' ? t('train.diet.effect.none') : line.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div>
