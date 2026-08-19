@@ -1424,4 +1424,13 @@ export const en: Record<string, string> = {
   'settings.saves': 'Careers on this device',
 
   'settings.savesHint': 'The game saves itself every week. This writes it right now, and every career on this device is listed on the title screen.',
-};
+\n'inbox.youthCallUp': 'The first team have asked to see you in training at {club}.',
+  'inbox.youthCallUp.body': 'You train with the seniors from this week. Nothing is promised - plenty of boys go up for a fortnight and come back down - but the manager wanted a look, and that only happens when somebody has been watching on Sundays.',
+  'news.youthCallUp': '{player} is training with the first team at {club}.',
+  'achievement.firstTeamCallUp': 'Called up to the first team',
+  'inbox.promotedToFirstTeam.body': 'You are a senior player from July. The youth league is behind you and nobody there is going to be kind about your age any more.',
+  'news.promotedToFirstTeam': '{player} is promoted to the first team at {club}.',
+  'inbox.mustLeaveAcademy': 'You are eighteen and {club} are not taking you up. Clubs that will play you are interested.',
+  'inbox.mustLeaveAcademy.body': 'This is the moment a lot of careers quietly end: the club that raised you has decided you are not for them. The clubs on the table are smaller, and that is the point - go where you will play.',
+  'inbox.noOffersAtEighteen': 'Eighteen, no place in the senior squad at {club}, and nobody has come in for you.',
+  'inbox.noOffersAtEighteen.body': 'A hard summer. Train, wait for the window, and give somebody a reason to make the call.',\n};

@@ -558,6 +558,10 @@ export interface WorldState {
   squads: Record<string, string[]>;  // clubId -> playerIds
   players: Record<string, Player>;   // only modelled players
   seasonStats: Record<string, SeasonStats>; // playerId -> current season stats
+  /** The youth league he plays in until the first team calls him up. */
+  youth?: CompetitionSeasonState;
+  /** What he has done in it this season. */
+  youthForm?: { apps: number; goals: number; assists: number; ratingSum: number };
   /** Domestic cups, one per country, rebuilt each season. */
   cups: Record<string, import('./cup.js').CupState>;
   /** The three European competitions, rebuilt each season from who qualified. */

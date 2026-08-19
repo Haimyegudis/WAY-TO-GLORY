@@ -10,6 +10,7 @@ export * from './league.js';
 export * from './cup.js';
 export * from './europe.js';
 export * from './awards.js';
+export * from './youth.js';
 export * from './tournament.js';
 export * from './injury.js';
 export * from './value.js';

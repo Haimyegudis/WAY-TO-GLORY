@@ -91,6 +91,8 @@ export interface InterestInput {
   agent: Agent | null;
   playerCountry: string;
   currentClubStrength: number;
+  /** Standing of the league he plays in now, which is how far a move really is. */
+  currentLeagueReputation: number;
   minutesPct: number;
 }
 
@@ -102,11 +104,43 @@ export function transferInterest(input: InterestInput): number {
   const clubLevel = clubBaseOvr(input.club);
   const gap = input.ovr - clubLevel;
 
+  // Football has a ladder, and almost nobody skips it. A seventeen year old in the
+  // Israeli league does not go straight to a European giant: he moves to a mid-table
+  // side in a stronger league first, does it there, and is bought from that shop
+  // window. Only a genuinely exceptional player jumps two rungs at once.
+  const leagueJump = input.competition.reputation - input.currentLeagueReputation;
+  if (leagueJump > 26) {
+    const exceptional = input.ovr >= clubLevel - 6 && input.reputation >= 58;
+    if (!exceptional) return 0;
+  } else if (leagueJump > 15) {
+    const ready = input.ovr >= clubLevel - 12 && input.reputation >= 38;
+    if (!ready) return 0;
+  }
+
+  // A club does not sign a player who is nowhere near its level. Real Madrid do not
+  // bid for a 45-rated seventeen year old, and if they ever do it is because he is a
+  // wonderkid the whole continent has already heard of - which means real potential
+  // and a reputation to match, not one good month in a youth team.
+  const shortfall = clubLevel - input.ovr;
+  if (shortfall > 26) return 0;
+  if (shortfall > 16) {
+    const wonderkid =
+      input.age <= 20 &&
+      input.potential >= clubLevel - 3 &&
+      input.reputation >= 42 + (clubLevel - 70) * 0.5;
+    if (!wonderkid) return 0;
+  }
+
   // Best fit is a player slightly better than the current squad average.
   const fitScore = 100 * Math.exp(-((gap - 2) ** 2) / 90);
 
   const potentialGap = Math.max(0, input.potential - input.ovr);
-  const youthAppeal = input.age <= 23 ? clamp(potentialGap * (input.club.reputation / 100) * 1.6, 0, 45) : 0;
+  // Potential is hidden from the world: clubs are reading a player they have watched,
+  // so how much his ceiling counts depends on how visible he is - minutes on the pitch
+  // and a name people know.
+  const scoutingConfidence = clamp(0.25 + input.minutesPct * 0.6 + input.reputation / 180, 0.25, 1);
+  const youthAppeal =
+    input.age <= 23 ? clamp(potentialGap * (input.club.reputation / 100) * 1.6 * scoutingConfidence, 0, 45) : 0;
 
   const formScore = (input.form - 50) * 0.28;
   const repScore = (input.reputation - clubLevel * 0.6) * 0.22;
@@ -214,6 +248,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       agent: state.agent,
       playerCountry: player.birthCountry,
       currentClubStrength: currentClub?.strength ?? 40,
+      currentLeagueReputation: currentComp?.reputation ?? 30,
       minutesPct: input.minutesPct,
     });
     if (interest > 42) candidates.push({ club, comp, interest });
