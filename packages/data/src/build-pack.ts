@@ -231,6 +231,7 @@ async function main(): Promise<void> {
         const club = buildClub(seed, guest.name, strength, guest.city, true);
         club.id = guest.id;
         club.shortName = guest.shortName;
+        if (guest.nameHe) club.nameHe = guest.nameHe;
         if (guest.crest) club.crest = guest.crest;
         if (guest.color) club.color = guest.color;
         clubs.push(club);

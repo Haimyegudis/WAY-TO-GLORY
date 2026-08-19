@@ -8,7 +8,8 @@
     "competitionId": "sui.1",
     "sourceRef": "133957",
     "crest": "sui_basel.png",
-    "color": "#ffea00"
+    "color": "#ffea00",
+    "nameHe": "באזל"
   },
   {
     "id": "sui_grasshoppers",
@@ -19,7 +20,8 @@
     "competitionId": "sui.1",
     "sourceRef": "134391",
     "crest": "sui_grasshoppers.png",
-    "color": "#005791"
+    "color": "#005791",
+    "nameHe": "גראסהופר ציריך"
   },
   {
     "id": "sui_lausanne_sport",
@@ -30,7 +32,8 @@
     "competitionId": "sui.1",
     "sourceRef": "138990",
     "crest": "sui_lausanne_sport.png",
-    "color": "#282b63"
+    "color": "#282b63",
+    "nameHe": "לוזאן"
   },
   {
     "id": "sui_lugano",
@@ -40,7 +43,8 @@
     "country": "SUI",
     "competitionId": "sui.1",
     "sourceRef": "136037",
-    "crest": "sui_lugano.png"
+    "crest": "sui_lugano.png",
+    "nameHe": "לוגאנו"
   },
   {
     "id": "sui_luzern",
@@ -51,7 +55,8 @@
     "competitionId": "sui.1",
     "sourceRef": "134123",
     "crest": "sui_luzern.png",
-    "color": "#00519e"
+    "color": "#00519e",
+    "nameHe": "לוצרן"
   },
   {
     "id": "sui_servette",
@@ -62,7 +67,8 @@
     "competitionId": "sui.1",
     "sourceRef": "133991",
     "crest": "sui_servette.png",
-    "color": "#85132a"
+    "color": "#85132a",
+    "nameHe": "סרווט"
   },
   {
     "id": "sui_sion",
@@ -73,7 +79,8 @@
     "competitionId": "sui.1",
     "sourceRef": "135947",
     "crest": "sui_sion.png",
-    "color": "#ee2424"
+    "color": "#ee2424",
+    "nameHe": "סיון"
   },
   {
     "id": "sui_st_gallen",
@@ -84,7 +91,8 @@
     "competitionId": "sui.1",
     "sourceRef": "134406",
     "crest": "sui_st_gallen.png",
-    "color": "#2c8548"
+    "color": "#2c8548",
+    "nameHe": "סנט גאלן"
   },
   {
     "id": "sui_thun",
@@ -95,7 +103,8 @@
     "competitionId": "sui.1",
     "sourceRef": "134394",
     "crest": "sui_thun.png",
-    "color": "#e2001a"
+    "color": "#e2001a",
+    "nameHe": "תון"
   },
   {
     "id": "sui_vaduz",
@@ -106,7 +115,8 @@
     "competitionId": "sui.1",
     "sourceRef": "134320",
     "crest": "sui_vaduz.png",
-    "color": "#dc002f"
+    "color": "#dc002f",
+    "nameHe": "ואדוץ"
   },
   {
     "id": "cro_dinamo_zagreb",
@@ -117,7 +127,8 @@
     "competitionId": "cro.1",
     "sourceRef": "133961",
     "crest": "cro_dinamo_zagreb.png",
-    "color": "#004fa0"
+    "color": "#004fa0",
+    "nameHe": "דינמו זאגרב"
   },
   {
     "id": "cro_hajduk_split",
@@ -128,7 +139,8 @@
     "competitionId": "cro.1",
     "sourceRef": "134019",
     "crest": "cro_hajduk_split.png",
-    "color": "#21409a"
+    "color": "#21409a",
+    "nameHe": "היידוק ספליט"
   },
   {
     "id": "cro_rijeka",
@@ -139,7 +151,8 @@
     "competitionId": "cro.1",
     "sourceRef": "134399",
     "crest": "cro_rijeka.png",
-    "color": "#ddbe80"
+    "color": "#ddbe80",
+    "nameHe": "ריאקה"
   },
   {
     "id": "cro_osijek",
@@ -150,7 +163,8 @@
     "competitionId": "cro.1",
     "sourceRef": "134041",
     "crest": "cro_osijek.png",
-    "color": "#4db5e8"
+    "color": "#4db5e8",
+    "nameHe": "אוסייק"
   },
   {
     "id": "srb_crvena_zvezda",
@@ -161,7 +175,8 @@
     "competitionId": "srb.1",
     "sourceRef": "133987",
     "crest": "srb_crvena_zvezda.png",
-    "color": "#ff0000"
+    "color": "#ff0000",
+    "nameHe": "הכוכב האדום בלגרד"
   },
   {
     "id": "srb_partizan_belgrade",
@@ -172,7 +187,8 @@
     "competitionId": "srb.1",
     "sourceRef": "133960",
     "crest": "srb_partizan_belgrade.png",
-    "color": "#ea101a"
+    "color": "#ea101a",
+    "nameHe": "פרטיזן בלגרד"
   },
   {
     "id": "srb_vojvodina",
@@ -183,7 +199,8 @@
     "competitionId": "srb.1",
     "sourceRef": "134022",
     "crest": "srb_vojvodina.png",
-    "color": "#da1f25"
+    "color": "#da1f25",
+    "nameHe": "ווייבודינה נובי סאד"
   },
   {
     "id": "srb_cukaricki",
@@ -194,7 +211,8 @@
     "competitionId": "srb.1",
     "sourceRef": "134617",
     "crest": "srb_cukaricki.png",
-    "color": "#bd9803"
+    "color": "#bd9803",
+    "nameHe": "צ׳וקאריצ׳קי"
   },
   {
     "id": "cyp_aek_larnaca",
@@ -205,7 +223,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "136251",
     "crest": "cyp_aek_larnaca.png",
-    "color": "#ffe500"
+    "color": "#ffe500",
+    "nameHe": "איי איי קיי לרנקה"
   },
   {
     "id": "cyp_ael_limassol",
@@ -216,7 +235,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "137922",
     "crest": "cyp_ael_limassol.png",
-    "color": "#fec316"
+    "color": "#fec316",
+    "nameHe": "איי אי אל לימסול"
   },
   {
     "id": "cyp_anorthosis_famagusta",
@@ -227,7 +247,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "133994",
     "crest": "cyp_anorthosis_famagusta.png",
-    "color": "#2251a8"
+    "color": "#2251a8",
+    "nameHe": "אנורתוסיס פמגוסטה"
   },
   {
     "id": "cyp_apoel_nicosia",
@@ -238,7 +259,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "133999",
     "crest": "cyp_apoel_nicosia.png",
-    "color": "#03488e"
+    "color": "#03488e",
+    "nameHe": "אפואל ניקוסיה"
   },
   {
     "id": "cyp_apollon_limassol",
@@ -249,7 +271,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "134407",
     "crest": "cyp_apollon_limassol.png",
-    "color": "#1d175e"
+    "color": "#1d175e",
+    "nameHe": "אפולון לימסול"
   },
   {
     "id": "cyp_aris_limassol",
@@ -260,7 +283,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "141094",
     "crest": "cyp_aris_limassol.png",
-    "color": "#08a06d"
+    "color": "#08a06d",
+    "nameHe": "אריס לימסול"
   },
   {
     "id": "cyp_karmiotissa",
@@ -271,7 +295,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "140064",
     "crest": "cyp_karmiotissa.png",
-    "color": "#fc561f"
+    "color": "#fc561f",
+    "nameHe": "קרמיוטיסה"
   },
   {
     "id": "cyp_krasava_ypsonas",
@@ -282,7 +307,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "141098",
     "crest": "cyp_krasava_ypsonas.png",
-    "color": "#fee902"
+    "color": "#fee902",
+    "nameHe": "קראסאבה"
   },
   {
     "id": "cyp_nea_salamis_famagusta",
@@ -293,7 +319,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "137926",
     "crest": "cyp_nea_salamis_famagusta.png",
-    "color": "#e02621"
+    "color": "#e02621",
+    "nameHe": "נאה סלמיס"
   },
   {
     "id": "cyp_olympiakos_nicosia",
@@ -304,7 +331,8 @@
     "competitionId": "cyp.1",
     "sourceRef": "137927",
     "crest": "cyp_olympiakos_nicosia.png",
-    "color": "#01ab5d"
+    "color": "#01ab5d",
+    "nameHe": "אולימפיאקוס ניקוסיה"
   },
   {
     "id": "ukr_bukovyna_chernivtsi",
@@ -315,7 +343,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "146855",
     "crest": "ukr_bukovyna_chernivtsi.png",
-    "color": "#fcde00"
+    "color": "#fcde00",
+    "nameHe": "בוקובינה"
   },
   {
     "id": "ukr_chornomorets_odesa",
@@ -326,7 +355,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "134392",
     "crest": "ukr_chornomorets_odesa.png",
-    "color": "#3066a9"
+    "color": "#3066a9",
+    "nameHe": "צ׳ורנומורץ אודסה"
   },
   {
     "id": "ukr_dynamo_kyiv",
@@ -337,7 +367,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "133944",
     "crest": "ukr_dynamo_kyiv.png",
-    "color": "#176fc1"
+    "color": "#176fc1",
+    "nameHe": "דינמו קייב"
   },
   {
     "id": "ukr_epitsentr_kamianets_podilsky",
@@ -348,7 +379,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "146857",
     "crest": "ukr_epitsentr_kamianets_podilsky.png",
-    "color": "#16436c"
+    "color": "#16436c",
+    "nameHe": "אפיצנטר"
   },
   {
     "id": "ukr_karpaty_lviv",
@@ -359,7 +391,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "134426",
     "crest": "ukr_karpaty_lviv.png",
-    "color": "#008457"
+    "color": "#008457",
+    "nameHe": "קרפאטי לביב"
   },
   {
     "id": "ukr_kharkiv",
@@ -370,7 +403,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "134122",
     "crest": "ukr_kharkiv.png",
-    "color": "#38081c"
+    "color": "#38081c",
+    "nameHe": "חרקוב"
   },
   {
     "id": "ukr_kolos_kovalivka",
@@ -380,7 +414,8 @@
     "country": "UKR",
     "competitionId": "ukr.1",
     "sourceRef": "136858",
-    "crest": "ukr_kolos_kovalivka.png"
+    "crest": "ukr_kolos_kovalivka.png",
+    "nameHe": "קולוס קובאליבקה"
   },
   {
     "id": "ukr_kryvbas_kryvyi_rih",
@@ -391,7 +426,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "142826",
     "crest": "ukr_kryvbas_kryvyi_rih.png",
-    "color": "#ff0c19"
+    "color": "#ff0c19",
+    "nameHe": "קריבבאס"
   },
   {
     "id": "ukr_kudrivka",
@@ -402,7 +438,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "149227",
     "crest": "ukr_kudrivka.png",
-    "color": "#1149a0"
+    "color": "#1149a0",
+    "nameHe": "קודריבקה"
   },
   {
     "id": "ukr_livyi_bereh_kyiv",
@@ -413,7 +450,8 @@
     "competitionId": "ukr.1",
     "sourceRef": "147624",
     "crest": "ukr_livyi_bereh_kyiv.png",
-    "color": "#fecc16"
+    "color": "#fecc16",
+    "nameHe": "ליביי בראה קייב"
   },
   {
     "id": "rou_arges_pitesti",
@@ -424,7 +462,8 @@
     "competitionId": "rou.1",
     "sourceRef": "138932",
     "crest": "rou_arges_pitesti.png",
-    "color": "#550d81"
+    "color": "#550d81",
+    "nameHe": "ארג׳ש פיטשט"
   },
   {
     "id": "rou_botosani",
@@ -435,7 +474,8 @@
     "competitionId": "rou.1",
     "sourceRef": "138191",
     "crest": "rou_botosani.png",
-    "color": "#2b2f87"
+    "color": "#2b2f87",
+    "nameHe": "בוטושאני"
   },
   {
     "id": "rou_cfr_cluj",
@@ -446,7 +486,8 @@
     "competitionId": "rou.1",
     "sourceRef": "133955",
     "crest": "rou_cfr_cluj.png",
-    "color": "#8b2642"
+    "color": "#8b2642",
+    "nameHe": "סי אף אר קלוז׳"
   },
   {
     "id": "rou_corvinul_hunedoara",
@@ -457,7 +498,8 @@
     "competitionId": "rou.1",
     "sourceRef": "147629",
     "crest": "rou_corvinul_hunedoara.png",
-    "color": "#2485bf"
+    "color": "#2485bf",
+    "nameHe": "קורבינול"
   },
   {
     "id": "rou_csikszereda_miercurea_ciuc",
@@ -468,7 +510,8 @@
     "competitionId": "rou.1",
     "sourceRef": "138930",
     "crest": "rou_csikszereda_miercurea_ciuc.png",
-    "color": "#ed1b24"
+    "color": "#ed1b24",
+    "nameHe": "צ׳יקסרדה"
   },
   {
     "id": "rou_dinamo_bucuresti",
@@ -479,7 +522,8 @@
     "competitionId": "rou.1",
     "sourceRef": "134121",
     "crest": "rou_dinamo_bucuresti.png",
-    "color": "#ff0100"
+    "color": "#ff0100",
+    "nameHe": "דינמו בוקרשט"
   },
   {
     "id": "rou_farul_constanta",
@@ -490,7 +534,8 @@
     "competitionId": "rou.1",
     "sourceRef": "138926",
     "crest": "rou_farul_constanta.png",
-    "color": "#15539a"
+    "color": "#15539a",
+    "nameHe": "פארול קונסטנצה"
   },
   {
     "id": "rou_fcsb",
@@ -501,7 +546,8 @@
     "competitionId": "rou.1",
     "sourceRef": "134005",
     "crest": "rou_fcsb.png",
-    "color": "#132e52"
+    "color": "#132e52",
+    "nameHe": "אף סי אס בי"
   },
   {
     "id": "rou_otelul_galati",
@@ -512,7 +558,8 @@
     "competitionId": "rou.1",
     "sourceRef": "135929",
     "crest": "rou_otelul_galati.png",
-    "color": "#124d96"
+    "color": "#124d96",
+    "nameHe": "אוצלול גלאץ"
   },
   {
     "id": "rou_petrolul_ploiesti",
@@ -523,7 +570,8 @@
     "competitionId": "rou.1",
     "sourceRef": "134398",
     "crest": "rou_petrolul_ploiesti.png",
-    "color": "#ffe714"
+    "color": "#ffe714",
+    "nameHe": "פטרולול פלויישט"
   },
   {
     "id": "cze_artis_brno",
@@ -534,7 +582,8 @@
     "competitionId": "cze.1",
     "sourceRef": "141110",
     "crest": "cze_artis_brno.png",
-    "color": "#001489"
+    "color": "#001489",
+    "nameHe": "ארטיס ברנו"
   },
   {
     "id": "cze_banik_ostrava",
@@ -545,7 +594,8 @@
     "competitionId": "cze.1",
     "sourceRef": "136684",
     "crest": "cze_banik_ostrava.png",
-    "color": "#00619f"
+    "color": "#00619f",
+    "nameHe": "באניק אוסטרבה"
   },
   {
     "id": "cze_bohemians_1905",
@@ -556,7 +606,8 @@
     "competitionId": "cze.1",
     "sourceRef": "136681",
     "crest": "cze_bohemians_1905.png",
-    "color": "#008a52"
+    "color": "#008a52",
+    "nameHe": "בוהמיאנס פראג"
   },
   {
     "id": "cze_hradec_kralove",
@@ -567,7 +618,8 @@
     "competitionId": "cze.1",
     "sourceRef": "141109",
     "crest": "cze_hradec_kralove.png",
-    "color": "#d9b36b"
+    "color": "#d9b36b",
+    "nameHe": "הראדץ קראלובה"
   },
   {
     "id": "cze_jablonec",
@@ -577,7 +629,8 @@
     "country": "CZE",
     "competitionId": "cze.1",
     "sourceRef": "134395",
-    "crest": "cze_jablonec.png"
+    "crest": "cze_jablonec.png",
+    "nameHe": "יבלונץ"
   },
   {
     "id": "cze_mlada_boleslav",
@@ -588,7 +641,8 @@
     "competitionId": "cze.1",
     "sourceRef": "134000",
     "crest": "cze_mlada_boleslav.png",
-    "color": "#cbe8f6"
+    "color": "#cbe8f6",
+    "nameHe": "מלאדה בולסלב"
   },
   {
     "id": "cze_pardubice",
@@ -599,7 +653,8 @@
     "competitionId": "cze.1",
     "sourceRef": "140093",
     "crest": "cze_pardubice.png",
-    "color": "#e1001e"
+    "color": "#e1001e",
+    "nameHe": "פרדוביצה"
   },
   {
     "id": "cze_sigma_olomouc",
@@ -610,7 +665,8 @@
     "competitionId": "cze.1",
     "sourceRef": "136677",
     "crest": "cze_sigma_olomouc.png",
-    "color": "#005ba0"
+    "color": "#005ba0",
+    "nameHe": "סיגמה אולומואץ"
   },
   {
     "id": "cze_slavia_prague",
@@ -621,7 +677,8 @@
     "competitionId": "cze.1",
     "sourceRef": "136036",
     "crest": "cze_slavia_prague.png",
-    "color": "#d82333"
+    "color": "#d82333",
+    "nameHe": "סלביה פראג"
   },
   {
     "id": "cze_slovacko",
@@ -632,7 +689,8 @@
     "competitionId": "cze.1",
     "sourceRef": "136685",
     "crest": "cze_slovacko.png",
-    "color": "#25255e"
+    "color": "#25255e",
+    "nameHe": "סלובאצקו"
   },
   {
     "id": "hun_budapest_honved",
@@ -643,7 +701,8 @@
     "competitionId": "hun.1",
     "sourceRef": "134070",
     "crest": "hun_budapest_honved.png",
-    "color": "#be2d25"
+    "color": "#be2d25",
+    "nameHe": "הונבד בודפשט"
   },
   {
     "id": "hun_debrecen",
@@ -654,7 +713,8 @@
     "competitionId": "hun.1",
     "sourceRef": "133945",
     "crest": "hun_debrecen.png",
-    "color": "#e11b23"
+    "color": "#e11b23",
+    "nameHe": "דברצן"
   },
   {
     "id": "hun_ferencvaros",
@@ -665,7 +725,8 @@
     "competitionId": "hun.1",
     "sourceRef": "134620",
     "crest": "hun_ferencvaros.png",
-    "color": "#9c8210"
+    "color": "#9c8210",
+    "nameHe": "פרנצווארוש"
   },
   {
     "id": "hun_gyori_eto",
@@ -676,7 +737,8 @@
     "competitionId": "hun.1",
     "sourceRef": "134314",
     "crest": "hun_gyori_eto.png",
-    "color": "#bc9464"
+    "color": "#bc9464",
+    "nameHe": "ג׳יורי אטו"
   },
   {
     "id": "hun_kisvarda",
@@ -687,7 +749,8 @@
     "competitionId": "hun.1",
     "sourceRef": "138184",
     "crest": "hun_kisvarda.png",
-    "color": "#ed1d2a"
+    "color": "#ed1d2a",
+    "nameHe": "קישוורדה"
   },
   {
     "id": "hun_mtk_budapest",
@@ -698,7 +761,8 @@
     "competitionId": "hun.1",
     "sourceRef": "134028",
     "crest": "hun_mtk_budapest.png",
-    "color": "#004c87"
+    "color": "#004c87",
+    "nameHe": "אם טי קיי בודפשט"
   },
   {
     "id": "hun_nyiregyhaza",
@@ -709,7 +773,8 @@
     "competitionId": "hun.1",
     "sourceRef": "141223",
     "crest": "hun_nyiregyhaza.png",
-    "color": "#f30f00"
+    "color": "#f30f00",
+    "nameHe": "נירדהאזה"
   },
   {
     "id": "hun_paks",
@@ -720,7 +785,8 @@
     "competitionId": "hun.1",
     "sourceRef": "138185",
     "crest": "hun_paks.png",
-    "color": "#187b2a"
+    "color": "#187b2a",
+    "nameHe": "פאקש"
   },
   {
     "id": "hun_puskas_akademia",
@@ -731,7 +797,8 @@
     "competitionId": "hun.1",
     "sourceRef": "138182",
     "crest": "hun_puskas_akademia.png",
-    "color": "#1e385a"
+    "color": "#1e385a",
+    "nameHe": "פושקאש אקדמיה"
   },
   {
     "id": "hun_ujpest",
@@ -741,7 +808,8 @@
     "country": "HUN",
     "competitionId": "hun.1",
     "sourceRef": "138183",
-    "crest": "hun_ujpest.png"
+    "crest": "hun_ujpest.png",
+    "nameHe": "אויפשט"
   },
   {
     "id": "den_ac_horsens",
@@ -752,7 +820,8 @@
     "competitionId": "den.1",
     "sourceRef": "133895",
     "crest": "den_ac_horsens.png",
-    "color": "#ffdd00"
+    "color": "#ffdd00",
+    "nameHe": "הורסנס"
   },
   {
     "id": "den_agf_aarhus",
@@ -763,7 +832,8 @@
     "competitionId": "den.1",
     "sourceRef": "133899",
     "crest": "den_agf_aarhus.png",
-    "color": "#ef2f24"
+    "color": "#ef2f24",
+    "nameHe": "איי ג׳י אף אארהוס"
   },
   {
     "id": "den_br_ndby",
@@ -774,7 +844,8 @@
     "competitionId": "den.1",
     "sourceRef": "133893",
     "crest": "den_br_ndby.png",
-    "color": "#022c92"
+    "color": "#022c92",
+    "nameHe": "ברונדבי"
   },
   {
     "id": "den_fc_copenhagen",
@@ -785,7 +856,8 @@
     "competitionId": "den.1",
     "sourceRef": "133898",
     "crest": "den_fc_copenhagen.png",
-    "color": "#343896"
+    "color": "#343896",
+    "nameHe": "קופנהגן"
   },
   {
     "id": "den_fc_midtjylland",
@@ -796,7 +868,8 @@
     "competitionId": "den.1",
     "sourceRef": "133891",
     "crest": "den_fc_midtjylland.png",
-    "color": "#ae262e"
+    "color": "#ae262e",
+    "nameHe": "מידטילנד"
   },
   {
     "id": "den_fc_nordsj_lland",
@@ -807,7 +880,8 @@
     "competitionId": "den.1",
     "sourceRef": "133890",
     "crest": "den_fc_nordsj_lland.png",
-    "color": "#db2b27"
+    "color": "#db2b27",
+    "nameHe": "נורדשלנד"
   },
   {
     "id": "den_lyngby",
@@ -818,7 +892,8 @@
     "competitionId": "den.1",
     "sourceRef": "133900",
     "crest": "den_lyngby.png",
-    "color": "#003670"
+    "color": "#003670",
+    "nameHe": "לינגבי"
   },
   {
     "id": "den_odense_bk",
@@ -829,7 +904,8 @@
     "competitionId": "den.1",
     "sourceRef": "133889",
     "crest": "den_odense_bk.png",
-    "color": "#1a5a9b"
+    "color": "#1a5a9b",
+    "nameHe": "אודנסה"
   },
   {
     "id": "den_randers_fc",
@@ -839,7 +915,8 @@
     "country": "DEN",
     "competitionId": "den.1",
     "sourceRef": "133938",
-    "crest": "den_randers_fc.png"
+    "crest": "den_randers_fc.png",
+    "nameHe": "רנדרס"
   },
   {
     "id": "den_silkeborg_if",
@@ -850,7 +927,8 @@
     "competitionId": "den.1",
     "sourceRef": "133892",
     "crest": "den_silkeborg_if.png",
-    "color": "#00aeef"
+    "color": "#00aeef",
+    "nameHe": "סילקבורג"
   },
   {
     "id": "nor_aalesund",
@@ -861,7 +939,8 @@
     "competitionId": "nor.1",
     "sourceRef": "133998",
     "crest": "nor_aalesund.png",
-    "color": "#8b7c51"
+    "color": "#8b7c51",
+    "nameHe": "אולסונד"
   },
   {
     "id": "nor_bod_glimt",
@@ -872,7 +951,8 @@
     "competitionId": "nor.1",
     "sourceRef": "135497",
     "crest": "nor_bod_glimt.png",
-    "color": "#ffe100"
+    "color": "#ffe100",
+    "nameHe": "בודו/גלימט"
   },
   {
     "id": "nor_brann",
@@ -883,7 +963,8 @@
     "competitionId": "nor.1",
     "sourceRef": "134571",
     "crest": "nor_brann.png",
-    "color": "#f00000"
+    "color": "#f00000",
+    "nameHe": "בראן"
   },
   {
     "id": "nor_fredrikstad",
@@ -894,7 +975,8 @@
     "competitionId": "nor.1",
     "sourceRef": "134749",
     "crest": "nor_fredrikstad.png",
-    "color": "#d80d15"
+    "color": "#d80d15",
+    "nameHe": "פרדריקסטאד"
   },
   {
     "id": "nor_hamarkameratene",
@@ -905,7 +987,8 @@
     "competitionId": "nor.1",
     "sourceRef": "134753",
     "crest": "nor_hamarkameratene.png",
-    "color": "#1e9745"
+    "color": "#1e9745",
+    "nameHe": "האם קאם"
   },
   {
     "id": "nor_kfum_kameratene_oslo",
@@ -916,7 +999,8 @@
     "competitionId": "nor.1",
     "sourceRef": "135723",
     "crest": "nor_kfum_kameratene_oslo.png",
-    "color": "#e2363b"
+    "color": "#e2363b",
+    "nameHe": "קיי אף יו אם אוסלו"
   },
   {
     "id": "nor_kristiansund",
@@ -927,7 +1011,8 @@
     "competitionId": "nor.1",
     "sourceRef": "134754",
     "crest": "nor_kristiansund.png",
-    "color": "#061f3d"
+    "color": "#061f3d",
+    "nameHe": "כריסטיאנסונד"
   },
   {
     "id": "nor_lillestr_m",
@@ -938,7 +1023,8 @@
     "competitionId": "nor.1",
     "sourceRef": "134569",
     "crest": "nor_lillestr_m.png",
-    "color": "#ffdf00"
+    "color": "#ffdf00",
+    "nameHe": "לילסטרום"
   },
   {
     "id": "nor_molde",
@@ -949,7 +1035,8 @@
     "competitionId": "nor.1",
     "sourceRef": "133958",
     "crest": "nor_molde.png",
-    "color": "#156ec0"
+    "color": "#156ec0",
+    "nameHe": "מולדה"
   },
   {
     "id": "nor_rosenborg",
@@ -959,7 +1046,8 @@
     "country": "NOR",
     "competitionId": "nor.1",
     "sourceRef": "133990",
-    "crest": "nor_rosenborg.png"
+    "crest": "nor_rosenborg.png",
+    "nameHe": "רוזנבורג"
   },
   {
     "id": "pol_cracovia",
@@ -970,7 +1058,8 @@
     "competitionId": "pol.1",
     "sourceRef": "135294",
     "crest": "pol_cracovia.png",
-    "color": "#cd0829"
+    "color": "#cd0829",
+    "nameHe": "קרקוביה"
   },
   {
     "id": "pol_gks_katowice",
@@ -981,7 +1070,8 @@
     "competitionId": "pol.1",
     "sourceRef": "142467",
     "crest": "pol_gks_katowice.png",
-    "color": "#286337"
+    "color": "#286337",
+    "nameHe": "ג׳י קיי אס קטוביץ"
   },
   {
     "id": "pol_gornik_zabrze",
@@ -992,7 +1082,8 @@
     "competitionId": "pol.1",
     "sourceRef": "135296",
     "crest": "pol_gornik_zabrze.png",
-    "color": "#25419a"
+    "color": "#25419a",
+    "nameHe": "גורניק זבז׳ה"
   },
   {
     "id": "pol_jagiellonia_bia_ystok",
@@ -1003,7 +1094,8 @@
     "competitionId": "pol.1",
     "sourceRef": "135297",
     "crest": "pol_jagiellonia_bia_ystok.png",
-    "color": "#ff0000"
+    "color": "#ff0000",
+    "nameHe": "יאגיילוניה ביאליסטוק"
   },
   {
     "id": "pol_korona_kielce",
@@ -1014,7 +1106,8 @@
     "competitionId": "pol.1",
     "sourceRef": "135298",
     "crest": "pol_korona_kielce.png",
-    "color": "#ed1c24"
+    "color": "#ed1c24",
+    "nameHe": "קורונה קיילצה"
   },
   {
     "id": "pol_lech_poznan",
@@ -1025,7 +1118,8 @@
     "competitionId": "pol.1",
     "sourceRef": "134010",
     "crest": "pol_lech_poznan.png",
-    "color": "#004992"
+    "color": "#004992",
+    "nameHe": "לך פוזנן"
   },
   {
     "id": "pol_legia_warsaw",
@@ -1036,7 +1130,8 @@
     "competitionId": "pol.1",
     "sourceRef": "133992",
     "crest": "pol_legia_warsaw.png",
-    "color": "#00a553"
+    "color": "#00a553",
+    "nameHe": "לגיה ורשה"
   },
   {
     "id": "pol_motor_lublin",
@@ -1047,7 +1142,8 @@
     "competitionId": "pol.1",
     "sourceRef": "147435",
     "crest": "pol_motor_lublin.png",
-    "color": "#2a4999"
+    "color": "#2a4999",
+    "nameHe": "מוטור לובלין"
   },
   {
     "id": "pol_piast_gliwice",
@@ -1058,7 +1154,8 @@
     "competitionId": "pol.1",
     "sourceRef": "135300",
     "crest": "pol_piast_gliwice.png",
-    "color": "#d2ac67"
+    "color": "#d2ac67",
+    "nameHe": "פיאסט גליביצה"
   },
   {
     "id": "pol_pogon_szczecin",
@@ -1069,7 +1166,8 @@
     "competitionId": "pol.1",
     "sourceRef": "135302",
     "crest": "pol_pogon_szczecin.png",
-    "color": "#00215c"
+    "color": "#00215c",
+    "nameHe": "פוגון שצ׳צ׳ין"
   },
   {
     "id": "swe_aik",
@@ -1080,7 +1178,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134011",
     "crest": "swe_aik.png",
-    "color": "#003056"
+    "color": "#003056",
+    "nameHe": "איי איי קיי סולנה"
   },
   {
     "id": "swe_brommapojkarna",
@@ -1091,7 +1190,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134170",
     "crest": "swe_brommapojkarna.png",
-    "color": "#cc4d41"
+    "color": "#cc4d41",
+    "nameHe": "ברומאפויקרנה"
   },
   {
     "id": "swe_degerfors",
@@ -1102,7 +1202,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134728",
     "crest": "swe_degerfors.png",
-    "color": "#f7130d"
+    "color": "#f7130d",
+    "nameHe": "דגרפורש"
   },
   {
     "id": "swe_djurgarden",
@@ -1113,7 +1214,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134162",
     "crest": "swe_djurgarden.png",
-    "color": "#9e8b4f"
+    "color": "#9e8b4f",
+    "nameHe": "יורגורדן"
   },
   {
     "id": "swe_elfsborg",
@@ -1124,7 +1226,8 @@
     "competitionId": "swe.1",
     "sourceRef": "133984",
     "crest": "swe_elfsborg.png",
-    "color": "#f7dc14"
+    "color": "#f7dc14",
+    "nameHe": "אלפסבורג"
   },
   {
     "id": "swe_gais",
@@ -1135,7 +1238,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134725",
     "crest": "swe_gais.png",
-    "color": "#fcd313"
+    "color": "#fcd313",
+    "nameHe": "גאיס"
   },
   {
     "id": "swe_hacken",
@@ -1146,7 +1250,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134160",
     "crest": "swe_hacken.png",
-    "color": "#b69755"
+    "color": "#b69755",
+    "nameHe": "האקן"
   },
   {
     "id": "swe_halmstad",
@@ -1157,7 +1262,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134167",
     "crest": "swe_halmstad.png",
-    "color": "#0058a2"
+    "color": "#0058a2",
+    "nameHe": "האלמסטאד"
   },
   {
     "id": "swe_hammarby",
@@ -1168,7 +1274,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134731",
     "crest": "swe_hammarby.png",
-    "color": "#fecb08"
+    "color": "#fecb08",
+    "nameHe": "האמארבי"
   },
   {
     "id": "swe_ifk_goteborg",
@@ -1179,7 +1286,8 @@
     "competitionId": "swe.1",
     "sourceRef": "134161",
     "crest": "swe_ifk_goteborg.png",
-    "color": "#0062ac"
+    "color": "#0062ac",
+    "nameHe": "איי אף קיי גטבורג"
   },
   {
     "id": "cro_lokomotiva_zagreb",
@@ -1190,7 +1298,8 @@
     "competitionId": "cro.1",
     "sourceRef": "137795",
     "crest": "cro_lokomotiva_zagreb.png",
-    "color": "#153f88"
+    "color": "#153f88",
+    "nameHe": "לוקומוטיבה זאגרב"
   },
   {
     "id": "cro_slaven_belupo_koprivnica",
@@ -1201,7 +1310,8 @@
     "competitionId": "cro.1",
     "sourceRef": "133989",
     "crest": "cro_slaven_belupo_koprivnica.png",
-    "color": "#0f4ca1"
+    "color": "#0f4ca1",
+    "nameHe": "סלאבן בלופו"
   },
   {
     "id": "cro_varazdin",
@@ -1212,7 +1322,8 @@
     "competitionId": "cro.1",
     "sourceRef": "137798",
     "crest": "cro_varazdin.png",
-    "color": "#1067a4"
+    "color": "#1067a4",
+    "nameHe": "ואראז׳דין"
   },
   {
     "id": "cro_istra_1961",
@@ -1223,7 +1334,8 @@
     "competitionId": "cro.1",
     "sourceRef": "137797",
     "crest": "cro_istra_1961.png",
-    "color": "#f9ed00"
+    "color": "#f9ed00",
+    "nameHe": "איסטרה 1961"
   },
   {
     "id": "srb_tsc_backa_topola",
@@ -1234,7 +1346,8 @@
     "competitionId": "srb.1",
     "sourceRef": "137856",
     "crest": "srb_tsc_backa_topola.png",
-    "color": "#2586b6"
+    "color": "#2586b6",
+    "nameHe": "טי אס סי באצ׳קה טופולה"
   },
   {
     "id": "srb_radnicki_nis",
@@ -1245,7 +1358,8 @@
     "competitionId": "srb.1",
     "sourceRef": "137858",
     "crest": "srb_radnicki_nis.png",
-    "color": "#e31f25"
+    "color": "#e31f25",
+    "nameHe": "ראדניצ׳קי ניש"
   },
   {
     "id": "srb_napredak_krusevac",
@@ -1256,7 +1370,8 @@
     "competitionId": "srb.1",
     "sourceRef": "137861",
     "crest": "srb_napredak_krusevac.png",
-    "color": "#d2b753"
+    "color": "#d2b753",
+    "nameHe": "נאפרדאק"
   },
   {
     "id": "srb_spartak_subotica",
@@ -1267,6 +1382,7 @@
     "competitionId": "srb.1",
     "sourceRef": "137859",
     "crest": "srb_spartak_subotica.png",
-    "color": "#2c469d"
+    "color": "#2c469d",
+    "nameHe": "ספרטק סובוטיצה"
   }
 ]

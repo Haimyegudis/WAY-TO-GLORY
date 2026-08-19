@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url);
 export interface EuroGuest {
   id: string;
   name: string;
+  /** The club as an Israeli commentator says it. */
+  nameHe?: string;
   shortName: string;
   city?: string;
   country: string;
