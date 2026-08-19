@@ -366,6 +366,7 @@ export const en: Record<string, string> = {
   'achievement.leagueChampion': 'League champion',
   'achievement.cupWinner': 'Cup winner',
   'achievement.goldenBoot': 'Golden boot',
+  'achievement.promotedToFirstTeam': 'Up to the first team',
   'achievement.promotion': 'Promoted',
 
   // ---------------------------------------------------------------- attributes

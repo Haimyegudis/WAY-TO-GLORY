@@ -12,6 +12,7 @@
  * answer here - the quiet one costs him the crowd, the loud one costs him if he fails.
  */
 import { Rng, clamp } from './rng.js';
+import { overall } from './positions.js';
 import { track } from './social.js';
 import type {
   AppliedChange,
@@ -734,7 +735,12 @@ export function applyMilestoneAnswer(state: CareerState, answer: MilestoneAnswer
   const player = state.player;
   const changes: AppliedChange[] = [];
 
+  // What he says in front of a camera can shake him or steady him, but it cannot train
+  // him past his own ceiling: the same rule development and career events already keep.
+  const atTheCeiling =
+    overall(player.attributes, player.primaryPos, player.secondaryPos) >= player.potential;
   for (const [key, delta] of Object.entries(answer.attributes ?? {})) {
+    if (delta > 0 && atTheCeiling) continue;
     const attribute = key as AttributeKey;
     const before = player.attributes[attribute];
     player.attributes[attribute] = clamp(before + delta, 1, 99);
@@ -803,7 +809,11 @@ export function settleClaim(rng: Rng, state: CareerState, rating: number): Claim
   const changes: AppliedChange[] = [];
 
   const attrBefore = state.player.attributes[key];
-  state.player.attributes[key] = clamp(attrBefore + swing * (carried ? 1 : -1.15), 1, 99);
+  const room =
+    overall(state.player.attributes, state.player.primaryPos, state.player.secondaryPos) <
+    state.player.potential;
+  const move = carried ? (room ? swing : 0) : -swing * 1.15;
+  state.player.attributes[key] = clamp(attrBefore + move, 1, 99);
   track(changes, `change.attr.${key}`, attrBefore, state.player.attributes[key]);
 
   const moraleBefore = state.player.morale;

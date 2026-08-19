@@ -3,7 +3,7 @@ import type { CareerState, MatchResult, PendingHalfTime } from '@fc/engine';
 import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubShortName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
-import { club, recentMatches } from '../state/selectors.js';
+import { club, openHalfTime, recentMatches } from '../state/selectors.js';
 import { competitionLabel, findPlayer, playerName } from '../lib/names.js';
 import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 import { LiveMatch } from '../components/LiveMatch.js';
@@ -59,14 +59,7 @@ export function MatchCentre() {
   const liveMatchId = useGame((s) => s.liveMatchId);
   const endLive = useGame((s) => s.endLive);
   const match = state.lastMatch;
-  // The dressing room, but only while he is actually standing in it: a break he has
-  // already answered, or one belonging to a match that has since been played, is a
-  // record and not a question - and it was coming up in place of the match report.
-  const pendingHalf = state.pendingHalfTime;
-  const half =
-    pendingHalf && pendingHalf.chosen === undefined && pendingHalf.matchId !== state.lastMatch?.id
-      ? pendingHalf
-      : undefined;
+  const half = openHalfTime(state);
   const liveFrom = useGame((s) => s.liveFromMinute);
   // Which match he has already walked off the pitch for. This is held per match rather
   // than as a plain flag: the screen never unmounts between games, and a flag left

@@ -362,6 +362,7 @@ export const he: Record<string, string> = {
   'achievement.leagueChampion': 'אליפות',
   'achievement.cupWinner': 'זכייה בגביע',
   'achievement.goldenBoot': 'מלך השערים',
+  'achievement.promotedToFirstTeam': 'עלה לקבוצה הבוגרת',
   'achievement.promotion': 'עלייה ליגה',
 
   // ---------------------------------------------------------------- attributes

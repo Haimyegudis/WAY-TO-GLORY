@@ -686,6 +686,18 @@ export function ensureModelledSquads(state: CareerState, index: PackIndex, rng: 
     state.world.squads[clubId] = squad.map((p) => p.id);
     for (const p of squad) state.world.players[p.id] = p;
   }
+  // And he is in it himself.
+  //
+  // Nothing ever put him there: not signing for the club, not being promoted out of the
+  // academy. Every screen that asks the world who plays for this club had to remember to
+  // add him back by hand, and the ones that did not - the team sheet the match is picked
+  // from, the size check above - simply played a man short of what they thought.
+  if (!isAcademyPlayer(state)) {
+    const list = state.world.squads[clubId]!;
+    if (!list.includes(state.player.id)) list.push(state.player.id);
+  } else {
+    state.world.squads[clubId] = state.world.squads[clubId]!.filter((id) => id !== state.player.id);
+  }
   keep.add(clubId);
 
   const rivals = Object.values(state.world.clubs).filter((c) => c.competitionId === club.competitionId && c.id !== clubId);
@@ -1884,6 +1896,10 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
     })) {
       state.flags['calledUpToSeniors'] = true;
       state.player.squadRole = age >= 17 ? 'prospect' : 'futureProspect';
+      // Called up in the middle of a season is still called up: he goes on the club's
+      // list the same week, not the following July.
+      const seniorList = state.world.squads[club.id] ?? (state.world.squads[club.id] = []);
+      if (!seniorList.includes(state.player.id)) seniorList.push(state.player.id);
       pushInbox(state, 'manager', 'inbox.youthCallUp', { club: club.name });
       pushNews(state, 'news.youthCallUp', { player: `${state.player.firstName} ${state.player.lastName}`, club: club.name }, 'medium');
       unlock(state, 'firstTeamCallUp', { club: club.name });
@@ -2193,16 +2209,20 @@ export function resumeHalfTime(
   }
 
   const result = advanceWeek(state, index);
-  // A team talk is over once the match it belongs to has been played. Normally the
-  // replay of that match clears it; if the week rolled something else instead - a
-  // call-up, a postponement - nothing did, and the dressing room came back up over
-  // every match report he opened from then on.
-  //
-  // The test is the match log, not whether he answered: an answered break whose match
-  // has not been played yet is exactly what the resumed week is on its way to play, and
-  // clearing that one sends him round the interval for ever.
-  const held2 = state.pendingHalfTime;
-  if (held2 && state.matchLog.some((match) => match.id === held2.matchId)) {
+  /*
+   * A team talk he has answered is finished with.
+   *
+   * Normally the replay of that match clears it. If the week rolled something else
+   * instead - a call-up, a postponement, a move - nothing did, and an answered break sat
+   * in the save for ever: the match screen showed the report while the rest of the app
+   * still believed he was in the dressing room, so it hid the continue button and the
+   * career could not be moved on at all.
+   *
+   * The one break that must survive is the one the week is still on its way to play,
+   * and that week always comes back saying it stopped at the interval. Anything else
+   * means it is over.
+   */
+  if (result.stopped !== 'halfTime' && state.pendingHalfTime?.chosen !== undefined) {
     state.pendingHalfTime = undefined;
   }
   return result;
@@ -2243,7 +2263,11 @@ function playUserMatch(
     importantMatch: importance !== 'normal',
   };
 
-  const matchId = `m_${state.world.season}_${state.world.week}_${homeClubId}_${awayClubId}`;
+  // The competition belongs in the id. Two clubs can meet twice in one week - a league
+  // match and a cup tie - and without it both matches were the same match as far as the
+  // game was concerned, so the team talk raised for one was answered by the other and
+  // the interval came round twice.
+  const matchId = `m_${state.world.season}_${state.world.week}_${competitionId}_${homeClubId}_${awayClubId}`;
   // A match that was stopped at the break comes back with its team sheet intact: the
   // same eleven, the same minutes, the same seed. Only the second half is still open.
   const held = state.pendingHalfTime?.matchId === matchId ? state.pendingHalfTime : null;
@@ -2909,6 +2933,8 @@ function updateSquadRole(state: CareerState, rng: Rng, actualMinutes: number): v
     const tooOld = age >= 19;
     if (readyOnMerit || tooOld || rng.chance(0.15)) {
       player.squadRole = gap >= -4 ? 'prospect' : 'futureProspect';
+      const list = state.world.squads[club.id] ?? (state.world.squads[club.id] = []);
+      if (!list.includes(player.id)) list.push(player.id);
       state.managerTrust = clamp(state.managerTrust + 6, 0, 100);
       pushInbox(state, 'club', 'inbox.promotedToFirstTeam', { club: club.name });
       pushNews(state, 'news.promotedToFirstTeam', { club: club.name }, 'high');
@@ -3090,6 +3116,8 @@ function handleComingOfAge(state: CareerState, index: PackIndex, rng: Rng): void
   if (kept && club) {
     // The club has seen enough: he trains with the first team from July.
     player.squadRole = 'prospect';
+    const senior = state.world.squads[club.id] ?? (state.world.squads[club.id] = []);
+    if (!senior.includes(player.id)) senior.push(player.id);
     state.flags['calledUpToSeniors'] = true;
     pushInbox(state, 'club', 'inbox.promotedToFirstTeam', { club: club.name });
     pushNews(state, 'news.promotedToFirstTeam', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'medium');
@@ -3347,6 +3375,9 @@ function reportWindow(state: CareerState, index: PackIndex, moves: SquadMove[]):
 
 function advanceModelledPlayers(state: CareerState, index: PackIndex, rng: Rng): void {
   const season = state.world.season;
+  // Names already spoken for, so the summer's replacements are not the second Dor Tuito
+  // in the same dressing room.
+  const taken = namesInUse(state);
   for (const [clubId, ids] of Object.entries(state.world.squads)) {
     const club = state.world.clubs[clubId];
     if (!club) continue;
@@ -3354,7 +3385,16 @@ function advanceModelledPlayers(state: CareerState, index: PackIndex, rng: Rng):
 
     for (const id of ids) {
       const p = state.world.players[id];
-      if (!p || p.isUser) continue;
+      // He develops week by week like nobody else does, so the summer pass skips him -
+      // but skipping him used to drop him off the list entirely, and by the second
+      // season he was not in his own club's squad at all. Screens that ask the world who
+      // plays for this club had to put him back by hand; the ones that forgot, and the
+      // squad size checks, quietly had him missing.
+      if (!p) continue;
+      if (p.isUser) {
+        replacements.push(id);
+        continue;
+      }
       const age = season - p.birthYear;
 
       if (age >= 34 && rng.chance((age - 33) * 0.28)) {
@@ -3375,6 +3415,7 @@ function advanceModelledPlayers(state: CareerState, index: PackIndex, rng: Rng):
           season,
           countryCode: rng.chance(0.7) ? club.country : p.birthCountry,
           squadRole: p.squadRole,
+          taken,
         });
         state.world.players[fresh.id] = fresh;
         replacements.push(fresh.id);

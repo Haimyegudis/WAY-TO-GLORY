@@ -312,6 +312,9 @@ function playHalf(
   if (ctx.penaltyTaker && ctx.minutes.played && rng.chance(0.075 * (ctx.minutes.minutes / 90))) {
     const minute = which === 1 ? rng.int(6, 45) : rng.int(46, 90);
     const nerve = ctx.user.attributes.composure * 0.45 + ctx.user.attributes.finishing * 0.55;
+    // A penalty is a shot, on every scoresheet ever printed. Leaving it out gave him
+    // match lines with two goals from one shot.
+    line.shots++;
     if (rng.chance(clamp(0.6 + nerve / 300 + (ctx.mental - 1) * 0.25, 0.45, 0.95))) {
       half.userGoals++;
       line.goals++;

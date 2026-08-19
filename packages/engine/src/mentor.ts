@@ -467,7 +467,13 @@ export function answerMentorPrompt(state: CareerState, answer: MentorPromptAnswe
     const trait = key as keyof CareerState['player']['personality'];
     player.personality[trait] = clamp(player.personality[trait] + delta, 1, 99);
   }
+  // A word from an old player is still training, and training stops at the ceiling: the
+  // same rule the development engine and the career events already keep. Without it a
+  // player could be talked past his own potential.
+  const ceilingReached =
+    overall(player.attributes, player.primaryPos, player.secondaryPos) >= player.potential;
   for (const [key, delta] of Object.entries(answer.attributes ?? {})) {
+    if (delta > 0 && ceilingReached) continue;
     const attribute = key as keyof CareerState['player']['attributes'];
     player.attributes[attribute] = clamp(player.attributes[attribute] + delta, 1, 99);
   }

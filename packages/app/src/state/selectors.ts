@@ -143,3 +143,20 @@ export function positionRating(player: Player, pos: Player['primaryPos']): numbe
 export function weeksInjured(state: CareerState): number {
   return state.player.condition.injuries.reduce((max, i) => Math.max(max, i.weeksRemaining), 0);
 }
+
+/**
+ * The team talk that is actually waiting on him, if there is one.
+ *
+ * A break that has been answered, or one belonging to a match that has since been
+ * played, is a record rather than a question. Two screens used to work this out for
+ * themselves and disagreed: the match screen showed the report while the app still
+ * thought he was in the dressing room, so it hid the only button on the screen and the
+ * career could not be moved on at all.
+ */
+export function openHalfTime(state: CareerState | null | undefined) {
+  const half = state?.pendingHalfTime;
+  if (!half) return null;
+  if (half.chosen !== undefined) return null;
+  if (half.matchId === state?.lastMatch?.id) return null;
+  return half;
+}

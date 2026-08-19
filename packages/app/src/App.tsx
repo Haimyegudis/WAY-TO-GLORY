@@ -18,7 +18,7 @@ import { SettingsScreen } from './screens/SettingsScreen.js';
 import { DecisionSheet } from './screens/DecisionSheet.js';
 import { MentorScreen } from './screens/MentorScreen.js';
 import { ResultSheet } from './screens/ResultSheet.js';
-import { nextFixture } from './state/selectors.js';
+import { nextFixture, openHalfTime } from './state/selectors.js';
 import { primeWhistles } from './components/whistle.js';
 
 /**
@@ -85,7 +85,7 @@ function Game() {
   // match screen, though - a half time left open on some other tab, or reloaded into,
   // used to hide the one button that could take him back to it, and the career stopped
   // dead with no way to move.
-  const atTheBreak = state?.pendingHalfTime != null;
+  const atTheBreak = openHalfTime(state) != null;
   const inTheMatch = watchingMatch || (atTheBreak && screen === 'match');
   // Only the questions that change the career stop him. The rest are in his mail, and
   // he answers them when he opens it. Nobody asks him anything while he is still
@@ -296,7 +296,7 @@ function ContinueDock() {
   const afterMatch = screen === 'match' && state?.lastMatch != null;
   // A match stopped at the interval is the only thing the week is waiting on, so
   // wherever he has wandered off to, the button leads back to the dressing room.
-  const backToTheBreak = state?.pendingHalfTime != null && screen !== 'match';
+  const backToTheBreak = openHalfTime(state) != null && screen !== 'match';
   // A button should say what happens when it is pressed. With his club playing this
   // week, pressing it kicks a match off; the rest of the year it walks the calendar on.
   const upcoming = state && !afterMatch && !backToTheBreak ? nextFixture(state) : null;

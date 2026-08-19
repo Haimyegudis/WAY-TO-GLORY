@@ -240,7 +240,10 @@ export function applyEffects(
       }
       case 'money': {
         const before = state.finances.balance;
-        state.finances.balance += value;
+        // Nobody can spend what he has not got. An event that costs more than he holds
+        // takes what there is; without this, a bad month put his balance a hundred and
+        // forty thousand below zero and the screen showed him in debt to nobody.
+        state.finances.balance = Math.max(0, state.finances.balance + value);
         if (value > 0) state.finances.careerEarnings += value;
         track(changes, 'change.money', before, state.finances.balance);
         break;

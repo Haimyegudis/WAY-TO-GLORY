@@ -12,6 +12,7 @@
  */
 import { Rng, clamp } from './rng.js';
 import { clubBaseOvr, generatePlayer } from './generate.js';
+import { namesInUse } from './youth-squads.js';
 import { ratingAt } from './positions.js';
 import { marketValue } from './value.js';
 import type { PackIndex } from './data.js';
@@ -114,6 +115,9 @@ export function runSquadWindow(rng: Rng, state: CareerState, index: PackIndex): 
   const season = state.world.season;
   const moves: SquadMove[] = [];
   const userClubId = state.player.clubId;
+  // Every name already spoken for in this world. Without it the window signed a second
+  // Oshri Moskovitz into the same dressing room as the first.
+  const taken = namesInUse(state);
 
   for (const [clubId, ids] of Object.entries(state.world.squads)) {
     const club = state.world.clubs[clubId];
@@ -169,6 +173,7 @@ export function runSquadWindow(rng: Rng, state: CareerState, index: PackIndex): 
         season,
         countryCode: rng.chance(0.55) ? club.country : pickForeignCountry(rng, index, club),
         squadRole: 'starter',
+        taken,
       });
       state.world.players[signing.id] = signing;
       kept.push(signing.id);
