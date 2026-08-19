@@ -36,6 +36,7 @@ import {
 } from './league.js';
 import { createCup, drawRound, isCupFinal, isCupSemi, recordTieResult, type CupState } from './cup.js';
 import { runAbstractMarket, runSquadWindow, type SquadMove } from './market.js';
+import { negotiate, type ContractAsk, type NegotiationOutcome } from './negotiate.js';
 import {
   applyQualifierResult,
   campaignFame,
@@ -492,7 +493,16 @@ export function joinClub(
   state: CareerState,
   index: PackIndex,
   clubId: string,
-  opts: { asAcademy?: boolean; salary?: number; years?: number; role?: SquadRole; isLoan?: boolean; parentClubId?: string } = {},
+  opts: {
+    asAcademy?: boolean;
+    salary?: number;
+    years?: number;
+    role?: SquadRole;
+    isLoan?: boolean;
+    parentClubId?: string;
+    signingBonus?: number;
+    releaseClause?: number | null;
+  } = {},
 ): void {
   const rng = mainRng(state);
   const club = state.world.clubs[clubId];
@@ -511,10 +521,10 @@ export function joinClub(
     startSeason: season,
     endSeason: season + (opts.years ?? (opts.asAcademy ? 3 : 3)),
     squadRole: state.player.squadRole,
-    signingBonus: 0,
+    signingBonus: opts.signingBonus ?? 0,
     appearanceBonus: Math.round((opts.salary ?? 500) * 0.2),
     goalBonus: Math.round((opts.salary ?? 500) * 0.3),
-    releaseClause: null,
+    releaseClause: opts.releaseClause ?? null,
     ...(opts.isLoan ? { isLoan: true, parentClubId: opts.parentClubId } : {}),
   };
 
@@ -2995,14 +3005,76 @@ export function acceptOffer(state: CareerState, index: PackIndex, offerId: strin
     salary: offer.salaryPerWeek,
     years: offer.years,
     role: offer.squadRole,
+    ...(offer.signingBonus ? { signingBonus: offer.signingBonus } : {}),
+    ...(offer.releaseClause ? { releaseClause: offer.releaseClause } : {}),
     ...(offer.isLoan ? { isLoan: true, parentClubId: previousClubId ?? undefined } : {}),
   });
+
+  // The bonus is paid on the day he signs, which is the day a young player finally has
+  // money of his own.
+  if (offer.signingBonus) {
+    state.finances.balance += offer.signingBonus;
+    state.finances.careerEarnings += offer.signingBonus;
+  }
 
   state.transferOffers = [];
   state.flags['transferRequested'] = false;
   state.player.morale = clamp(state.player.morale + 8, 0, 100);
   commitRng(state, rng);
   return true;
+}
+
+/**
+ * Ask a club for better terms before signing. One ask at a time: they answer, the offer
+ * on the table changes or it does not, and their patience is a little shorter than it was.
+ * Push a lukewarm club too far and the offer is withdrawn - which is the risk that makes
+ * asking mean anything.
+ */
+export function askForTerms(
+  state: CareerState,
+  index: PackIndex,
+  offerId: string,
+  ask: ContractAsk,
+): NegotiationOutcome | null {
+  const offer = state.transferOffers.find((entry) => entry.id === offerId);
+  if (!offer) return null;
+  const club = state.world.clubs[offer.clubId];
+  if (!club) return null;
+
+  const rng = mainRng(state);
+  const outcome = negotiate(
+    {
+      rng,
+      offer,
+      agent: state.agent,
+      ovr: overall(state.player.attributes, state.player.primaryPos, state.player.secondaryPos),
+      clubLevel: clubBaseOvr(club),
+      form: state.player.form,
+      reputation: state.player.reputation,
+      rivalOffers: Math.max(0, state.transferOffers.length - 1),
+    },
+    ask,
+  );
+  commitRng(state, rng);
+
+  const replace = (list: TransferOffer[]) =>
+    outcome.withdrawn
+      ? list.filter((entry) => entry.id !== offerId)
+      : list.map((entry) => (entry.id === offerId ? outcome.offer : entry));
+
+  state.transferOffers = replace(state.transferOffers);
+  for (const decision of state.pendingDecisions) {
+    if (decision.offers) decision.offers = replace(decision.offers);
+  }
+
+  if (outcome.withdrawn) {
+    pushInbox(state, 'transfer', 'inbox.termsWithdrawn', { club: club.name });
+    // A decision with nothing left on the table is not a decision.
+    state.pendingDecisions = state.pendingDecisions.filter(
+      (decision) => decision.kind !== 'transfer' || (decision.offers?.length ?? 0) > 0,
+    );
+  }
+  return outcome;
 }
 
 export function signAgent(state: CareerState, agentId: string): boolean {

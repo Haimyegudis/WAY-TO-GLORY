@@ -22,6 +22,9 @@ import {
   indexPack,
   joinClub,
   resolveDecision,
+  askForTerms as engineAskForTerms,
+  type ContractAsk,
+  type NegotiationOutcome,
   retire as engineRetire,
   serialize,
   setTraining as engineSetTraining,
@@ -86,6 +89,8 @@ interface GameStore {
   advance: (weeks?: number) => void;
   decide: (decisionId: string, optionId: string) => void;
   answerOffer: (decisionId: string, offerId: string | null) => void;
+  /** Go back to a club for better terms. Returns what they said, or null if it is gone. */
+  askForTerms: (offerId: string, ask: ContractAsk) => NegotiationOutcome | null;
   answerAgent: (decisionId: string, agentId: string | null) => void;
   runAction: (id: PlayerActionId) => void;
   clearResult: () => void;
@@ -250,6 +255,16 @@ export const useGame = create<GameStore>((set, get) => ({
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, result });
+  },
+
+  askForTerms(offerId, ask) {
+    const { state, index } = get();
+    if (!state || !index) return null;
+    const outcome = engineAskForTerms(state, index, offerId, ask);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
+    return outcome;
   },
 
   answerOffer(decisionId, offerId) {

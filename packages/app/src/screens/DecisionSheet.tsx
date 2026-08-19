@@ -1,5 +1,6 @@
-import type { PendingDecision } from '@fc/engine';
-import { expectedMinutesFor } from '@fc/engine';
+import { useState } from 'react';
+import type { ContractAsk, PendingDecision, TransferOffer } from '@fc/engine';
+import { CONTRACT_ASKS, expectedMinutesFor } from '@fc/engine';
 import { formatMoney, useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
@@ -82,9 +83,21 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
   const state = useGame((s) => s.state)!;
   const answerOffer = useGame((s) => s.answerOffer);
   const pack = getPack();
+  const [openOffer, setOpenOffer] = useState<string | null>(null);
 
   const competition = (id: string) => competitionLabel(id, pack, lang, t);
   const offers = decision.offers ?? [];
+  const talking = offers.find((offer) => offer.id === openOffer);
+
+  // One club at a time: the grid to choose from, then the terms of the one he is
+  // actually talking to.
+  if (talking) {
+    return (
+      <SheetShell category={t('category.transfer')} title={clubName(state.world.clubs[talking.clubId], lang)}>
+        <OfferTerms offer={talking} onBack={() => setOpenOffer(null)} onSign={() => answerOffer(decision.id, talking.id)} />
+      </SheetShell>
+    );
+  }
 
   return (
     <SheetShell category={t('category.transfer')} title={t(decision.textKey)}>
@@ -98,7 +111,7 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
               key={offer.id}
               className={`offer ${i === 0 ? 'offer-featured' : ''}`}
               style={{ background: `linear-gradient(160deg, ${clubColor(club)}33, var(--surface-2) 62%)` }}
-              onClick={() => answerOffer(decision.id, offer.id)}
+              onClick={() => setOpenOffer(offer.id)}
             >
               <span className="offer-sub">{offer.isLoan ? t('market.loan') : t('market.transfer')}</span>
               <Crest club={club} size="lg" />
@@ -116,6 +129,69 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
         {t('decision.stay')}
       </button>
     </SheetShell>
+  );
+}
+
+/**
+ * The terms, and the chance to argue with them. Each ask is answered on the spot; the
+ * club's patience is shown as words rather than a number, because nobody across a table
+ * ever tells you the percentage.
+ */
+function OfferTerms({ offer, onBack, onSign }: { offer: TransferOffer; onBack: () => void; onSign: () => void }) {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
+  const askForTerms = useGame((s) => s.askForTerms);
+  const [said, setSaid] = useState<string | null>(null);
+
+  const minutes = Math.round((offer.expectedMinutesPct ?? expectedMinutesFor(offer.squadRole)) * 100);
+  const asks = offer.asksMade ?? 0;
+  const patience = asks === 0 ? 'market.patience.fresh' : asks === 1 ? 'market.patience.thin' : 'market.patience.last';
+
+  const ask = (which: ContractAsk) => {
+    const outcome = askForTerms(offer.id, which);
+    if (!outcome) return;
+    setSaid(outcome.withdrawn ? 'market.ask.withdrawn' : outcome.agreed ? `market.ask.yes.${which}` : 'market.ask.no');
+  };
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <ul className="list">
+        <li className="list-item row-between">
+          <span className="eyebrow">{t('market.wage')}</span>
+          <span className="num">{formatMoney(offer.salaryPerWeek, lang)}</span>
+        </li>
+        <li className="list-item row-between">
+          <span className="eyebrow">{t('market.role')}</span>
+          <span>{t(`role.${offer.squadRole}`)} · {minutes}%</span>
+        </li>
+        <li className="list-item row-between">
+          <span className="eyebrow">{t('market.contractLength')}</span>
+          <span className="num">{offer.years}</span>
+        </li>
+        <li className="list-item row-between">
+          <span className="eyebrow">{t('market.signingBonus')}</span>
+          <span className="num">{offer.signingBonus ? formatMoney(offer.signingBonus, lang) : '—'}</span>
+        </li>
+        <li className="list-item row-between">
+          <span className="eyebrow">{t('market.releaseClause')}</span>
+          <span className="num">{offer.releaseClause ? formatMoney(offer.releaseClause, lang) : '—'}</span>
+        </li>
+      </ul>
+
+      <p className="faint" style={{ fontSize: 11.5 }}>{t(patience)}</p>
+      {said && <p style={{ fontSize: 13, color: 'var(--amber)' }}>{t(said)}</p>}
+
+      <div className="row wrap" style={{ gap: 6 }}>
+        {CONTRACT_ASKS.map((which) => (
+          <button key={which} className="chip" onClick={() => ask(which)}>
+            {t(`market.ask.${which}`)}
+          </button>
+        ))}
+      </div>
+
+      <button className="btn btn-primary btn-block" onClick={onSign}>{t('market.sign')}</button>
+      <button className="btn btn-block" onClick={onBack}>{t('action.back')}</button>
+    </div>
   );
 }
 

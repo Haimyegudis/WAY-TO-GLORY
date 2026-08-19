@@ -527,6 +527,10 @@ export interface TransferOffer {
   week: number;
   interestLevel: number;
   competitionId: string;
+  /** Terms won at the table, and how many times he has been back to it. */
+  signingBonus?: number;
+  releaseClause?: number | null;
+  asksMade?: number;
 }
 
 export interface InboxMessage {
