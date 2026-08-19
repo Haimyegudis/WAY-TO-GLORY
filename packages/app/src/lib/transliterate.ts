@@ -152,8 +152,29 @@ const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
  */
 const SILENT_FINAL_E = new Set(['ENG', 'SCO', 'WAL', 'IRL', 'USA', 'AUS', 'FRA']);
 
+/**
+ * Letters with no plain-Latin twin, which stripping accents cannot reach on its own.
+ */
+const ODD_LETTERS: Record<string, string> = {
+  ø: 'o', Ø: 'o', đ: 'd', Đ: 'd', ð: 'd', Ð: 'd', þ: 'th', Þ: 'th', ß: 'ss',
+  æ: 'ae', Æ: 'ae', œ: 'oe', Œ: 'oe', ł: 'l', Ł: 'l', ı: 'i', ħ: 'h', ŋ: 'ng',
+};
+
+/**
+ * Down to the twenty-six letters the rules below are written for.
+ *
+ * Squads read off Wikipedia come spelled properly - Mbappé, Gyökeres, Šeško - and every
+ * one of those accents fell through the rules and was printed as it stood, so a Hebrew
+ * name came out with a Latin letter sitting in the middle of it. The accent carries no
+ * sound Hebrew writes anyway, so it is dropped before anything else happens.
+ */
+function fold(word: string): string {
+  const swapped = [...word].map((ch) => ODD_LETTERS[ch] ?? ch).join('');
+  return swapped.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
 function transliterateWord(word: string, silentFinalE = true): string {
-  const lower = word.toLowerCase();
+  const lower = fold(word).toLowerCase();
   const known = KNOWN[lower.replace(/[^a-z]/g, '')];
   if (known) return known;
   let out = '';

@@ -183,18 +183,50 @@ function buildClub(seed: CompetitionSeed, name: string, strength: number, city?:
  * everything TheSportsDB gave us fills in behind them, so a squad list reads like the
  * real squad rather than a page of invented names.
  */
+/**
+ * One man, one name.
+ *
+ * The hand-written list spells him the way a keyboard does - Mbappe, Gyokeres, Rubens
+ * Dias - and the encyclopedia spells him properly, so comparing the two strings put both
+ * of them in the squad and the same player turned up twice. The comparison is now made
+ * on the letters underneath the accents.
+ */
+function sameManKey(clubId: string, firstName: string, lastName: string): string {
+  const fold = (word: string) =>
+    word
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z]/g, '');
+  return `${clubId}|${fold(firstName)}|${fold(lastName)}`;
+}
+
 function mergeStars(clubs: Club[]): StarPlayerSeed[] {
   const clubIds = new Set(clubs.map((c) => c.id));
   const manual = STARS.filter((s) => clubIds.has(s.clubId));
-  const taken = new Set(manual.map((s) => `${s.clubId}|${s.firstName} ${s.lastName}`.toLowerCase()));
+  const byMan = new Map<string, StarPlayerSeed>();
+  const out: StarPlayerSeed[] = [];
 
-  const out: StarPlayerSeed[] = [...manual];
+  for (const star of manual) {
+    const key = sameManKey(star.clubId, star.firstName, star.lastName);
+    if (byMan.has(key)) continue;
+    byMan.set(key, star);
+    out.push(star);
+  }
+
   for (const [clubId, seeds] of Object.entries(REAL_PLAYERS)) {
     if (!clubIds.has(clubId)) continue;
     for (const seed of seeds) {
-      const key = `${clubId}|${seed.firstName} ${seed.lastName}`.toLowerCase();
-      if (taken.has(key)) continue;
-      taken.add(key);
+      const key = sameManKey(clubId, seed.firstName, seed.lastName);
+      const held = byMan.get(key);
+      if (held) {
+        // The hand-written rating stays - it was chosen - but the spelling with the
+        // accents on it is the man's actual name, so that is the one he plays under.
+        held.firstName = seed.firstName;
+        held.lastName = seed.lastName;
+        continue;
+      }
+      byMan.set(key, seed);
       out.push(seed);
     }
   }

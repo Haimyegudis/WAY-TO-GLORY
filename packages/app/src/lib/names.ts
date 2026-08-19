@@ -19,7 +19,13 @@ export function countryName(country: Country | null | undefined, lang: Lang): st
  */
 export function playerName(player: Player | null | undefined, lang: Lang = 'en'): string {
   if (!player) return '';
-  const name = `${player.firstName} ${player.lastName}`;
+  // A Brazilian with one name is one name: Rodrygo, Endrick, Alisson. The data carries
+  // it in both fields because every player has both, and printing it twice looks like a
+  // stutter.
+  const name =
+    player.firstName === player.lastName
+      ? player.lastName
+      : `${player.firstName} ${player.lastName}`;
   if (lang !== 'he') return name;
   // Hebrew-generated players already read in Hebrew; everyone else is transliterated,
   // with the rules of the language he is named in.

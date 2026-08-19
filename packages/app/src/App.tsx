@@ -173,26 +173,49 @@ function useBackGesture(): void {
     let armedAt = 0;
     let leaving = false;
 
+    /*
+     * Each entry the game adds says how deep it is.
+     *
+     * Counting pushes is not the same as knowing where you stand - a pop moves you down
+     * without the counter knowing which entry you landed on - and leaving means jumping
+     * past everything below you. The depth travels with the entry, so wherever a gesture
+     * puts him, the entry itself says how far the way out is.
+     */
     const spare = () => {
-      window.history.pushState({ game: true }, '');
+      const depth = (window.history.state?.depth ?? 0) + 1;
+      window.history.pushState({ game: true, depth }, '');
       spares++;
     };
-    // One goes on straight away, and a second the moment he touches the screen. Both are
-    // needed: Chrome treats an entry pushed before any interaction as noise and walks
-    // past it on the way back, so the one that actually holds is the one pushed after a
-    // touch - and until he has touched anything, the one pushed at load is all there is.
+    /*
+     * Why the stack is topped up on every touch rather than once.
+     *
+     * Chrome does not simply honour a pushed history entry. An entry created without the
+     * user having touched the page since is marked skippable, and the back gesture walks
+     * straight past it - which is what an entry pushed from inside a back handler always
+     * is, because a swipe is not a touch on the page. So the buffer built by the guard
+     * itself is made of exactly the entries the browser is willing to ignore, and one
+     * swipe could go past the lot and out of the app.
+     *
+     * An entry pushed while he is touching the screen is not skippable. He touches the
+     * screen constantly - that is what playing is - so the stack is refilled on every
+     * touch, and the entries that hold are the ones he made himself.
+     */
+    const WANTED = 2;
+    const refill = () => {
+      while (spares < WANTED) spare();
+    };
     spare();
-    let armed = false;
-    const arm = () => {
-      // The first touch is the only chance to unlock sound: a browser will not let a
-      // page play anything it was not asked for by hand.
+    const touched = () => {
+      // The same touch unlocks sound: a browser will not let a page play anything it was
+      // not asked for by hand.
       primeWhistles();
-      if (armed) return;
-      armed = true;
-      spare();
+      refill();
     };
     const touch = ['pointerdown', 'keydown', 'touchstart'] as const;
-    for (const event of touch) window.addEventListener(event, arm, { passive: true });
+    for (const event of touch) window.addEventListener(event, touched, { passive: true });
+    // Coming back to the app from another one - or out of the phone's back stack - is a
+    // fresh start for all of this.
+    window.addEventListener('pageshow', refill);
 
     const onPop = () => {
       if (leaving) return;
@@ -221,11 +244,10 @@ function useBackGesture(): void {
       if (Date.now() - armedAt < EXIT_WINDOW) {
         leaving = true;
         game.showToast(null);
-        // Past every entry the game put on the stack and the one it was loaded on, which
-        // is what leaving actually means: installed on a phone, that closes the app. One
-        // step would only land on the entry the app itself occupies, and he would still
-        // be here.
-        window.history.go(-(spares + 1));
+        // Past every entry below him and the one the app was loaded on, which is what
+        // leaving actually means: installed on a phone, that closes it. One step would
+        // only land on the entry the app itself occupies, and he would still be here.
+        window.history.go(-((window.history.state?.depth ?? 0) + 1));
         // Opened as a plain tab with nothing behind it, the browser cannot go anywhere
         // and he is still on this screen, so the guard has to come back rather than
         // leaving him with a gesture that does nothing for ever.
@@ -244,7 +266,8 @@ function useBackGesture(): void {
     window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('popstate', onPop);
-      for (const event of touch) window.removeEventListener(event, arm);
+      for (const event of touch) window.removeEventListener(event, touched);
+      window.removeEventListener('pageshow', refill);
     };
   }, []);
 }

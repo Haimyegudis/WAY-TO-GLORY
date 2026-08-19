@@ -7,7 +7,7 @@ import {
   type EuroState,
 } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
-import { clubName, clubShortName } from '../lib/club.js';
+import { cityName, clubName, clubShortName } from '../lib/club.js';
 import { competitionLabel, competitionName, playerName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
@@ -50,7 +50,8 @@ export function ClubScreen() {
         <div>
           <p className="eyebrow">{t('club.title')}</p>
           <h1 className="title">{clubName(home, lang)}</h1>
-          <p className="faint" style={{ fontSize: 12 }}>{home.city}</p>
+          {/* The city was the last Latin word left on a Hebrew screen. */}
+          <p className="faint" style={{ fontSize: 12 }}>{cityName(home.city, lang)}</p>
         </div>
       </header>
 

@@ -106,3 +106,10 @@ export function localiseArgs(
   }
   return changed ? out : args;
 }
+
+/** The town a club plays in, written the way the rest of the screen is written. */
+export function cityName(city: string | undefined, lang: 'he' | 'en'): string {
+  if (!city) return '';
+  if (lang !== 'he') return city;
+  return /[֐-׿]/.test(city) ? city : toHebrew(city);
+}
