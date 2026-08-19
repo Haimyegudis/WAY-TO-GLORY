@@ -5,6 +5,7 @@ import { clubShortName } from '../lib/club.js';
 import { useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { Crest } from './ui.js';
+import { Pitch2D } from './Pitch2D.js';
 import { playerName } from '../lib/names.js';
 
 /** Beats worth stopping on: the clock hangs for a moment so they land. */
@@ -76,7 +77,7 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
     if (paused || done) return;
     const next = minute + 1;
     const notable = events.some((e) => e.minute === next && DECISIVE.has(e.type));
-    const delay = (notable ? 1500 : 230) / speed;
+    const delay = (notable ? 2400 : 620) / speed;
     const id = window.setTimeout(() => setMinute(next), delay);
     return () => window.clearTimeout(id);
   }, [minute, paused, speed, done, events]);
@@ -102,6 +103,27 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
     return player ? playerName(player, lang) : '';
   };
 
+  // The move on the pitch is the last thing that happened, ambient colour included -
+  // a corner and a cleared header are what make the ball move between the goals.
+  const onPitch = [...shown].reverse()[0] ?? null;
+
+  // A goal is held on screen with the two names that made it: the man who scored and,
+  // when there was one, the man who put it on a plate.
+  const goalMoment = useMemo(() => {
+    const goal = [...shown].reverse().find((e) => e.type === 'goal' || e.type === 'penaltyScored' || e.type === 'concede');
+    if (!goal || minute - goal.minute > 1) return null;
+    const assist = events.find(
+      (e) => e.type === 'assist' && Math.abs(e.minute - goal.minute) <= 1,
+    );
+    const named = (event?: MatchEvent) => {
+      if (!event) return '';
+      if (event.playerId === state.player.id) return playerName(state.player, lang);
+      const who = event.playerId ? state.world.players[event.playerId] : undefined;
+      return who ? playerName(who, lang) : '';
+    };
+    return { scorer: named(goal), assist: named(assist), ours: goal.type !== 'concede' };
+  }, [shown, minute, events, state, lang]);
+
   const lastScore = [...shown].reverse().find((e) => e.score)?.score;
   const liveHome = done ? match.homeGoals : lastScore?.[0] ?? 0;
   const liveAway = done ? match.awayGoals : lastScore?.[1] ?? 0;
@@ -126,6 +148,25 @@ export function LiveMatch({ match, onFinish }: { match: MatchResult; onFinish: (
       </div>
 
       <div className="live-progress"><i style={{ width: `${Math.min(100, (minute / 90) * 100)}%` }} /></div>
+
+      <div className="pitch-wrap">
+        <Pitch2D
+          home={home}
+          away={away}
+          event={onPitch}
+          userIsHome={state.player.clubId === match.homeClubId}
+          homeSquad={(state.world.squads[match.homeClubId] ?? []).flatMap((id) => { const found = state.world.players[id]; return found ? [found] : []; })}
+          awaySquad={(state.world.squads[match.awayClubId] ?? []).flatMap((id) => { const found = state.world.players[id]; return found ? [found] : []; })}
+          {...(state.player.shirtNumber !== undefined ? { userNumber: state.player.shirtNumber } : {})}
+        />
+        {goalMoment && (
+          <div className={`goal-flash ${goalMoment.ours ? '' : 'goal-flash-against'}`}>
+            <span className="goal-word">{t('live.goal')}</span>
+            {goalMoment.scorer && <span className="goal-scorer">{goalMoment.scorer}</span>}
+            {goalMoment.assist && <span className="goal-assist">{t('live.assistBy', { player: goalMoment.assist })}</span>}
+          </div>
+        )}
+      </div>
 
       {before.length > 0 && (
         <div className="live-before">

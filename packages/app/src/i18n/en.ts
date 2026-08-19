@@ -1615,4 +1615,6 @@ export const en: Record<string, string> = {
   'action.teamDinner.late': 'It did not finish when it was supposed to finish.',
   'action.extraTrainingWithTeammates.overcooked': 'One session too many on tired legs. You felt it on the way home.',
   'action.praiseClubInMedia.creep': 'The lads saw the interview. Somebody did an impression of it in the canteen.',
+  'live.goal': 'GOAL',
+  'live.assistBy': 'assist {player}',
 };

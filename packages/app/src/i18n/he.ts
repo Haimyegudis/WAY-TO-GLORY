@@ -1617,4 +1617,6 @@ export const he: Record<string, string> = {
   'action.teamDinner.late': 'זה לא נגמר בשעה שזה היה אמור להיגמר.',
   'action.extraTrainingWithTeammates.overcooked': 'אימון אחד יותר מדי על רגליים עייפות. הרגשת את זה בדרך הביתה.',
   'action.praiseClubInMedia.creep': 'החבר׳ה ראו את הריאיון. מישהו עשה חיקוי בחדר אוכל.',
+  'live.goal': 'גול',
+  'live.assistBy': 'בישול {player}',
 };
