@@ -7,6 +7,7 @@ import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { Crest } from './ui.js';
 import { Pitch2D } from './Pitch2D.js';
+import { blowWhistle } from './whistle.js';
 import { playerName } from '../lib/names.js';
 
 /** Beats worth stopping on: the clock hangs for a moment so they land. */
@@ -188,6 +189,20 @@ export function LiveMatch({
   // still crossing the screen on the minute it went in, and not a minute later.
   const goalSplash = goalMoment && goalMoment.minute === minute ? goalMoment : null;
 
+  // The whistle, and the word that goes with it. Half time when the playback stops at
+  // the interval, the end of the match when it stops at ninety - both are the referee
+  // putting it to his mouth, so both are heard as well as read.
+  const [whistled, setWhistled] = useState(false);
+  // Held in a ref as well as in state: state settles a render later, and in development
+  // the effect is deliberately run twice, which blew the whistle twice over itself.
+  const blown = useRef(false);
+  useEffect(() => {
+    if (!done || blown.current) return;
+    blown.current = true;
+    setWhistled(true);
+    blowWhistle(to <= 45 ? 'halfTime' : 'fullTime');
+  }, [done, to]);
+
   const lastScore = [...shown].reverse().find((e) => e.score)?.score;
   // Coming back on for the second half, the board does not reset: the goals from the
   // half he already watched are on it before a ball is kicked.
@@ -233,6 +248,15 @@ export function LiveMatch({
           {...(state.player.shirtNumber !== undefined ? { userNumber: state.player.shirtNumber } : {})}
           replayLabel={t('live.replay')}
         />
+        {done && whistled && (
+          <div className="whistle-splash" key={`whistle-${to}`} role="status">
+            <span className="whistle-mark" aria-hidden="true" />
+            <span className="whistle-word">{t(to <= 45 ? 'live.halfTimeCall' : 'live.fullTimeCall')}</span>
+            <span className="whistle-score num" dir="ltr">
+              {match.homeGoals}–{match.awayGoals}
+            </span>
+          </div>
+        )}
         {goalSplash && (
           <div
             className={`goal-splash ${goalSplash.ours ? '' : 'goal-splash-against'}`}
@@ -240,10 +264,15 @@ export function LiveMatch({
             aria-hidden="true"
           >
             <span className="goal-splash-ball" />
-            <span className="goal-splash-word">GOAL</span>
+            <span className="goal-splash-word">GOAL!!!</span>
+            {goalSplash.scorer && (
+              <span className="goal-splash-scorer">
+                {goalSplash.scorer} <span className="num">{goalSplash.minute}′</span>
+              </span>
+            )}
           </div>
         )}
-        {goalMoment && (
+        {goalMoment && !goalSplash && (
           <div className={`goal-card ${goalMoment.ours ? '' : 'goal-card-against'}`} role="status">
             <span className="goal-word">{t('live.goal')}</span>
             <span className="goal-line">

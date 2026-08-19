@@ -12,6 +12,7 @@ export const en: Record<string, string> = {
   'action.continueTo': 'Play on',
   'action.doneWithMatch': 'Hub',
   'action.startMatch': 'Start match',
+  'action.backToMatch': 'Back to the match',
   'action.backAgainToExit': 'Swipe back again to leave the game',
   'action.back': 'Back',
   'action.next': 'Next',
@@ -1957,6 +1958,8 @@ export const en: Record<string, string> = {
   'live.goal': 'GOAL',
   'live.assistBy': 'assist {player}',
   'live.replay': 'REPLAY',
+  'live.halfTimeCall': 'Half time',
+  'live.fullTimeCall': 'Full time',
   'settings.saveAndLeave': 'Save and start a different career',
   'settings.saveAndLeaveHint': 'This career is written to its slot and stays there. You go back to the front screen, where you can start a new one or open any of the others.',
 };

@@ -68,6 +68,11 @@ export function ThemeMusic({ playing, track = 'theme' }: { playing: boolean; tra
   return <audio ref={audioRef} src={`/audio/${track}.mp3`} loop preload="none" />;
 }
 
+/** The one mute in the game, for anything that makes a noise outside the soundtrack. */
+export function soundIsOff(): boolean {
+  return mutedGlobal;
+}
+
 /** The sound switch, for the settings screen. */
 export function useMusicSetting(): [boolean, (on: boolean) => void] {
   const [muted, setMuted] = useState(mutedGlobal);

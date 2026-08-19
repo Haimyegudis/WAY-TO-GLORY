@@ -12,6 +12,7 @@ export const he: Record<string, string> = {
   'action.continueTo': 'ממשיכים',
   'action.doneWithMatch': 'מסך ראשי',
   'action.startMatch': 'התחל משחק',
+  'action.backToMatch': 'חזרה למשחק',
   'action.backAgainToExit': 'עוד החלקה אחורה כדי לצאת מהמשחק',
   'action.back': 'חזרה',
   'action.next': 'הבא',
@@ -1959,6 +1960,8 @@ export const he: Record<string, string> = {
   'live.goal': 'גול',
   'live.assistBy': 'בישול {player}',
   'live.replay': 'שידור חוזר',
+  'live.halfTimeCall': 'מחצית',
+  'live.fullTimeCall': 'המשחק הסתיים',
   'settings.saveAndLeave': 'שמור והתחל קריירה אחרת',
   'settings.saveAndLeaveHint': 'הקריירה הזאת נשמרת לתא שלה ונשארת שם. אתה חוזר למסך הפתיחה, ומשם אפשר להתחיל חדשה או להיכנס לכל אחת מהאחרות.',
 };

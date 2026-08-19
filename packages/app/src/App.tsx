@@ -80,8 +80,12 @@ function Game() {
   // While a match is being watched, nothing else may advance the week from under it.
   const watchingMatch = screen === 'match' && liveMatchId !== null && liveMatchId === state?.lastMatch?.id;
   // The dressing room at the interval counts as being in the match: he is standing
-  // there in his kit, and the game has not finished.
-  const inTheMatch = watchingMatch || state?.pendingHalfTime != null;
+  // there in his kit, and the game has not finished. Only while he is actually on the
+  // match screen, though - a half time left open on some other tab, or reloaded into,
+  // used to hide the one button that could take him back to it, and the career stopped
+  // dead with no way to move.
+  const atTheBreak = state?.pendingHalfTime != null;
+  const inTheMatch = watchingMatch || (atTheBreak && screen === 'match');
   // Only the questions that change the career stop him. The rest are in his mail, and
   // he answers them when he opens it. Nobody asks him anything while he is still
   // playing: a reporter asking how the game went, at half time, is nonsense, so
@@ -254,24 +258,29 @@ function ContinueDock() {
   // everything else his club wanted from him went past unread. Now the whistle puts him
   // back on his own screen, and the week only moves when he says so.
   const afterMatch = screen === 'match' && state?.lastMatch != null;
+  // A match stopped at the interval is the only thing the week is waiting on, so
+  // wherever he has wandered off to, the button leads back to the dressing room.
+  const backToTheBreak = state?.pendingHalfTime != null && screen !== 'match';
   // A button should say what happens when it is pressed. With his club playing this
   // week, pressing it kicks a match off; the rest of the year it walks the calendar on.
-  const upcoming = state && !afterMatch ? nextFixture(state) : null;
+  const upcoming = state && !afterMatch && !backToTheBreak ? nextFixture(state) : null;
   const kickOff = upcoming != null && upcoming.fixture.week === state?.world.week;
-  const label = afterMatch
-    ? t('action.doneWithMatch')
-    : kickOff
-      ? t('action.startMatch')
-      : injured
-        ? t('action.continueTo')
-        : t('action.continue');
+  const label = backToTheBreak
+    ? t('action.backToMatch')
+    : afterMatch
+      ? t('action.doneWithMatch')
+      : kickOff
+        ? t('action.startMatch')
+        : injured
+          ? t('action.continueTo')
+          : t('action.continue');
 
   return (
     <div className="continue-dock">
       <button
-        className={`continue ${injured && !afterMatch && !kickOff ? 'continue-alt' : ''}`}
+        className={`continue ${injured && !afterMatch && !kickOff && !backToTheBreak ? 'continue-alt' : ''}`}
         disabled={busy}
-        onClick={() => (afterMatch ? goto('hub') : advance(52))}
+        onClick={() => (afterMatch || backToTheBreak ? goto(afterMatch ? 'hub' : 'match') : advance(52))}
       >
         {label}
       </button>

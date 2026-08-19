@@ -929,6 +929,27 @@ select:focus-visible,
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  /*
+   * Except the goal. Collapsing its animations to nothing leaves a board that fades out
+   * before it has been seen - the one moment in the game he is waiting for, gone. It
+   * still arrives instead of flying in; it just stays long enough to read.
+   */
+  .goal-splash {
+    animation: goalSplashHold 2600ms step-end both !important;
+  }
+  .goal-splash-ball,
+  .goal-splash-word,
+  .goal-splash-scorer {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@keyframes goalSplashHold {
+  0%, 92% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ---------------------------------------------------------------- the pitch */
@@ -987,16 +1008,20 @@ select:focus-visible,
  */
 .goal-splash {
   position: fixed;
+  background: radial-gradient(120% 60% at 50% 45%, rgba(6, 11, 24, 0.55), rgba(6, 11, 24, 0.88) 70%);
   inset-block: 0;
   inset-inline: 0;
   max-width: var(--frame);
   margin: 0 auto;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   overflow: hidden;
-  z-index: 40;
+  z-index: 120;
   pointer-events: none;
-  animation: goalSplashOut 2300ms ease-out both;
+  animation: goalSplashOut 2600ms ease-out both;
 }
 
 .goal-splash-ball {
@@ -1025,13 +1050,28 @@ select:focus-visible,
 .goal-splash-word {
   position: relative;
   direction: ltr;
-  font-size: clamp(46px, 18vw, 88px);
+  font-size: clamp(52px, 20vw, 96px);
   font-weight: 900;
   letter-spacing: 0.06em;
   color: #fff;
   text-shadow: 0 0 28px rgba(240, 190, 90, 0.85), 0 6px 22px rgba(0, 0, 0, 0.75);
   animation: goalWordIn 520ms 500ms cubic-bezier(0.2, 1.6, 0.35, 1) both;
 }
+/* Who scored it, under the word, the way a broadcast puts it up. */
+.goal-splash-scorer {
+  position: relative;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(8, 12, 22, 0.72);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+  animation: goalWordIn 420ms 700ms cubic-bezier(0.2, 1.4, 0.35, 1) both;
+}
+.goal-splash-scorer .num { color: rgba(255, 255, 255, 0.72); font-size: 14px; }
+
 /* One his side let in. Same moment, and nobody is celebrating it. */
 .goal-splash-against .goal-splash-word {
   color: #ffe7e7;
@@ -1051,6 +1091,72 @@ select:focus-visible,
 @keyframes goalSplashOut {
   0%, 76% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/*
+ * The referee's whistle, on screen. It stays up rather than fading, because unlike a
+ * goal this is not a moment that passes - the match has stopped, and it stays stopped
+ * until he does something about it.
+ */
+.whistle-splash {
+  position: absolute;
+  inset-inline: 8%;
+  inset-block-start: 22%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(10, 14, 24, 0.95), rgba(10, 14, 24, 0.86));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 16px 40px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+  z-index: 60;
+  animation: whistleIn 420ms cubic-bezier(0.2, 1.4, 0.35, 1) both;
+}
+
+/* The whistle itself, drawn: a body, a mouthpiece and the little ring. */
+.whistle-mark {
+  width: 42px;
+  height: 20px;
+  position: relative;
+  border-radius: 10px 4px 4px 10px;
+  background: linear-gradient(180deg, #e9edf3, #98a2b0);
+  box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.35);
+}
+.whistle-mark::before {
+  content: '';
+  position: absolute;
+  inset-inline-end: -12px;
+  inset-block-start: 5px;
+  width: 14px;
+  height: 9px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #cdd4dd, #8d97a5);
+}
+.whistle-mark::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 8px;
+  inset-block-start: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2a3140;
+}
+
+.whistle-word {
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.01em;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.8);
+}
+.whistle-score { font-size: 20px; font-weight: 800; color: rgba(255, 255, 255, 0.82); }
+
+@keyframes whistleIn {
+  0% { opacity: 0; transform: scale(0.86) translateY(10px); }
+  100% { opacity: 1; transform: none; }
 }
 
 /* The net, and the moment the ball hits it. */
