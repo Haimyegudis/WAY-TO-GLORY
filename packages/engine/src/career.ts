@@ -842,11 +842,6 @@ function matchImportanceFor(
   const opponent = state.world.clubs[opponentId];
   if (!opponent) return 'normal';
 
-  // His first ever senior appearance is its own occasion.
-  const played = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
-    + (state.world.seasonStats[state.player.id]?.apps ?? 0);
-  if (played === 0) return 'firstProMatch';
-
   if (club.rivals?.includes(opponentId)) {
     return club.city && opponent.city && club.city === opponent.city ? 'derby' : 'rival';
   }
@@ -1326,6 +1321,17 @@ function playUserMatch(
   if (suspension) {
     suspension.matchesRemaining -= 1;
     player.condition.suspensions = player.condition.suspensions.filter((s) => s.matchesRemaining > 0);
+  }
+
+  // The debut is decided after the fact: it is the first match he actually got on the
+  // pitch for, not every match the club played while he watched from outside.
+  const appsBefore = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
+    + (state.world.seasonStats[player.id]?.apps ?? 0);
+  if (result.userLine?.played && appsBefore === 0) {
+    result.importance = 'firstProMatch';
+    pushInbox(state, 'club', 'inbox.debut', { club: club.name });
+    pushNews(state, 'news.debut', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'high');
+    unlock(state, 'firstProMatch', { club: club.name });
   }
 
   applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled);

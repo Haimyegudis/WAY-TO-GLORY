@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { saveSizeBytes, serialize } from '@fc/engine';
 import { LANG_LABEL, useLang, useT, type Lang } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
+import { useMusicSetting } from '../components/ThemeMusic.js';
 import { Card } from '../components/ui.js';
 import { CloudPanel } from '../cloud/CloudPanel.js';
 
 export function SettingsScreen() {
+  const [soundOn, setSoundOn] = useMusicSetting();
   const t = useT();
   const lang = useLang((s) => s.lang);
   const setLang = useLang((s) => s.setLang);
@@ -42,6 +44,14 @@ export function SettingsScreen() {
             </button>
           ))}
         </div>
+      </Card>
+
+      <Card title={t('settings.sound')}>
+        <div className="seg">
+          <button aria-pressed={soundOn} onClick={() => setSoundOn(true)}>{t('settings.sound.on')}</button>
+          <button aria-pressed={!soundOn} onClick={() => setSoundOn(false)}>{t('settings.sound.off')}</button>
+        </div>
+        <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{t('settings.sound.hint')}</p>
       </Card>
 
       <CloudPanel />

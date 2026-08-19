@@ -1405,4 +1405,14 @@ export const he: Record<string, string> = {
   'inbox.retirementThought.body': 'הרגליים רחוקות ממה שהיו יותר משהיית רוצה להודות. אף אחד לא יקבל את ההחלטה הזו במקומך.',
   'inbox.retirementSummary.body': 'זו הקריירה: המועדונים, המשחקים, השערים וכל מה שבא איתם. מה שהמספרים לא יגידו — היא הייתה שלך.',
   'inbox.retirementLegend.body': 'הם רוצים אותך בטקס, החולצה עולה ליציע, והאוהדים יציגו אותך לילדים שלהם כאחד משלהם.',
+
+'inbox.debut': 'עשית את הופעת הבכורה שלך ב{club}.',
+  'inbox.debut.body': 'הראשונה. מה שלא יקרה בקריירה הזו, שיחקת משחק בוגרים, ואת זה כבר אף אחד לא לוקח.',
+  'news.debut': '{player} עושה בכורה ב{club}.',
+  'achievement.firstProMatch': 'הופעת בכורה מקצוענית',
+
+'settings.sound': 'צליל',
+  'settings.sound.on': 'דלוק',
+  'settings.sound.off': 'כבוי',
+  'settings.sound.hint': 'שיר הנושא במסכי הפתיחה, לופ שקט יותר לאורך העונה, וקהל בזמן משחק.',
 };

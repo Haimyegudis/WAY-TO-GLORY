@@ -57,19 +57,17 @@ export function ThemeMusic({ playing, track = 'theme' }: { playing: boolean; tra
     return () => window.removeEventListener('pointerdown', onFirstTouch);
   }, [playing, muted, track]);
 
-  return (
-    <>
-      <audio ref={audioRef} src={`/audio/${track}.mp3`} loop preload="none" />
-      {playing && (
-        <button
-          className="music-toggle"
-          onClick={() => setMutedGlobal(!muted)}
-          aria-label={muted ? 'Sound on' : 'Sound off'}
-          aria-pressed={!muted}
-        >
-          {muted ? '🔇' : '🎵'}
-        </button>
-      )}
-    </>
-  );
+  return <audio ref={audioRef} src={`/audio/${track}.mp3`} loop preload="none" />;
+}
+
+/** The sound switch, for the settings screen. */
+export function useMusicSetting(): [boolean, (on: boolean) => void] {
+  const [muted, setMuted] = useState(mutedGlobal);
+  useEffect(() => {
+    listeners.add(setMuted);
+    return () => {
+      listeners.delete(setMuted);
+    };
+  }, []);
+  return [!muted, (on: boolean) => setMutedGlobal(!on)];
 }

@@ -1403,4 +1403,14 @@ export const en: Record<string, string> = {
   'inbox.retirementThought.body': 'The legs are further away from where they were than you would like to admit. Nobody will make this decision for you.',
   'inbox.retirementSummary.body': 'That is the career: the clubs, the games, the goals, and everything that came with them. Whatever the numbers say, it was yours.',
   'inbox.retirementLegend.body': 'They want you back for the anniversary, the shirt goes up in the stand, and the supporters will introduce you to their children as one of theirs.',
+
+'inbox.debut': 'You made your first appearance for {club}.',
+  'inbox.debut.body': 'The first one. Whatever else happens in this career, you have played a senior match, and nobody can take that back.',
+  'news.debut': '{player} makes his debut for {club}.',
+  'achievement.firstProMatch': 'First professional appearance',
+
+'settings.sound': 'Sound',
+  'settings.sound.on': 'On',
+  'settings.sound.off': 'Off',
+  'settings.sound.hint': 'The theme on the opening screens, a quieter loop through the season, and the crowd during a match.',
 };
