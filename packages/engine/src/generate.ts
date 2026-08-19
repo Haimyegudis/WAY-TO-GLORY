@@ -290,8 +290,16 @@ export function generateSquad(rng: Rng, opts: SquadGenOptions): Player[] {
   const players: Player[] = [];
   const filled: Record<string, number> = {};
 
+  // Two men at one club sharing a surname is ordinary - Newcastle have two Murphys - but
+  // two players sharing an id is one player, because the world keeps them in a map and
+  // the second quietly overwrites the first.
+  const usedIds = new Set<string>();
   for (const star of opts.stars ?? []) {
     const player = starToPlayer(rng, index, star, season, club);
+    let id = player.id;
+    for (let n = 2; usedIds.has(id); n++) id = `${player.id}_${n}`;
+    usedIds.add(id);
+    player.id = id;
     players.push(player);
     filled[star.pos] = (filled[star.pos] ?? 0) + 1;
   }
@@ -346,7 +354,7 @@ export function starToPlayer(
     99,
   );
   return {
-    id: `star_${star.clubId}_${star.lastName.toLowerCase().replace(/[^a-z]/g, '')}`,
+    id: `star_${star.clubId}_${`${star.firstName}_${star.lastName}`.toLowerCase().replace(/[^a-z_]/g, '')}`,
     firstName: star.firstName,
     lastName: star.lastName,
     birthYear: season - star.age,

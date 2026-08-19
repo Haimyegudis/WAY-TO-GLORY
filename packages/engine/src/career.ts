@@ -694,8 +694,15 @@ export function ensureModelledSquads(state: CareerState, index: PackIndex, rng: 
     if (state.world.squads[rival.id]) continue;
     const stars = index.starsByClub.get(rival.id) ?? [];
     const players: Player[] = [];
+    const usedIds = new Set<string>();
     for (const star of stars.slice(0, 8)) {
-      players.push(starToPlayer(rng, index, star, season, rival));
+      const player = starToPlayer(rng, index, star, season, rival);
+      // Same surname, same club: the id has to separate them or one of them vanishes.
+      let id = player.id;
+      for (let n = 2; usedIds.has(id); n++) id = `${player.id}_${n}`;
+      usedIds.add(id);
+      player.id = id;
+      players.push(player);
     }
     const base = clubBaseOvr(rival);
     const positions = ['ST', 'CF', 'RW', 'LW', 'CAM', 'CM', 'CB', 'GK'] as const;
