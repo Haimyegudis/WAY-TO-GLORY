@@ -84,72 +84,39 @@ function europeanRun(state: CareerState): EuroState | null {
 }
 
 /** The group table and the ties, which is all a player needs to know about the draw. */
+/**
+ * All of Europe, not only his corner of it: pick the competition, see every group,
+ * every knockout tie and who is left. His own club and his own group are marked, but
+ * nothing is hidden - the whole draw is there.
+ */
 function EuropeanRun() {
   const t = useT();
-  const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
-  const competition = europeanRun(state);
-  if (!competition) return <Empty>—</Empty>;
+  const competitions = Object.values(state.world.europe ?? {}) as EuroState[];
+  const mine = europeanRun(state);
+  const [selected, setSelected] = useState(mine?.id ?? competitions[0]?.id ?? '');
 
-  const clubId = state.player.clubId;
-  const group = competition.groups.find((g) => g.clubIds.includes(clubId ?? ''));
-  const ties = competition.ties.filter((tie) => tie.homeClubId === clubId || tie.awayClubId === clubId);
+  if (competitions.length === 0) return <Empty>—</Empty>;
+  const competition = competitions.find((c) => c.id === selected) ?? competitions[0]!;
 
   return (
-    <Card title={t(`competition.${competition.id}`)}>
-      <p className="eyebrow" style={{ marginBlockEnd: 8 }}>
-        {t(`competition.stage.${competition.stage === 'done' ? 'final' : competition.stage}`)}
-      </p>
-
-      {group && (
-        <div className="table-wrap">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th className="start">{t('competition.group', { letter: group.letter })}</th>
-                <th className="n">{t('club.pld')}</th>
-                <th className="n">{t('club.gd')}</th>
-                <th className="n">{t('club.pts')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.values(group.table)
-                .sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
-                .map((row) => (
-                  <tr key={row.clubId} className={row.clubId === clubId ? 'row-me' : ''}>
-                    <td className="start">
-                      <ClubLine club={state.world.clubs[row.clubId]} size="sm" />
-                    </td>
-                    <td className="n">{row.played}</td>
-                    <td className="n">{row.goalsFor - row.goalsAgainst}</td>
-                    <td className="n">{row.points}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {ties.length > 0 && (
-        <ul className="list" style={{ marginBlockStart: 10 }}>
-          {ties.map((tie, i) => {
-            const opponentId = tie.homeClubId === clubId ? tie.awayClubId : tie.homeClubId;
-            return (
-              <li key={`${tie.stage}-${i}`} className="list-item">
-                <span className="chip">{t(`competition.stage.${tie.stage}`)}</span>
-                <span className="grow" style={{ fontSize: 13 }}>
-                  <ClubLine club={state.world.clubs[opponentId]} size="sm" />
-                </span>
-                <span className="num" style={{ fontSize: 13 }}>
-                  {tie.result ? `${tie.result[0]}\u2013${tie.result[1]}` : `${tie.week}\u2032`}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{lang === 'he' ? '' : ''}</p>
-    </Card>
+    <>
+      <div className="seg" style={{ marginBlockEnd: 10 }}>
+        {competitions.map((entry) => (
+          <button
+            key={entry.id}
+            aria-pressed={entry.id === competition.id}
+            onClick={() => setSelected(entry.id)}
+          >
+            {t(`competition.${entry.id}`)}
+            {mine?.id === entry.id && ' ★'}
+          </button>
+        ))}
+      </div>
+      <Card title={t(`competition.${competition.id}`)}>
+        <EuroTables competition={competition} />
+      </Card>
+    </>
   );
 }
 
@@ -305,6 +272,24 @@ function EuroTables({ competition }: { competition: EuroState }) {
               </tbody>
             </table>
           </div>
+
+          <ul className="list" style={{ marginBlockStart: 4 }}>
+            {competition.fixtures
+              .filter((fixture) => group.clubIds.includes(fixture.homeClubId))
+              .sort((a, b) => a.week - b.week)
+              .map((fixture, i) => (
+                <li key={`${group.letter}-${i}`} className="list-item score-row" style={{ padding: '4px 0' }}>
+                  <span className="faint num" style={{ fontSize: 10.5, minWidth: 22 }}>{fixture.week}</span>
+                  <span className="grow row" style={{ gap: 6, fontSize: 12, minWidth: 0 }}>
+                    <Crest club={club(state, fixture.homeClubId)} size="sm" />
+                    <span className="num">
+                      {fixture.result ? `${fixture.result[0]}–${fixture.result[1]}` : '–'}
+                    </span>
+                    <Crest club={club(state, fixture.awayClubId)} size="sm" />
+                  </span>
+                </li>
+              ))}
+          </ul>
         </div>
       ))}
 
