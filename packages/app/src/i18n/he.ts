@@ -741,6 +741,7 @@ export const he: Record<string, string> = {
   'action.gotIt': 'הבנתי',
 
   'hub.ageValue': 'גיל {age}',
+  'hub.atThisClubOnly': 'המספרים הם ב{club} בלבד. העונה המלאה במסך הקריירה',
   'hub.condition': 'מצב',
   'hub.money': 'חוזה',
   'hub.transferListed': 'ברשימת ההעברות',

@@ -745,6 +745,7 @@ export const en: Record<string, string> = {
   'action.gotIt': 'Got it',
 
   'hub.ageValue': '{age} yrs',
+  'hub.atThisClubOnly': 'These are at {club} only. The whole season is on the career page',
   'hub.condition': 'Condition',
   'hub.money': 'Contract',
   'hub.transferListed': 'Transfer listed',

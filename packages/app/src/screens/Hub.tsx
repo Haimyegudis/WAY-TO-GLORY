@@ -9,7 +9,7 @@ import {
 } from '@fc/engine';
 import { formatMoney, formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
-import { myClub, myPosition, nextFixture, seasonLine, weeksInjured } from '../state/selectors.js';
+import { myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, localiseArgs } from '../lib/club.js';
 import { competitionName } from '../lib/names.js';
 import { seasonGoalStanding } from '@fc/engine';
@@ -40,7 +40,7 @@ export function Hub() {
   const ovr = currentOvr(state);
   const age = state.world.season - player.birthYear;
   const fixture = nextFixture(state);
-  const season = seasonLine(state);
+  const season = seasonLineAtClub(state);
   const position = myPosition(state);
   const injuredWeeks = weeksInjured(state);
   const unread = state.inbox.filter((m) => !m.read);
@@ -104,6 +104,17 @@ export function Hub() {
           <Stat label={t('match.assists')} value={season.assists} />
           <Stat label={t('match.rating')} value={season.rating > 0 ? season.rating.toFixed(2) : '—'} />
         </div>
+        {/* Half a season somewhere else does not belong on this card, but he should know
+            it is not being counted here - and where it is counted. */}
+        {season.partial && (
+          <button
+            className="faint"
+            style={{ fontSize: 11.5, marginBlockStart: 8, textAlign: 'start' }}
+            onClick={() => goto('career')}
+          >
+            {t('hub.atThisClubOnly', { club: clubName(club, lang) })} ›
+          </button>
+        )}
       </Card>
 
       {state.world.youth && state.world.youth.form.apps > 0 && (

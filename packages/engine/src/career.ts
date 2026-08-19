@@ -2599,6 +2599,8 @@ function playUserMatch(
 
   applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled, instructionFatigue);
 
+  // Whose shirt he was in. Needed the moment a season is played at two clubs.
+  result.userClubId = club.id;
   state.lastMatch = result;
   state.matchLog.unshift(result);
   // A full season of fixtures plus a cup run, so the results page can show them all.

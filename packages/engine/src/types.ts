@@ -314,6 +314,11 @@ export interface MatchResult {
   importance?: MatchImportance;
   /** Only present for detail level 1 (matches the user was involved in). */
   userLine?: UserMatchLine;
+  /**
+   * The club he played this one for. A season can be played at two clubs, and once he
+   * has moved there is nothing in the fixture itself that says which side he was on.
+   */
+  userClubId?: string;
   events?: MatchEvent[];
   scorers?: { playerId: string; clubId: string; minute: number }[];
 }
