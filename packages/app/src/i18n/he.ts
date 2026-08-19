@@ -1736,6 +1736,7 @@ export const he: Record<string, string> = {
   'settings.halfTime.big': 'רק במשחקים גדולים',
   'settings.halfTime.off': 'כבוי',
   'settings.halfTimeHint': 'כשאתה על המגרש בדקה 45, המשחק נעצר ומישהו רוצה משהו ממך. אפשר להשאיר את זה לדרבי ולגמרים בלבד.',
+  'live.firstHalfRecap': 'המחצית הראשונה',
   'milestone.claimMade': 'אמרת את זה בקול. עכשיו צריך גם לעשות.',
   'milestone.claimKept': 'אמרת, ויצאת ועשית.',
   'milestone.claimBroken': 'אמרת, ולא היה כיסוי.',

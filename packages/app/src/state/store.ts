@@ -407,7 +407,9 @@ export const useGame = create<GameStore>((set, get) => ({
       const mediaResult = engineAnswerMedia(state, index, decisionId, optionId);
       const mediaSlot = get().activeSaveId;
       if (mediaSlot) persistTo(mediaSlot, state, (saves) => set({ saves }));
-      set({ state: { ...state }, result: mediaResult });
+      // Answering closes the message it arrived in, whichever sheet he answered from:
+      // what changed is the next thing he should be looking at, not the question again.
+      set({ state: { ...state }, result: mediaResult, openMessageId: null });
       return;
     }
     // Hanging them up is his own decision, so it is answered here rather than by the
@@ -421,7 +423,7 @@ export const useGame = create<GameStore>((set, get) => ({
     if (retiring && optionId === 'retire') engineRetire(state);
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
-    set({ state: { ...state }, result });
+    set({ state: { ...state }, result, openMessageId: null });
   },
 
   chooseMentor(mentorId) {

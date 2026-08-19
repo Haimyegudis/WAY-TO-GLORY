@@ -1734,6 +1734,7 @@ export const en: Record<string, string> = {
   'settings.halfTime.big': 'Big matches only',
   'settings.halfTime.off': 'Off',
   'settings.halfTimeHint': 'When you are on the pitch at forty-five, the match stops and somebody wants something from you. You can keep it for derbies and finals.',
+  'live.firstHalfRecap': 'The first half',
   'milestone.claimMade': 'You said it out loud. Now you have to do it.',
   'milestone.claimKept': 'You said it, and you went and did it.',
   'milestone.claimBroken': 'You said it, and there was nothing behind it.',

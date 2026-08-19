@@ -244,7 +244,13 @@ export function LiveMatch({
 
       {before.length > 0 && (
         <div className="live-before">
-          <p className="eyebrow">{t('live.beforeYouCameOn', { minute: entry })}</p>
+          {/* Two different things read the same box: a substitute has missed the first
+              hour, and a player coming back out for the second half has not. */}
+          <p className="eyebrow">
+            {from !== undefined
+              ? t('live.firstHalfRecap')
+              : t('live.beforeYouCameOn', { minute: entry })}
+          </p>
           {before.map((event, i) => (
             <div key={`b-${i}`} className="live-before-row">
               <span className="live-minute num">{event.minute}′</span>

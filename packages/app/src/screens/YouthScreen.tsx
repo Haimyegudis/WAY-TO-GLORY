@@ -137,14 +137,27 @@ function YouthSquad() {
   if (!youth || !clubId) return <Empty>—</Empty>;
 
   const home = club(state, clubId);
-  const boys = youthSquad(state, clubId);
   const season = state.world.season;
+  // He trains with them and he is picked ahead of them or behind them, so he belongs
+  // in the list. His own numbers come from his youth form rather than the squad table.
+  const boys = [...youthSquad(state, clubId), state.player];
+  const lineFor = (id: string) =>
+    id === state.player.id
+      ? { apps: youth.form.apps, goals: youth.form.goals, assists: youth.form.assists,
+        rating: youth.form.apps > 0 ? youth.form.ratingSum / youth.form.apps : 0 }
+      : (() => {
+        const stats = youth.stats[id];
+        return stats
+          ? { apps: stats.apps, goals: stats.goals, assists: stats.assists,
+            rating: stats.ratedApps > 0 ? stats.ratingSum / stats.ratedApps : 0 }
+          : null;
+      })();
 
   if (boys.length === 0) return <Empty>—</Empty>;
 
   const rows = [...boys].sort((a, b) => {
-    const sa = youth.stats[a.id];
-    const sb = youth.stats[b.id];
+    const sa = lineFor(a.id);
+    const sb = lineFor(b.id);
     return (sb?.goals ?? 0) - (sa?.goals ?? 0) || (sb?.apps ?? 0) - (sa?.apps ?? 0);
   });
 
@@ -155,18 +168,19 @@ function YouthSquad() {
       </p>
       <ul className="list">
         {rows.map((boy) => {
-          const stats = youth.stats[boy.id];
+          const line = lineFor(boy.id);
           return (
-            <li key={boy.id} className="list-item">
+            <li key={boy.id} className={`list-item ${boy.id === state.player.id ? 'me' : ''}`}>
               <span className="num" style={{ minWidth: 26 }}>{season - boy.birthYear}</span>
               <span className="grow" style={{ fontSize: 13.5 }}>
                 {playerName(boy, lang)}
                 <span className="faint" style={{ fontSize: 11.5 }}> · {t(`pos.${boy.primaryPos}`)}</span>
               </span>
               <span className="faint num" style={{ fontSize: 11.5, minWidth: 62, textAlign: 'end' }}>
-                {stats ? `${stats.apps}/${stats.goals}/${stats.assists}` : '—'}
+                {line ? `${line.apps}/${line.goals}/${line.assists}` : '—'}
               </span>
-              <RatingBadge rating={stats && stats.ratedApps > 0 ? stats.ratingSum / stats.ratedApps : 0} />
+              {/* Only he is rated match by match; nobody marks the other boys out of ten. */}
+              {line && line.rating > 0 && <RatingBadge rating={line.rating} />}
             </li>
           );
         })}
