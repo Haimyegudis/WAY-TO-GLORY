@@ -140,6 +140,8 @@ interface HalfState {
   line: UserMatchLine;
   userGoals: number;
   oppGoals: number;
+  /** The minute he got hurt, if he did. His afternoon ends there. */
+  userInjuredAt?: number;
 }
 
 const CONVERSION_BASE = 0.115;
@@ -242,8 +244,9 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
   line.motm = line.played && line.rating >= 8.3 && (half.userGoals > half.oppGoals || line.goals >= 2);
 
   const result = buildResult(ctx, half, setup, ctx.importance);
-  const injuryRolled =
-    ctx.minutes.played && rng.chance(inMatchInjuryChance(ctx.user, ctx.minutes.minutes) * mods.injuryRisk);
+  // He is injured if he was hurt during the match. The old blind roll after the whistle
+  // is gone: an injury nobody saw happen is a message, not a moment.
+  const injuryRolled = Boolean(half.userInjuredAt);
 
   return {
     result,
@@ -342,7 +345,10 @@ function playHalf(
   if (minutesThisHalf > 0 && line.red === 0) {
     const discipline = ctx.user.personality.discipline;
     const group = positionGroup(ctx.minutes.slot ?? ctx.user.primaryPos);
-    const cardBase = group === 'DEF' ? 0.16 : group === 'MID' ? 0.13 : group === 'ATT' ? 0.07 : 0.03;
+    // Measured against a career: this used to book him once every nine matches, and a
+    // real professional is booked about once every four or five. A referee is part of
+    // football and a player who never sees one is not in a football match.
+    const cardBase = group === 'DEF' ? 0.28 : group === 'MID' ? 0.24 : group === 'ATT' ? 0.14 : 0.06;
     const yellowP = clamp(cardBase * (1.4 - discipline / 100) * (minutesThisHalf / 90) * mods.cardRisk, 0.003, 0.4);
     const from = which === 1 ? 8 : 47;
     const to = which === 1 ? 45 : 90;
@@ -353,18 +359,47 @@ function playHalf(
         byUser: true, detailKey: 'match.event.yellow',
       });
       // A second yellow can only follow a first, and the first is usually behind him.
-      if (line.yellow >= 2 && rng.chance(0.35)) {
+      // Bookings doubled when they were measured against real football; sendings-off
+      // must not, because a red every thirty matches is not football, it is a brawl.
+      if (line.yellow >= 2 && rng.chance(0.12)) {
         line.red = 1;
         half.events.push({
           minute: rng.int(from, to), type: 'red', playerId: ctx.user.id,
           byUser: true, detailKey: 'match.event.secondYellow',
         });
       }
-    } else if (rng.chance(0.003)) {
+    } else if (rng.chance(0.0012)) {
       line.red = 1;
       half.events.push({
         minute: rng.int(from, to), type: 'red', playerId: ctx.user.id,
         byUser: true, detailKey: 'match.event.straightRed',
+      });
+    }
+  }
+
+  /*
+   * Getting hurt, in the match rather than after it.
+   *
+   * The injury was rolled once the whistle had gone and applied to the player quietly,
+   * so a career full of injuries had none you could see happen: he played the ninety
+   * minutes, and then a message said he was out for six weeks. Now it lands on a minute,
+   * goes into the feed like anything else, and ends his afternoon there and then.
+   */
+  if (minutesThisHalf > 0 && !half.userInjuredAt) {
+    const risk = inMatchInjuryChance(ctx.user, minutesThisHalf) * mods.injuryRisk;
+    if (rng.chance(risk)) {
+      const minute = rng.int(which === 1 ? 6 : 47, which === 1 ? 45 : 90);
+      half.userInjuredAt = minute;
+      half.events.push({
+        minute, type: 'injury', playerId: ctx.user.id,
+        byUser: true, detailKey: 'match.event.userInjured',
+      });
+      // His match is over at that minute, whatever the team sheet said.
+      const off = Math.min(line.minutes, Math.max(1, minute - (ctx.minutes.cameOnMinute ?? 0)));
+      line.minutes = off;
+      half.events.push({
+        minute, type: 'sub-off', playerId: ctx.user.id,
+        byUser: true, detailKey: 'match.event.offInjured',
       });
     }
   }

@@ -40,7 +40,7 @@ const INTENSITY_FATIGUE: Record<TrainingPlan['intensity'], number> = {
   light: -3.5, normal: 1.2, intensive: 4.5, extreme: 9,
 };
 const DIET_FACTOR: Record<TrainingPlan['diet'], number> = {
-  poor: 0.85, normal: 1.0, professional: 1.08, nutritionist: 1.14,
+  poor: 0.8, normal: 1.0, professional: 1.12, nutritionist: 1.2,
 };
 const DIET_RECOVERY: Record<TrainingPlan['diet'], number> = {
   poor: 0.7, normal: 1.0, professional: 1.2, nutritionist: 1.35,
@@ -124,13 +124,21 @@ export function developWeek(
   const aF = ageFactor(age, player.primaryPos);
   const hR = headroom(ovrBefore, player.potential);
 
+  /*
+   * Where he trains, and it matters.
+   *
+   * The club used to be worth a third either way; it is worth three times that now, so
+   * a boy at a club with real coaches and real facilities pulls away from the same boy
+   * at a club without them. That is the whole argument for signing anywhere.
+   */
   const trainingF =
     INTENSITY_DEV[ctx.training.intensity] *
     DIET_FACTOR[ctx.training.diet] *
-    (0.6 + ctx.coachQuality / 200 + ctx.facilities / 250);
+    (0.3 + ctx.coachQuality / 150 + ctx.facilities / 190);
 
-  // Minutes matter more than anything else. A benched teenager stalls.
-  const playingF = ctx.inSeason ? 0.35 + Math.min(1, ctx.minutesPct * 1.6) * 0.95 : 0.75;
+  // Minutes matter more than anything else. A benched teenager stalls, and a boy playing
+  // every week at a modest club beats a boy training beautifully and not playing.
+  const playingF = ctx.inSeason ? 0.22 + Math.min(1, ctx.minutesPct * 1.6) * 1.05 : 0.6;
 
   const proF = 0.7 + player.personality.professionalism / 170;
   const moraleF = 0.82 + player.morale / 550;
@@ -139,8 +147,16 @@ export function developWeek(
 
   const injuredPenalty = player.condition.injuries.length > 0 ? 0.25 : 1;
 
+  /*
+   * The rate itself.
+   *
+   * A career used to run from forty at fifteen to the middle eighties by twenty, which
+   * is a generation's worth of talent in five seasons and made every career the same
+   * shape. Slower now: the good ones still get there, they get there at twenty-four
+   * rather than at twenty, and where they train decides how far.
+   */
   let total =
-    0.2 * aF * trainingF * playingF * proF * moraleF * fitnessF * levelF * injuredPenalty * rng.range(0.75, 1.3);
+    0.125 * aF * trainingF * playingF * proF * moraleF * fitnessF * levelF * injuredPenalty * rng.range(0.75, 1.3);
 
   if (aF > 0) total *= hR;
 

@@ -305,6 +305,9 @@ function ContinueDock() {
   // week, pressing it kicks a match off; the rest of the year it walks the calendar on.
   const upcoming = state && !afterMatch && !backToTheBreak ? nextFixture(state) : null;
   const kickOff = upcoming != null && upcoming.fixture.week === state?.world.week;
+  // A press used to run the calendar until something stopped it, which meant match,
+  // match, match with nothing in between. A week at a time gives him somewhere to read
+  // his mail, look at his training and see what the last game did to his numbers.
   const label = backToTheBreak
     ? t('action.backToMatch')
     : afterMatch
@@ -313,14 +316,14 @@ function ContinueDock() {
         ? t('action.startMatch')
         : injured
           ? t('action.continueTo')
-          : t('action.continue');
+          : t('action.nextWeek');
 
   return (
     <div className="continue-dock">
       <button
         className={`continue ${injured && !afterMatch && !kickOff && !backToTheBreak ? 'continue-alt' : ''}`}
         disabled={busy}
-        onClick={() => (afterMatch || backToTheBreak ? goto(afterMatch ? 'hub' : 'match') : advance(52))}
+        onClick={() => (afterMatch || backToTheBreak ? goto(afterMatch ? 'hub' : 'match') : advance(1))}
       >
         {label}
       </button>
