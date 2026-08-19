@@ -9,6 +9,8 @@ import { buildAttributes, generatePlayer } from '../src/generate.js';
 import { pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
+import { YOUTH_MAX_AGE, countryLeagues, userYouthCompetition, userYouthCompetitionId, youthCompetitionId } from '../src/youth.js';
+import { YOUTH_SQUAD_SIZE, generateYouthSquad, youthSquad } from '../src/youth-squads.js';
 import { HALF_TIME_INSTRUCTIONS, instructionsFor, managerDemand, managerDictates } from '../src/halftime.js';
 import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/milestones.js';
@@ -969,7 +971,8 @@ describe('half time', () => {
         // played, it is not in the log, and the fixture is still waiting.
         expect(state.lastMatch?.id).not.toBe(held.matchId);
         expect(state.matchLog.some((m) => m.id === held.matchId)).toBe(false);
-        const comp = state.world.competitions[held.competitionId] ?? state.world.youth;
+        const comp = state.world.competitions[held.competitionId]
+          ?? state.world.youth?.competitions[held.competitionId];
         const fixture = comp?.fixtures.find(
           (f) => f.homeClubId === held.homeClubId && f.awayClubId === held.awayClubId && f.week === state.world.week,
         );
@@ -1047,5 +1050,130 @@ describe('half time', () => {
   it('does not ask a goalkeeper to run at the full-back', () => {
     expect(instructionsFor('GK')).not.toContain('takeThemOn');
     expect(instructionsFor('ATT')).toContain('takeThemOn');
+  });
+});
+
+describe('the youth league', () => {
+  /** A career far enough in that a youth season has actually been played out. */
+  function youthCareer(seed = 4242, weeks = 40) {
+    const { state, index } = startedCareer({ seed });
+    for (let i = 0; i < weeks; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    return { state, index };
+  }
+
+  it('shadows every senior division in his country', () => {
+    const { state, index } = startedCareer();
+    const club = state.world.clubs[state.player.clubId!]!;
+    const youth = state.world.youth!;
+    expect(youth).toBeDefined();
+
+    for (const league of countryLeagues(index, club.country)) {
+      const clubsInIt = Object.values(state.world.clubs).filter((c) => c.competitionId === league.id);
+      if (clubsInIt.length < 4) continue;
+      const id = youthCompetitionId(league.id);
+      expect(youth.competitions[id], `${league.id} has no youth division`).toBeDefined();
+      for (const c of clubsInIt) expect(youth.membership[c.id]).toBe(id);
+    }
+  });
+
+  it('fields sixteen boys of the right age at a level below the first team', () => {
+    const { state, index } = startedCareer();
+    const club = state.world.clubs[state.player.clubId!]!;
+    const squad = generateYouthSquad(new Rng(7), index, club, state.world.season);
+
+    expect(squad.length).toBe(YOUTH_SQUAD_SIZE);
+    expect(squad.some((p) => p.primaryPos === 'GK')).toBe(true);
+    for (const p of squad) {
+      const age = state.world.season - p.birthYear;
+      expect(age, `${p.lastName} is ${age}`).toBeGreaterThanOrEqual(14);
+      expect(age).toBeLessThanOrEqual(YOUTH_MAX_AGE);
+      expect(overall(p.attributes, p.primaryPos, p.secondaryPos)).toBeLessThan(currentOvr(state) + 40);
+    }
+  });
+
+  it('populates only the division he is actually in', () => {
+    const { state } = startedCareer();
+    const youth = state.world.youth!;
+    const his = userYouthCompetitionId(state)!;
+    expect(his).toBeTruthy();
+
+    for (const clubId of Object.keys(youth.squads)) {
+      expect(youth.membership[clubId], 'a club outside his division has a squad').toBe(his);
+    }
+    expect(Object.keys(youth.players).length).toBeGreaterThan(50);
+  });
+
+  it('gives the goals in his division to boys who exist', () => {
+    const { state } = youthCareer();
+    const comp = userYouthCompetition(state)!;
+    const youth = state.world.youth!;
+    const scorers = Object.keys(comp.scorers);
+
+    expect(scorers.length, 'nobody in the division has scored').toBeGreaterThan(0);
+    for (const id of scorers) {
+      expect(youth.players[id] || id === state.player.id, `${id} is nobody`).toBeTruthy();
+    }
+    // And the table has been played, not just built.
+    expect(Object.values(comp.table).some((row) => row.played > 0)).toBe(true);
+  });
+
+  it('turns his own youth matches over to the age group, not the first team', () => {
+    const { state } = youthCareer();
+    const youthMatches = state.matchLog.filter((m) => m.competitionId.endsWith('.youth'));
+    expect(youthMatches.length).toBeGreaterThan(0);
+    expect(state.world.youth!.form.apps).toBeGreaterThan(0);
+
+    const teammates = new Set(youthSquad(state, state.player.clubId!).map((p) => p.id));
+    for (const match of youthMatches) {
+      for (const event of match.events ?? []) {
+        if (event.type !== 'goal' || !event.playerId) continue;
+        if (event.playerId === state.player.id) continue;
+        const known = teammates.has(event.playerId) || Boolean(state.world.youth!.players[event.playerId]);
+        expect(known, 'a youth goal was credited to a senior').toBe(true);
+      }
+    }
+  });
+
+  it('moves clubs up and down its own pyramid and crowns its own winners', () => {
+    const { state, index } = startedCareer({ seed: 31337 });
+    for (let i = 0; i < 52 * 3; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+
+    const youth = state.world.youth!;
+    const moved = Object.entries(youth.membership).filter(
+      ([clubId, compId]) => compId !== youthCompetitionId(state.world.clubs[clubId]!.competitionId),
+    );
+    expect(moved.length, 'the youth pyramid never moved anybody').toBeGreaterThan(0);
+
+    const titles = state.world.history.champions.filter((c) => c.competitionId.endsWith('.youth'));
+    expect(titles.length).toBeGreaterThanOrEqual(2);
+
+    const honours = (state.world.history.awards ?? []).filter((a) => a.award.startsWith('youth'));
+    expect(honours.some((a) => a.award === 'youthLeagueTopScorer')).toBe(true);
+    expect(honours.some((a) => a.award === 'youthPlayerOfSeason')).toBe(true);
+    // A golden boot is a number of goals, not a shrug.
+    const boot = honours.find((a) => a.award === 'youthLeagueTopScorer')!;
+    expect(boot.detail ?? 0).toBeGreaterThan(0);
+    expect(boot.playerName).toBeTruthy();
+  });
+
+  it('keeps the age group an age group year after year', () => {
+    const { state, index } = startedCareer({ seed: 909 });
+    for (let i = 0; i < 52 * 3; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      const youth = state.world.youth;
+      if (!youth) continue;
+      for (const player of Object.values(youth.players)) {
+        const age = state.world.season - player.birthYear;
+        expect(age, `${player.lastName} is ${age} in the youth league`).toBeLessThanOrEqual(YOUTH_MAX_AGE);
+        expect(age).toBeGreaterThanOrEqual(14);
+      }
+    }
   });
 });

@@ -92,11 +92,26 @@ import {
 import { isInjured, rollInjury, tickInjuries, trainingInjuryChance } from './injury.js';
 import { marketValue } from './value.js';
 import {
-  createYouthSeason,
   deservesCallUp,
   youthClubRating,
+  createYouthWorld,
+  userYouthCompetitionId,
+  userYouthCompetition,
+  scoringRank,
+  youthTablePosition,
+  youthMembers,
+  newYouthSeason,
+  emptyYouthForm,
+  YOUTH_EXCHANGE,
   YOUTH_MAX_AGE,
 } from './youth.js';
+import { resolveYouthSeason } from './youth-awards.js';
+import {
+  ageYouthWorld,
+  stockYouthDivision,
+  youthSquad,
+  youthStatsFor,
+} from './youth-squads.js';
 import { decideAwards, awardFame, awardReputation, type AwardResult } from './awards.js';
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { generateAgentOffers } from './agents.js';
@@ -267,7 +282,7 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
 
   loadEuropeanSlots(index);
   initEurope(state, rng);
-  initYouth(state, rng);
+  rollYouthSeason(state, index, rng);
 }
 
 /**
@@ -357,18 +372,62 @@ function playQualifiers(state: CareerState, index: PackIndex, rng: Rng, calledUp
   }
 }
 
-function initYouth(state: CareerState, rng: Rng): void {
+/**
+ * The youth pyramid, built once and then kept.
+ *
+ * A division for every senior tier in his country, and real squads for the one his own
+ * club is in. If he is already too old for it there is nothing to build.
+ */
+function initYouth(state: CareerState, index: PackIndex, rng: Rng): void {
   const club = userClub(state);
   const age = state.world.season - state.player.birthYear;
-  state.world.youthForm = { apps: 0, goals: 0, assists: 0, ratingSum: 0 };
   if (!club || age > YOUTH_MAX_AGE) {
     state.world.youth = undefined;
     return;
   }
-  const clubIds = Object.values(state.world.clubs)
-    .filter((c) => c.competitionId === club.competitionId)
-    .map((c) => c.id);
-  state.world.youth = createYouthSeason(rng, club.competitionId, clubIds, state.world.season) ?? undefined;
+
+  state.world.youth = createYouthWorld(rng, state, index, club.country);
+  const division = userYouthCompetitionId(state);
+  if (division) stockYouthDivision(rng, state, index, division);
+}
+
+/**
+ * A new youth season: fresh tables and fixtures for every division, everybody a year
+ * older, a new intake where the leavers were, and squads for whichever division his
+ * club has ended up in.
+ */
+function rollYouthSeason(state: CareerState, index: PackIndex, rng: Rng): void {
+  const club = userClub(state);
+  const age = state.world.season - state.player.birthYear;
+  if (!club || age > YOUTH_MAX_AGE) {
+    state.world.youth = undefined;
+    return;
+  }
+  if (!state.world.youth) {
+    initYouth(state, index, rng);
+    return;
+  }
+
+  const youth = state.world.youth;
+  youth.form = emptyYouthForm();
+
+  for (const competitionId of Object.keys(youth.competitions)) {
+    const clubIds = youthMembers(youth, competitionId);
+    if (clubIds.length < 4) {
+      delete youth.competitions[competitionId];
+      continue;
+    }
+    youth.competitions[competitionId] = newYouthSeason(rng, competitionId, clubIds, state.world.season);
+  }
+
+  ageYouthWorld(rng, state, index);
+  const division = userYouthCompetitionId(state);
+  if (division) stockYouthDivision(rng, state, index, division);
+  for (const [playerId, stats] of Object.entries(youth.stats)) {
+    youth.stats[playerId] = { ...stats, season: state.world.season, apps: 0, starts: 0, subApps: 0,
+      minutes: 0, goals: 0, assists: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0,
+      ratingSum: 0, ratedApps: 0 };
+  }
 }
 
 /**
@@ -579,7 +638,7 @@ export function joinClub(
   }
   state.flags['lastTransferWeek'] = season * 52 + state.world.week;
   // Joining a club as a boy puts him straight into its youth side.
-  if (isAcademyPlayer(state) && !state.world.youth) initYouth(state, rng);
+  if (isAcademyPlayer(state) && !state.world.youth) initYouth(state, index, rng);
   // Two clubs a season is the cap, the way registration rules work in real football.
   const movedIn = Number(state.flags['movesSeason'] ?? -1) === season
     ? Number(state.flags['movesThisSeason'] ?? 0)
@@ -1675,66 +1734,85 @@ function attributeCards(state: CareerState, rng: Rng, compState: CompetitionSeas
 function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club | null): MatchResult | null {
   const youth = state.world.youth;
   if (!youth || !club) return null;
-  const youthAge = state.world.season - state.player.birthYear;
-  // He plays youth football until he is eighteen, and keeps playing it after a call-up
-  // until he is actually getting senior minutes. A seventeen year old promoted early
-  // should be playing on Sunday, not watching on Saturday.
-  const stillYouth = youthAge <= YOUTH_MAX_AGE && (isAcademyPlayer(state) || minutesPct(state) < 0.25);
-  if (!stillYouth) return null;
+  const age = state.world.season - state.player.birthYear;
+  // He plays youth football until he has outgrown it, and keeps playing it after a
+  // call-up until he is actually getting senior minutes. A seventeen year old promoted
+  // early should be playing on Sunday, not watching on Saturday.
+  const stillYouth = age <= YOUTH_MAX_AGE && (isAcademyPlayer(state) || minutesPct(state) < 0.25);
   const week = state.world.week;
+  const hisDivision = userYouthCompetitionId(state);
   let userResult: MatchResult | null = null;
 
-  for (const fixture of youth.fixtures) {
-    if (fixture.played || fixture.week > week) continue;
-    const home = state.world.clubs[fixture.homeClubId];
-    const away = state.world.clubs[fixture.awayClubId];
-    if (!home || !away) { fixture.played = true; continue; }
+  for (const [competitionId, comp] of Object.entries(youth.competitions)) {
+    const modelled = competitionId === hisDivision;
 
-    const age = state.world.season - state.player.birthYear;
-    if (fixture.homeClubId === club.id || fixture.awayClubId === club.id) {
-      const opponent = fixture.homeClubId === club.id ? away : home;
-      const result = playUserMatch(
-        state,
-        index,
-        rng,
-        fixture.homeClubId,
-        fixture.awayClubId,
-        youth.competitionId,
-        'normal',
-        youthClubRating(opponent, age),
-      );
-      fixture.played = true;
-      fixture.result = [result.homeGoals, result.awayGoals];
-      applyResult(youth, fixture.homeClubId, fixture.awayClubId, result.homeGoals, result.awayGoals);
-      userResult = result;
+    for (const fixture of comp.fixtures) {
+      if (fixture.played || fixture.week > week) continue;
+      const home = state.world.clubs[fixture.homeClubId];
+      const away = state.world.clubs[fixture.awayClubId];
+      if (!home || !away) { fixture.played = true; continue; }
 
-      const line = result.userLine;
-      if (line?.played) {
-        const form = state.world.youthForm ?? { apps: 0, goals: 0, assists: 0, ratingSum: 0 };
-        form.apps += 1;
-        form.goals += line.goals;
-        form.assists += line.assists;
-        form.ratingSum += line.rating;
-        state.world.youthForm = form;
+      const involvesHim = stillYouth && modelled && (fixture.homeClubId === club.id || fixture.awayClubId === club.id);
+      if (involvesHim) {
+        const opponent = fixture.homeClubId === club.id ? away : home;
+        const opponentSquad = youthSquad(state, opponent.id);
+        const rating = opponentSquad.length >= 8
+          ? teamRatingFromSquad(opponentSquad)
+          : youthClubRating(opponent, age);
+        const result = playUserMatch(
+          state, index, rng,
+          fixture.homeClubId, fixture.awayClubId, competitionId, 'normal',
+          rating,
+        );
+        fixture.played = true;
+        fixture.result = [result.homeGoals, result.awayGoals];
+        applyResult(comp, fixture.homeClubId, fixture.awayClubId, result.homeGoals, result.awayGoals);
+        userResult = result;
+
+        recordYouthMatch(state, comp, result, fixture.homeClubId, fixture.awayClubId);
+
+        const line = result.userLine;
+        if (line?.played) {
+          youth.form.apps += 1;
+          youth.form.goals += line.goals;
+          youth.form.assists += line.assists;
+          youth.form.ratingSum += line.rating;
+        }
+        continue;
       }
-      continue;
-    }
 
-    const [hg, ag] = simulateQuickResult(rng, {
-      homeRating: youthClubRating(home, age),
-      awayRating: youthClubRating(away, age),
-    });
-    fixture.played = true;
-    fixture.result = [hg, ag];
-    applyResult(youth, fixture.homeClubId, fixture.awayClubId, hg, ag);
+      // Everybody else's Sunday. In his own division the goals are shared out among
+      // real boys, so the scoring chart he is trying to climb is complete; elsewhere
+      // a result is all the table needs.
+      const homeSquad = modelled ? youthSquad(state, home.id) : [];
+      const awaySquad = modelled ? youthSquad(state, away.id) : [];
+      const [hg, ag] = simulateQuickResult(rng, {
+        homeRating: homeSquad.length >= 8 ? teamRatingFromSquad(homeSquad) : youthClubRating(home, age),
+        awayRating: awaySquad.length >= 8 ? teamRatingFromSquad(awaySquad) : youthClubRating(away, age),
+      });
+      fixture.played = true;
+      fixture.result = [hg, ag];
+      applyResult(comp, fixture.homeClubId, fixture.awayClubId, hg, ag);
+
+      if (modelled) {
+        spreadYouthGoals(state, rng, comp, home.id, hg);
+        spreadYouthGoals(state, rng, comp, away.id, ag);
+      }
+    }
   }
 
   // The first team takes a look when he has earned one.
-  const form = state.world.youthForm;
-  if (form && form.apps >= 4 && !state.flags['calledUpToSeniors']) {
-    const age = state.world.season - state.player.birthYear;
+  const form = youth.form;
+  if (stillYouth && form.apps >= 4 && !state.flags['calledUpToSeniors']) {
     const ovr = overall(state.player.attributes, state.player.primaryPos, state.player.secondaryPos);
-    if (deservesCallUp(rng, form, age, ovr, clubBaseOvr(club))) {
+    if (deservesCallUp(rng, {
+      form,
+      age,
+      ovr,
+      clubLevel: clubBaseOvr(club),
+      scoringRank: scoringRank(state),
+      tablePosition: youthTablePosition(state),
+    })) {
       state.flags['calledUpToSeniors'] = true;
       state.player.squadRole = age >= 17 ? 'prospect' : 'futureProspect';
       pushInbox(state, 'manager', 'inbox.youthCallUp', { club: club.name });
@@ -1743,7 +1821,109 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
     }
   }
 
+  // A boy tearing the division up gets a reporter at training.
+  if (stillYouth && form.apps >= 8 && scoringRank(state) > 0 && scoringRank(state) <= 3) {
+    raiseMilestone(state, 'youthBreakout');
+  }
+
   return userResult;
+}
+
+/**
+ * A youth match he played: the goals, assists and cards in it belong to boys with names,
+ * so they go on their own records and into the division's charts.
+ */
+function recordYouthMatch(
+  state: CareerState,
+  comp: CompetitionSeasonState,
+  result: MatchResult,
+  homeClubId: string,
+  awayClubId: string,
+): void {
+  const youth = state.world.youth;
+  if (!youth) return;
+  const season = state.world.season;
+
+  for (const event of result.events ?? []) {
+    if (!event.playerId) continue;
+    const clubId = youth.players[event.playerId]?.clubId ?? state.player.clubId ?? homeClubId;
+    if (event.type === 'goal' || event.type === 'penaltyScored') {
+      comp.scorers[event.playerId] = (comp.scorers[event.playerId] ?? 0) + 1;
+      if (event.playerId !== state.player.id) {
+        youthStatsFor(youth, event.playerId, season, clubId, comp.competitionId).goals += 1;
+      }
+    }
+    if (event.type === 'assist') {
+      comp.assists = comp.assists ?? {};
+      comp.assists[event.playerId] = (comp.assists[event.playerId] ?? 0) + 1;
+      if (event.playerId !== state.player.id) {
+        youthStatsFor(youth, event.playerId, season, clubId, comp.competitionId).assists += 1;
+      }
+    }
+  }
+
+  // Everybody who was in it played in it, which is what makes an average rating mean
+  // something at the end of the season.
+  for (const clubId of [homeClubId, awayClubId]) {
+    for (const playerId of youth.squads[clubId] ?? []) {
+      const stats = youthStatsFor(youth, playerId, season, clubId, comp.competitionId);
+      stats.apps += 1;
+      stats.minutes += 90;
+    }
+  }
+}
+
+/**
+ * Two other academies playing each other. The result came out of a quick simulation,
+ * but the goals in it are shared among the boys who would have scored them.
+ */
+function spreadYouthGoals(
+  state: CareerState,
+  rng: Rng,
+  comp: CompetitionSeasonState,
+  clubId: string,
+  goals: number,
+): void {
+  const youth = state.world.youth;
+  if (!youth) return;
+  const season = state.world.season;
+  const squad = youthSquad(state, clubId);
+
+  for (const player of squad) {
+    const stats = youthStatsFor(youth, player.id, season, clubId, comp.competitionId);
+    stats.apps += 1;
+    stats.minutes += 90;
+  }
+  if (goals <= 0 || squad.length === 0) return;
+
+  for (let i = 0; i < goals; i++) {
+    const scorer = rng.weighted(squad, (p) => youthGoalWeight(p));
+    if (!scorer) continue;
+    comp.scorers[scorer.id] = (comp.scorers[scorer.id] ?? 0) + 1;
+    youthStatsFor(youth, scorer.id, season, clubId, comp.competitionId).goals += 1;
+
+    if (rng.chance(0.62)) {
+      const others = squad.filter((p) => p.id !== scorer.id);
+      const creator = rng.weighted(others, (p) => youthAssistWeight(p));
+      if (creator) {
+        comp.assists = comp.assists ?? {};
+        comp.assists[creator.id] = (comp.assists[creator.id] ?? 0) + 1;
+        youthStatsFor(youth, creator.id, season, clubId, comp.competitionId).assists += 1;
+      }
+    }
+  }
+}
+
+function youthGoalWeight(player: Player): number {
+  const group = positionGroup(player.primaryPos);
+  const base = group === 'ATT' ? 1 : group === 'MID' ? 0.4 : group === 'DEF' ? 0.1 : 0.004;
+  return base * (0.5 + player.attributes.finishing / 110);
+}
+
+function youthAssistWeight(player: Player): number {
+  const group = positionGroup(player.primaryPos);
+  const base = group === 'MID' ? 1 : group === 'ATT' ? 0.75 : group === 'DEF' ? 0.3 : 0.02;
+  return base * (0.5 + (player.attributes.vision + player.attributes.passing) / 220);
 }
 
 /** Spread a club's goals across its modelled players so the scoring charts mean something. */
@@ -1928,14 +2108,14 @@ function playUserMatch(
 ): MatchResult {
   const club = userClub(state)!;
   const player = state.player;
-  const squad = userSquad(state);
+  const youthMatch = youthOpponentRating !== undefined;
+  // On a Sunday morning he lines up with the age group, not with the first team.
+  const squad = youthMatch ? [...youthSquad(state, club.id), player] : userSquad(state);
   const userIsHome = homeClubId === club.id;
   const opponentId = userIsHome ? awayClubId : homeClubId;
   const opponent = state.world.clubs[opponentId]!;
 
   const suspension = player.condition.suspensions.find((s) => s.competitionId === competitionId && s.matchesRemaining > 0);
-  // A manager who has fallen out with him simply leaves him out for a while.
-  const youthMatch = youthOpponentRating !== undefined;
   // In his own age group he plays; it is senior football an academy player is kept out of.
   const available = youthMatch
     ? isAvailable(player, competitionId)
@@ -1963,7 +2143,9 @@ function playUserMatch(
       : { played: false, started: false, minutes: 0, slot: null });
 
   const opponentStarIds = state.world.squads[opponentId] ?? [];
-  const opponentStars = opponentStarIds.map((id) => state.world.players[id]).filter((p): p is Player => !!p);
+  const opponentStars = youthMatch
+    ? youthSquad(state, opponentId)
+    : opponentStarIds.map((id) => state.world.players[id]).filter((p): p is Player => !!p);
   const opponentRating = youthOpponentRating
     ?? (opponentStars.length >= 8 ? teamRatingFromSquad(opponentStars) : clubRating(opponent));
 
@@ -2403,6 +2585,10 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     });
   }
 
+  // The youth pyramid settles on its own terms: its own champions, its own promotion,
+  // its own honours, none of it decided by what the first teams did.
+  settleYouthSeason(state, index, rng);
+
   // Who plays in Europe next season, decided from the final tables before promotion
   // and relegation shuffle anybody between divisions.
   decideEuropeanQualification(state, index);
@@ -2652,6 +2838,73 @@ const SQUAD_ROLE_ORDER: SquadRole[] = [
  */
 
 /**
+ * The youth season, settled and told.
+ *
+ * Titles, movement between the youth divisions, and the three individual honours - all
+ * of it recorded in the same history the senior game writes into, so a career screen
+ * shows the golden boot he won at seventeen next to the one he won at twenty-six.
+ */
+function settleYouthSeason(state: CareerState, index: PackIndex, rng: Rng): void {
+  const youth = state.world.youth;
+  if (!youth) return;
+  const season = state.world.season;
+  const club = userClub(state);
+  const his = youth.userCompetitionId;
+
+  const outcome = resolveYouthSeason(rng, state, index);
+
+  for (const { competitionId, clubId } of outcome.champions) {
+    if (!club || clubId !== club.id || competitionId !== his) continue;
+    state.trophies.push({ season, competitionId, kind: 'league' });
+    unlock(state, 'youthLeagueChampion', { competition: competitionId });
+    pushInbox(state, 'club', 'inbox.youth.champions', { club: club.name });
+    pushNews(state, 'news.youth.champions', { club: club.name }, 'high');
+  }
+
+  if (club) {
+    for (const { clubIds } of outcome.promoted) {
+      if (!clubIds.includes(club.id)) continue;
+      pushInbox(state, 'club', 'inbox.youth.promoted', { club: club.name });
+      pushNews(state, 'news.youth.promoted', { club: club.name }, 'medium');
+    }
+    for (const { clubIds } of outcome.relegated) {
+      if (!clubIds.includes(club.id)) continue;
+      pushInbox(state, 'club', 'inbox.youth.relegated', { club: club.name });
+      pushNews(state, 'news.youth.relegated', { club: club.name }, 'medium');
+    }
+  }
+
+  state.world.history.awards = state.world.history.awards ?? [];
+  for (const winner of outcome.awards) {
+    state.world.history.awards.push({
+      season,
+      award: winner.award,
+      playerId: winner.playerId,
+      playerName: winner.playerName,
+      ...(winner.detail !== undefined ? { detail: winner.detail } : {}),
+    });
+
+    if (winner.playerId !== state.player.id) continue;
+    state.awards = state.awards ?? [];
+    state.awards.push({
+      season,
+      award: winner.award,
+      competitionId: winner.competitionId,
+      ...(winner.detail !== undefined ? { detail: winner.detail } : {}),
+    });
+    unlock(state, winner.award, winner.detail !== undefined ? { detail: winner.detail } : undefined);
+    pushInbox(state, 'media', `inbox.award.${winner.award}`,
+      winner.detail !== undefined ? { detail: winner.detail } : undefined);
+    pushNews(state, `news.award.${winner.award}`, {
+      player: `${state.player.firstName} ${state.player.lastName}`,
+      ...(winner.detail !== undefined ? { detail: winner.detail } : {}),
+    }, 'high');
+    state.player.reputation = clamp(state.player.reputation + 3, 0, 100);
+    state.player.fame = clamp(state.player.fame + 4, 0, 100);
+  }
+}
+
+/**
  * Coming of age. At eighteen a player is out of the youth league whatever happens: his
  * club either takes him into the senior squad, or he has to find one that will play
  * him. Sitting in an academy at nineteen is not a career, it is a waiting room.
@@ -2662,10 +2915,17 @@ function handleComingOfAge(state: CareerState, index: PackIndex, rng: Rng): void
   if (ageNextSeason < 18 || !isAcademyPlayer(state)) return;
 
   const club = userClub(state);
-  const form = state.world.youthForm;
+  const form = state.world.youth?.form ?? emptyYouthForm();
   const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
   const kept = club
-    ? deservesCallUp(rng, form ?? { apps: 0, goals: 0, assists: 0, ratingSum: 0 }, ageNextSeason, ovr, clubBaseOvr(club))
+    ? deservesCallUp(rng, {
+      form,
+      age: ageNextSeason,
+      ovr,
+      clubLevel: clubBaseOvr(club),
+      scoringRank: scoringRank(state),
+      tablePosition: youthTablePosition(state),
+    })
     : false;
 
   if (kept && club) {

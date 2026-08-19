@@ -560,6 +560,8 @@ export interface Achievement {
   args?: Record<string, string | number>;
 }
 
+export type { YouthWorld, YouthForm } from './youth.js';
+
 export interface WorldState {
   season: number;                    // e.g. 2026 means season 2026/27
   week: number;                      // 1-based week within the season calendar
@@ -569,10 +571,13 @@ export interface WorldState {
   squads: Record<string, string[]>;  // clubId -> playerIds
   players: Record<string, Player>;   // only modelled players
   seasonStats: Record<string, SeasonStats>; // playerId -> current season stats
-  /** The youth league he plays in until the first team calls him up. */
-  youth?: CompetitionSeasonState;
-  /** What he has done in it this season. */
-  youthForm?: { apps: number; goals: number; assists: number; ratingSum: number };
+  /**
+   * The youth pyramid: a division per senior tier, with real squads in the one he is
+   * actually in. Present while he is young enough to be in it.
+   */
+  youth?: import('./youth.js').YouthWorld;
+  /** A schema 1 save's single youth table, kept only until the migration has read it. */
+  youthLegacy?: CompetitionSeasonState;
   /** Domestic cups, one per country, rebuilt each season. */
   cups: Record<string, import('./cup.js').CupState>;
   /** The three European competitions, rebuilt each season from who qualified. */
