@@ -20,12 +20,14 @@ const assetsPath = join(packsDir, 'clubs-assets.json');
 const UA = 'RoadToGloryGame/0.1 (private hobby project)';
 
 /** Club id to a direct image URL, or to a Wikipedia article whose lead image is the badge. */
-const MANUAL: Record<string, { url?: string; wiki?: { lang: string; title: string } }> = {
+const MANUAL: Record<string, { url?: string; wiki?: { lang: string; title: string }; file?: { lang: string; title: string } }> = {
   eng_nottingham_forest_fc: { wiki: { lang: 'en', title: 'Nottingham Forest F.C.' } },
   gre_aris_saloniki: { wiki: { lang: 'en', title: 'Aris Thessaloniki F.C.' } },
   isr_maccabi_bnei_raina: { wiki: { lang: 'he', title: 'מכבי בני ריינה' } },
-  isr_beitar_kfar_saba: { wiki: { lang: 'he', title: 'בית"ר כפר סבא' } },
-  isr_hapoel_herzliya: { wiki: { lang: 'he', title: 'הפועל הרצליה' } },
+  // These two only exist on the Hebrew Wikipedia, and the badge is not the lead image,
+  // so the file itself is named. The thumbnail endpoint renders it to PNG for us.
+  isr_beitar_kfar_saba: { file: { lang: 'he', title: 'קובץ:Kfs.png' } },
+  isr_hapoel_herzliya: { file: { lang: 'he', title: 'קובץ:Hapoel herzlya.gif' } },
   isr_maccabi_ironi_amishav: { wiki: { lang: 'he', title: 'מכבי עירוני עמישב' } },
   isr_hapoel_ironi_arad: { wiki: { lang: 'he', title: 'הפועל עירוני ערד' } },
 };
@@ -63,6 +65,21 @@ async function namedImage(lang: string, title: string): Promise<string | null> {
   return image?.thumburl ?? image?.url ?? null;
 }
 
+/** A named File: page, rendered to a 256px PNG whatever it was uploaded as. */
+async function fileThumb(lang: string, title: string): Promise<string | null> {
+  const url =
+    `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&formatversion=2` +
+    `&prop=imageinfo&iiprop=url&iiurlwidth=256&titles=${encodeURIComponent(title)}`;
+  const response = await fetch(url, {
+    headers: { 'User-Agent': UA, Accept: 'application/json' },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!response.ok) return null;
+  const data: any = await response.json();
+  const image = data?.query?.pages?.[0]?.imageinfo?.[0];
+  return image?.thumburl ?? image?.url ?? null;
+}
+
 async function leadImage(lang: string, title: string): Promise<string | null> {
   const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
   const response = await fetch(url, {
@@ -88,6 +105,7 @@ async function main(): Promise<void> {
   for (const [clubId, entry] of Object.entries(MANUAL)) {
     const url =
       entry.url ??
+      (entry.file ? await fileThumb(entry.file.lang, entry.file.title) : null) ??
       (entry.wiki
         ? (await namedImage(entry.wiki.lang, entry.wiki.title)) ?? (await leadImage(entry.wiki.lang, entry.wiki.title))
         : null);
