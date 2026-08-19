@@ -1,6 +1,7 @@
 import type { DecisionResult } from '@fc/engine';
 import { hasTranslation, useLang, useT } from '../i18n/index.js';
-import { useGame } from '../state/store.js';
+import { getPack, useGame } from '../state/store.js';
+import { localiseArgs } from '../lib/club.js';
 import { ChangeList } from '../components/ui.js';
 
 /**
@@ -43,7 +44,7 @@ export function ResultSheet({ result }: { result: DecisionResult }) {
                 <p className="eyebrow" style={{ color: severeConsequence(consequence.id) ? 'var(--red)' : 'var(--amber)' }}>
                   {t(`consequence.${consequence.id}.tag`)}
                 </p>
-                <p style={{ fontSize: 13.5, marginBlockStart: 4 }}>{t(`consequence.${consequence.id}`, consequence.args)}</p>
+                <p style={{ fontSize: 13.5, marginBlockStart: 4 }}>{t(`consequence.${consequence.id}`, localiseArgs(consequence.args, getPack().clubs, lang))}</p>
               </div>
             ))}
           </div>

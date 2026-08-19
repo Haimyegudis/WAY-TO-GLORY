@@ -2,7 +2,7 @@ import { currentOvr, potentialLabel, relationshipLabel, skillProfile } from '@fc
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
 import { myClub, myPosition, nextFixture, seasonLine, weeksInjured } from '../state/selectors.js';
-import { clubColor, clubName } from '../lib/club.js';
+import { clubColor, clubName, localiseArgs } from '../lib/club.js';
 import { competitionName } from '../lib/names.js';
 import { Card, Chip, ClubLine, Crest, Gauge, RatingBadge, Stat } from '../components/ui.js';
 
@@ -15,7 +15,8 @@ export function Hub() {
 
   const player = state.player;
   const club = myClub(state);
-  const competition = club ? getPack().competitions.find((c) => c.id === club.competitionId) ?? null : null;
+  const pack = getPack();
+  const competition = club ? pack.competitions.find((c) => c.id === club.competitionId) ?? null : null;
   const ovr = currentOvr(state);
   const age = state.world.season - player.birthYear;
   const fixture = nextFixture(state);
@@ -199,7 +200,7 @@ export function Hub() {
               <li key={message.id} className="list-item">
                 <i className={`dot ${message.read ? 'dot-read' : ''}`} />
                 <div className="grow">
-                  <p style={{ fontSize: 13.5 }}>{t(message.titleKey, message.args)}</p>
+                  <p style={{ fontSize: 13.5 }}>{t(message.titleKey, localiseArgs(message.args, pack.clubs, lang))}</p>
                   <p className="faint" style={{ fontSize: 10.5 }}>
                     {formatSeason(message.season)} · {t('hub.week', { week: message.week })}
                   </p>

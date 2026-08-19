@@ -143,13 +143,16 @@ export interface Club {
   competitionId: string;
   tier: number;
   city?: string;
+  /** The standing the club started the game with; reputation is pulled back to it. */
+  prestige?: number;
+  /** Clubs this one has history with. A fixture against them is never just a fixture. */
+  rivals?: string[];
   reputation: number;   // 0-100
   academy: number;      // 0-100 youth development
   training: number;     // 0-100 facilities/coaching
   finances: number;     // 0-100 wage power
   strength: number;     // 0-100 current on-pitch strength, moves season to season
   colors?: [string, string];
-  rivals?: string[];
   source?: 'openfootball' | 'manual';
 }
 
@@ -330,6 +333,10 @@ export interface CompetitionSeasonState {
   fixtures: Fixture[];
   currentRound: number;
   scorers: Record<string, number>;     // playerId -> goals
+  /** playerId -> assists, so the charts are not only about who finished. */
+  assists?: Record<string, number>;
+  /** playerId -> cards picked up in this competition. */
+  cards?: Record<string, { yellow: number; red: number }>;
   finished: boolean;
   champion?: string;
   promoted?: string[];

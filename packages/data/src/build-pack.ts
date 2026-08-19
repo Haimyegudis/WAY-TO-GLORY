@@ -24,6 +24,7 @@ import { EVENTS_EXTRA } from './events-extra.js';
 import { EVENTS_LIFESTYLE } from './events-lifestyle.js';
 import { HEBREW_CLUB_NAMES } from './hebrew-clubs.js';
 import { CLUB_COLORS } from './club-colors.js';
+import { RIVALRIES } from './rivalries.js';
 import { REAL_PLAYERS } from './real-players.js';
 
 interface ClubAsset {
@@ -281,6 +282,34 @@ async function main(): Promise<void> {
     cupName: c.cupName,
     cupNameHe: c.cupNameHe,
   })).filter((c) => c.competitionIds.length > 0);
+
+  // Rivalries, both ways round, plus anything that shares a city.
+  const rivalsById = new Map<string, Set<string>>();
+  const addRival = (a: string, b: string) => {
+    if (a === b) return;
+    if (!clubs.some((c) => c.id === a) || !clubs.some((c) => c.id === b)) return;
+    const set = rivalsById.get(a) ?? new Set<string>();
+    set.add(b);
+    rivalsById.set(a, set);
+  };
+  for (const [a, b] of RIVALRIES) {
+    addRival(a, b);
+    addRival(b, a);
+  }
+  const byCity = new Map<string, Club[]>();
+  for (const club of clubs) {
+    if (!club.city) continue;
+    const key = `${club.country}:${club.city.toLowerCase()}`;
+    byCity.set(key, [...(byCity.get(key) ?? []), club]);
+  }
+  for (const sameCity of byCity.values()) {
+    if (sameCity.length < 2 || sameCity.length > 4) continue;
+    for (const a of sameCity) for (const b of sameCity) addRival(a.id, b.id);
+  }
+  for (const club of clubs) {
+    const rivals = rivalsById.get(club.id);
+    if (rivals && rivals.size > 0) club.rivals = [...rivals];
+  }
 
   const pack: DataPack = {
     version: '2025.26.1',

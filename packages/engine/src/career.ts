@@ -1,5 +1,5 @@
 import { Rng, clamp, hashString, randomSeed } from './rng.js';
-import { FORMATIONS, overall, ratingAt } from './positions.js';
+import { FORMATIONS, overall, positionGroup, ratingAt } from './positions.js';
 import { indexPack, type DataPack, type PackIndex } from './data.js';
 import {
   clubBaseOvr,
@@ -53,7 +53,7 @@ import { marketValue } from './value.js';
 import { decideAwards, awardFame, awardReputation, type AwardResult } from './awards.js';
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { generateAgentOffers } from './agents.js';
-import { generateOffers, isTransferWindow, renewalIntent, expectedMinutesFor } from './transfer.js';
+import { generateLoanOffers, generateOffers, isTransferWindow, renewalIntent, expectedMinutesFor } from './transfer.js';
 import {
   INTERNATIONAL_WEEKS,
   commitToCountry,
@@ -95,7 +95,7 @@ import type {
   SquadRole,
   TickResult,
   TransferOffer,
-} from './types.js';
+  CompetitionSeasonState,} from './types.js';
 
 export const SCHEMA_VERSION = 1;
 export const GAME_VERSION = '0.1.0';
@@ -153,7 +153,7 @@ export function createCareer(pack: DataPack, input: CreateCareerInput): { state:
     world: {
       season,
       week: 1,
-      clubs: Object.fromEntries(pack.clubs.map((c) => [c.id, { ...c }])),
+      clubs: Object.fromEntries(pack.clubs.map((c) => [c.id, { ...c, prestige: c.reputation }])),
       competitions: {},
       squads: {},
       players: {},
@@ -370,6 +370,12 @@ export function joinClub(
     existing.competitionId = comp?.id ?? null;
   }
   state.flags['lastTransferWeek'] = season * 52 + state.world.week;
+  // Two clubs a season is the cap, the way registration rules work in real football.
+  const movedIn = Number(state.flags['movesSeason'] ?? -1) === season
+    ? Number(state.flags['movesThisSeason'] ?? 0)
+    : 0;
+  state.flags['movesSeason'] = season;
+  state.flags['movesThisSeason'] = movedIn + 1;
   commitRng(state, rng);
 
   pushNews(state, 'news.joinedClub', { club: club.name }, 'medium');
@@ -528,13 +534,16 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   let stopped: TickResult['stopped'] = 'week';
   let playedThisWeek = 0;
 
+  // 0a. The week before a big one starts on the Monday.
+  announceBigMatch(state, index);
+
   // 0. Nothing waits for ever. A club that hears nothing back signs someone else and
   // an agent stops calling, otherwise unanswered approaches pile up and quietly choke
   // off every other event in the game.
   expireDecisions(state);
 
   // 1. Domestic and international fixtures.
-  const userMatch = club ? simulateWeekFixtures(state, index, rng, club) : null;
+  const userMatch = simulateWeekFixtures(state, index, rng, club);
   if (userMatch) {
     playedThisWeek += userMatch.userLine?.minutes ?? 0;
     stopped = 'match';
@@ -586,12 +595,32 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 6. Transfer window activity. A player who just moved is not on the market again
   // a fortnight later, so interest only builds up after he has settled.
   const weeksSinceTransfer = season * 52 + week - Number(state.flags['lastTransferWeek'] ?? 0);
-  const settled = weeksSinceTransfer >= 30;
+  const settled = weeksSinceTransfer >= 20;
   const listed = Boolean(state.flags['transferListed']);
-  const offerChance = listed ? 0.5 : state.flags['transferRequested'] ? 0.42 : 0.22;
-  if (isTransferWindow(week) && club && settled && state.transferOffers.length === 0 && rng.chance(offerChance)) {
-    const offers = generateOffers({ state, index, rng, minutesPct: minutesPct(state) });
+  // Clubs come once per window, not every fortnight, and nobody plays for three clubs
+  // in one season: two moves is the limit, the way registration rules work.
+  const windowId = `${season}:${week < 20 ? 'summer' : 'winter'}`;
+  const approachedThisWindow = state.flags['offerWindow'] === windowId;
+  const movesThisSeason = Number(state.flags['movesThisSeason'] ?? 0);
+  const offerChance = listed ? 0.5 : state.flags['transferRequested'] ? 0.42 : 0.28;
+
+  if (
+    isTransferWindow(week) &&
+    club &&
+    settled &&
+    !approachedThisWindow &&
+    movesThisSeason < 2 &&
+    state.transferOffers.length === 0 &&
+    rng.chance(offerChance)
+  ) {
+    const share = minutesPct(state);
+    // A young player who cannot get on the pitch is offered a loan instead of a move.
+    const loans = generateLoanOffers({ state, index, rng, minutesPct: share });
+    const offers = loans.length > 0 && rng.chance(0.7)
+      ? loans
+      : generateOffers({ state, index, rng, minutesPct: share });
     if (offers.length > 0) {
+      state.flags['offerWindow'] = windowId;
       state.transferOffers = offers;
       openOfferDecision(state, offers);
       pushNews(state, 'news.transferInterest', { club: state.world.clubs[offers[0]!.clubId]?.name ?? '' }, 'medium');
@@ -700,9 +729,97 @@ function buildEventContext(state: CareerState, index: PackIndex): EventContext {
 }
 
 /** Play every fixture scheduled this week, in the right level of detail. */
-function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, club: Club): MatchResult | null {
+
+/**
+ * What kind of afternoon this is. A derby, a title decider or a six-pointer at the
+ * bottom is not the same game as a Tuesday against mid-table, and the player feels it
+ * before kick-off, during it, and in the rating afterwards.
+ */
+
+/**
+ * The build-up. When the next fixture is a derby, a title decider or a European night,
+ * the player hears about it before he plays it - which is most of what makes those
+ * weeks different from the other thirty.
+ */
+function announceBigMatch(state: CareerState, index: PackIndex): void {
+  const club = userClub(state);
+  if (!club) return;
   const week = state.world.week;
-  const userCompId = club.competitionId;
+
+  const compState = state.world.competitions[club.competitionId];
+  const fixture = compState?.fixtures.find(
+    (f) => !f.played && f.week === week && (f.homeClubId === club.id || f.awayClubId === club.id),
+  );
+  if (!fixture) return;
+
+  const importance = matchImportanceFor(state, index, club.competitionId, fixture.homeClubId, fixture.awayClubId);
+  if (importance === 'normal') return;
+
+  const announced = `bigMatch:${state.world.season}:${week}`;
+  if (state.flags['lastBigMatch'] === announced) return;
+  state.flags['lastBigMatch'] = announced;
+
+  const opponentId = fixture.homeClubId === club.id ? fixture.awayClubId : fixture.homeClubId;
+  const opponent = state.world.clubs[opponentId];
+  pushInbox(state, 'club', `inbox.buildUp.${importance}`, { opponent: opponent?.name ?? '' });
+  pushNews(state, `news.buildUp.${importance}`, { club: club.name, opponent: opponent?.name ?? '' }, 'high');
+}
+
+function matchImportanceFor(
+  state: CareerState,
+  index: PackIndex,
+  competitionId: string,
+  homeClubId: string,
+  awayClubId: string,
+): MatchImportance {
+  const club = userClub(state);
+  if (!club) return 'normal';
+  const opponentId = homeClubId === club.id ? awayClubId : homeClubId;
+  const opponent = state.world.clubs[opponentId];
+  if (!opponent) return 'normal';
+
+  // His first ever senior appearance is its own occasion.
+  const played = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
+    + (state.world.seasonStats[state.player.id]?.apps ?? 0);
+  if (played === 0) return 'firstProMatch';
+
+  if (club.rivals?.includes(opponentId)) {
+    return club.city && opponent.city && club.city === opponent.city ? 'derby' : 'rival';
+  }
+
+  const compState = state.world.competitions[competitionId];
+  if (compState && state.world.week >= 30) {
+    const rows = sortedTable(compState);
+    const mine = rows.findIndex((row) => row.clubId === club.id);
+    const theirs = rows.findIndex((row) => row.clubId === opponentId);
+    if (mine >= 0 && theirs >= 0) {
+      if (mine < 3 && theirs < 3) return 'titleDecider';
+      if (mine >= rows.length - 4 && theirs >= rows.length - 4) return 'relegationSixPointer';
+    }
+  }
+
+  return 'normal';
+}
+
+/** How much louder the ground is, and how much more it costs to get it wrong. */
+export function importanceWeight(importance: MatchImportance): number {
+  switch (importance) {
+    case 'cupFinal': return 1.6;
+    case 'titleDecider': return 1.5;
+    case 'derby': return 1.4;
+    case 'europeanNight': return 1.35;
+    case 'cupSemi': return 1.3;
+    case 'rival': return 1.25;
+    case 'relegationSixPointer': return 1.25;
+    case 'firstProMatch': return 1.2;
+    case 'debut': return 1.2;
+    default: return 1;
+  }
+}
+
+function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, club: Club | null): MatchResult | null {
+  const week = state.world.week;
+  const userCompId = club?.competitionId ?? null;
   let userResult: MatchResult | null = null;
 
   for (const compState of Object.values(state.world.competitions)) {
@@ -713,9 +830,10 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
     for (const fixture of compState.fixtures) {
       if (fixture.played || fixture.week !== week) continue;
 
-      const involvesUser = fixture.homeClubId === club.id || fixture.awayClubId === club.id;
+      const involvesUser = club !== null && (fixture.homeClubId === club.id || fixture.awayClubId === club.id);
       if (involvesUser) {
-        const result = playUserMatch(state, index, rng, fixture.homeClubId, fixture.awayClubId, competition.id, 'normal');
+        const importance = matchImportanceFor(state, index, competition.id, fixture.homeClubId, fixture.awayClubId);
+        const result = playUserMatch(state, index, rng, fixture.homeClubId, fixture.awayClubId, competition.id, importance);
         fixture.played = true;
         fixture.result = [result.homeGoals, result.awayGoals];
         applyResult(compState, fixture.homeClubId, fixture.awayClubId, result.homeGoals, result.awayGoals);
@@ -736,6 +854,8 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
       if (isUserComp) {
         attributeGoals(state, rng, compState, fixture.homeClubId, hg, null);
         attributeGoals(state, rng, compState, fixture.awayClubId, ag, null);
+        attributeCards(state, rng, compState, fixture.homeClubId);
+        attributeCards(state, rng, compState, fixture.awayClubId);
       }
     }
   }
@@ -751,7 +871,7 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
  * played the next one is drawn - so the bracket unfolds while the season runs rather
  * than being decided up front.
  */
-function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club): MatchResult | null {
+function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club | null): MatchResult | null {
   const europe = state.world.europe;
   if (!europe) return null;
   const week = state.world.week;
@@ -767,7 +887,7 @@ function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: 
         const away = state.world.clubs[fixture.awayClubId];
         if (!home || !away) { fixture.played = true; continue; }
 
-        if (fixture.homeClubId === club.id || fixture.awayClubId === club.id) {
+        if (club && (fixture.homeClubId === club.id || fixture.awayClubId === club.id)) {
           const result = playUserMatch(state, index, rng, fixture.homeClubId, fixture.awayClubId, competition.id, 'europeanNight');
           fixture.played = true;
           fixture.result = [result.homeGoals, result.awayGoals];
@@ -796,7 +916,7 @@ function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: 
       const away = state.world.clubs[tie.awayClubId];
       if (!home || !away) { tie.played = true; continue; }
 
-      if (tie.homeClubId === club.id || tie.awayClubId === club.id) {
+      if (club && (tie.homeClubId === club.id || tie.awayClubId === club.id)) {
         const importance: MatchImportance = tie.stage === 'final' ? 'cupFinal' : tie.stage === 'sf' ? 'cupSemi' : 'europeanNight';
         const result = playUserMatch(state, index, rng, tie.homeClubId, tie.awayClubId, competition.id, importance);
         tie.played = true;
@@ -861,11 +981,43 @@ function recordEuroWin(state: CareerState, competition: EuroState): void {
   }
 }
 
+
+/** One booking, on the chart. */
+function addCard(compState: CompetitionSeasonState, playerId: string, kind: 'yellow' | 'red'): void {
+  compState.cards = compState.cards ?? {};
+  const entry = compState.cards[playerId] ?? { yellow: 0, red: 0 };
+  entry[kind] += 1;
+  compState.cards[playerId] = entry;
+}
+
+/**
+ * Bookings for the matches we only simulate as a scoreline. A referee gives out three
+ * or four cards in a normal game; without this the discipline chart would only ever
+ * contain the user.
+ */
+function attributeCards(state: CareerState, rng: Rng, compState: CompetitionSeasonState, clubId: string): void {
+  const squad = (state.world.squads[clubId] ?? [])
+    .map((id) => state.world.players[id])
+    .filter((p): p is Player => !!p);
+  if (squad.length === 0) return;
+
+  const count = rng.int(0, 3);
+  for (let i = 0; i < count; i++) {
+    const booked = rng.weighted(squad, (p) => {
+      const group = positionGroup(p.primaryPos);
+      const base = group === 'DEF' ? 1 : group === 'MID' ? 0.9 : group === 'ATT' ? 0.5 : 0.15;
+      return base * (1.4 - p.personality.discipline / 100);
+    });
+    if (!booked) continue;
+    addCard(compState, booked.id, rng.chance(0.05) ? 'red' : 'yellow');
+  }
+}
+
 /** Spread a club's goals across its modelled players so the scoring charts mean something. */
 function attributeGoals(
   state: CareerState,
   rng: Rng,
-  compState: { scorers: Record<string, number> },
+  compState: CompetitionSeasonState,
   clubId: string,
   goals: number,
   userMatch: MatchResult | null,
@@ -876,6 +1028,13 @@ function attributeGoals(
     for (const event of userMatch.events ?? []) {
       if (event.type === 'goal' && event.playerId) {
         compState.scorers[event.playerId] = (compState.scorers[event.playerId] ?? 0) + 1;
+      }
+      if (event.type === 'assist' && event.playerId) {
+        compState.assists = compState.assists ?? {};
+        compState.assists[event.playerId] = (compState.assists[event.playerId] ?? 0) + 1;
+      }
+      if ((event.type === 'yellow' || event.type === 'red') && event.playerId) {
+        addCard(compState, event.playerId, event.type === 'red' ? 'red' : 'yellow');
       }
     }
     return;
@@ -892,11 +1051,29 @@ function attributeGoals(
       const base = group === 'ST' || group === 'CF' ? 1 : group === 'RW' || group === 'LW' || group === 'CAM' ? 0.6 : group === 'GK' ? 0.001 : 0.2;
       return base * (ratingAt(p.attributes, p.primaryPos) / 60);
     });
-    if (scorer) compState.scorers[scorer.id] = (compState.scorers[scorer.id] ?? 0) + 1;
+    if (!scorer) continue;
+    compState.scorers[scorer.id] = (compState.scorers[scorer.id] ?? 0) + 1;
+
+    // Most goals are made by someone. Creators are weighted the way the match engine
+    // weights them, so the assist chart reads like the scoring chart's other half.
+    if (rng.chance(0.66)) {
+      const creators = squad.filter((p) => p.id !== scorer.id);
+      const creator = rng.weighted(creators, (p) => {
+        const pos = p.primaryPos;
+        const base = pos === 'CAM' || pos === 'RW' || pos === 'LW' || pos === 'RM' || pos === 'LM' ? 1
+          : pos === 'CM' || pos === 'CF' || pos === 'ST' ? 0.7
+          : pos === 'GK' ? 0.01 : 0.3;
+        return base * ((p.attributes.vision + p.attributes.passing + p.attributes.crossing) / 200);
+      });
+      if (creator) {
+        compState.assists = compState.assists ?? {};
+        compState.assists[creator.id] = (compState.assists[creator.id] ?? 0) + 1;
+      }
+    }
   }
 }
 
-function simulateCupWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club): MatchResult | null {
+function simulateCupWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club | null): MatchResult | null {
   const week = state.world.week;
   let userResult: MatchResult | null = null;
 
@@ -910,13 +1087,13 @@ function simulateCupWeek(state: CareerState, index: PackIndex, rng: Rng, club: C
       const away = state.world.clubs[tie.awayClubId];
       if (!home || !away) continue;
 
-      const involvesUser = tie.homeClubId === club.id || tie.awayClubId === club.id;
+      const involvesUser = club !== null && (tie.homeClubId === club.id || tie.awayClubId === club.id);
       if (involvesUser) {
         const importance: MatchImportance = isCupFinal(cup, tie) ? 'cupFinal' : isCupSemi(cup, tie) ? 'cupSemi' : 'normal';
         const result = playUserMatch(state, index, rng, tie.homeClubId, tie.awayClubId, cup.id, importance);
         recordTieResult(cup, tie, result.homeGoals, result.awayGoals, rng);
         userResult = result;
-        if (importance === 'cupFinal' && tie.winner === club.id) {
+        if (importance === 'cupFinal' && club && tie.winner === club.id) {
           state.trophies.push({ season: state.world.season, competitionId: cup.id, kind: 'cup' });
           unlock(state, 'cupWinner', { cup: cup.id });
           pushNews(state, 'news.cupWon', { club: club.name }, 'high');
@@ -980,7 +1157,7 @@ function playUserMatch(
   const opponentRating = opponentStars.length >= 8 ? teamRatingFromSquad(opponentStars) : clubRating(opponent);
 
   const outcome = simulateUserMatch(rng, {
-    mental: mentalFactor(state),
+    mental: mentalFactor(state) * occasionFactor(state, importance),
     season: state.world.season,
     week: state.world.week,
     competitionId,
@@ -1030,6 +1207,21 @@ function playUserMatch(
  * multiplier around 1, so a settled player plays to his level and an unsettled one
  * does not.
  */
+/**
+ * What a big night does to him before he has touched the ball. A crowd behind a player
+ * who can handle it is worth something real; the same crowd on a player who cannot,
+ * or one the fans have turned on, is worth the same amount the other way.
+ */
+export function occasionFactor(state: CareerState, importance: MatchImportance): number {
+  const weight = importanceWeight(importance) - 1;
+  if (weight <= 0) return 1;
+  const player = state.player;
+  const nerve = (player.personality.pressureHandling - 50) / 50;       // -1 .. 1
+  const crowd = (state.relationships.fans - 50) / 50;
+  const swing = (nerve * 0.6 + crowd * 0.4) * weight * 0.5;
+  return clamp(1 + swing, 0.78, 1.22);
+}
+
 export function mentalFactor(state: CareerState): number {
   const player = state.player;
   const rel = state.relationships;
@@ -1280,6 +1472,17 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   );
   driftPotential(rng, player, season, performanceScore);
   updateSquadRole(state, rng, actualMinutes);
+
+  // A club does not keep a fit senior who never plays: after a season in the stands
+  // he is told he can find somewhere else, which is what opens the door to a move.
+  const seniorAge = season - player.birthYear;
+  if (club && seniorAge >= 22 && actualMinutes < 0.15 && !isAcademyPlayer(state) && !state.contract?.isLoan) {
+    if (!state.flags['transferListed']) {
+      state.flags['transferListed'] = true;
+      pushInbox(state, 'club', 'inbox.freeToLeave', { club: club.name });
+      pushNews(state, 'news.freeToLeave', { club: club.name }, 'medium');
+    }
+  }
   updateStanding(state, index, actualMinutes);
 
   // Age the modelled world and develop it a season's worth.
@@ -1298,6 +1501,8 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   // Roll the clock forward.
   state.world.season += 1;
   state.world.week = 1;
+  state.flags['movesThisSeason'] = 0;
+  state.flags['offerWindow'] = '';
   state.world.seasonStats = {};
   player.condition.yellowCards = {};
   player.condition.suspensions = [];
@@ -1574,13 +1779,20 @@ function advanceModelledPlayers(state: CareerState, index: PackIndex, rng: Rng):
       const age = season - p.birthYear;
 
       if (age >= 34 && rng.chance((age - 33) * 0.28)) {
-        // Retire and replace with a younger player at a similar level.
+        // Retire and replace with a younger player at a similar level - except once in
+        // a while, when a club that has no business producing one produces a player
+        // far better than the level around him. Rare, and the reason scouts exist.
         delete state.world.players[id];
+        const generational = rng.chance(0.02);
+        const target = generational
+          ? clamp(Math.round(clubBaseOvr(club) + rng.range(8, 18)), 40, 95)
+          : clamp(Math.round(clubBaseOvr(club) + rng.gaussIn(-2, 3, -8, 6)), 25, 92);
         const fresh = generatePlayer(rng, index, {
           clubId,
           pos: p.primaryPos,
-          age: rng.int(18, 24),
-          targetOvr: clamp(Math.round(clubBaseOvr(club) + rng.gaussIn(-2, 3, -8, 6)), 25, 92),
+          age: generational ? rng.int(17, 20) : rng.int(18, 24),
+          targetOvr: target,
+          ...(generational ? { potential: clamp(target + rng.int(6, 16), target, 99) } : {}),
           season,
           countryCode: rng.chance(0.7) ? club.country : p.birthCountry,
           squadRole: p.squadRole,
@@ -1674,6 +1886,12 @@ function handleContractEnd(
   }
 }
 
+/**
+ * Nobody tells a footballer when to stop. Once he is past thirty and the ratings have
+ * started to go the other way, the question is put to him at the end of the season -
+ * it might come at 31, it might not come until 38 - and he decides. The game only
+ * decides for him at 41, or when he has been without a club for a year.
+ */
 function checkRetirement(state: CareerState, rng: Rng): void {
   const player = state.player;
   const age = state.world.season - player.birthYear;
@@ -1683,16 +1901,42 @@ function checkRetirement(state: CareerState, rng: Rng): void {
   const injuryLoad = player.condition.injuryHistory.reduce((s, i) => s + i.weeksOut, 0);
   const noClub = player.clubId === null;
 
-  const pressure =
-    (age - 31) * 0.11 +
-    (ovr < 55 ? 0.2 : 0) +
-    injuryLoad / 300 +
-    (noClub ? 0.35 : 0) -
+  if (age >= 41 || (noClub && age >= 34)) {
+    retire(state);
+    return;
+  }
+
+  const last = state.seasonHistory.at(-1);
+  const declining = last ? last.ovrEnd < last.ovrStart : false;
+  const slipped = last ? last.ovrStart - last.ovrEnd : 0;
+
+  // The thought only arrives once the body has started answering back.
+  const weight =
+    (age - 31) * 0.10 +
+    (declining ? 0.18 + slipped * 0.06 : 0) +
+    (ovr < 55 ? 0.18 : 0) +
+    injuryLoad / 320 +
+    (noClub ? 0.4 : 0) -
     player.personality.determination / 400;
 
-  if (age >= 41 || rng.chance(clamp(pressure, 0, 0.95))) {
-    retire(state);
-  }
+  if (!rng.chance(clamp(weight, 0, 0.9))) return;
+  if (state.pendingDecisions.some((d) => d.eventId === 'retirement_choice')) return;
+
+  const absoluteWeek = state.world.season * 52 + state.world.week;
+  state.pendingDecisions.push({
+    id: `retire_${state.world.season}`,
+    kind: 'event',
+    eventId: 'retirement_choice',
+    category: 'personal',
+    textKey: 'decision.retirement',
+    textArgs: { age, ovr },
+    options: [
+      { id: 'retire', labelKey: 'decision.retirement.retire', effects: [] },
+      { id: 'continue', labelKey: 'decision.retirement.continue', effects: [] },
+    ],
+    expiresWeek: absoluteWeek + 6,
+  });
+  pushInbox(state, 'club', 'inbox.retirementThought', { age });
 }
 
 export function retire(state: CareerState): void {
@@ -1700,7 +1944,28 @@ export function retire(state: CareerState): void {
   state.retirementSeason = state.world.season;
   state.careerScore = computeCareerScore(state);
   state.player.retired = true;
+
+  // The announcement reads like an obituary of the career, because that is what it is.
+  const legacy = careerLegacy(state);
+  const clubs = legacy.spells.filter((spell) => !spell.onLoan).length;
   pushNews(state, 'news.retired', { age: state.world.season - state.player.birthYear }, 'high');
+  pushInbox(state, 'media', 'inbox.retirementSummary', {
+    age: state.world.season - state.player.birthYear,
+    seasons: state.seasonHistory.length,
+    apps: legacy.totals.apps,
+    goals: legacy.totals.goals,
+    assists: legacy.totals.assists,
+    trophies: state.trophies.length,
+    awards: (state.awards ?? []).length,
+    clubs,
+  });
+  if (legacy.legendOf.length > 0) {
+    const clubId = legacy.legendOf[0]!;
+    pushInbox(state, 'club', 'inbox.retirementLegend', {
+      club: state.world.clubs[clubId]?.name ?? clubId,
+    });
+    unlock(state, 'clubLegend', { club: state.world.clubs[clubId]?.name ?? clubId });
+  }
 }
 
 export interface CareerSummary {
@@ -1744,6 +2009,123 @@ export function careerSummary(state: CareerState): CareerSummary {
     careerEarnings: state.finances.careerEarnings,
     score,
     status: careerStatus(score),
+  };
+}
+
+
+/** What a club meant to him, and he to it. */
+export interface ClubSpell {
+  clubId: string;
+  seasons: number;
+  firstSeason: number;
+  lastSeason: number;
+  apps: number;
+  goals: number;
+  assists: number;
+  cleanSheets: number;
+  trophies: number;
+  onLoan: boolean;
+  /** Enough appearances and enough won that the club would put him on a wall. */
+  legend: boolean;
+}
+
+export interface CareerLegacy {
+  spells: ClubSpell[];
+  totals: {
+    apps: number;
+    goals: number;
+    assists: number;
+    cleanSheets: number;
+    minutes: number;
+    motm: number;
+    yellowCards: number;
+    redCards: number;
+  };
+  teamTrophies: { competitionId: string; count: number }[];
+  awards: { award: string; count: number }[];
+  tournaments: { id: string; season: number; finish: string; caps: number; goals: number }[];
+  legendOf: string[];
+}
+
+/**
+ * Everything a career adds up to, for the screen he sees when he hangs them up:
+ * where he played and for how long, what he won there and whether it was enough for
+ * the club to call him one of its own.
+ */
+export function careerLegacy(state: CareerState): CareerLegacy {
+  const spells = new Map<string, ClubSpell>();
+  const totals = { apps: 0, goals: 0, assists: 0, cleanSheets: 0, minutes: 0, motm: 0, yellowCards: 0, redCards: 0 };
+
+  for (const record of state.seasonHistory) {
+    totals.apps += record.apps;
+    totals.goals += record.goals;
+    totals.assists += record.assists;
+    totals.cleanSheets += record.cleanSheets;
+    totals.minutes += record.minutes;
+    totals.motm += record.motm;
+    totals.yellowCards += record.yellowCards;
+    totals.redCards += record.redCards;
+
+    const clubId = record.clubId;
+    if (!clubId) continue;
+    const spell = spells.get(clubId) ?? {
+      clubId,
+      seasons: 0,
+      firstSeason: record.season,
+      lastSeason: record.season,
+      apps: 0,
+      goals: 0,
+      assists: 0,
+      cleanSheets: 0,
+      trophies: 0,
+      onLoan: false,
+      legend: false,
+    };
+    spell.seasons += 1;
+    spell.firstSeason = Math.min(spell.firstSeason, record.season);
+    spell.lastSeason = Math.max(spell.lastSeason, record.season);
+    spell.apps += record.apps;
+    spell.goals += record.goals;
+    spell.assists += record.assists;
+    spell.cleanSheets += record.cleanSheets;
+    spell.trophies += record.trophies.length;
+    if (record.onLoanFrom) spell.onLoan = true;
+    spells.set(clubId, spell);
+  }
+
+  const group = positionGroup(state.player.primaryPos);
+  for (const spell of spells.values()) {
+    // A legend is measured differently by position: a keeper is remembered for the
+    // seasons and the clean sheets, a forward for what he scored.
+    const scoringWeight = group === 'ATT' ? spell.goals + spell.assists * 0.5 : (spell.goals + spell.assists) * 0.8;
+    const standing = spell.apps + scoringWeight * 2.5 + spell.trophies * 25;
+    spell.legend = !spell.onLoan && spell.apps >= 80 && standing >= 180;
+  }
+
+  const trophyCounts = new Map<string, number>();
+  for (const trophy of state.trophies) {
+    trophyCounts.set(trophy.competitionId, (trophyCounts.get(trophy.competitionId) ?? 0) + 1);
+  }
+  const awardCounts = new Map<string, number>();
+  for (const award of state.awards ?? []) {
+    awardCounts.set(award.award, (awardCounts.get(award.award) ?? 0) + 1);
+  }
+
+  const ordered = [...spells.values()].sort((a, b) => a.firstSeason - b.firstSeason);
+
+  return {
+    spells: ordered,
+    totals,
+    teamTrophies: [...trophyCounts].map(([competitionId, count]) => ({ competitionId, count })),
+    awards: [...awardCounts].map(([award, count]) => ({ award, count })),
+    tournaments: (state.tournaments ?? []).map((tournament) => ({
+      id: tournament.id,
+      season: tournament.season,
+      finish: tournament.finish,
+      caps: tournament.caps,
+      goals: tournament.goals,
+    })),
+    legendOf: ordered.filter((spell) => spell.legend).map((spell) => spell.clubId),
   };
 }
 

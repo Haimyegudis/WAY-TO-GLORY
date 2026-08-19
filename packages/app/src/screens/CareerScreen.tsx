@@ -1,12 +1,109 @@
 import { useState } from 'react';
-import { careerSummary } from '@fc/engine';
+import { careerLegacy, careerSummary } from '@fc/engine';
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
-import { clubShortName } from '../lib/club.js';
-import { useGame } from '../state/store.js';
+import { clubName, clubShortName } from '../lib/club.js';
+import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
+import { competitionLabel } from '../lib/names.js';
 import { Card, Chip, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 
 /** Age pill colour: youth, prime, veteran - the shape of a career at a glance. */
+
+/**
+ * The retrospective: every club he played for, what he did there, what he won, and
+ * the clubs that would call him one of their own. Only shown once he has retired,
+ * because that is when a career becomes a story rather than a table.
+ */
+function Legacy() {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
+  const state = useGame((s) => s.state)!;
+  const legacy = careerLegacy(state);
+  const keeperOrDefender = state.player.primaryPos === 'GK'
+    || ['CB', 'RB', 'LB', 'RWB', 'LWB'].includes(state.player.primaryPos);
+
+  return (
+    <>
+      <Card title={t('legacy.clubs')}>
+        <ul className="list">
+          {legacy.spells.map((spell) => {
+            const club = state.world.clubs[spell.clubId];
+            return (
+              <li key={spell.clubId} className="list-item" style={{ alignItems: 'flex-start' }}>
+                <Crest club={club} size="sm" />
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <div className="row" style={{ gap: 6 }}>
+                    <span style={{ fontSize: 13.5 }}>{club ? clubName(club, lang) : spell.clubId}</span>
+                    {spell.legend && <span className="chip chip-amber">{t('legacy.legend')}</span>}
+                    {spell.onLoan && <span className="chip">{t('market.loan')}</span>}
+                  </div>
+                  <p className="faint" style={{ fontSize: 11.5 }}>
+                    <span className="num">{formatSeason(spell.firstSeason)}–{formatSeason(spell.lastSeason)}</span>
+                    {' · '}
+                    {t('legacy.line', { apps: spell.apps, goals: spell.goals, assists: spell.assists })}
+                    {keeperOrDefender && spell.cleanSheets > 0 && (
+                      <> · {t('legacy.cleanSheets', { count: spell.cleanSheets })}</>
+                    )}
+                  </p>
+                </div>
+                {spell.trophies > 0 && (
+                  <span className="num" style={{ fontSize: 13 }}>🏆 {spell.trophies}</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
+      <Card title={t('legacy.totals')}>
+        <div className="statrow">
+          <Stat label={t('career.matches')} value={legacy.totals.apps} />
+          <Stat label={t('match.goals')} value={legacy.totals.goals} />
+          <Stat label={t('match.assists')} value={legacy.totals.assists} />
+          <Stat label={t('match.motm')} value={legacy.totals.motm} />
+        </div>
+        <div className="statrow" style={{ marginBlockStart: 1 }}>
+          <Stat label={t('legacy.minutes')} value={Math.round(legacy.totals.minutes / 90)} />
+          <Stat label={t('match.cleanSheet')} value={legacy.totals.cleanSheets} />
+          <Stat label={t('chart.cards')} value={legacy.totals.yellowCards} />
+          <Stat label={t('legacy.reds')} value={legacy.totals.redCards} />
+        </div>
+      </Card>
+
+      {(legacy.teamTrophies.length > 0 || legacy.awards.length > 0) && (
+        <Card title={t('legacy.honours')}>
+          {legacy.teamTrophies.length > 0 && (
+            <>
+              <p className="eyebrow" style={{ marginBlockEnd: 6 }}>{t('legacy.team')}</p>
+              <div className="row wrap" style={{ gap: 6, marginBlockEnd: 12 }}>
+                {legacy.teamTrophies.map((trophy) => (
+                  <Chip key={trophy.competitionId} tone="amber">
+                    {competitionLabel(trophy.competitionId, getPack(), lang, t)}
+                    {trophy.count > 1 && <span className="num"> ×{trophy.count}</span>}
+                  </Chip>
+                ))}
+              </div>
+            </>
+          )}
+          {legacy.awards.length > 0 && (
+            <>
+              <p className="eyebrow" style={{ marginBlockEnd: 6 }}>{t('legacy.individual')}</p>
+              <div className="row wrap" style={{ gap: 6 }}>
+                {legacy.awards.map((award) => (
+                  <Chip key={award.award} tone="pink">
+                    {t(`award.${award.award}`)}
+                    {award.count > 1 && <span className="num"> ×{award.count}</span>}
+                  </Chip>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      )}
+    </>
+  );
+}
+
 function ageColor(age: number): string {
   if (age <= 20) return '#2fc46b';
   if (age <= 29) return '#4d8df6';
@@ -49,6 +146,8 @@ export function CareerScreen() {
           </div>
         </Card>
       )}
+
+      {state.retired && <Legacy />}
 
       <Card title={t('career.totals')}>
         <div className="statrow">

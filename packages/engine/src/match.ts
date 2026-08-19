@@ -1,5 +1,5 @@
 import { Rng, clamp, logistic } from './rng.js';
-import { positionGroup, ratingAt } from './positions.js';
+import { isInvertedWinger, isNaturalWideMan, positionGroup, ratingAt } from './positions.js';
 import type { Lineup, MinutesOutcome } from './selection.js';
 import type {
   Club,
@@ -162,7 +162,8 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     if (!picked) continue;
 
     // If the user is on the pitch, they get their positional share of involvement.
-    const shooter = userOnPitch && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental))
+    const shooter = userOnPitch
+      && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * shootingBias(ctx))
       ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
       : picked;
 
@@ -182,7 +183,8 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
       let assistId: string | undefined;
       if (rng.chance(0.68)) {
         const creators = attackers.filter((a) => a.player.id !== shooter.player.id);
-        const userCanAssist = userOnPitch && !isUser && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 1.35);
+        const userCanAssist = userOnPitch && !isUser
+          && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 1.35 * creatingBias(ctx));
         const creator = userCanAssist
           ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
           : rng.weighted(creators, (a) => assistWeight(a.player, a.slot));
@@ -391,6 +393,24 @@ function addBroadcastEvents(rng: Rng, ctx: UserMatchContext, events: MatchEvent[
   push(90, 'fullTime', 'match.live.fullTime');
 }
 
+/**
+ * A left-footer on the right comes inside and shoots; a right-footer on the right gets
+ * to the line and puts it in the box. Same position, different afternoon.
+ */
+function shootingBias(ctx: UserMatchContext): number {
+  const slot = ctx.minutes.slot ?? ctx.user.primaryPos;
+  if (isInvertedWinger(ctx.user.foot, slot)) return 1.35;
+  if (isNaturalWideMan(ctx.user.foot, slot) && (slot === 'RW' || slot === 'LW' || slot === 'RM' || slot === 'LM')) return 0.85;
+  return 1;
+}
+
+function creatingBias(ctx: UserMatchContext): number {
+  const slot = ctx.minutes.slot ?? ctx.user.primaryPos;
+  if (isNaturalWideMan(ctx.user.foot, slot) && (slot === 'RW' || slot === 'LW' || slot === 'RM' || slot === 'LM' || slot === 'RB' || slot === 'LB' || slot === 'RWB' || slot === 'LWB')) return 1.35;
+  if (isInvertedWinger(ctx.user.foot, slot)) return 0.85;
+  return 1;
+}
+
 /** How often the ball finds the user, given where they play. */
 function userInvolvementChance(user: Player, slot: Position | null, mental = 1): number {
   const group = positionGroup(slot ?? user.primaryPos);
@@ -411,6 +431,25 @@ function inMatchInjuryChance(user: Player, minutes: number): number {
 /**
  * Match rating, weighted by position. A centre back is not judged on goals.
  */
+/**
+ * How much the occasion magnifies what he did. On a normal afternoon a decent game is
+ * a 7; in a derby the same game is remembered as more, and a bad one as worse.
+ */
+function occasionWeight(importance: MatchImportance): number {
+  switch (importance) {
+    case 'cupFinal': return 1.45;
+    case 'titleDecider': return 1.4;
+    case 'derby': return 1.35;
+    case 'europeanNight': return 1.3;
+    case 'cupSemi': return 1.28;
+    case 'rival': return 1.22;
+    case 'relegationSixPointer': return 1.22;
+    case 'firstProMatch': return 1.15;
+    case 'debut': return 1.15;
+    default: return 1;
+  }
+}
+
 function computeRating(
   rng: Rng,
   ctx: UserMatchContext,
@@ -454,6 +493,10 @@ function computeRating(
   // A cameo can't earn a 9 - or a 4. Short outings pull toward the average.
   if (line.minutes < 30) rating = 6.0 + (rating - 6.0) * 0.5;
   else if (line.minutes < 60) rating = 6.0 + (rating - 6.0) * 0.8;
+
+  // The big ones count for more, in both directions.
+  const occasion = occasionWeight(ctx.importance);
+  if (occasion > 1) rating = 6.4 + (rating - 6.4) * occasion;
 
   return clamp(Math.round(rating * 10) / 10, 3.0, 10.0);
 }

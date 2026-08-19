@@ -203,3 +203,78 @@ export function renewalIntent(
   if (score > -12) return 'letExpire';
   return 'release';
 }
+
+/**
+ * Loan offers for a young player who is not getting on the pitch.
+ *
+ * This is how a career at a big club actually works: the coaching and the facilities
+ * make him better faster, but the first team is full of internationals, so the only
+ * way to turn training-ground ability into a footballer is a season somewhere he will
+ * start every week. Smaller clubs cannot buy him, but they can borrow him - they get
+ * a player above their level for a season, he gets the minutes.
+ */
+export function generateLoanOffers(input: {
+  state: CareerState;
+  index: PackIndex;
+  rng: Rng;
+  minutesPct: number;
+  maxOffers?: number;
+}): TransferOffer[] {
+  const { state, index, rng } = input;
+  const player = state.player;
+  const season = state.world.season;
+  const age = season - player.birthYear;
+  const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
+  const currentClub = player.clubId ? state.world.clubs[player.clubId] : undefined;
+  if (!currentClub) return [];
+
+  const parentLevel = clubBaseOvr(currentClub);
+  // He has to be young, short of minutes, and behind the standard of his own club.
+  if (age > 24 || input.minutesPct > 0.3 || parentLevel - ovr < 4) return [];
+
+  const candidates: { club: Club; comp: Competition; fit: number }[] = [];
+  for (const club of Object.values(state.world.clubs)) {
+    if (club.id === currentClub.id) continue;
+    const comp = index.competitionById.get(club.competitionId);
+    if (!comp) continue;
+
+    const level = clubBaseOvr(club);
+    // The club has to be weak enough that he walks into the side, but not so weak
+    // that a season there teaches him nothing.
+    if (level > ovr + 2 || level < ovr - 14) continue;
+
+    // Clubs prefer a loan from a bigger club in their own country, and a player whose
+    // potential says he is worth the risk.
+    const sameCountry = club.country === currentClub.country ? 8 : 0;
+    const prestigeGap = clamp(parentLevel - level, 0, 25);
+    const fit = 40 + prestigeGap * 1.3 + (player.potential - 60) * 0.5 + sameCountry + rng.gauss(0, 6);
+    if (fit > 45) candidates.push({ club, comp, fit });
+  }
+
+  candidates.sort((a, b) => b.fit - a.fit);
+  const shortlist = rng.shuffle(candidates.slice(0, 14));
+  const offers: TransferOffer[] = [];
+  const max = input.maxOffers ?? 3;
+
+  for (const candidate of shortlist) {
+    if (offers.length >= max) break;
+    const level = clubBaseOvr(candidate.club);
+    // A loan is cheap by design: a fee the size of a fortnight's wages, no more.
+    const role: SquadRole = ovr >= level + 4 ? 'starter' : 'rotation';
+    offers.push({
+      id: `loan_${season}_${state.world.week}_${candidate.club.id}`,
+      clubId: candidate.club.id,
+      fee: 0,
+      salaryPerWeek: expectedWage(player, ovr, candidate.club.finances, candidate.comp, age),
+      years: 1,
+      squadRole: role,
+      expectedMinutesPct: expectedMinutesFor(role),
+      isLoan: true,
+      season,
+      week: state.world.week,
+      interestLevel: Math.round(clamp(candidate.fit, 40, 99)),
+      competitionId: candidate.club.competitionId,
+    });
+  }
+  return offers;
+}

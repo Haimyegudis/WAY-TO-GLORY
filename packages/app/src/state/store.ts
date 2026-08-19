@@ -186,9 +186,15 @@ export const useGame = create<GameStore>((set, get) => ({
   decide(decisionId, optionId) {
     const { state } = get();
     if (!state) return;
+    // Hanging them up is his own decision, so it is answered here rather than by the
+    // event system, which only knows how to apply stat changes.
+    const retiring = state.pendingDecisions.some(
+      (decision) => decision.id === decisionId && decision.eventId === 'retirement_choice',
+    );
     const rng = Rng.fromState(state.rngState);
     const result = resolveDecision(rng, state, decisionId, optionId, pack.events);
     state.rngState = rng.getState();
+    if (retiring && optionId === 'retire') engineRetire(state);
     persist(state);
     set({ state: { ...state }, result });
   },

@@ -1,4 +1,4 @@
-import type { AttributeKey, Attributes, Position, PositionGroup } from './types.js';
+import type { AttributeKey, Attributes, Foot, Position, PositionGroup } from './types.js';
 import { clamp } from './rng.js';
 
 /**
@@ -131,13 +131,57 @@ const ADJACENCY: Record<Position, Position[]> = {
   ST: ['CF', 'RW', 'LW'],
 };
 
-export function tacticalFit(player: { primaryPos: Position; secondaryPos: Position[] }, slot: Position): number {
-  if (player.primaryPos === slot) return 1;
-  if (player.secondaryPos.includes(slot)) return 0.92;
-  if (slot === 'GK' || player.primaryPos === 'GK') return 0.3;
-  if (ADJACENCY[player.primaryPos]?.includes(slot)) return 0.8;
-  if (positionGroup(player.primaryPos) === positionGroup(slot)) return 0.7;
-  return 0.55;
+export function tacticalFit(
+  player: { primaryPos: Position; secondaryPos: Position[]; foot?: Foot },
+  slot: Position,
+): number {
+  const base = (() => {
+    if (player.primaryPos === slot) return 1;
+    if (player.secondaryPos.includes(slot)) return 0.92;
+    if (slot === 'GK' || player.primaryPos === 'GK') return 0.3;
+    if (ADJACENCY[player.primaryPos]?.includes(slot)) return 0.8;
+    if (positionGroup(player.primaryPos) === positionGroup(slot)) return 0.7;
+    return 0.55;
+  })();
+  return player.foot ? clamp(base * footFit(player.foot, slot), 0.2, 1) : base;
+}
+
+const LEFT_SLOTS = new Set<Position>(['LB', 'LWB', 'LM', 'LW']);
+const RIGHT_SLOTS = new Set<Position>(['RB', 'RWB', 'RM', 'RW']);
+
+/**
+ * What his foot is worth in a given slot.
+ *
+ * Down the flanks a defender or a full back on his natural side can take the ball
+ * forward and cross it without stopping; on the wrong side he is forever coming back
+ * onto his good foot. Wingers are the opposite case and are handled where the chances
+ * are created: an inverted winger is not worse, he is a different player - he comes
+ * inside and shoots instead of getting to the byline.
+ */
+export function footFit(foot: Foot, slot: Position): number {
+  if (foot === 'B') return 1.02;
+  const natural = foot === 'L' ? LEFT_SLOTS : RIGHT_SLOTS;
+  const wrong = foot === 'L' ? RIGHT_SLOTS : LEFT_SLOTS;
+  if (slot === 'LW' || slot === 'RW') return 1;      // both work, differently
+  if (natural.has(slot)) return 1.05;
+  if (wrong.has(slot)) return 0.9;
+  return 1;
+}
+
+/** True when he plays a flank from the far side: cuts in, shoots, does not cross. */
+export function isInvertedWinger(foot: Foot, slot: Position | null): boolean {
+  if (!slot || foot === 'B') return false;
+  if (slot === 'RW' || slot === 'RM') return foot === 'L';
+  if (slot === 'LW' || slot === 'LM') return foot === 'R';
+  return false;
+}
+
+/** True when he plays his own flank: gets outside, gets the ball in. */
+export function isNaturalWideMan(foot: Foot, slot: Position | null): boolean {
+  if (!slot) return false;
+  if (slot === 'RW' || slot === 'RM' || slot === 'RB' || slot === 'RWB') return foot === 'R' || foot === 'B';
+  if (slot === 'LW' || slot === 'LM' || slot === 'LB' || slot === 'LWB') return foot === 'L' || foot === 'B';
+  return false;
 }
 
 export const FORMATIONS: Record<string, Position[]> = {

@@ -138,18 +138,6 @@ export function CreatePlayer() {
                   max={99}
                   onChange={(value) => { setShirtTouched(true); setShirtNumber(value); }}
                 />
-                <div className="row" style={{ gap: 6, marginBlockStart: 8, flexWrap: 'wrap' }}>
-                  {[1, 4, 6, 7, 8, 9, 10, 11, 17, 21].map((n) => (
-                    <button
-                      key={n}
-                      className="chip"
-                      aria-pressed={(shirtTouched ? shirtNumber : defaultShirtNumber(primaryPos)) === n}
-                      onClick={() => { setShirtTouched(true); setShirtNumber(n); }}
-                    >
-                      <span className="num">{n}</span>
-                    </button>
-                  ))}
-                </div>
                 <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t('create.shirtNumberHint')}</p>
               </div>
 
@@ -176,6 +164,7 @@ export function CreatePlayer() {
                     <button key={f} aria-pressed={foot === f} onClick={() => setFoot(f)}>{t(`create.foot.${f}`)}</button>
                   ))}
                 </div>
+                <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t(`create.foot.${foot}.desc`)}</p>
               </div>
             </div>
           </Card>

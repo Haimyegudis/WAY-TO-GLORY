@@ -1,4 +1,4 @@
-import { Rng } from './rng.js';
+import { Rng, clamp } from './rng.js';
 import type {
   Club,
   Competition,
@@ -181,13 +181,32 @@ export function resolveSeasonEnd(
 }
 
 /** Club strength drifts toward its results, so tables aren't identical every season. */
+/**
+ * How a club's playing strength moves after a season.
+ *
+ * A season is evidence, not a verdict. Without a pull back toward what the club
+ * actually is, every side that finishes mid-table loses a point or two a year while
+ * whoever won gains one - and ten seasons later Barcelona are in the second division
+ * and Bournemouth have won five titles in a row. Reputation is the anchor: it moves
+ * slowly, and strength is drawn back toward the level that reputation implies.
+ */
 export function driftClubStrength(rng: Rng, club: Club, finishPct: number): void {
   // finishPct: 0 = won the league, 1 = bottom.
   const expected = 1 - club.strength / 100;
   const surprise = expected - finishPct;
-  const drift = surprise * rng.range(1.5, 4) + rng.gauss(0, 1.2);
-  club.strength = Math.round(Math.max(5, Math.min(99, club.strength + drift)));
-  club.reputation = Math.round(Math.max(5, Math.min(99, club.reputation + drift * 0.35)));
+
+  // What a club of this standing should be worth on the pitch.
+  const baseline = 30 + club.reputation * 0.62;
+  const reversion = (baseline - club.strength) * 0.28;
+
+  const drift = clamp(surprise * rng.range(0.9, 2.2) + reversion + rng.gauss(0, 0.9), -4.5, 4.5);
+  club.strength = Math.round(clamp(club.strength + drift, 5, 99));
+  // Prestige is built and lost over many seasons, and it is pulled back to what the
+  // club has always been: a good run lifts a small club for a while, it does not turn
+  // it into Real Madrid, and one bad decade does not end Real Madrid either.
+  const prestige = club.prestige ?? club.reputation;
+  const reputationDrift = surprise * rng.range(0.2, 0.7) + (prestige - club.reputation) * 0.22;
+  club.reputation = Math.round(clamp(club.reputation + reputationDrift, 5, 99));
 }
 
 export function tierStrengthBand(tier: number): [number, number] {

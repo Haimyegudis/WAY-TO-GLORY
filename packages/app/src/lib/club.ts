@@ -64,3 +64,37 @@ export function clubInitials(club: Club | null | undefined, lang: Lang): string 
   if (words.length === 1) return words[0]!.slice(0, 2);
   return (words[0]![0] ?? '') + (words[1]![0] ?? '');
 }
+
+/**
+ * Messages from the engine carry club names as plain strings, because the engine has
+ * no idea what language anyone is reading in. This swaps any argument that is a club
+ * name for the name in the player's language - which is why the academy welcome says
+ * "מכבי תל אביב" and not "Maccabi Tel Aviv".
+ */
+let nameIndex: Map<string, Club> | null = null;
+
+export function localiseArgs(
+  args: Record<string, string | number> | undefined,
+  clubs: Club[],
+  lang: Lang,
+): Record<string, string | number> | undefined {
+  if (!args || lang !== 'he') return args;
+  if (!nameIndex || nameIndex.size !== clubs.length) {
+    nameIndex = new Map(clubs.map((club) => [club.name.toLowerCase(), club]));
+  }
+
+  let changed = false;
+  const out: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(args)) {
+    if (typeof value === 'string') {
+      const club = nameIndex.get(value.toLowerCase());
+      if (club) {
+        out[key] = clubName(club, lang);
+        changed = true;
+        continue;
+      }
+    }
+    out[key] = value;
+  }
+  return changed ? out : args;
+}

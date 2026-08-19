@@ -579,14 +579,17 @@ describe('europe', () => {
     const { state, index } = startedCareer({ seed: 22 });
     for (let i = 0; i < 53; i++) advanceWeek(state, index);
 
-    // Every club now in a European competition is a first-tier club somewhere.
+    const entrants: string[] = [];
     for (const competition of Object.values(state.world.europe ?? {})) {
-      for (const group of competition.groups) {
-        for (const clubId of group.clubIds) {
-          expect(state.world.clubs[clubId]?.tier).toBe(1);
-        }
-      }
+      for (const group of competition.groups) entrants.push(...group.clubIds);
     }
+    expect(entrants.length).toBeGreaterThan(20);
+
+    // Nearly all of them are top-division clubs. Not all: a cup winner from the
+    // division below takes a place too, which is how it works in real football.
+    const topFlight = entrants.filter((id) => state.world.clubs[id]?.tier === 1).length;
+    expect(topFlight / entrants.length).toBeGreaterThan(0.85);
+    for (const id of entrants) expect(state.world.clubs[id]).toBeDefined();
   });
 
   it('gives the group winners and runners-up a knockout place', () => {
