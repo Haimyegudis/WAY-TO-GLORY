@@ -2,6 +2,8 @@ export const en: Record<string, string> = {
   // ---------------------------------------------------------------- shell
   'app.title': 'Road to Glory',
   'app.tagline': 'One player. One career. Every decision yours.',
+  'news.more': '{count} more',
+  'news.next': 'Next',
   'nav.hub': 'Hub',
   'nav.club': 'Club',
   'nav.train': 'Training',

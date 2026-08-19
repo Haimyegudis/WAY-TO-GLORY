@@ -1,6 +1,7 @@
 import { MENTORS } from '@fc/engine';
+import packJson from '@fc/data/pack';
 import type { Club } from '@fc/engine';
-import type { Lang } from '../i18n/index.js';
+import { formatMoney, type Lang } from '../i18n/index.js';
 import { toHebrew } from './transliterate.js';
 
 /**
@@ -74,12 +75,45 @@ export function clubInitials(club: Club | null | undefined, lang: Lang): string 
  */
 let nameIndex: Map<string, Club> | null = null;
 
+/**
+ * Values that are money, wherever a message happens to call them.
+ *
+ * The engine deals in numbers and knows nothing about currency; the app writes money as
+ * money everywhere else, and a message saying "they are talking about 59 a week" reads
+ * like a mistake because it is one.
+ */
+const MONEY_ARGS = new Set(['weekly', 'cost', 'amount', 'fee', 'wage', 'bonus', 'value', 'clause']);
+
+let countries: Map<string, string> | null = null;
+
+/** Every country the pack knows, by the name the engine writes, in Hebrew. */
+function countryIndex(): Map<string, string> {
+  if (!countries) {
+    countries = new Map();
+    for (const country of (packJson as { countries: { name: string; nameHe?: string }[] }).countries) {
+      if (country.nameHe) countries.set(country.name.toLowerCase(), country.nameHe);
+    }
+  }
+  return countries;
+}
+
 export function localiseArgs(
   args: Record<string, string | number> | undefined,
   clubs: Club[],
   lang: Lang,
 ): Record<string, string | number> | undefined {
-  if (!args || lang !== 'he') return args;
+  if (!args) return args;
+  // Money is written the same way in both languages, so this half runs whatever the
+  // language is.
+  let money: Record<string, string | number> | null = null;
+  for (const [key, value] of Object.entries(args)) {
+    if (typeof value === 'number' && MONEY_ARGS.has(key)) {
+      money ??= { ...args };
+      money[key] = formatMoney(value, lang);
+    }
+  }
+  if (money) args = money;
+  if (lang !== 'he') return args;
   if (!nameIndex || nameIndex.size !== clubs.length) {
     nameIndex = new Map(clubs.map((club) => [club.name.toLowerCase(), club]));
   }
@@ -88,6 +122,14 @@ export function localiseArgs(
   const out: Record<string, string | number> = {};
   for (const [key, value] of Object.entries(args)) {
     if (typeof value === 'string') {
+      // A qualifier result read "Switzerland 3-1 Portugal" in the middle of a Hebrew
+      // message, because the countries came through as the engine's own names.
+      const country = countryIndex().get(value.toLowerCase());
+      if (country) {
+        out[key] = country;
+        changed = true;
+        continue;
+      }
       const club = nameIndex.get(value.toLowerCase());
       if (club) {
         out[key] = clubName(club, lang);

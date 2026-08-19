@@ -2,6 +2,8 @@ export const he: Record<string, string> = {
   // ---------------------------------------------------------------- shell
   'app.title': 'הדרך לתהילה',
   'app.tagline': 'שחקן אחד. קריירה אחת. כל ההחלטות שלך.',
+  'news.more': 'עוד {count}',
+  'news.next': 'הבא',
   'nav.hub': 'ראשי',
   'nav.club': 'מועדון',
   'nav.train': 'אימונים',

@@ -19,6 +19,7 @@ import { DecisionSheet } from './screens/DecisionSheet.js';
 import { MentorScreen } from './screens/MentorScreen.js';
 import { LifeScreen } from './screens/LifeScreen.js';
 import { ResultSheet } from './screens/ResultSheet.js';
+import { NewsPopup } from './screens/NewsPopup.js';
 import { nextFixture, openHalfTime } from './state/selectors.js';
 import { primeWhistles } from './components/whistle.js';
 
@@ -122,6 +123,9 @@ function Game() {
         {!pending && !result && !state?.retired && !inTheMatch && <ContinueDock />}
         <Tabs />
         {result && <ResultSheet result={result} />}
+        {/* News comes up. It is read and dismissed one at a time, behind anything that
+            has actually stopped the week. */}
+        {!result && !pending && !inTheMatch && <NewsPopup />}
         {!result && pending && <DecisionSheet decision={pending} />}
         <Toast />
       </div>

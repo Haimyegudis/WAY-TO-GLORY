@@ -162,6 +162,11 @@ interface GameStore {
    */
   focusMatchId: string | null;
   /**
+   * Messages that arrived this week and have not been put in front of him yet. News is
+   * news: it comes up rather than waiting in a list he has to remember to open.
+   */
+  pendingNews: string[];
+  /**
    * The match id currently being watched minute by minute. Set when the week stops on
    * a match the player was involved in; cleared once he has seen it out or skipped.
    */
@@ -217,6 +222,8 @@ interface GameStore {
   declineSponsors: () => void;
   /** Spend what football paid him on something outside it. */
   buyLifeItem: (itemId: string) => void;
+  /** Read the one on screen and move to the next. */
+  dismissNews: () => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
 }
@@ -257,6 +264,7 @@ export const useGame = create<GameStore>((set, get) => ({
   lastTick: null,
   result: null,
   focusMatchId: null,
+  pendingNews: [],
   liveMatchId: null,
   liveFromMinute: 0,
   openMessageId: null,
@@ -412,6 +420,7 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state, index } = get();
     if (!state || !index || state.retired) return;
     set({ busy: true });
+    const before = new Set(state.inbox.map((message) => message.id));
 
     let result: TickResult | null = null;
     for (let i = 0; i < weeks; i++) {
@@ -428,6 +437,13 @@ export const useGame = create<GameStore>((set, get) => ({
 
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    // Anything that landed this week, oldest first, so it reads in the order it happened.
+    // Four is the cap: a week that generates more than that is a week, not an inbox.
+    const arrived = state.inbox
+      .filter((message) => !before.has(message.id))
+      .slice(0, 4)
+      .reverse()
+      .map((message) => message.id);
     const atTheBreak = result?.stopped === 'halfTime';
     set({
       state: { ...state },
@@ -436,6 +452,7 @@ export const useGame = create<GameStore>((set, get) => ({
       // A match always opens the match screen, from any tab.
       screen: result?.stopped === 'match' || atTheBreak ? 'match' : get().screen,
       focusMatchId: result?.stopped === 'match' ? state.lastMatch?.id ?? null : get().focusMatchId,
+      pendingNews: [...get().pendingNews, ...arrived],
       // A match he played gets watched minute by minute; one he sat out is just read.
       liveMatchId:
         result?.stopped === 'match' && state.lastMatch?.userLine?.played ? state.lastMatch.id : null,
@@ -693,6 +710,16 @@ export const useGame = create<GameStore>((set, get) => ({
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state } });
+  },
+
+  dismissNews() {
+    const { state, pendingNews } = get();
+    const [first, ...rest] = pendingNews;
+    if (state && first) {
+      const message = state.inbox.find((entry) => entry.id === first);
+      if (message) message.read = true;
+    }
+    set({ pendingNews: rest, ...(state ? { state: { ...state } } : {}) });
   },
 
   showToast(message) {
