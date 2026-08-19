@@ -1,4 +1,5 @@
 /** Core domain model. Everything here is plain data so it can be JSON-serialised into a save. */
+import type { QualifyingCampaign } from './qualifying.js';
 
 export type Position =
   | 'GK'
@@ -603,6 +604,10 @@ export interface CareerState {
   lastResult: DecisionResult | null;
   world: WorldState;
   nationalTeam: NationalTeamState;
+  /** The qualifying campaign his country is playing for the next tournament, if any. */
+  campaign?: QualifyingCampaign;
+  /** Campaigns already settled, so a career remembers the summers it missed. */
+  campaignHistory?: QualifyingCampaign[];
   seasonHistory: CareerSeasonRecord[];
   matchLog: MatchResult[];           // recent matches only (compacted)
   lastMatch: MatchResult | null;

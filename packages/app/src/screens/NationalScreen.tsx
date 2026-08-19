@@ -2,6 +2,7 @@ import { useLang, useT } from '../i18n/index.js';
 import { countryName as localisedCountry } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { Chip, Meter, Card, Stat } from '../components/ui.js';
+import { qualifyingTable } from '@fc/engine';
 
 export function NationalScreen() {
   const t = useT();
@@ -51,6 +52,76 @@ export function NationalScreen() {
         </div>
         <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 12 }}>{t('national.note')}</p>
       </Card>
+
+      {state.campaign && (
+        <Card title={t('national.campaign')}>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th className="start">{t(`tournament.${state.campaign.tournament}`)}</th>
+                <th className="n">{t('club.pld')}</th>
+                <th className="n">{t('club.gd')}</th>
+                <th className="n">{t('club.pts')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {qualifyingTable(state.campaign).map((row) => (
+                <tr key={row.countryCode} className={row.countryCode === state.campaign!.countryCode ? 'me' : ''}>
+                  <td className="start">{countryName(row.countryCode)}</td>
+                  <td className="n">{row.played}</td>
+                  <td className="n">{row.goalsFor - row.goalsAgainst}</td>
+                  <td className="n" style={{ fontWeight: 700 }}>{row.points}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {state.campaign.playoff && (
+            <p className="faint" style={{ fontSize: 12, marginBlockStart: 8 }}>
+              {t('national.playoffVs', { opponent: countryName(state.campaign.playoff.opponent) })}
+              {state.campaign.playoff.played
+                ? ` · ${state.campaign.playoff.result?.[0]}-${state.campaign.playoff.result?.[1]}`
+                : ''}
+            </p>
+          )}
+          {state.campaign.outcome && (
+            <p style={{ fontSize: 13, marginBlockStart: 8 }}>
+              <Chip tone={state.campaign.outcome === 'out' ? 'red' : 'solid-green'}>
+                {t(`national.campaign.${state.campaign.outcome}`)}
+              </Chip>
+            </p>
+          )}
+
+          <ul className="list" style={{ marginBlockStart: 10 }}>
+            {state.campaign.fixtures
+              .filter((fixture) =>
+                fixture.homeCountry === state.campaign!.countryCode ||
+                fixture.awayCountry === state.campaign!.countryCode,
+              )
+              .map((fixture, i) => (
+                <li key={i} className="list-item fixture-row">
+                  <span className="faint num" style={{ fontSize: 11 }}>{fixture.week}</span>
+                  <span className="score-row" style={{ fontSize: 13 }}>
+                    <span style={{ textAlign: 'end', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {countryName(fixture.homeCountry)}
+                    </span>
+                    <span className="num">{fixture.played ? `${fixture.result?.[0]}–${fixture.result?.[1]}` : '–'}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {countryName(fixture.awayCountry)}
+                    </span>
+                  </span>
+                  <span className="fixture-rating">
+                    {fixture.userPlayed ? (
+                      <span className="num" style={{ fontSize: 12 }}>{fixture.userRating?.toFixed(1)}</span>
+                    ) : (
+                      <span className="faint" style={{ fontSize: 11 }}>—</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </Card>
+      )}
 
       {(state.tournaments ?? []).length > 0 && (
         <Card title={t('career.tournaments')}>

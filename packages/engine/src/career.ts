@@ -37,6 +37,16 @@ import {
 import { createCup, drawRound, isCupFinal, isCupSemi, recordTieResult, type CupState } from './cup.js';
 import { runAbstractMarket, runSquadWindow, type SquadMove } from './market.js';
 import {
+  applyQualifierResult,
+  campaignFame,
+  createCampaign,
+  qualified,
+  qualifyingTable,
+  settleGroup,
+  settlePlayoff,
+  simulateQualifier,
+} from './qualifying.js';
+import {
   applyEuroResult,
   createEuroCompetition,
   createEuroWithQualifying,
@@ -205,6 +215,7 @@ export function createCareer(pack: DataPack, input: CreateCareerInput): { state:
   };
 
   initSeason(state, index, rng);
+  initCampaign(state, index, rng);
   state.rngState = rng.getState();
   return { state, index };
 }
@@ -239,6 +250,89 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
  * The youth league: the clubs of his own division, fielding the sides he would play
  * against on a Sunday morning. It only exists while he is young enough to be in it.
  */
+/**
+ * A tournament summer means a season of qualifiers first. The campaign is built for the
+ * country he is committed to, or the one most likely to call him, so he can follow it
+ * whether or not he is in the squad yet.
+ */
+function initCampaign(state: CareerState, index: PackIndex, rng: Rng): void {
+  const season = state.world.season;
+  const tournament = tournamentFor(season);
+  if (!tournament) {
+    state.campaign = undefined;
+    return;
+  }
+  if (state.campaign?.season === season) return;
+
+  const nt = state.nationalTeam;
+  const countryCode =
+    nt.countryCode ??
+    [...nt.eligibleCountries].sort((a, b) => (nt.interest[b] ?? 0) - (nt.interest[a] ?? 0))[0] ??
+    state.player.birthCountry;
+
+  const campaign = createCampaign(rng, index, countryCode, tournament, season);
+  if (!campaign) return;
+  state.campaign = campaign;
+
+  const country = index.countryByCode.get(countryCode);
+  pushInbox(state, 'national', `inbox.campaign.begins.${tournament}`, {
+    country: country?.name ?? countryCode,
+    group: qualifyingTable(campaign)
+      .map((row) => index.countryByCode.get(row.countryCode)?.name ?? row.countryCode)
+      .join(', '),
+  });
+}
+
+/**
+ * The qualifiers due this week: his country's match, and the other one in the group so
+ * the table is a real table rather than his results and three blanks.
+ */
+function playQualifiers(state: CareerState, index: PackIndex, rng: Rng, calledUp: boolean): void {
+  const campaign = state.campaign;
+  if (!campaign) return;
+  const week = state.world.week;
+
+  for (const fixture of campaign.fixtures) {
+    if (fixture.played || fixture.week !== week) continue;
+    fixture.result = simulateQualifier(rng, index, fixture.homeCountry, fixture.awayCountry);
+    fixture.played = true;
+    applyQualifierResult(campaign, fixture);
+
+    const his = fixture.homeCountry === campaign.countryCode || fixture.awayCountry === campaign.countryCode;
+    if (!his) continue;
+
+    const country = index.countryByCode.get(campaign.countryCode);
+    if (calledUp && country) {
+      const outcome = simulateInternationalMatch(rng, state.player, 'senior', country.reputation);
+      fixture.userPlayed = outcome.played;
+      fixture.userGoals = outcome.goals;
+      fixture.userRating = outcome.rating;
+      if (outcome.played) {
+        const nt = state.nationalTeam;
+        nt.caps++;
+        nt.goals += outcome.goals;
+        if (!nt.capturedBySenior) commitToCountry(nt, campaign.countryCode);
+        state.player.reputation = clamp(state.player.reputation + 0.8 + outcome.goals * 0.9, 0, 100);
+        state.player.fame = clamp(state.player.fame + 1 + outcome.goals * 1.2, 0, 100);
+        state.player.condition.fatigue = clamp(state.player.condition.fatigue + outcome.minutes / 9, 0, 100);
+      }
+    }
+
+    const opponent =
+      fixture.homeCountry === campaign.countryCode ? fixture.awayCountry : fixture.homeCountry;
+    pushInbox(state, 'national', 'inbox.qualifier.result', {
+      country: country?.name ?? campaign.countryCode,
+      opponent: index.countryByCode.get(opponent)?.name ?? opponent,
+      score: `${fixture.result[0]}-${fixture.result[1]}`,
+    });
+  }
+
+  settleGroup(rng, index, campaign);
+  if (campaign.playoff && !campaign.playoff.played && week >= campaign.playoff.week) {
+    settlePlayoff(rng, index, campaign);
+  }
+}
+
 function initYouth(state: CareerState, rng: Rng): void {
   const club = userClub(state);
   const age = state.world.season - state.player.birthYear;
@@ -695,8 +789,11 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   }
 
   // 5. National team.
-  if (INTERNATIONAL_WEEKS.includes(week) && club) {
-    handleInternationalWeek(state, index, rng, club);
+  if (INTERNATIONAL_WEEKS.includes(week)) {
+    if (club) handleInternationalWeek(state, index, rng, club);
+    // Qualifiers run whether or not he is in the squad: his country plays either way,
+    // and a table he is not in is still the table that decides his summer.
+    playQualifiers(state, index, rng, state.nationalTeam.level === 'senior' && Boolean(club));
   }
 
   // 6. Transfer window activity. A player who just moved is not on the market again
@@ -1888,6 +1985,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   player.condition.suspensions = [];
   state.transferOffers = [];
   initSeason(state, index, rng);
+  initCampaign(state, index, rng);
   ensureModelledSquads(state, index, rng);
   state.world.seasonStats[player.id] = emptySeasonStats(state.world.season, player.clubId, userClub(state)?.competitionId ?? null);
   state.flags['seasonStartOvr'] = overall(player.attributes, player.primaryPos, player.secondaryPos);
@@ -2093,11 +2191,26 @@ function playSummerTournament(state: CareerState, index: PackIndex, rng: Rng): v
   const country = index.countryByCode.get(nt.countryCode);
   if (!country) return;
 
-  // Qualifying: the bigger nations are almost always there, the smaller ones are not.
-  const qualifyOdds = clamp(0.2 + (country.reputation - 55) / 70, 0.1, 0.95);
-  if (!rng.chance(qualifyOdds)) {
-    pushInbox(state, 'national', `inbox.tournament.missed.${id}`, { country: country.name });
-    return;
+  // Qualifying is a season of matches, not a dice roll. A country that finished third in
+  // its group is not at the tournament however good it looks on paper.
+  const campaign = state.campaign;
+  if (campaign && campaign.season === season) {
+    state.player.fame = clamp(state.player.fame + campaignFame(campaign) * 0.4, 0, 100);
+    state.campaignHistory = state.campaignHistory ?? [];
+    state.campaignHistory.push(campaign);
+    if (!qualified(campaign)) {
+      pushInbox(state, 'national', `inbox.tournament.missed.${id}`, { country: country.name });
+      pushNews(state, 'news.tournament.missed', { country: country.name }, 'medium');
+      return;
+    }
+  } else {
+    // A career that started mid-cycle has no campaign to read, so the old measure stands
+    // for that one summer.
+    const qualifyOdds = clamp(0.2 + (country.reputation - 55) / 70, 0.1, 0.95);
+    if (!rng.chance(qualifyOdds)) {
+      pushInbox(state, 'national', `inbox.tournament.missed.${id}`, { country: country.name });
+      return;
+    }
   }
 
   const result = playTournament(rng, id, player, country.code, country.reputation, season, minutesPct(state));

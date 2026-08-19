@@ -9,6 +9,8 @@ export * from './match.js';
 export * from './league.js';
 export * from './cup.js';
 export * from './europe.js';
+export * from './qualifying.js';
+export * from './market.js';
 export * from './awards.js';
 export * from './youth.js';
 export * from './tournament.js';
