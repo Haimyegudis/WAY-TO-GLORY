@@ -875,6 +875,22 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 0a. The week before a big one starts on the Monday.
   const weekImportance = announceBigMatch(state, index);
 
+  /*
+   * 0a2. The build-up question, before the build-up is over.
+   *
+   * Asking him what a derby means to him after the derby has been played is not a
+   * build-up, it is a post mortem. The occasion is put to him while the fixture is still
+   * ahead of him, and the week does not start until he has answered: nothing has been
+   * written to the world yet, so it simply runs again once he has.
+   */
+  if (club && weekImportance !== 'normal') {
+    const occasion = occasionMilestone(weekImportance);
+    if (occasion && raiseMilestone(state, occasion, { force: true })) {
+      commitRng(state, rng);
+      return { state, stopped: 'decision', log };
+    }
+  }
+
   // 0. Nothing waits for ever. A club that hears nothing back signs someone else and
   // an agent stops calling, otherwise unanswered approaches pile up and quietly choke
   // off every other event in the game.
@@ -1242,6 +1258,9 @@ function buildEventContext(state: CareerState, index: PackIndex): EventContext {
 /** How long the press leaves him alone between questions. */
 const MEDIA_COOLDOWN_WEEKS = 4;
 
+/** The things he is asked about whatever else the week held. */
+const MUST_ANSWER = new Set<MilestoneId>(['sentOff', 'badRun', 'goalDrought', 'dropped', 'transferRumour']);
+
 /**
  * Puts a question on the table, once per kind per season.
  *
@@ -1249,16 +1268,29 @@ const MEDIA_COOLDOWN_WEEKS = 4;
  * accord waits for the cooldown. The handful of nights that belong to the player -
  * his debut, a first cap, a trophy - are not made to queue behind a bad run.
  */
-function raiseMilestone(state: CareerState, id: MilestoneId, force = false): void {
-  const askedKey = `asked:${id}:${state.world.season}`;
-  if (state.flags[askedKey]) return;
+function raiseMilestone(
+  state: CareerState,
+  id: MilestoneId,
+  opts: {
+    /** Skip the cooldown: something happened that the press does not wait four weeks for. */
+    force?: boolean;
+    /**
+     * What counts as "already asked". Once a season for most things - nobody asks him
+     * twice what a derby means - but a second red card is a second red card, and it gets
+     * its own microphone.
+     */
+    key?: string;
+  } = {},
+): boolean {
+  const askedKey = opts.key ?? `asked:${id}:${state.world.season}`;
+  if (state.flags[askedKey]) return false;
   const question = milestoneById(id);
-  if (!question) return;
-  if (state.pendingDecisions.some((decision) => decision.eventId.startsWith('milestone:'))) return;
+  if (!question) return false;
+  if (state.pendingDecisions.some((decision) => decision.eventId.startsWith('milestone:'))) return false;
 
   const absolute = state.world.season * 52 + state.world.week;
   const last = Number(state.flags['lastMediaWeek'] ?? -999);
-  if (!force && absolute - last < MEDIA_COOLDOWN_WEEKS) return;
+  if (!opts.force && absolute - last < MEDIA_COOLDOWN_WEEKS) return false;
 
   state.flags[askedKey] = true;
   state.flags['lastMediaWeek'] = absolute;
@@ -1284,6 +1316,7 @@ function raiseMilestone(state: CareerState, id: MilestoneId, force = false): voi
     expiresWeek: state.world.season * 52 + state.world.week + 2,
   });
   pushInbox(state, 'media', `milestone.${id}`, { club: club?.name ?? '' }, decisionId);
+  return true;
 }
 
 /**
@@ -1546,9 +1579,21 @@ function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImpo
     raiseMilestone(state, occasionId);
     return;
   }
+  /*
+   * The weeks he does not get to walk past.
+   *
+   * A sending off, four bad games, a month without a goal - these are reactions to
+   * something that just happened to him, and holding them behind a four week cooldown
+   * meant the one question the player actually wanted to answer was the one the game
+   * quietly swallowed. A red card asks every time it happens rather than once a season.
+   */
   const momentId = mediaMomentFor(state, index);
   if (momentId) {
-    raiseMilestone(state, momentId);
+    const demanded = MUST_ANSWER.has(momentId);
+    raiseMilestone(state, momentId, {
+      force: demanded,
+      ...(momentId === 'sentOff' ? { key: `asked:sentOff:${state.world.season}:${state.world.week}` } : {}),
+    });
     return;
   }
   const fallbackId = milestoneFor(importance, { weeksAtNewClub, rumoured });
