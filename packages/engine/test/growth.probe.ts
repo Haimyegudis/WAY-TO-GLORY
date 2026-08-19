@@ -4,7 +4,8 @@
  * Prints the rating at the end of every season for a handful of careers, so a jump from
  * thirty-five to seventy in one youth season is visible rather than argued about.
  */
-import { advanceWeek, currentOvr, resumeHalfTime } from '../src/career.js';
+import { advanceWeek, answerOffer, answerSeasonGoal, currentOvr, resumeHalfTime } from '../src/career.js';
+import { Rng } from '../src/rng.js';
 import { loadPack, startedCareer } from './helpers.js';
 
 loadPack();
@@ -16,8 +17,20 @@ for (const seed of seeds) {
   const byAge = new Map<number, number>();
   const pot = new Map<number, number>();
   const clubs = new Map<number, string>();
-  for (let i = 0; i < 52 * 12 && !state.retired; i++) {
+  const rng = new Rng(seed + 5);
+  for (let i = 0; i < 52 * 14 && !state.retired; i++) {
     const result = advanceWeek(state, index);
+    // A career that never answers anything never moves club, never gets minutes and
+    // therefore never grows: measuring that tells you nothing about the curve.
+    for (const decision of [...state.pendingDecisions]) {
+      if (decision.kind === 'transfer') {
+        const clubs = state.transferOffers ?? [];
+        const take = clubs.length > 0 && rng.chance(0.7) ? clubs[rng.int(0, clubs.length - 1)]!.id : null;
+        answerOffer(state, index, decision.id, take);
+      } else if (decision.eventId === 'seasonGoal') {
+        answerSeasonGoal(state, index, decision.id, 'agreed');
+      }
+    }
     state.pendingDecisions = [];
     if (result.stopped === 'halfTime' && state.pendingHalfTime) {
       const held = state.pendingHalfTime;

@@ -1055,6 +1055,37 @@ describe('half time', () => {
     expect(checked, 'no interval ever came up').toBeGreaterThan(0);
   });
 
+  it('grows a career at a believable pace', () => {
+    // The shape is the point: a boy does not go from thirty-five to seventy in one youth
+    // season, and by twenty he is not finished. This pins both ends so a later change to
+    // training, diet or facilities cannot quietly reinflate it.
+    const { state, index } = startedCareer({ seed: 4242 });
+    let previous = currentOvr(state);
+    let biggestSeasonJump = 0;
+    let atTwenty = 0;
+    let season = state.world.season;
+
+    for (let i = 0; i < 52 * 8 && !state.retired; i++) {
+      const result = advanceWeek(state, index);
+      state.pendingDecisions = [];
+      if (result.stopped === 'halfTime' && state.pendingHalfTime) {
+        const held = state.pendingHalfTime;
+        resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+      }
+      if (state.world.season !== season) {
+        season = state.world.season;
+        const now = currentOvr(state);
+        biggestSeasonJump = Math.max(biggestSeasonJump, now - previous);
+        previous = now;
+        if (state.world.season - state.player.birthYear === 20) atTwenty = now;
+      }
+    }
+
+    expect(biggestSeasonJump, 'a season gained more than a career should').toBeLessThanOrEqual(14);
+    expect(atTwenty, 'a twenty year old is already finished').toBeLessThan(88);
+    expect(currentOvr(state), 'he never grew at all').toBeGreaterThan(50);
+  });
+
   it('does not put an injured or banned boy on the pitch, in any competition', () => {
     // The age group used to hand him ninety minutes unconditionally, so a hamstring tear
     // with eight weeks to serve still turned out on Sunday morning.

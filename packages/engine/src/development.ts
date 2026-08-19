@@ -156,7 +156,7 @@ export function developWeek(
    * rather than at twenty, and where they train decides how far.
    */
   let total =
-    0.125 * aF * trainingF * playingF * proF * moraleF * fitnessF * levelF * injuredPenalty * rng.range(0.75, 1.3);
+    0.185 * aF * trainingF * playingF * proF * moraleF * fitnessF * levelF * injuredPenalty * rng.range(0.75, 1.3);
 
   if (aF > 0) total *= hR;
 

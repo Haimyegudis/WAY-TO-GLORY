@@ -300,6 +300,62 @@ SELECT ?title ?dob ?posLabel ?sitelinks ?nat ?sportLabel ?citLabel WHERE {
   return out;
 }
 
+/* ------------------------------------------------------------------ the record */
+
+interface PlayerRecord {
+  /** Club appearances across his whole career, from his own infobox. */
+  apps: number;
+  /** Club goals across his whole career. */
+  goals: number;
+  /** Senior international caps - the last national row, not the youth ones above it. */
+  caps: number;
+}
+
+/**
+ * What he has actually done, off his own article.
+ *
+ * Wikidata knows almost nothing here - three players in sixty carry an appearance count
+ * - but every footballer's article has the same infobox, with a row per club and the
+ * appearances and goals in it. That is the only free record of a career there is, and it
+ * is the whole difference between rating a player by how famous he is and rating him by
+ * what he has done.
+ *
+ * Fifty articles a request, which is the API's limit and turns seven thousand players
+ * into a hundred and forty calls.
+ */
+async function recordsFor(articles: string[]): Promise<Map<string, PlayerRecord>> {
+  const out = new Map<string, PlayerRecord>();
+  for (let i = 0; i < articles.length; i += 50) {
+    const slice = articles.slice(i, i + 50);
+    const url =
+      `${WP_API}?action=query&prop=revisions&rvslots=main&rvprop=content` +
+      `&format=json&formatversion=2&redirects=1&origin=*&titles=${encodeURIComponent(slice.join('|'))}`;
+    const body = await getJson(url, 400, 45_000);
+    const pages: any[] = body?.query?.pages ?? [];
+    // A redirect means the title asked for is not the title answered with, and the squad
+    // template links to whichever one the editor felt like.
+    const asked = new Map<string, string>();
+    for (const redirect of body?.query?.redirects ?? []) asked.set(redirect.to, redirect.from);
+
+    for (const page of pages) {
+      const text: string = page?.revisions?.[0]?.slots?.main?.content ?? '';
+      if (!text) continue;
+      const apps = [...text.matchAll(/\|\s*caps(\d+)\s*=\s*([0-9]+)/g)]
+        .reduce((sum, m) => sum + Number(m[2]), 0);
+      const goals = [...text.matchAll(/\|\s*goals(\d+)\s*=\s*([0-9]+)/g)]
+        .reduce((sum, m) => sum + Number(m[2]), 0);
+      // The senior side is the last national row: everything above it is under-19s.
+      const nationalRows = [...text.matchAll(/\|\s*nationalcaps(\d+)\s*=\s*([0-9]+)/g)];
+      const caps = nationalRows.length > 0 ? Number(nationalRows[nationalRows.length - 1]![2]) : 0;
+      const record = { apps, goals, caps };
+      out.set(page.title, record);
+      const original = asked.get(page.title);
+      if (original) out.set(original, record);
+    }
+  }
+  return out;
+}
+
 /* ------------------------------------------------------------------ the seeds */
 
 interface StarSeed {
@@ -328,18 +384,64 @@ function splitName(full: string): { firstName: string; lastName: string } {
  * and everything interesting happens in between. Fame is worth more at a small club than
  * a big one, because at Madrid the badge has already said everybody is famous.
  */
-function rate(club: Club, detail: Detail | undefined, age: number, number: number | null): number {
+/** Goals per appearance a full career in this position is worth, near enough. */
+const GOALS_PER_APP: Partial<Record<Position, number>> = {
+  ST: 0.4, CF: 0.34, RW: 0.2, LW: 0.2, CAM: 0.18, RM: 0.13, LM: 0.13,
+  CM: 0.09, CDM: 0.05, CB: 0.04, RB: 0.03, LB: 0.03, RWB: 0.04, LWB: 0.04, GK: 0,
+};
+
+function rate(
+  club: Club,
+  detail: Detail | undefined,
+  age: number,
+  number: number | null,
+  pos: Position,
+  record: PlayerRecord | undefined,
+): number {
   // The same scale the engine builds a squad on - clubBaseOvr - rather than the club's
-  // strength, which is a different number entirely: strength 86 is a squad of 83s, and
-  // reading it as an ability rating put half of Liverpool in the nineties.
+  // strength, which is a different number entirely: strength 86 is a squad of 83s.
   const base = 30 + (club.strength ?? 55) * 0.62;
-  const fame = Math.max(0, Math.min(1, ((detail?.sitelinks ?? 4) - 6) / 54));
   const spread = base > 78 ? 11 : 15;
   const curve = age < 19 ? -9 : age < 21 ? -5.5 : age < 23 ? -2 : age <= 30 ? 1 : age <= 33 ? -1.5 : -6;
   // A first-team shirt number is not nothing: clubs hand 1 to 11 to the men who play and
   // the thirties and forties to the boys who train with them.
   const shirt = number === null ? 0 : number <= 11 ? 1.5 : number >= 30 ? -2.5 : 0;
-  const ovr = base - spread * 0.5 + fame * spread + (detail?.national ? 2.5 : 0) + curve + shirt;
+
+  // How well known he is. Still worth something - nobody is famous for nothing - but no
+  // longer the whole of the rating.
+  const fame = Math.max(0, Math.min(1, ((detail?.sitelinks ?? 4) - 6) / 54));
+
+  // What he has actually done, judged against what his position is worth: eleven goals
+  // from a centre-back is a giant and eleven from a striker is a bad season.
+  const apps = record?.apps ?? 0;
+  const goals = record?.goals ?? 0;
+  const expected = GOALS_PER_APP[pos] ?? 0.1;
+  const perApp = apps >= 25 ? goals / apps : null;
+  const production =
+    perApp === null || expected === 0
+      ? 0
+      : Math.max(-1, Math.min(1.5, (perApp - expected) / Math.max(0.05, expected)));
+
+  // Nobody plays four hundred games at any level by accident.
+  const experience = Math.max(0, Math.min(1, apps / 400));
+  // Senior caps are the cleanest marker of level there is: somebody else's selector,
+  // watching all season, decided he was one of the best in his country.
+  const caps = Math.max(0, Math.min(1, (record?.caps ?? 0) / 60));
+
+  // Weighted so that what he does outranks who he is: production moves a rating more
+  // than fame does, and a long career of caps is a nudge rather than a promotion. The
+  // first pass had a thirty-two year old holding midfielder with sixty caps rated above
+  // Van Dijk, which is what happens when experience is paid for by the appearance.
+  const ovr =
+    base
+    - spread * 0.55
+    + fame * spread * 0.5
+    + production * spread * 0.35
+    + experience * 2.5
+    + caps * 3.5
+    + (detail?.national ? 1 : 0)
+    + curve
+    + shirt;
   return Math.max(38, Math.min(94, Math.round(ovr)));
 }
 
@@ -347,6 +449,7 @@ function seedFor(
   club: Club,
   entry: SquadEntry,
   detail: Detail | undefined,
+  record: PlayerRecord | undefined,
   season: number,
 ): StarSeed | null {
   const pos = reconcile(entry.coarse, detail?.position ?? null);
@@ -364,7 +467,7 @@ function seedFor(
     ...splitName(entry.display),
     clubId: club.id,
     pos,
-    ovr: rate(club, detail, age, entry.number),
+    ovr: rate(club, detail, age, entry.number, pos, record),
     age,
     country,
     source: 'wikidata',
@@ -493,12 +596,13 @@ async function main(): Promise<void> {
     }
     const articles = [...new Set([...squads.values()].flat().map((entry) => entry.article))];
     const details = await detailsFor(articles);
+    const records = await recordsFor(articles);
 
     for (const club of slice) {
       const entries = squads.get(club.id) ?? [];
       const seeds: StarSeed[] = [];
       for (const entry of entries) {
-        const seed = seedFor(club, entry, details.get(entry.article), season);
+        const seed = seedFor(club, entry, details.get(entry.article), records.get(entry.article), season);
         if (seed) seeds.push(seed);
       }
       const squad = trim(seeds);

@@ -523,7 +523,8 @@
     "crest": "eng_bradford_city.png",
     "color": "#f6901b",
     "source": "thesportsdb",
-    "sourceRef": "134189"
+    "sourceRef": "134189",
+    "title": "Bradford City A.F.C."
   },
   "eng_wycombe_wanderers": {
     "clubId": "eng_wycombe_wanderers",
@@ -532,7 +533,8 @@
     "crest": "eng_wycombe_wanderers.png",
     "source": "thesportsdb",
     "sourceRef": "134382",
-    "color": "#003362"
+    "color": "#003362",
+    "title": "Wycombe Wanderers F.C."
   },
   "eng_mansfield_town": {
     "clubId": "eng_mansfield_town",
@@ -849,7 +851,8 @@
     "crest": "esp_club_atletico_de_madrid.png",
     "color": "#282a6f",
     "source": "thesportsdb",
-    "sourceRef": "133729"
+    "sourceRef": "133729",
+    "title": "Atlético Madrid"
   },
   "esp_elche_cf": {
     "clubId": "esp_elche_cf",
@@ -858,7 +861,8 @@
     "crest": "esp_elche_cf.png",
     "source": "thesportsdb",
     "sourceRef": "134384",
-    "color": "#e7c876"
+    "color": "#e7c876",
+    "title": "Elche CF"
   },
   "esp_real_betis_balompie": {
     "clubId": "esp_real_betis_balompie",
@@ -1140,7 +1144,8 @@
     "crest": "esp_sd_ponferradina.png",
     "source": "thesportsdb",
     "sourceRef": "134697",
-    "color": "#e3bd31"
+    "color": "#e3bd31",
+    "title": "SD Ponferradina"
   },
   "esp_racing_club_ferrol": {
     "clubId": "esp_racing_club_ferrol",
@@ -1149,7 +1154,8 @@
     "crest": "esp_racing_club_ferrol.png",
     "source": "thesportsdb",
     "sourceRef": "137827",
-    "color": "#d0062c"
+    "color": "#d0062c",
+    "title": "Racing de Ferrol"
   },
   "esp_gimnastic_de_tarragona": {
     "clubId": "esp_gimnastic_de_tarragona",
@@ -1476,7 +1482,8 @@
     "crest": "ita_acf_fiorentina.png",
     "color": "#61358b",
     "source": "wikipedia:en",
-    "sourceRef": "ACF Fiorentina - logo (Italy, 2022).svg"
+    "sourceRef": "ACF Fiorentina - logo (Italy, 2022).svg",
+    "title": "ACF Fiorentina"
   },
   "ita_hellas_verona_fc": {
     "clubId": "ita_hellas_verona_fc",
@@ -1507,7 +1514,8 @@
     "crest": "ita_torino_fc.png",
     "source": "thesportsdb",
     "sourceRef": "133687",
-    "color": "#7c1d21"
+    "color": "#7c1d21",
+    "title": "Torino FC"
   },
   "ita_delfino_pescara": {
     "clubId": "ita_delfino_pescara",
@@ -2001,7 +2009,8 @@
     "crest": "ger_vfb_stuttgart.png",
     "color": "#da1830",
     "source": "thesportsdb",
-    "sourceRef": "133660"
+    "sourceRef": "133660",
+    "title": "VfB Stuttgart II"
   },
   "ger_vfl_wolfsburg": {
     "clubId": "ger_vfl_wolfsburg",
@@ -2088,7 +2097,8 @@
     "crest": "ger_fc_schalke_04.png",
     "color": "#0d5ea6",
     "source": "thesportsdb",
-    "sourceRef": "133661"
+    "sourceRef": "133661",
+    "title": "FC Schalke 04 II"
   },
   "ger_hertha_bsc": {
     "clubId": "ger_hertha_bsc",
@@ -2267,7 +2277,8 @@
     "crest": "ger_rot_weiss_essen.png",
     "color": "#e60003",
     "source": "wikipedia:en",
-    "sourceRef": "Logo of Rot-Weiss Essen.svg"
+    "sourceRef": "Logo of Rot-Weiss Essen.svg",
+    "title": "Rot-Weiss Essen"
   },
   "ger_tsv_1860_munchen": {
     "clubId": "ger_tsv_1860_munchen",
@@ -2357,7 +2368,8 @@
     "crest": "ger_1899_hoffenheim_ii.png",
     "color": "#105eaa",
     "source": "thesportsdb",
-    "sourceRef": "133657"
+    "sourceRef": "133657",
+    "title": "TSG 1899 Hoffenheim II"
   },
   "ger_1_fc_saarbrucken": {
     "clubId": "ger_1_fc_saarbrucken",
@@ -2648,7 +2660,8 @@
     "crest": "isr_maccabi_petah_tikva.png",
     "source": "thesportsdb",
     "sourceRef": "135998",
-    "color": "#003265"
+    "color": "#003265",
+    "title": "Maccabi Petah Tikva F.C."
   },
   "isr_hapoel_kfar_saba": {
     "clubId": "isr_hapoel_kfar_saba",
@@ -2687,7 +2700,8 @@
     "tried": true,
     "retried": true,
     "crest": "isr_hapoel_umm_al_fahm.png",
-    "color": "#ec332a"
+    "color": "#ec332a",
+    "title": "Hapoel Umm al-Fahm F.C."
   },
   "isr_maccabi_herzliya": {
     "clubId": "isr_maccabi_herzliya",
@@ -3134,7 +3148,8 @@
     "crest": "fra_rodez_af.png",
     "color": "#bd0b26",
     "source": "thesportsdb",
-    "sourceRef": "137652"
+    "sourceRef": "137652",
+    "title": "Rodez AF"
   },
   "fra_as_nancy_lorraine": {
     "clubId": "fra_as_nancy_lorraine",
@@ -3475,7 +3490,8 @@
     "crest": "ned_sparta_rotterdam.png",
     "color": "#b5932c",
     "source": "thesportsdb",
-    "sourceRef": "133866"
+    "sourceRef": "133866",
+    "title": "Sparta Rotterdam"
   },
   "ned_psv": {
     "clubId": "ned_psv",
@@ -3483,7 +3499,8 @@
     "crest": "ned_psv.png",
     "source": "thesportsdb",
     "sourceRef": "133768",
-    "color": "#ba9754"
+    "color": "#ba9754",
+    "title": "PSV Eindhoven"
   },
   "ned_pec_zwolle": {
     "clubId": "ned_pec_zwolle",
@@ -3729,7 +3746,8 @@
     "crest": "tur_besiktas.png",
     "color": "#e30a17",
     "source": "thesportsdb",
-    "sourceRef": "133794"
+    "sourceRef": "133794",
+    "title": "Beşiktaş J.K."
   },
   "bel_royal_antwerp_fc": {
     "clubId": "bel_royal_antwerp_fc",
@@ -3737,7 +3755,8 @@
     "crest": "bel_royal_antwerp_fc.png",
     "color": "#de0e22",
     "source": "thesportsdb",
-    "sourceRef": "134245"
+    "sourceRef": "134245",
+    "title": "Royal Antwerp FC"
   },
   "bel_union_saint_gilloise": {
     "clubId": "bel_union_saint_gilloise",
@@ -4043,7 +4062,8 @@
     "crest": "gre_atromitos.png",
     "color": "#002d61",
     "source": "thesportsdb",
-    "sourceRef": "133744"
+    "sourceRef": "133744",
+    "title": "Atromitos F.C."
   },
   "gre_panathinaikos": {
     "clubId": "gre_panathinaikos",
@@ -4051,7 +4071,8 @@
     "crest": "gre_panathinaikos.png",
     "color": "#00703c",
     "source": "thesportsdb",
-    "sourceRef": "133746"
+    "sourceRef": "133746",
+    "title": "Panathinaikos F.C."
   },
   "gre_aek_athen": {
     "clubId": "gre_aek_athen",
@@ -4507,5 +4528,47 @@
   },
   "cyp_olympiakos_nicosia": {
     "title": "Olympiakos Nicosia"
+  },
+  "ukr_bukovyna_chernivtsi": {
+    "title": "FSC Bukovyna Chernivtsi"
+  },
+  "ukr_chornomorets_odesa": {
+    "title": "FC Chornomorets Odesa"
+  },
+  "cze_bohemians_1905": {
+    "title": "Bohemians 1905"
+  },
+  "cze_hradec_kralove": {
+    "title": "FC Hradec Králové"
+  },
+  "cro_lokomotiva_zagreb": {
+    "title": "NK Lokomotiva Zagreb"
+  },
+  "den_ac_horsens": {
+    "title": "AC Horsens"
+  },
+  "nor_brann": {
+    "title": "SK Brann"
+  },
+  "nor_fredrikstad": {
+    "title": "Fredrikstad FK"
+  },
+  "swe_elfsborg": {
+    "title": "IF Elfsborg"
+  },
+  "swe_gais": {
+    "title": "GAIS"
+  },
+  "pol_legia_warsaw": {
+    "title": "Legia Warsaw"
+  },
+  "pol_motor_lublin": {
+    "title": "Motor Lublin"
+  },
+  "rou_otelul_galati": {
+    "title": "ASC Oțelul Galați"
+  },
+  "rou_petrolul_ploiesti": {
+    "title": "FC Petrolul Ploiești"
   }
 }
