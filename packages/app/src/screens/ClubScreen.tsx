@@ -57,7 +57,8 @@ export function ClubScreen() {
         <button aria-pressed={tab === 'table'} onClick={() => setTab('table')}>{t('club.table')}</button>
         <button aria-pressed={tab === 'squad'} onClick={() => setTab('squad')}>{t('club.squad')}</button>
         <button aria-pressed={tab === 'scorers'} onClick={() => setTab('scorers')}>{t('club.scorers')}</button>
-        {europeanRun(state) && (
+        {/* Europe is there whether or not his own club is in it: he wants to follow it. */}
+        {Object.keys(state.world.europe ?? {}).length > 0 && (
           <button aria-pressed={tab === 'europe'} onClick={() => setTab('europe')}>{t('competition.europe')}</button>
         )}
       </div>
@@ -94,6 +95,49 @@ function europeanRun(state: CareerState): EuroState | null {
  * group, and look at either the table or that group's results. The knockout bracket is
  * its own view. Nothing is stacked into one endless scroll.
  */
+/**
+ * One fixture, written the way a results page writes it: both clubs by name, the
+ * score in the middle, and on a second leg the first leg in brackets so the tie makes
+ * sense without scrolling back up.
+ */
+function TieRow({
+  homeClubId,
+  awayClubId,
+  result,
+  label,
+  note,
+}: {
+  homeClubId: string;
+  awayClubId: string;
+  result?: [number, number] | undefined;
+  label?: string;
+  note?: string;
+}) {
+  const lang = useLang((x) => x.lang);
+  const state = useGame((s) => s.state)!;
+  const mine = state.player.clubId;
+  const home = club(state, homeClubId);
+  const away = club(state, awayClubId);
+
+  return (
+    <li className="list-item tie-row">
+      {label && <span className="chip tie-stage">{label}</span>}
+      <span className={`tie-side tie-home ${homeClubId === mine ? 'me' : ''}`}>
+        <span className="tie-name">{clubShortName(home, lang) || homeClubId}</span>
+        <Crest club={home} size="sm" />
+      </span>
+      <span className="tie-score num">
+        {result ? `${result[0]}\u2013${result[1]}` : '–'}
+        {note && <small className="tie-note">{note}</small>}
+      </span>
+      <span className={`tie-side tie-away ${awayClubId === mine ? 'me' : ''}`}>
+        <Crest club={away} size="sm" />
+        <span className="tie-name">{clubShortName(away, lang) || awayClubId}</span>
+      </span>
+    </li>
+  );
+}
+
 function EuropeanRun() {
   const t = useT();
   const lang = useLang((x) => x.lang);
@@ -129,7 +173,28 @@ function EuropeanRun() {
         <button aria-pressed={view === 'knockout'} onClick={() => setView('knockout')}>{t('competition.knockout')}</button>
       </div>
 
-      {view !== 'knockout' && competition.groups.length > 0 && (
+      {competition.stage === 'qualifying' && (
+        <Card title={t('europe.qualifying')}>
+          {(competition.qualifying?.ties ?? []).length === 0 ? (
+            <Empty>{t('europe.notDrawn')}</Empty>
+          ) : (
+            <ul className="list">
+              {(competition.qualifying?.ties ?? []).map((tie, i) => (
+                <TieRow
+                  key={`q-${i}`}
+                  label={t('europe.round', { round: tie.round })}
+                  homeClubId={tie.homeClubId}
+                  awayClubId={tie.awayClubId}
+                  result={tie.result}
+                />
+              ))}
+            </ul>
+          )}
+          <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{t('europe.qualifyingHint')}</p>
+        </Card>
+      )}
+
+      {competition.stage !== 'qualifying' && view !== 'knockout' && competition.groups.length > 0 && (
         <div className="row wrap" style={{ gap: 6 }}>
           {competition.groups.map((entry) => (
             <button
@@ -145,7 +210,7 @@ function EuropeanRun() {
         </div>
       )}
 
-      {view === 'table' && group && (
+      {competition.stage !== 'qualifying' && view === 'table' && group && (
         <Card title={t('competition.group', { letter: group.letter })}>
           <table className="tbl">
             <thead>
@@ -181,46 +246,56 @@ function EuropeanRun() {
         </Card>
       )}
 
-      {view === 'results' && group && (
+      {competition.stage !== 'qualifying' && view === 'results' && group && (
         <Card title={t('competition.group', { letter: group.letter })}>
           <ul className="list">
             {competition.fixtures
               .filter((fixture) => group.clubIds.includes(fixture.homeClubId))
               .sort((a, b) => a.week - b.week)
               .map((fixture, i) => (
-                <li key={`${group.letter}-${i}`} className="list-item score-row">
-                  <span className="faint num" style={{ fontSize: 11, minWidth: 24 }}>{fixture.week}</span>
-                  <span className="grow row" style={{ gap: 6, fontSize: 12.5, minWidth: 0 }}>
-                    <Crest club={club(state, fixture.homeClubId)} size="sm" />
-                    <span className="num" style={{ minWidth: 34, textAlign: 'center' }}>
-                      {fixture.result ? `${fixture.result[0]}\u2013${fixture.result[1]}` : '–'}
-                    </span>
-                    <Crest club={club(state, fixture.awayClubId)} size="sm" />
-                  </span>
-                </li>
+                <TieRow
+                  key={`${group.letter}-${i}`}
+                  label={`${fixture.week}`}
+                  homeClubId={fixture.homeClubId}
+                  awayClubId={fixture.awayClubId}
+                  result={fixture.result}
+                />
               ))}
           </ul>
         </Card>
       )}
 
-      {view === 'knockout' && (
+      {competition.stage !== 'qualifying' && view === 'knockout' && (
         <Card title={t('competition.knockout')}>
           {competition.ties.length === 0 ? (
             <Empty>{t('europe.notDrawn')}</Empty>
           ) : (
             <ul className="list">
-              {competition.ties.map((tie, i) => (
-                <li key={`${tie.stage}-${i}`} className="list-item score-row">
-                  <span className="chip">{t(`competition.stage.${tie.stage}`)}</span>
-                  <span className="grow row" style={{ gap: 6, fontSize: 12.5, minWidth: 0 }}>
-                    <Crest club={club(state, tie.homeClubId)} size="sm" />
-                    <span className="num" style={{ minWidth: 34, textAlign: 'center' }}>
-                      {tie.result ? `${tie.result[0]}\u2013${tie.result[1]}` : '–'}
-                    </span>
-                    <Crest club={club(state, tie.awayClubId)} size="sm" />
-                  </span>
-                </li>
-              ))}
+              {competition.ties.map((tie, i) => {
+                // On a second leg, show what happened in the first one.
+                const firstLeg = tie.leg === 2
+                  ? competition.ties.find(
+                      (other) =>
+                        other.stage === tie.stage &&
+                        other.leg === 1 &&
+                        other.homeClubId === tie.awayClubId &&
+                        other.awayClubId === tie.homeClubId,
+                    )
+                  : undefined;
+                const note = firstLeg?.result
+                  ? t('europe.firstLeg', { home: firstLeg.result[1], away: firstLeg.result[0] })
+                  : undefined;
+                return (
+                  <TieRow
+                    key={`${tie.stage}-${i}`}
+                    label={t(`competition.stage.${tie.stage}`)}
+                    homeClubId={tie.homeClubId}
+                    awayClubId={tie.awayClubId}
+                    result={tie.result}
+                    note={note}
+                  />
+                );
+              })}
             </ul>
           )}
           {competition.winner && (

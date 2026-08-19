@@ -1364,4 +1364,12 @@ export const en: Record<string, string> = {
   'inbox.europe.qualified.uecl': 'You are through to the Conference League group stage.',
   'inbox.europe.knockedOut': 'Out in qualifying. The European season is over before the league has started.',
   'news.europe.qualified': '{club} come through qualifying.',
+
+'europe.qualifying': 'Qualifying',
+  'europe.round': 'Round {round}',
+  'europe.qualifyingHint': 'Single ties in the summer. The survivors take the places left in the groups.',
+
+  'europe.firstLeg': '(first leg {home}\u2013{away})',
+
+  'social.again': 'in {weeks} weeks',
 };

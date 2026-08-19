@@ -1366,4 +1366,12 @@ export const he: Record<string, string> = {
   'inbox.europe.qualified.uecl': 'עברתם לשלב הבתים של ליגת הכנס.',
   'inbox.europe.knockedOut': 'נפילה במוקדמות. העונה האירופית נגמרה עוד לפני שהליגה התחילה.',
   'news.europe.qualified': '{club} עוברת את המוקדמות.',
+
+'europe.qualifying': 'מוקדמות',
+  'europe.round': 'סיבוב {round}',
+  'europe.qualifyingHint': 'משחק יחיד בקיץ. מי שעובר לוקח את המקומות שנשארו בבתים.',
+
+  'europe.firstLeg': '(משחק ראשון {home}\u2013{away})',
+
+  'social.again': 'בעוד {weeks} שבועות',
 };

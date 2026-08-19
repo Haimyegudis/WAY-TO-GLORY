@@ -589,6 +589,8 @@ export interface CareerState {
   relationships: Relationships;
   /** Conversations and gestures cost time: a small budget refreshed every week. */
   socialActions: { used: number; perWeek: number };
+  /** Absolute week each conversation becomes available again: you cannot ask twice. */
+  actionCooldowns?: Record<string, number>;
   lastResult: DecisionResult | null;
   world: WorldState;
   nationalTeam: NationalTeamState;

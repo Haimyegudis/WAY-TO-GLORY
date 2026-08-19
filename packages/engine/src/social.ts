@@ -168,6 +168,52 @@ export interface PlayerActionDef {
   available: (state: CareerState) => boolean;
 }
 
+/**
+ * How long before he can do it again.
+ *
+ * Asking the manager for a run of games is a conversation you have once and then live
+ * with; apologising twice in a fortnight is not an apology. Without this the whole
+ * screen is a button you press twenty times to farm relationship points, which is not
+ * a game, it is a spreadsheet with a bug.
+ */
+const ACTION_COOLDOWN_WEEKS: Partial<Record<PlayerActionId, number>> = {
+  askManagerTrust: 16,
+  askManagerFeedback: 8,
+  apologiseManager: 12,
+  acceptBenchRole: 20,
+  demandPlayingTime: 20,
+  requestTransferTalk: 24,
+  thankFans: 8,
+  admitBadForm: 14,
+  apologiseFans: 12,
+  signAutographs: 6,
+  teamDinner: 12,
+  extraTrainingWithTeammates: 8,
+  apologiseTeammates: 12,
+  meetBoard: 24,
+  praiseClubInMedia: 10,
+  quietWeek: 4,
+};
+
+const DEFAULT_COOLDOWN_WEEKS = 10;
+
+function absoluteWeek(state: CareerState): number {
+  return state.world.season * 52 + state.world.week;
+}
+
+/** True when he has done this recently enough that doing it again would be noise. */
+export function actionOnCooldown(state: CareerState, id: PlayerActionId): boolean {
+  const until = state.actionCooldowns?.[id];
+  return until !== undefined && absoluteWeek(state) < until;
+}
+
+/** Weeks until he can do it again, for the screen to show. */
+export function actionCooldownLeft(state: CareerState, id: PlayerActionId): number {
+  const until = state.actionCooldowns?.[id];
+  if (until === undefined) return 0;
+  return Math.max(0, until - absoluteWeek(state));
+}
+
 const hasClub = (state: CareerState) => state.player.clubId !== null;
 
 export const PLAYER_ACTIONS: PlayerActionDef[] = [
@@ -246,7 +292,9 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
 export function availableActions(state: CareerState): PlayerActionDef[] {
   if (state.retired) return [];
   const left = state.socialActions.perWeek - state.socialActions.used;
-  return PLAYER_ACTIONS.filter((action) => action.available(state) && action.cost <= left);
+  return PLAYER_ACTIONS.filter(
+    (action) => action.available(state) && action.cost <= left && !actionOnCooldown(state, action.id),
+  );
 }
 
 /**
@@ -257,7 +305,7 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
   const def = PLAYER_ACTIONS.find((a) => a.id === id);
   const changes: AppliedChange[] = [];
   const consequences: ConsequenceOutcome[] = [];
-  if (!def || !def.available(state)) return { changes, consequences };
+  if (!def || !def.available(state) || actionOnCooldown(state, id)) return { changes, consequences };
 
   const player = state.player;
   const rel = state.relationships;
@@ -422,6 +470,9 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
   track(changes, 'change.form', formBefore, player.form);
 
   state.socialActions.used += def.cost;
+  // And that is that for a while.
+  state.actionCooldowns = state.actionCooldowns ?? {};
+  state.actionCooldowns[id] = absoluteWeek(state) + (ACTION_COOLDOWN_WEEKS[id] ?? DEFAULT_COOLDOWN_WEEKS);
   consequences.push(...evaluateConsequences(rng, state));
 
   return { changes, consequences, narrativeKey };

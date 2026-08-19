@@ -1,6 +1,7 @@
 import { relationshipLabel, type PlayerActionId } from '@fc/engine';
 import { useT } from '../i18n/index.js';
 import { availableActions, useGame } from '../state/store.js';
+import { PLAYER_ACTIONS, actionCooldownLeft } from '@fc/engine';
 import { Card, Empty, Meter } from '../components/ui.js';
 
 const CATEGORY_ORDER = ['manager', 'teammates', 'fans', 'board', 'personal'] as const;
@@ -42,26 +43,38 @@ export function SocialScreen() {
       {left <= 0 && <Empty>{t('social.noneLeft')}</Empty>}
 
       {CATEGORY_ORDER.map((category) => {
-        const inCategory = actions.filter((a) => a.category === category);
+        // Everything he could do, with the ones he has just done shown as unavailable
+        // rather than hidden - so he can see that he already had that conversation.
+        const inCategory = PLAYER_ACTIONS.filter((a) => a.category === category);
         if (inCategory.length === 0) return null;
+        const openIds = new Set(actions.map((a) => a.id));
         return (
           <Card key={category} title={t(`social.cat.${category}`)}>
             <div className="stack" style={{ gap: 8 }}>
-              {inCategory.map((action) => (
-                <button
-                  key={action.id}
-                  className="option"
-                  onClick={() => runAction(action.id as PlayerActionId)}
-                >
-                  <div className="row-between">
-                    <span style={{ fontSize: 14.5, fontWeight: 600 }}>{t(`action.${action.id}`)}</span>
-                    {action.riskKey && <span className={`risk ${riskClass(action.riskKey)}`}>{t(action.riskKey)}</span>}
-                  </div>
-                  <p className="faint" style={{ fontSize: 12, marginBlockStart: 4 }}>
-                    {t(`action.${action.id}.desc`)}
-                  </p>
-                </button>
-              ))}
+              {inCategory.map((action) => {
+                const weeksLeft = actionCooldownLeft(state, action.id);
+                const open = openIds.has(action.id);
+                return (
+                  <button
+                    key={action.id}
+                    className="option"
+                    disabled={!open}
+                    onClick={() => open && runAction(action.id as PlayerActionId)}
+                  >
+                    <div className="row-between">
+                      <span style={{ fontSize: 14.5, fontWeight: 600 }}>{t(`action.${action.id}`)}</span>
+                      {weeksLeft > 0 ? (
+                        <span className="chip">{t('social.again', { weeks: weeksLeft })}</span>
+                      ) : (
+                        action.riskKey && <span className={`risk ${riskClass(action.riskKey)}`}>{t(action.riskKey)}</span>
+                      )}
+                    </div>
+                    <p className="faint" style={{ fontSize: 12, marginBlockStart: 4 }}>
+                      {t(`action.${action.id}.desc`)}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </Card>
         );
