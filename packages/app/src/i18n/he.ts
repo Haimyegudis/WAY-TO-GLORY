@@ -1415,4 +1415,15 @@ export const he: Record<string, string> = {
   'settings.sound.on': 'דלוק',
   'settings.sound.off': 'כבוי',
   'settings.sound.hint': 'שיר הנושא במסכי הפתיחה, לופ שקט יותר לאורך העונה, וקהל בזמן משחק.',
+
+'home.careers': 'הקריירות שלך',
+  'home.saveLine': 'גיל {age} · ציון {ovr}',
+  'home.retired': 'פרש',
+  'action.deleteSave': 'מחיקת קריירה',
+  'action.confirmDelete': 'מחק',
+  'settings.saveNow': 'שמור עכשיו',
+  'settings.saved': 'נשמר.',
+  'settings.saves': 'קריירות במכשיר הזה',
+
+  'settings.savesHint': 'המשחק נשמר לבד כל שבוע. זה שומר עכשיו, וכל הקריירות במכשיר מופיעות במסך הפתיחה.',
 };

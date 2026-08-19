@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LANG_LABEL, useLang, useT, type Lang } from '../i18n/index.js';
+import { LANG_LABEL, formatSeason, useLang, useT, type Lang } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 
 /**
@@ -11,10 +11,12 @@ export function Menu() {
   const t = useT();
   const lang = useLang((s) => s.lang);
   const setLang = useLang((s) => s.setLang);
-  const hasSave = useGame((s) => s.hasSave);
+  const saves = useGame((s) => s.saves);
   const startCreation = useGame((s) => s.startCreation);
   const loadSave = useGame((s) => s.loadSave);
+  const deleteSave = useGame((s) => s.deleteSave);
   const [artFailed, setArtFailed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   return (
     <>
@@ -69,12 +71,50 @@ export function Menu() {
           )}
 
           <div className="stack">
-            {hasSave && (
-              <button className="btn btn-amber btn-block" onClick={() => void loadSave()}>
-                {t('action.loadCareer')}
-              </button>
+            {saves.length > 0 && (
+              <div className="save-list">
+                <p className="eyebrow" style={{ marginBlockEnd: 6 }}>{t('home.careers')}</p>
+                {saves.map((save) => (
+                  <div key={save.id} className="save-row">
+                    <button className="save-open" onClick={() => void loadSave(save.id)}>
+                      <span className="save-name">
+                        {save.playerName}
+                        {save.retired && <span className="chip"> {t('home.retired')}</span>}
+                      </span>
+                      <span className="save-meta faint">
+                        {save.clubName || t('hub.freeAgent')} · {formatSeason(save.season)} ·{' '}
+                        {t('home.saveLine', { age: save.age, ovr: save.ovr })}
+                      </span>
+                    </button>
+                    {confirmDelete === save.id ? (
+                      <span className="row" style={{ gap: 6 }}>
+                        <button
+                          className="save-delete danger"
+                          onClick={() => {
+                            void deleteSave(save.id);
+                            setConfirmDelete(null);
+                          }}
+                        >
+                          {t('action.confirmDelete')}
+                        </button>
+                        <button className="save-delete" onClick={() => setConfirmDelete(null)}>
+                          {t('action.cancel')}
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        className="save-delete"
+                        aria-label={t('action.deleteSave')}
+                        onClick={() => setConfirmDelete(save.id)}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
-            <button className={`btn btn-block ${hasSave ? '' : 'btn-amber'}`} onClick={startCreation}>
+            <button className={`btn btn-block ${saves.length > 0 ? '' : 'btn-amber'}`} onClick={startCreation}>
               {t('action.newCareer')}
             </button>
           </div>

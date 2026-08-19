@@ -1,5 +1,13 @@
 import { create } from 'zustand';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import {
+  deleteSave as deleteSaveSlot,
+  listSaves,
+  migrateLegacySave,
+  newSaveId,
+  readSave,
+  writeSave,
+  type SaveSummary,
+} from './saves.js';
 import {
   acceptOffer as engineAcceptOffer,
   actionsAvailableNow,
@@ -8,6 +16,7 @@ import {
   answerOffer as engineAnswerOffer,
   doPlayerAction,
   createCareer,
+  currentOvr,
   deserialize,
   getAcademyOffers,
   indexPack,
@@ -30,8 +39,6 @@ import {
 } from '@fc/engine';
 import packJson from '@fc/data/pack';
 
-const SAVE_KEY = 'fc.career.v1';
-
 export type Screen =
   | 'hub'
   | 'club'
@@ -52,6 +59,10 @@ interface GameStore {
   index: PackIndex | null;
   academyOffers: AcademyOffer[];
   hasSave: boolean;
+  /** Every career on this device, newest first. */
+  saves: SaveSummary[];
+  /** The slot being played into right now. */
+  activeSaveId: string | null;
   busy: boolean;
   toast: string | null;
   lastTick: TickResult['stopped'] | null;
@@ -69,8 +80,9 @@ interface GameStore {
   cancelCreation: () => void;
   createPlayer: (input: CreateCareerInput) => void;
   chooseAcademy: (clubId: string) => void;
-  loadSave: () => Promise<void>;
-  deleteSave: () => Promise<void>;
+  loadSave: (id?: string) => Promise<void>;
+  deleteSave: (id?: string) => Promise<void>;
+  refreshSaves: () => Promise<void>;
   advance: (weeks?: number) => void;
   decide: (decisionId: string, optionId: string) => void;
   answerOffer: (decisionId: string, offerId: string | null) => void;
@@ -92,9 +104,21 @@ interface GameStore {
 
 const pack = packJson as unknown as DataPack;
 
-function persist(state: CareerState): void {
-  // Saving is fire and forget: a dropped write costs at most one week of play.
-  void idbSet(SAVE_KEY, serialize(state));
+/**
+ * Writes the career into its own slot, along with the summary the title screen lists.
+ * Fire and forget: a dropped write costs at most one week of play.
+ */
+function persistTo(id: string, state: CareerState, onSaved?: (saves: SaveSummary[]) => void): void {
+  const club = state.player.clubId ? state.world.clubs[state.player.clubId] : null;
+  void writeSave(id, state, {
+    playerName: `${state.player.firstName} ${state.player.lastName}`,
+    clubName: club?.name ?? '',
+    season: state.world.season,
+    week: state.world.week,
+    age: state.world.season - state.player.birthYear,
+    ovr: currentOvr(state),
+    retired: Boolean(state.retired),
+  }).then((saves) => onSaved?.(saves));
 }
 
 export const useGame = create<GameStore>((set, get) => ({
@@ -104,6 +128,8 @@ export const useGame = create<GameStore>((set, get) => ({
   index: null,
   academyOffers: [],
   hasSave: false,
+  saves: [],
+  activeSaveId: null,
   busy: false,
   toast: null,
   lastTick: null,
@@ -112,8 +138,14 @@ export const useGame = create<GameStore>((set, get) => ({
   openMessageId: null,
 
   async boot() {
-    const raw = await idbGet<string>(SAVE_KEY);
-    set({ hasSave: typeof raw === 'string', phase: 'menu' });
+    await migrateLegacySave();
+    const saves = await listSaves();
+    set({ saves, hasSave: saves.length > 0, phase: 'menu' });
+  },
+
+  async refreshSaves() {
+    const saves = await listSaves();
+    set({ saves, hasSave: saves.length > 0 });
   },
 
   goto(screen) {
@@ -131,27 +163,47 @@ export const useGame = create<GameStore>((set, get) => ({
   createPlayer(input) {
     const { state, index } = createCareer(pack, input);
     const offers = getAcademyOffers(state, index);
-    set({ state, index, academyOffers: offers, phase: 'academy' });
+    // A new career takes a new slot, so it never writes over the last one.
+    set({ state, index, academyOffers: offers, phase: 'academy', activeSaveId: newSaveId() });
   },
 
   chooseAcademy(clubId) {
-    const { state, index } = get();
+    const { state, index, activeSaveId } = get();
     if (!state || !index) return;
     joinClub(state, index, clubId, { asAcademy: true });
-    persist(state);
-    set({ state: { ...state }, phase: 'playing', screen: 'hub', hasSave: true });
+    const id = activeSaveId ?? newSaveId();
+    persistTo(id, state, (saves) => set({ saves }));
+    set({ state: { ...state }, phase: 'playing', screen: 'hub', hasSave: true, activeSaveId: id });
   },
 
-  async loadSave() {
-    const raw = await idbGet<string>(SAVE_KEY);
-    if (!raw) return;
-    const state = deserialize(raw);
-    set({ state, index: indexPack(pack), phase: 'playing', screen: 'hub' });
+  async loadSave(id) {
+    const saves = await listSaves();
+    const target = id ?? saves[0]?.id;
+    if (!target) return;
+    const state = await readSave(target);
+    if (!state) return;
+    set({
+      state,
+      index: indexPack(pack),
+      phase: 'playing',
+      screen: 'hub',
+      activeSaveId: target,
+      saves,
+      hasSave: saves.length > 0,
+    });
   },
 
-  async deleteSave() {
-    await idbDel(SAVE_KEY);
-    set({ state: null, hasSave: false, phase: 'menu' });
+  async deleteSave(id) {
+    const { activeSaveId } = get();
+    const target = id ?? activeSaveId;
+    if (!target) return;
+    const saves = await deleteSaveSlot(target);
+    const wasActive = target === activeSaveId;
+    set({
+      saves,
+      hasSave: saves.length > 0,
+      ...(wasActive ? { state: null, activeSaveId: null, phase: 'menu' as const } : {}),
+    });
   },
 
   advance(weeks = 1) {
@@ -169,7 +221,8 @@ export const useGame = create<GameStore>((set, get) => ({
       if (result.stopped !== 'week') break;
     }
 
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({
       state: { ...state },
       busy: false,
@@ -194,7 +247,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const result = resolveDecision(rng, state, decisionId, optionId, pack.events);
     state.rngState = rng.getState();
     if (retiring && optionId === 'retire') engineRetire(state);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, result });
   },
 
@@ -202,7 +256,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state, index } = get();
     if (!state || !index) return;
     const result = engineAnswerOffer(state, index, decisionId, offerId);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, result });
   },
 
@@ -210,7 +265,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     const result = engineAnswerAgent(state, decisionId, agentId);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, result });
   },
 
@@ -218,7 +274,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     const result = doPlayerAction(state, id);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, result });
   },
 
@@ -232,7 +289,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const offer = state.transferOffers.find((o) => o.id === offerId);
     const club = offer ? state.world.clubs[offer.clubId] : undefined;
     engineAcceptOffer(state, index, offerId);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, toast: club ? club.name : null });
   },
 
@@ -240,7 +298,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     engineSignAgent(state, agentId);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state } });
   },
 
@@ -248,7 +307,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     engineSetTraining(state, plan);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state } });
   },
 
@@ -256,7 +316,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     engineRetire(state);
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, screen: 'career' });
   },
 
@@ -271,7 +332,8 @@ export const useGame = create<GameStore>((set, get) => ({
       const message = state.inbox.find((m) => m.id === id);
       if (message && !message.read) {
         message.read = true;
-        persist(state);
+        const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
         set({ state: { ...state } });
       }
     }
@@ -282,7 +344,8 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return;
     for (const message of state.inbox) message.read = true;
-    persist(state);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state } });
   },
 
@@ -292,7 +355,19 @@ export const useGame = create<GameStore>((set, get) => ({
 
   async save() {
     const { state } = get();
-    if (state) await idbSet(SAVE_KEY, serialize(state));
+    const { activeSaveId } = get();
+    if (!state || !activeSaveId) return;
+    const club = state.player.clubId ? state.world.clubs[state.player.clubId] : null;
+    const saves = await writeSave(activeSaveId, state, {
+      playerName: `${state.player.firstName} ${state.player.lastName}`,
+      clubName: club?.name ?? '',
+      season: state.world.season,
+      week: state.world.week,
+      age: state.world.season - state.player.birthYear,
+      ovr: currentOvr(state),
+      retired: Boolean(state.retired),
+    });
+    set({ saves });
   },
 }));
 

@@ -1413,4 +1413,15 @@ export const en: Record<string, string> = {
   'settings.sound.on': 'On',
   'settings.sound.off': 'Off',
   'settings.sound.hint': 'The theme on the opening screens, a quieter loop through the season, and the crowd during a match.',
+
+'home.careers': 'Your careers',
+  'home.saveLine': 'age {age} · OVR {ovr}',
+  'home.retired': 'retired',
+  'action.deleteSave': 'Delete career',
+  'action.confirmDelete': 'Delete',
+  'settings.saveNow': 'Save now',
+  'settings.saved': 'Saved.',
+  'settings.saves': 'Careers on this device',
+
+  'settings.savesHint': 'The game saves itself every week. This writes it right now, and every career on this device is listed on the title screen.',
 };

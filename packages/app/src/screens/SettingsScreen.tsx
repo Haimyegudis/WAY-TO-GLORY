@@ -8,6 +8,8 @@ import { CloudPanel } from '../cloud/CloudPanel.js';
 
 export function SettingsScreen() {
   const [soundOn, setSoundOn] = useMusicSetting();
+  const save = useGame((s) => s.save);
+  const showToast = useGame((s) => s.showToast);
   const t = useT();
   const lang = useLang((s) => s.lang);
   const setLang = useLang((s) => s.setLang);
@@ -44,6 +46,13 @@ export function SettingsScreen() {
             </button>
           ))}
         </div>
+      </Card>
+
+      <Card title={t('settings.saves')}>
+        <button className="btn btn-block" onClick={() => { void save(); showToast(t('settings.saved')); }}>
+          {t('settings.saveNow')}
+        </button>
+        <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{t('settings.savesHint')}</p>
       </Card>
 
       <Card title={t('settings.sound')}>
