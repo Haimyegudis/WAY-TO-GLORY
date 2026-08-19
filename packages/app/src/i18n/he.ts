@@ -12,6 +12,7 @@ export const he: Record<string, string> = {
   'action.continueTo': 'ממשיכים',
   'action.doneWithMatch': 'מסך ראשי',
   'action.startMatch': 'התחל משחק',
+  'action.backAgainToExit': 'עוד החלקה אחורה כדי לצאת מהמשחק',
   'action.back': 'חזרה',
   'action.next': 'הבא',
   'action.confirm': 'אישור',
@@ -62,6 +63,7 @@ export const he: Record<string, string> = {
 
   // ---------------------------------------------------------------- academy
   'academy.title': 'בחירת אקדמיה',
+  'academy.changeDetails': 'לשנות מדינה, ליגה או פרטי שחקן',
   'academy.intro': 'חמישה מועדונים רוצים אותך. מועדון גדול יפתח אותך טוב יותר, אבל אולי לא ייתן לך לשחק.',
   'academy.development': 'איכות פיתוח',
   'academy.competition': 'תחרות על מקום',

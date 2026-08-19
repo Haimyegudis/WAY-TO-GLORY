@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame, type Screen } from './state/store.js';
 import { useT } from './i18n/index.js';
 import { Menu } from './screens/Menu.js';
@@ -64,9 +64,11 @@ export function App() {
   // The theme plays over the title screen and the making of a player, and stops when
   // the career starts.
   const music = <ThemeMusic playing={phase === 'menu' || phase === 'create' || phase === 'academy'} />;
-  if (phase === 'menu') return <>{music}<Menu /></>;
-  if (phase === 'create') return <>{music}<CreatePlayer /></>;
-  if (phase === 'academy') return <>{music}<AcademyChoice /></>;
+  // The toast has to exist before a career does: the back gesture says "again to leave"
+  // on the title screen and while a player is being made, and that has to be readable.
+  if (phase === 'menu') return <>{music}<Menu /><Toast /></>;
+  if (phase === 'create') return <>{music}<CreatePlayer /><Toast /></>;
+  if (phase === 'academy') return <>{music}<AcademyChoice /><Toast /></>;
   return <Game />;
 }
 
@@ -137,39 +139,105 @@ function Stadium({ dim }: { dim: number }) {
 }
 
 /**
- * The back gesture, which on a phone is a swipe from the edge and in a browser is the
- * arrow.
+ * The back gesture: a swipe from the edge on a phone, the arrow in a browser.
  *
- * Left alone it leaves the game entirely, which is a brutal thing to do to somebody four
- * seasons into a career. So the game keeps entries of its own on the history stack: the
- * gesture pops one, the game puts another back in the same breath, and the browser never
- * reaches the entry underneath - the one that would close the tab.
+ * Left alone it leaves the game, which is a brutal thing to do to somebody four seasons
+ * into a career - or six screens into making a player. So the game keeps an entry of its
+ * own on the history stack, the gesture pops it, and the game puts another back in the
+ * same breath, so the browser never reaches the entry underneath.
  *
- * Two are pushed on the way in rather than one, because a fast swipe on Android pops a
- * second before the handler has run and a single spare entry is not a buffer.
+ * The entry is only pushed once he has touched the screen, and this is the whole trick:
+ * Chrome marks history entries pushed before any interaction as skippable and the back
+ * gesture walks straight past them, which is exactly why the guard did nothing on the
+ * screen where a player is made. Once the document has been touched, the entries stand.
  *
- * What the gesture then means is one step back through the screens he came through, and
- * his own screen once that runs out. The one place it does nothing is a match in
- * progress: there is no tab that leads back to the pitch, so walking away from a live
- * game would strand him.
+ * What the gesture means, in order: whatever screen is open gets first refusal - a form
+ * with steps of its own steps back through them - then the screens he came through, then
+ * his own screen. Only when there is nowhere left to go does it mean leaving, and even
+ * then not on the first ask: the first one says so and the second one does it.
  */
+const EXIT_WINDOW = 2600;
+
 function useBackGesture(): void {
+  const t = useT();
+  const say = useRef(t);
+  say.current = t;
+
   useEffect(() => {
-    const spare = () => window.history.pushState({ game: true }, '');
-    spare();
-    spare();
-    const onPop = () => {
-      spare();
-      const game = useGame.getState();
-      // Nothing to go back to before a career has been started, and nothing to go back
-      // from while a match is being played: in both cases the gesture is swallowed.
-      if (game.phase !== 'playing') return;
-      const inTheMatch = game.liveMatchId !== null || game.state?.pendingHalfTime != null;
-      if (inTheMatch) return;
-      game.back();
+    let spares = 0;
+    let armedAt = 0;
+    let leaving = false;
+
+    const spare = () => {
+      window.history.pushState({ game: true }, '');
+      spares++;
     };
+    // One goes on straight away, and a second the moment he touches the screen. Both are
+    // needed: Chrome treats an entry pushed before any interaction as noise and walks
+    // past it on the way back, so the one that actually holds is the one pushed after a
+    // touch - and until he has touched anything, the one pushed at load is all there is.
+    spare();
+    let armed = false;
+    const arm = () => {
+      if (armed) return;
+      armed = true;
+      spare();
+    };
+    const touch = ['pointerdown', 'keydown', 'touchstart'] as const;
+    for (const event of touch) window.addEventListener(event, arm, { passive: true });
+
+    const onPop = () => {
+      if (leaving) return;
+      spares = Math.max(0, spares - 1);
+      const game = useGame.getState();
+
+      // The screen in front of him first: a form in the middle of its own steps.
+      if (game.backHandler?.()) {
+        spare();
+        armedAt = 0;
+        return;
+      }
+
+      // Then the way he came. A match is the one thing with no way back out of it.
+      const inTheMatch = game.liveMatchId !== null || game.state?.pendingHalfTime != null;
+      const canStepBack =
+        game.phase === 'playing' && !inTheMatch && (game.trail.length > 0 || game.screen !== 'hub');
+      if (canStepBack) {
+        spare();
+        game.back();
+        armedAt = 0;
+        return;
+      }
+
+      // Nowhere left to go. Say it once, and mean it the second time.
+      if (Date.now() - armedAt < EXIT_WINDOW) {
+        leaving = true;
+        game.showToast(null);
+        // Past every entry the game put on the stack and the one it was loaded on, which
+        // is what leaving actually means: installed on a phone, that closes the app. One
+        // step would only land on the entry the app itself occupies, and he would still
+        // be here.
+        window.history.go(-(spares + 1));
+        // Opened as a plain tab with nothing behind it, the browser cannot go anywhere
+        // and he is still on this screen, so the guard has to come back rather than
+        // leaving him with a gesture that does nothing for ever.
+        window.setTimeout(() => {
+          leaving = false;
+          armedAt = 0;
+          if (spares === 0) spare();
+        }, 600);
+        return;
+      }
+      armedAt = Date.now();
+      spare();
+      game.showToast(say.current('action.backAgainToExit'));
+    };
+
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      for (const event of touch) window.removeEventListener(event, arm);
+    };
   }, []);
 }
 

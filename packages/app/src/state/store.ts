@@ -125,6 +125,16 @@ interface GameStore {
   screen: Screen;
   /** The screens he came through, so the back gesture is a step and not an exit. */
   trail: Screen[];
+  /**
+   * A screen with steps of its own - making a player, say - claims the back gesture
+   * while it is open, and says whether it used it.
+   */
+  backHandler: (() => boolean) | null;
+  /**
+   * The player he described, kept after the career is rolled so that backing out of the
+   * club offers returns him to the form with every answer still in it.
+   */
+  draft: CreateCareerInput | null;
   state: CareerState | null;
   index: PackIndex | null;
   academyOffers: AcademyOffer[];
@@ -155,9 +165,12 @@ interface GameStore {
   goto: (screen: Screen) => void;
   /** One step back: the screen before this one, or his own screen. */
   back: () => void;
+  setBackHandler: (handler: (() => boolean) | null) => void;
   startCreation: () => void;
   cancelCreation: () => void;
   createPlayer: (input: CreateCareerInput) => void;
+  /** Back out of the club offers to the form that produced them, as he left it. */
+  reopenCreation: () => void;
   chooseAcademy: (clubId: string) => void;
   loadSave: (id?: string) => Promise<void>;
   deleteSave: (id?: string) => Promise<void>;
@@ -213,6 +226,8 @@ export const useGame = create<GameStore>((set, get) => ({
   phase: 'loading',
   screen: 'hub',
   trail: [],
+  backHandler: null,
+  draft: null,
   state: null,
   index: null,
   academyOffers: [],
@@ -267,6 +282,10 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ screen, trail: from === screen ? get().trail : [...get().trail, from].slice(-10) });
   },
 
+  setBackHandler(handler) {
+    set({ backHandler: handler });
+  },
+
   back() {
     const { screen, trail } = get();
     const previous = trail[trail.length - 1];
@@ -290,7 +309,13 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state, index } = createCareer(pack, input);
     const offers = getAcademyOffers(state, index);
     // A new career takes a new slot, so it never writes over the last one.
-    set({ state, index, academyOffers: offers, phase: 'academy', activeSaveId: newSaveId() });
+    set({ state, index, academyOffers: offers, phase: 'academy', activeSaveId: newSaveId(), draft: input });
+  },
+
+  reopenCreation() {
+    // Nothing has been written to a slot yet - that happens when he picks a club - so
+    // the career rolled for these offers is simply thrown away and described again.
+    set({ phase: 'create', state: null, academyOffers: [], activeSaveId: null });
   },
 
   chooseAcademy(clubId) {

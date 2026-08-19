@@ -12,6 +12,7 @@ export const en: Record<string, string> = {
   'action.continueTo': 'Play on',
   'action.doneWithMatch': 'Hub',
   'action.startMatch': 'Start match',
+  'action.backAgainToExit': 'Swipe back again to leave the game',
   'action.back': 'Back',
   'action.next': 'Next',
   'action.confirm': 'Confirm',
@@ -62,6 +63,7 @@ export const en: Record<string, string> = {
 
   // ---------------------------------------------------------------- academy
   'academy.title': 'Choose an academy',
+  'academy.changeDetails': 'Change country, league or player',
   'academy.intro': 'Five clubs want you. A big club develops you better but may never play you.',
   'academy.development': 'Development',
   'academy.competition': 'Competition for a place',

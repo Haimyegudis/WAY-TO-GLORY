@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { defaultShirtNumber, type Foot, type Position } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { countryName } from '../lib/names.js';
@@ -40,23 +40,42 @@ export function CreatePlayer() {
   const createPlayer = useGame((s) => s.createPlayer);
   const cancel = useGame((s) => s.cancelCreation);
 
-  const [step, setStep] = useState(0);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [birthCountry, setBirthCountry] = useState(pack.countries[0]?.code ?? 'ISR');
-  const [secondCitizenship, setSecondCitizenship] = useState('');
-  const [age, setAge] = useState(15);
-  const [heightCm, setHeightCm] = useState(178);
-  const [weightKg, setWeightKg] = useState(70);
-  const [foot, setFoot] = useState<Foot>('R');
-  const [primaryPos, setPrimaryPos] = useState<Position>('CAM');
-  const [secondaryPos, setSecondaryPos] = useState<Position | ''>('CM');
-  const [startCountry, setStartCountry] = useState(pack.countries[0]?.code ?? 'ISR');
-  const [seed, setSeed] = useState('');
+  // Coming back from the club offers, the form opens on the last step with every answer
+  // where he left it: he came back to change one thing, not to type it all again.
+  const draft = useGame((s) => s.draft);
+  const home = pack.countries[0]?.code ?? 'ISR';
+
+  const [step, setStep] = useState(draft ? STEPS.length - 1 : 0);
+  const [firstName, setFirstName] = useState(draft?.firstName ?? '');
+  const [lastName, setLastName] = useState(draft?.lastName ?? '');
+  const [birthCountry, setBirthCountry] = useState(draft?.birthCountry ?? home);
+  const [secondCitizenship, setSecondCitizenship] = useState(draft?.secondCitizenship ?? '');
+  const [age, setAge] = useState(draft?.age ?? 15);
+  const [heightCm, setHeightCm] = useState(draft?.heightCm ?? 178);
+  const [weightKg, setWeightKg] = useState(draft?.weightKg ?? 70);
+  const [foot, setFoot] = useState<Foot>(draft?.foot ?? 'R');
+  const [primaryPos, setPrimaryPos] = useState<Position>(draft?.primaryPos ?? 'CAM');
+  const [secondaryPos, setSecondaryPos] = useState<Position | ''>(draft?.secondaryPos?.[0] ?? 'CM');
+  const [startCountry, setStartCountry] = useState(draft?.startCountry ?? home);
+  const [seed, setSeed] = useState(draft?.seed !== undefined ? String(draft.seed) : '');
   const [picking, setPicking] = useState<'primary' | 'secondary'>('primary');
-  const [shirtNumber, setShirtNumber] = useState(10);
+  const [shirtNumber, setShirtNumber] = useState(draft?.shirtNumber ?? 10);
   /** Until he touches it, the number follows the position he picked. */
-  const [shirtTouched, setShirtTouched] = useState(false);
+  const [shirtTouched, setShirtTouched] = useState(draft?.shirtNumber !== undefined);
+
+  // The back gesture belongs to this form while it is open: it walks back through the
+  // steps, and only once he is at the first one does it mean anything else.
+  const setBackHandler = useGame((s) => s.setBackHandler);
+  const stepNow = useRef(step);
+  stepNow.current = step;
+  useEffect(() => {
+    setBackHandler(() => {
+      if (stepNow.current === 0) return false;
+      setStep(stepNow.current - 1);
+      return true;
+    });
+    return () => setBackHandler(null);
+  }, [setBackHandler]);
 
   const canAdvance = step !== 0 || (firstName.trim().length > 0 && lastName.trim().length > 0);
 

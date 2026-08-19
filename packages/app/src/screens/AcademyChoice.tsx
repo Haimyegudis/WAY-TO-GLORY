@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName } from '../lib/names.js';
 import { clubName } from '../lib/club.js';
@@ -10,7 +11,20 @@ export function AcademyChoice() {
   const state = useGame((s) => s.state)!;
   const offers = useGame((s) => s.academyOffers);
   const choose = useGame((s) => s.chooseAcademy);
+  const reopenCreation = useGame((s) => s.reopenCreation);
+  const setBackHandler = useGame((s) => s.setBackHandler);
   const pack = getPack();
+
+  // These offers are the country, the league and the player he described. Going back is
+  // how he changes any of it, so the gesture returns to the form rather than meaning
+  // nothing here - nothing has been saved yet, so there is nothing to lose by it.
+  useEffect(() => {
+    setBackHandler(() => {
+      reopenCreation();
+      return true;
+    });
+    return () => setBackHandler(null);
+  }, [setBackHandler, reopenCreation]);
 
   const competition = (id: string) => competitionLabel(id, pack, lang, t);
 
@@ -24,6 +38,7 @@ export function AcademyChoice() {
       <div className="screen stack" style={{ paddingBottom: 40 }}>
         <header>
           <p className="eyebrow" dir="ltr">2025 / 26</p>
+          <button className="eyebrow" onClick={reopenCreation}>← {t('academy.changeDetails')}</button>
           <h1 className="title">{t('academy.title')}</h1>
           <p className="muted" style={{ marginBlockStart: 8, fontSize: 13.5 }}>{t('academy.intro')}</p>
         </header>
