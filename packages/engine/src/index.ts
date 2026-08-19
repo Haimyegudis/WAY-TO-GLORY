@@ -5,6 +5,7 @@ export * from './data.js';
 export * from './generate.js';
 export * from './development.js';
 export * from './selection.js';
+export * from './halftime.js';
 export * from './match.js';
 export * from './league.js';
 export * from './cup.js';

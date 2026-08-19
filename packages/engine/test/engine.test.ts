@@ -9,6 +9,8 @@ import { buildAttributes, generatePlayer } from '../src/generate.js';
 import { pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
+import { HALF_TIME_INSTRUCTIONS, instructionsFor, managerDemand, managerDictates } from '../src/halftime.js';
+import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/milestones.js';
 import type { MilestoneId } from '../src/milestones.js';
 import { generateOffers, isTransferWindow } from '../src/transfer.js';
@@ -870,5 +872,123 @@ describe('the press', () => {
         expect(costs, `${question.id}.${answer.id} risks nothing`).toBe(true);
       }
     }
+  });
+});
+
+describe('half time', () => {
+  /**
+   * A match context built from a real career, so the lineup, the squad and the
+   * opponent are the ones the engine would actually hand the simulation.
+   */
+  function matchContext(): UserMatchContext {
+    const { state, index } = startedCareer({ seed: 8080 });
+    // Play until he is a senior with a club squad around him.
+    for (let i = 0; i < 52 * 4; i++) {
+      advanceWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const club = state.world.clubs[state.player.clubId!]!;
+    const squad = userSquad(state);
+    const opponent = Object.values(state.world.clubs)
+      .find((c) => c.competitionId === club.competitionId && c.id !== club.id)!;
+
+    const lineup = pickLineup(new Rng(11), squad, {
+      formation: '4-3-3',
+      managerTrust: 70,
+      userId: state.player.id,
+      rotationPressure: 0.3,
+      importantMatch: false,
+    });
+
+    return {
+      season: state.world.season,
+      week: 10,
+      competitionId: club.competitionId,
+      homeClub: club,
+      awayClub: opponent,
+      userIsHome: true,
+      userClubSquad: squad,
+      opponentStars: [],
+      opponentRating: 62,
+      user: state.player,
+      lineup,
+      minutes: { played: true, started: true, minutes: 90, slot: state.player.primaryPos },
+      importance: 'normal',
+      matchId: 'test-match',
+      mental: 1,
+      penaltyTaker: true,
+    };
+  }
+
+  it('plays a first half that nothing said at the break can change', () => {
+    const ctx = matchContext();
+    const cut = simulateUserMatch(new Rng(4242), { ...ctx, stopAtHalfTime: true });
+    const shape = (events: typeof cut.events) =>
+      events.filter((e) => e.minute <= 45).map((e) => [e.minute, e.type, e.playerId ?? '', e.detailKey ?? '']);
+
+    for (const instruction of Object.keys(HALF_TIME_INSTRUCTIONS) as (keyof typeof HALF_TIME_INSTRUCTIONS)[]) {
+      const full = simulateUserMatch(new Rng(4242), { ...ctx, instruction });
+      expect(shape(full.events), `${instruction} changed the first half`).toEqual(shape(cut.events));
+      expect(full.halfTimeScore).toEqual(cut.halfTimeScore);
+    }
+  });
+
+  it('stops without rolling anything past the whistle', () => {
+    const ctx = matchContext();
+    const cut = simulateUserMatch(new Rng(99), { ...ctx, stopAtHalfTime: true });
+    expect(cut.events.every((e) => e.minute <= 45)).toBe(true);
+    expect(cut.injuryRolled).toBe(false);
+    expect(cut.events.some((e) => e.type === 'halfTime')).toBe(true);
+    expect(cut.events.some((e) => e.type === 'fullTime')).toBe(false);
+  });
+
+  it('lets the instruction change the second half and only the second half', () => {
+    const ctx = matchContext();
+    const forward = simulateUserMatch(new Rng(1234), { ...ctx, instruction: 'pushForward' });
+    const legs = simulateUserMatch(new Rng(1234), { ...ctx, instruction: 'saveLegs' });
+
+    const secondHalf = (events: typeof forward.events) => events.filter((e) => e.minute > 45).length;
+    expect(secondHalf(forward.events)).not.toBe(0);
+    // Different orders produce different second halves; the same seed, the same first.
+    expect(forward.halfTimeScore).toEqual(legs.halfTimeScore);
+    expect(forward.fatigueFactor).toBeGreaterThan(legs.fatigueFactor);
+  });
+
+  it('never offers an instruction that is all upside', () => {
+    // For three of these, a number below one is the good news: less fatigue, fewer
+    // cards, fewer knocks. Everything else is better the higher it is.
+    const lowerIsBetter = new Set(['fatigue', 'cardRisk', 'injuryRisk']);
+    for (const [id, effect] of Object.entries(HALF_TIME_INSTRUCTIONS)) {
+      const helps: boolean[] = [];
+      const hurts: boolean[] = [];
+      for (const [key, value] of Object.entries(effect)) {
+        if (value === 1) continue;
+        const good = lowerIsBetter.has(key) ? value < 1 : value > 1;
+        helps.push(good);
+        hurts.push(!good);
+      }
+      expect(helps.some(Boolean), `${id} gains nothing`).toBe(true);
+      expect(hurts.some(Boolean), `${id} costs nothing`).toBe(true);
+    }
+  });
+
+  it('leaves trusted senior players alone and tells everybody else', () => {
+    expect(managerDictates(80, 'key')).toBe(false);
+    expect(managerDictates(40, 'key')).toBe(true);
+    expect(managerDictates(90, 'bench')).toBe(true);
+    expect(managerDictates(90, 'academy')).toBe(true);
+  });
+
+  it('asks a losing side to go forward and a winning side to hold on', () => {
+    const rng = new Rng(5);
+    const losing = Array.from({ length: 40 }, () => managerDemand(rng, -1, 6.8, 'ATT'));
+    const winning = Array.from({ length: 40 }, () => managerDemand(rng, 2, 6.8, 'MID'));
+    expect(losing.every((id) => id === 'pushForward' || id === 'takeThemOn')).toBe(true);
+    expect(winning.every((id) => id === 'holdShape' || id === 'saveLegs')).toBe(true);
+  });
+
+  it('does not ask a goalkeeper to run at the full-back', () => {
+    expect(instructionsFor('GK')).not.toContain('takeThemOn');
+    expect(instructionsFor('ATT')).toContain('takeThemOn');
   });
 });

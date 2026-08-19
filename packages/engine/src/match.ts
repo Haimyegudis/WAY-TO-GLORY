@@ -1,5 +1,6 @@
 import { Rng, clamp, logistic } from './rng.js';
 import { isInvertedWinger, isNaturalWideMan, positionGroup, ratingAt } from './positions.js';
+import { NO_INSTRUCTION, halfTimeEffect, type HalfTimeEffect, type HalfTimeInstructionId } from './halftime.js';
 import type { Lineup, MinutesOutcome } from './selection.js';
 import type {
   Club,
@@ -76,6 +77,13 @@ export interface UserMatchContext {
   mental: number;
   /** He is the club's penalty taker, so the ball is his when one is given. */
   penaltyTaker: boolean;
+  /**
+   * What he was told - or decided - at half time. Read only once the first half is
+   * finished, which is what keeps a replayed first half identical.
+   */
+  instruction?: HalfTimeInstructionId | null;
+  /** Play the first half and stop at the whistle, leaving the rest unrolled. */
+  stopAtHalfTime?: boolean;
 }
 
 /** Weight of a player being the one at the end of a chance. */
@@ -101,12 +109,50 @@ export interface UserMatchOutcome {
   line: UserMatchLine;
   /** True if the user picked up a knock during the match. */
   injuryRolled: boolean;
+  /** The score at the break: what a half-time decision is actually made on. */
+  halfTimeScore: [number, number];
+  /**
+   * What the second half took out of his legs, as a multiplier on the fatigue a match
+   * normally costs. Chasing everything for forty-five minutes is not free.
+   */
+  fatigueFactor: number;
 }
+
+/** One side's chance, already placed in the match. */
+interface Chance {
+  minute: number;
+  forUser: boolean;
+}
+
+/** Everything the two halves share, worked out once before either is played. */
+interface MatchSetup {
+  attackers: { player: Player; slot: Position }[];
+  userDefenceRating: number;
+  oppDefenceRating: number;
+  onPitchFrom: number;
+  onPitchTo: number;
+  userHome: boolean;
+}
+
+/** What the halves write into. */
+interface HalfState {
+  events: MatchEvent[];
+  line: UserMatchLine;
+  userGoals: number;
+  oppGoals: number;
+}
+
+const CONVERSION_BASE = 0.115;
 
 /**
  * Chance-based simulation, used only for matches the user is involved in.
  * The scoreline emerges from resolved chances, which is what makes the
  * narrative events real rather than decorative.
+ *
+ * The match is played one half at a time, and nothing about the second half is rolled
+ * until the first has finished. That is what lets the game stop at the break, ask him
+ * a question, and then play the rest out from the same seed: the forty-five minutes he
+ * has already watched cannot change under him, whatever he decides in the dressing room.
  */
 export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOutcome {
   const userSquadRating = teamRatingFromSquad(ctx.userClubSquad);
@@ -120,10 +166,6 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
   const userShare = userXg / (userXg + oppXg);
   const userChances = clamp(Math.round(totalChances * userShare), 1, totalChances - 1);
   const oppChances = totalChances - userChances;
-
-  const events: MatchEvent[] = [];
-  let userGoals = 0;
-  let oppGoals = 0;
 
   const line: UserMatchLine = {
     played: ctx.minutes.played,
@@ -144,9 +186,6 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     ...(ctx.minutes.offMinute !== undefined ? { offMinute: ctx.minutes.offMinute } : {}),
   };
 
-  const onPitchFrom = ctx.minutes.cameOnMinute ?? 0;
-  const onPitchTo = ctx.minutes.offMinute ?? (ctx.minutes.played ? 90 : 0);
-
   // Who can be on the end of a chance for the user's club.
   const attackers = ctx.lineup.starters
     .map((s) => {
@@ -155,190 +194,77 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     })
     .filter((x): x is { player: Player; slot: Position } => x !== null);
 
-  const conversionBase = 0.115;
-  const userDefenceRating = userSquadRating;
-  const oppDefenceRating = oppRating;
+  const setup: MatchSetup = {
+    attackers,
+    userDefenceRating: userSquadRating,
+    oppDefenceRating: oppRating,
+    onPitchFrom: ctx.minutes.cameOnMinute ?? 0,
+    onPitchTo: ctx.minutes.offMinute ?? (ctx.minutes.played ? 90 : 0),
+    userHome,
+  };
 
-  const minutes = rng.shuffle(Array.from({ length: totalChances }, (_, i) => 3 + Math.floor((i * 87) / totalChances)))
-    .sort((a, b) => a - b);
+  // The chances, spread across the ninety and shared out between the two sides. Which
+  // side gets which minute is shuffled, so a match is not one team's first half and the
+  // other team's second.
+  const minutes = Array.from({ length: totalChances }, (_, i) => 3 + Math.floor((i * 87) / totalChances));
+  const owners = rng.shuffle([
+    ...Array.from({ length: userChances }, () => true),
+    ...Array.from({ length: oppChances }, () => false),
+  ]);
+  const chances: Chance[] = minutes.map((minute, i) => ({ minute, forUser: owners[i] ?? true }));
 
-  let chanceIndex = 0;
-  for (let i = 0; i < userChances; i++) {
-    const minute = minutes[chanceIndex++] ?? rng.int(1, 90);
-    const userOnPitch = ctx.minutes.played && minute >= onPitchFrom && minute <= onPitchTo;
+  const half: HalfState = { events: [], line, userGoals: 0, oppGoals: 0 };
 
-    const picked = rng.weighted(attackers, (a) => attackWeight(a.player, a.slot));
-    if (!picked) continue;
+  playHalf(rng, ctx, setup, half, 1, chances.filter((c) => c.minute <= 45), NO_INSTRUCTION);
+  const halfTimeScore: [number, number] = userHome
+    ? [half.userGoals, half.oppGoals]
+    : [half.oppGoals, half.userGoals];
 
-    // If the user is on the pitch, they get their positional share of involvement.
-    const shooter = userOnPitch
-      && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * shootingBias(ctx))
-      ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
-      : picked;
-
-    const isUser = shooter.player.id === ctx.user.id;
-    const finishing = shooter.player.attributes.finishing;
-    const composure = shooter.player.attributes.composure;
-    const rawQuality = finishing * 0.6 + composure * 0.25 + shooter.player.attributes.shooting * 0.15;
-    // Confidence is worth a few points of finishing either way.
-    const quality = isUser ? rawQuality * (0.88 + ctx.mental * 0.12) : rawQuality;
-    const p = clamp(conversionBase * (0.5 + logistic((quality - oppDefenceRating) / 12) * 1.6), 0.03, 0.55);
-
-    if (isUser) line.shots++;
-
-    if (rng.chance(p)) {
-      userGoals++;
-      if (isUser) line.goals++;
-      let assistId: string | undefined;
-      if (rng.chance(0.68)) {
-        const creators = attackers.filter((a) => a.player.id !== shooter.player.id);
-        const userCanAssist = userOnPitch && !isUser
-          && rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 1.35 * creatingBias(ctx));
-        const creator = userCanAssist
-          ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
-          : rng.weighted(creators, (a) => assistWeight(a.player, a.slot));
-        if (creator) {
-          assistId = creator.player.id;
-          if (creator.player.id === ctx.user.id) line.assists++;
-        }
-      }
-      events.push({
-        minute,
-        type: 'goal',
-        playerId: shooter.player.id,
-        byUser: isUser,
-        detailKey: isUser ? 'match.event.userGoal' : 'match.event.teamGoal',
-        score: userHome ? [userGoals, oppGoals] : [oppGoals, userGoals],
-      });
-      if (assistId) {
-        events.push({
-          minute,
-          type: 'assist',
-          playerId: assistId,
-          byUser: assistId === ctx.user.id,
-          detailKey: 'match.event.assist',
-        });
-      }
-    } else if (isUser) {
-      const near = rng.chance(0.45);
-      events.push({
-        minute,
-        type: near ? 'miss' : 'save',
-        playerId: ctx.user.id,
-        byUser: true,
-        detailKey: near ? 'match.event.userMiss' : 'match.event.userSaved',
-      });
-    } else if (userOnPitch && rng.chance(0.6)) {
-      // The user was involved in the build-up even when someone else finished.
-      const involved = rng.chance(userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 0.8);
-      if (involved) line.keyPasses++;
-    }
+  if (ctx.stopAtHalfTime) {
+    // The break. Nothing beyond it has been rolled, so the same seed can pick this up
+    // again once he has been told - or has decided - what the second half looks like.
+    return {
+      result: buildResult(ctx, half, setup, ctx.importance),
+      events: half.events.slice().sort((a, b) => a.minute - b.minute),
+      line,
+      injuryRolled: false,
+      halfTimeScore,
+      fatigueFactor: 1,
+    };
   }
 
-  for (let i = 0; i < oppChances; i++) {
-    const minute = minutes[chanceIndex++] ?? rng.int(1, 90);
-    const userOnPitch = ctx.minutes.played && minute >= onPitchFrom && minute <= onPitchTo;
-    const slot = ctx.minutes.slot ?? ctx.user.primaryPos;
-    const group = positionGroup(slot);
+  const mods = halfTimeEffect(ctx.instruction);
+  const oppGoalsAtBreak = half.oppGoals;
+  playHalf(rng, ctx, setup, half, 2, chances.filter((c) => c.minute > 45), mods);
+  const cleanSecondHalf = half.oppGoals === oppGoalsAtBreak;
 
-    const shooterRating = oppRating + rng.gauss(0, 6);
-    const p = clamp(conversionBase * (0.5 + logistic((shooterRating - userDefenceRating) / 12) * 1.6), 0.03, 0.55);
+  line.rating = computeRating(rng, ctx, line, half.userGoals, half.oppGoals, mods, cleanSecondHalf);
+  line.motm = line.played && line.rating >= 8.3 && (half.userGoals > half.oppGoals || line.goals >= 2);
 
-    // Defensive involvement: keepers save, defenders intervene.
-    if (userOnPitch && group === 'GK') {
-      const saveSkill = ctx.user.attributes.reflexes * 0.5 + ctx.user.attributes.positioningGK * 0.3 + ctx.user.attributes.handling * 0.2;
-      const adjusted = clamp(p * (1 - (saveSkill - 50) / 160), 0.02, 0.6);
-      if (rng.chance(adjusted)) {
-        oppGoals++;
-        events.push({ minute, type: 'concede', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.conceded' });
-      } else {
-        line.saves++;
-        events.push({ minute, type: 'save', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.userSave' });
-      }
-      continue;
-    }
+  const result = buildResult(ctx, half, setup, ctx.importance);
+  const injuryRolled =
+    ctx.minutes.played && rng.chance(inMatchInjuryChance(ctx.user, ctx.minutes.minutes) * mods.injuryRisk);
 
-    if (userOnPitch && group === 'DEF' && rng.chance(0.45)) {
-      const defSkill = ctx.user.attributes.tackling * 0.4 + ctx.user.attributes.marking * 0.35 + ctx.user.attributes.positioning * 0.25;
-      if (rng.chance(clamp(0.35 + (defSkill - oppRating) / 90, 0.1, 0.85))) {
-        line.tackles++;
-        events.push({ minute, type: 'tackle', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.userTackle' });
-        continue;
-      }
-    }
+  return {
+    result,
+    events: result.events!,
+    line,
+    injuryRolled,
+    halfTimeScore,
+    // Only the second half was played under the instruction, so it is worth half of it.
+    fatigueFactor: 1 + (mods.fatigue - 1) * 0.5,
+  };
+}
 
-    if (rng.chance(p)) {
-      oppGoals++;
-      const scorer = ctx.opponentStars.length > 0
-        ? rng.weighted(ctx.opponentStars, (s) => attackWeight(s, s.primaryPos))
-        : null;
-      events.push({
-        minute,
-        type: 'concede',
-        playerId: scorer?.id,
-        byUser: false,
-        detailKey: 'match.event.oppGoal',
-        score: userHome ? [userGoals, oppGoals] : [oppGoals, userGoals],
-      });
-    }
-  }
-
-  // Penalties. Taking them is worth goals over a season and nothing else in football
-  // is missed as publicly, which is the whole point of accepting the job.
-  if (ctx.penaltyTaker && ctx.minutes.played && rng.chance(0.15 * (ctx.minutes.minutes / 90))) {
-    const minute = rng.int(12, 90);
-    const nerve = ctx.user.attributes.composure * 0.45 + ctx.user.attributes.finishing * 0.55;
-    if (rng.chance(clamp(0.6 + nerve / 300 + (ctx.mental - 1) * 0.25, 0.45, 0.95))) {
-      userGoals++;
-      line.goals++;
-      events.push({
-        minute,
-        type: 'penaltyScored',
-        playerId: ctx.user.id,
-        byUser: true,
-        detailKey: 'match.event.penaltyScored',
-        score: userHome ? [userGoals, oppGoals] : [oppGoals, userGoals],
-      });
-    } else {
-      events.push({
-        minute,
-        type: 'penaltyMissed',
-        playerId: ctx.user.id,
-        byUser: true,
-        detailKey: 'match.event.penaltyMissed',
-      });
-    }
-  }
-
-  // Cards.
-  if (ctx.minutes.played) {
-    const discipline = ctx.user.personality.discipline;
-    const group = positionGroup(ctx.minutes.slot ?? ctx.user.primaryPos);
-    const cardBase = group === 'DEF' ? 0.16 : group === 'MID' ? 0.13 : group === 'ATT' ? 0.07 : 0.03;
-    const yellowP = clamp(cardBase * (1.4 - discipline / 100) * (ctx.minutes.minutes / 90), 0.005, 0.4);
-    if (rng.chance(yellowP)) {
-      line.yellow++;
-      events.push({ minute: rng.int(10, 88), type: 'yellow', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.yellow' });
-      if (rng.chance(0.07)) {
-        line.yellow++;
-        line.red = 1;
-        events.push({ minute: rng.int(50, 90), type: 'red', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.secondYellow' });
-      }
-    } else if (rng.chance(0.006)) {
-      line.red = 1;
-      events.push({ minute: rng.int(20, 88), type: 'red', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.straightRed' });
-    }
-  }
-
-  addBroadcastEvents(rng, ctx, events);
-
-  const homeGoals = userHome ? userGoals : oppGoals;
-  const awayGoals = userHome ? oppGoals : userGoals;
-
-  line.rating = computeRating(rng, ctx, line, userGoals, oppGoals);
-  line.motm = line.played && line.rating >= 8.3 && (userGoals > oppGoals || line.goals >= 2);
-
-  const result: MatchResult = {
+function buildResult(
+  ctx: UserMatchContext,
+  half: HalfState,
+  setup: MatchSetup,
+  importance: MatchImportance,
+): MatchResult {
+  const homeGoals = setup.userHome ? half.userGoals : half.oppGoals;
+  const awayGoals = setup.userHome ? half.oppGoals : half.userGoals;
+  return {
     id: ctx.matchId,
     season: ctx.season,
     week: ctx.week,
@@ -348,14 +274,261 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     homeGoals,
     awayGoals,
     detailLevel: 1,
-    importance: ctx.importance,
-    userLine: line,
-    events: events.sort((a, b) => a.minute - b.minute),
+    importance,
+    userLine: half.line,
+    events: half.events.slice().sort((a, b) => a.minute - b.minute),
   };
+}
 
-  const injuryRolled = ctx.minutes.played && rng.chance(inMatchInjuryChance(ctx.user, ctx.minutes.minutes));
+/**
+ * Forty-five minutes. Chances first, then the penalty, then the cards, then the colour,
+ * then the whistle - in that order every time, so the two halves consume the random
+ * stream in a fixed pattern and a replayed first half is the first half he watched.
+ */
+function playHalf(
+  rng: Rng,
+  ctx: UserMatchContext,
+  setup: MatchSetup,
+  half: HalfState,
+  which: 1 | 2,
+  chances: Chance[],
+  mods: HalfTimeEffect,
+): void {
+  const { line } = half;
 
-  return { result, events, line, injuryRolled };
+  for (const chance of chances) {
+    const { minute } = chance;
+    const userOnPitch = ctx.minutes.played && minute >= setup.onPitchFrom && minute <= setup.onPitchTo;
+
+    if (chance.forUser) {
+      resolveUserChance(rng, ctx, setup, half, minute, userOnPitch, mods);
+    } else {
+      resolveOpponentChance(rng, ctx, setup, half, minute, userOnPitch, mods);
+    }
+  }
+
+  // Penalties. Taking them is worth goals over a season and nothing else in football
+  // is missed as publicly, which is the whole point of accepting the job.
+  if (ctx.penaltyTaker && ctx.minutes.played && rng.chance(0.075 * (ctx.minutes.minutes / 90))) {
+    const minute = which === 1 ? rng.int(6, 45) : rng.int(46, 90);
+    const nerve = ctx.user.attributes.composure * 0.45 + ctx.user.attributes.finishing * 0.55;
+    if (rng.chance(clamp(0.6 + nerve / 300 + (ctx.mental - 1) * 0.25, 0.45, 0.95))) {
+      half.userGoals++;
+      line.goals++;
+      half.events.push({
+        minute,
+        type: 'penaltyScored',
+        playerId: ctx.user.id,
+        byUser: true,
+        detailKey: 'match.event.penaltyScored',
+        score: setup.userHome ? [half.userGoals, half.oppGoals] : [half.oppGoals, half.userGoals],
+      });
+    } else {
+      half.events.push({
+        minute,
+        type: 'penaltyMissed',
+        playerId: ctx.user.id,
+        byUser: true,
+        detailKey: 'match.event.penaltyMissed',
+      });
+    }
+  }
+
+  // Cards, rolled for the half he was actually on the pitch for.
+  const minutesThisHalf = minutesOnPitchIn(ctx, setup, which);
+  if (minutesThisHalf > 0 && line.red === 0) {
+    const discipline = ctx.user.personality.discipline;
+    const group = positionGroup(ctx.minutes.slot ?? ctx.user.primaryPos);
+    const cardBase = group === 'DEF' ? 0.16 : group === 'MID' ? 0.13 : group === 'ATT' ? 0.07 : 0.03;
+    const yellowP = clamp(cardBase * (1.4 - discipline / 100) * (minutesThisHalf / 90) * mods.cardRisk, 0.003, 0.4);
+    const from = which === 1 ? 8 : 47;
+    const to = which === 1 ? 45 : 90;
+    if (rng.chance(yellowP)) {
+      line.yellow++;
+      half.events.push({
+        minute: rng.int(from, to), type: 'yellow', playerId: ctx.user.id,
+        byUser: true, detailKey: 'match.event.yellow',
+      });
+      // A second yellow can only follow a first, and the first is usually behind him.
+      if (line.yellow >= 2 && rng.chance(0.35)) {
+        line.red = 1;
+        half.events.push({
+          minute: rng.int(from, to), type: 'red', playerId: ctx.user.id,
+          byUser: true, detailKey: 'match.event.secondYellow',
+        });
+      }
+    } else if (rng.chance(0.003)) {
+      line.red = 1;
+      half.events.push({
+        minute: rng.int(from, to), type: 'red', playerId: ctx.user.id,
+        byUser: true, detailKey: 'match.event.straightRed',
+      });
+    }
+  }
+
+  addBroadcastEvents(rng, ctx, setup, half.events, which, mods);
+}
+
+/** How much of this half he was on the pitch for. */
+function minutesOnPitchIn(ctx: UserMatchContext, setup: MatchSetup, which: 1 | 2): number {
+  if (!ctx.minutes.played) return 0;
+  const start = which === 1 ? 0 : 45;
+  const end = which === 1 ? 45 : 90;
+  const from = Math.max(start, setup.onPitchFrom);
+  const to = Math.min(end, setup.onPitchTo);
+  return Math.max(0, to - from);
+}
+
+function resolveUserChance(
+  rng: Rng,
+  ctx: UserMatchContext,
+  setup: MatchSetup,
+  half: HalfState,
+  minute: number,
+  userOnPitch: boolean,
+  mods: HalfTimeEffect,
+): void {
+  const { line } = half;
+  const picked = rng.weighted(setup.attackers, (a) => attackWeight(a.player, a.slot));
+  if (!picked) return;
+
+  // If the user is on the pitch, they get their positional share of involvement.
+  const shooter = userOnPitch
+    && rng.chance(
+      userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * mods.involvement
+      * shootingBias(ctx) * mods.shooting,
+    )
+    ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
+    : picked;
+
+  const isUser = shooter.player.id === ctx.user.id;
+  const finishing = shooter.player.attributes.finishing;
+  const composure = shooter.player.attributes.composure;
+  const rawQuality = finishing * 0.6 + composure * 0.25 + shooter.player.attributes.shooting * 0.15;
+  // Confidence is worth a few points of finishing either way.
+  const quality = isUser ? rawQuality * (0.88 + ctx.mental * 0.12) : rawQuality;
+  const p = clamp(CONVERSION_BASE * (0.5 + logistic((quality - setup.oppDefenceRating) / 12) * 1.6), 0.03, 0.55);
+
+  if (isUser) line.shots++;
+
+  if (rng.chance(p)) {
+    half.userGoals++;
+    if (isUser) line.goals++;
+    let assistId: string | undefined;
+    if (rng.chance(0.68)) {
+      const creators = setup.attackers.filter((a) => a.player.id !== shooter.player.id);
+      const userCanAssist = userOnPitch && !isUser
+        && rng.chance(
+          userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * mods.involvement
+          * 1.35 * creatingBias(ctx) * mods.creating,
+        );
+      const creator = userCanAssist
+        ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
+        : rng.weighted(creators, (a) => assistWeight(a.player, a.slot));
+      if (creator) {
+        assistId = creator.player.id;
+        if (creator.player.id === ctx.user.id) line.assists++;
+      }
+    }
+    half.events.push({
+      minute,
+      type: 'goal',
+      playerId: shooter.player.id,
+      byUser: isUser,
+      detailKey: isUser ? 'match.event.userGoal' : 'match.event.teamGoal',
+      score: setup.userHome ? [half.userGoals, half.oppGoals] : [half.oppGoals, half.userGoals],
+    });
+    if (assistId) {
+      half.events.push({
+        minute,
+        type: 'assist',
+        playerId: assistId,
+        byUser: assistId === ctx.user.id,
+        detailKey: 'match.event.assist',
+      });
+    }
+  } else if (isUser) {
+    const near = rng.chance(0.45);
+    half.events.push({
+      minute,
+      type: near ? 'miss' : 'save',
+      playerId: ctx.user.id,
+      byUser: true,
+      detailKey: near ? 'match.event.userMiss' : 'match.event.userSaved',
+    });
+  } else if (userOnPitch && rng.chance(0.6)) {
+    // The user was involved in the build-up even when someone else finished.
+    const involved = rng.chance(
+      userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * mods.involvement * 0.8 * mods.creating,
+    );
+    if (involved) line.keyPasses++;
+  }
+}
+
+function resolveOpponentChance(
+  rng: Rng,
+  ctx: UserMatchContext,
+  setup: MatchSetup,
+  half: HalfState,
+  minute: number,
+  userOnPitch: boolean,
+  mods: HalfTimeEffect,
+): void {
+  const { line } = half;
+  const slot = ctx.minutes.slot ?? ctx.user.primaryPos;
+  const group = positionGroup(slot);
+
+  const shooterRating = setup.oppDefenceRating + rng.gauss(0, 6);
+  const p = clamp(
+    CONVERSION_BASE * (0.5 + logistic((shooterRating - setup.userDefenceRating) / 12) * 1.6),
+    0.03,
+    0.55,
+  );
+
+  // Defensive involvement: keepers save, defenders intervene.
+  if (userOnPitch && group === 'GK') {
+    const saveSkill = ctx.user.attributes.reflexes * 0.5 + ctx.user.attributes.positioningGK * 0.3 + ctx.user.attributes.handling * 0.2;
+    const adjusted = clamp(p * (1 - (saveSkill - 50) / 160) / mods.defending, 0.02, 0.6);
+    if (rng.chance(adjusted)) {
+      half.oppGoals++;
+      half.events.push({ minute, type: 'concede', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.conceded' });
+    } else {
+      line.saves++;
+      half.events.push({ minute, type: 'save', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.userSave' });
+    }
+    return;
+  }
+
+  if (userOnPitch && group === 'DEF' && rng.chance(clamp(0.45 * mods.defending, 0.1, 0.9))) {
+    const defSkill = ctx.user.attributes.tackling * 0.4 + ctx.user.attributes.marking * 0.35 + ctx.user.attributes.positioning * 0.25;
+    if (rng.chance(clamp(0.35 + (defSkill - setup.oppDefenceRating) / 90, 0.1, 0.85) * mods.defending)) {
+      line.tackles++;
+      half.events.push({ minute, type: 'tackle', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.userTackle' });
+      return;
+    }
+  }
+
+  // A midfielder who has been told to chase everything gets in the way of some of it.
+  if (userOnPitch && group === 'MID' && mods.defending > 1 && rng.chance(clamp((mods.defending - 1) * 0.6, 0, 0.4))) {
+    line.tackles++;
+    half.events.push({ minute, type: 'tackle', playerId: ctx.user.id, byUser: true, detailKey: 'match.event.userTackle' });
+    return;
+  }
+
+  if (rng.chance(p)) {
+    half.oppGoals++;
+    const scorer = ctx.opponentStars.length > 0
+      ? rng.weighted(ctx.opponentStars, (s) => attackWeight(s, s.primaryPos))
+      : null;
+    half.events.push({
+      minute,
+      type: 'concede',
+      playerId: scorer?.id,
+      byUser: false,
+      detailKey: 'match.event.oppGoal',
+      score: setup.userHome ? [half.userGoals, half.oppGoals] : [half.oppGoals, half.userGoals],
+    });
+  }
 }
 
 /**
@@ -363,27 +536,43 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
  * across the six-yard box, the moment you came off. None of it touches the scoreline -
  * that has already emerged from the chances - but ninety minutes with nothing but two
  * goals in it is not a match, it is a result.
+ *
+ * Generated one half at a time, so the first half he watches at the break is the first
+ * half he watches again afterwards.
  */
-function addBroadcastEvents(rng: Rng, ctx: UserMatchContext, events: MatchEvent[]): void {
+function addBroadcastEvents(
+  rng: Rng,
+  ctx: UserMatchContext,
+  setup: MatchSetup,
+  events: MatchEvent[],
+  which: 1 | 2,
+  mods: HalfTimeEffect,
+): void {
   const played = ctx.minutes.played;
-  const from = ctx.minutes.cameOnMinute ?? 0;
-  const to = ctx.minutes.offMinute ?? (played ? 90 : 0);
+  const from = setup.onPitchFrom;
+  const to = setup.onPitchTo;
+  const start = which === 1 ? 2 : 46;
+  const end = which === 1 ? 44 : 89;
 
   const push = (minute: number, type: MatchEvent['type'], key: string, byUser = false) => {
     events.push({ minute, type, byUser, detailKey: key, ambient: true, playerId: byUser ? ctx.user.id : undefined });
   };
 
-  push(0, 'kickOff', 'match.live.kickOff');
+  if (which === 1) {
+    push(0, 'kickOff', 'match.live.kickOff');
+  }
 
-  if (played && ctx.minutes.cameOnMinute) {
+  const cameOn = ctx.minutes.cameOnMinute;
+  if (played && cameOn && inHalf(cameOn, which)) {
     events.push({
-      minute: ctx.minutes.cameOnMinute, type: 'sub-on', byUser: true,
+      minute: cameOn, type: 'sub-on', byUser: true,
       playerId: ctx.user.id, detailKey: 'match.live.subOn',
     });
   }
-  if (played && ctx.minutes.offMinute && ctx.minutes.offMinute < 90) {
+  const cameOff = ctx.minutes.offMinute;
+  if (played && cameOff && cameOff < 90 && inHalf(cameOff, which)) {
     events.push({
-      minute: ctx.minutes.offMinute, type: 'sub-off', byUser: true,
+      minute: cameOff, type: 'sub-off', byUser: true,
       playerId: ctx.user.id, detailKey: 'match.live.subOff',
     });
   }
@@ -410,12 +599,14 @@ function addBroadcastEvents(rng: Rng, ctx: UserMatchContext, events: MatchEvent[
     ['chance', 'match.live.userDuel'],
   ];
 
-  const count = rng.int(9, 14);
-  const used = new Set<string>();
+  const count = rng.int(5, 7);
+  const used = new Set(events.filter((e) => e.ambient && e.detailKey).map((e) => e.detailKey!));
   for (let i = 0; i < count; i++) {
-    const minute = rng.int(2, 89);
+    const minute = rng.int(start, end);
     const onPitch = played && minute >= from && minute <= to;
-    const involvement = onPitch ? userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * 1.6 : 0;
+    const involvement = onPitch
+      ? userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * mods.involvement * 1.6
+      : 0;
     const pool = rng.chance(clamp(involvement, 0, 0.65)) ? mine : neutral;
     // Do not run the same line twice in one match; there are enough to go round.
     let pick = pool[rng.int(0, pool.length - 1)]!;
@@ -425,8 +616,12 @@ function addBroadcastEvents(rng: Rng, ctx: UserMatchContext, events: MatchEvent[
     push(minute, pick[0], pick[1], pool === mine);
   }
 
-  push(45, 'halfTime', 'match.live.halfTime');
-  push(90, 'fullTime', 'match.live.fullTime');
+  push(which === 1 ? 45 : 90, which === 1 ? 'halfTime' : 'fullTime',
+    which === 1 ? 'match.live.halfTime' : 'match.live.fullTime');
+}
+
+function inHalf(minute: number, which: 1 | 2): boolean {
+  return which === 1 ? minute <= 45 : minute > 45;
 }
 
 /**
@@ -492,6 +687,8 @@ function computeRating(
   line: UserMatchLine,
   teamGoals: number,
   oppGoals: number,
+  mods: HalfTimeEffect,
+  cleanSecondHalf: boolean,
 ): number {
   if (!line.played) return 0;
   const group = positionGroup(line.position ?? ctx.user.primaryPos);
@@ -500,7 +697,7 @@ function computeRating(
   // Baseline drifts with quality relative to the level of the game.
   // 6.5 is a competent, unremarkable afternoon; everything else moves from there.
   let rating = 6.5 + (ovr - ctx.opponentRating) / 40 + (ctx.user.form - 50) / 160;
-  rating += rng.gauss(0, 0.42) * (1.4 - ctx.user.personality.consistency / 140);
+  rating += rng.gauss(0, 0.42) * (1.4 - ctx.user.personality.consistency / 140) * mods.variance;
 
 
   if (group === 'GK') {
@@ -525,6 +722,12 @@ function computeRating(
   else if (teamGoals < oppGoals) rating -= 0.2;
 
   rating -= line.yellow * 0.12 + line.red * 1.1;
+
+  // Doing the unglamorous job he was given, and it working. A defensive instruction
+  // that produced a clean forty-five minutes is a good half even without a goal in it.
+  if (mods.defending > 1 && cleanSecondHalf && line.minutes >= 30) rating += 0.3;
+  // Running himself into the ground shows up in the marks even when nothing comes of it.
+  if (mods.fatigue > 1.2 && line.minutes >= 45) rating += 0.15;
 
   // A cameo can't earn a 9 - or a 4. Short outings pull toward the average.
   if (line.minutes < 30) rating = 6.0 + (rating - 6.0) * 0.5;
