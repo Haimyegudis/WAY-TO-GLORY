@@ -533,8 +533,14 @@ describe('training and state feed performance', () => {
     expect(ids).not.toContain('apologiseFans');
     expect(ids).not.toContain('thankFans');
 
-    // Fall out with the dressing room and the apology appears.
+    // A low number on its own is a mood, not a reason: apologising to a dressing room
+    // that has not fallen out with you is the sort of thing that made the screen read
+    // like a list of buttons rather than a week in a life.
     state.relationships.teammates = 30;
+    expect(availableActions(state).map((a) => a.id)).not.toContain('apologiseTeammates');
+
+    // Something actually happening is what puts it on the table.
+    state.flags['dressingRoomFallout'] = true;
     expect(availableActions(state).map((a) => a.id)).toContain('apologiseTeammates');
   });
 });

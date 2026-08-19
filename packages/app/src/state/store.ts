@@ -23,6 +23,12 @@ import {
   joinClub,
   resolveDecision,
   askForTerms as engineAskForTerms,
+  answerMedia as engineAnswerMedia,
+  chooseMentor as engineChooseMentor,
+  askMentor as engineAskMentor,
+  takeMentorAdvice as engineTakeMentorAdvice,
+  type MentorReply,
+  type MentorTopic,
   type ContractAsk,
   type NegotiationOutcome,
   retire as engineRetire,
@@ -52,7 +58,8 @@ export type Screen =
   | 'match'
   | 'matches'
   | 'national'
-  | 'social';
+  | 'social'
+  | 'mentor';
 export type Phase = 'loading' | 'menu' | 'create' | 'academy' | 'playing';
 
 interface GameStore {
@@ -91,6 +98,9 @@ interface GameStore {
   answerOffer: (decisionId: string, offerId: string | null) => void;
   /** Go back to a club for better terms. Returns what they said, or null if it is gone. */
   askForTerms: (offerId: string, ask: ContractAsk) => NegotiationOutcome | null;
+  chooseMentor: (mentorId: string) => void;
+  askMentor: (topic: MentorTopic) => MentorReply | null;
+  takeMentorAdvice: (reply: MentorReply) => void;
   answerAgent: (decisionId: string, agentId: string | null) => void;
   runAction: (id: PlayerActionId) => void;
   clearResult: () => void;
@@ -243,6 +253,16 @@ export const useGame = create<GameStore>((set, get) => ({
   decide(decisionId, optionId) {
     const { state } = get();
     if (!state) return;
+
+    // A question from the press is not a scripted event: the answer is a trade applied
+    // straight to his attributes, and any claim in it is settled the next time he plays.
+    if (decisionId.startsWith('milestone_')) {
+      engineAnswerMedia(state, decisionId, optionId);
+      const mediaSlot = get().activeSaveId;
+      if (mediaSlot) persistTo(mediaSlot, state, (saves) => set({ saves }));
+      set({ state: { ...state }, result: null });
+      return;
+    }
     // Hanging them up is his own decision, so it is answered here rather than by the
     // event system, which only knows how to apply stat changes.
     const retiring = state.pendingDecisions.some(
@@ -255,6 +275,34 @@ export const useGame = create<GameStore>((set, get) => ({
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, result });
+  },
+
+  chooseMentor(mentorId) {
+    const { state } = get();
+    if (!state) return;
+    engineChooseMentor(state, mentorId);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
+  },
+
+  askMentor(topic) {
+    const { state } = get();
+    if (!state) return null;
+    const reply = engineAskMentor(state, topic);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
+    return reply;
+  },
+
+  takeMentorAdvice(reply) {
+    const { state } = get();
+    if (!state) return;
+    engineTakeMentorAdvice(state, reply);
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
   },
 
   askForTerms(offerId, ask) {

@@ -11,6 +11,7 @@ export * from './cup.js';
 export * from './europe.js';
 export * from './qualifying.js';
 export * from './negotiate.js';
+export * from './mentor.js';
 export * from './market.js';
 export * from './awards.js';
 export * from './youth.js';

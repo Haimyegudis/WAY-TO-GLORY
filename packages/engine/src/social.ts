@@ -239,8 +239,22 @@ function recentRating(state: CareerState): number | null {
 }
 
 /** True after a defeat, a heavy one, or a sending off - the weeks you say sorry. */
-function badWeek(state: CareerState): boolean {
+/**
+ * The last match, but only while it is still the last match anybody is talking about.
+ *
+ * This used to read matchLog[0] with no sense of when it was played, so a defeat in May
+ * was still "the bad week" the following September - which is why the game kept offering
+ * an apology to a manager after a pre-season in which nothing whatsoever had happened.
+ */
+function recentMatch(state: CareerState) {
   const last = state.matchLog[0];
+  if (!last) return null;
+  const weeksAgo = state.world.season * 52 + state.world.week - (last.season * 52 + last.week);
+  return weeksAgo >= 0 && weeksAgo <= 2 ? last : null;
+}
+
+function badWeek(state: CareerState): boolean {
+  const last = recentMatch(state);
   if (!last) return false;
   const club = state.player.clubId;
   if (!club) return false;
@@ -251,9 +265,20 @@ function badWeek(state: CareerState): boolean {
   return sentOff || forGoals < against;
 }
 
+/** Whether there is football on. Half of these only make sense during a season. */
+function inSeason(state: CareerState): boolean {
+  return state.world.week >= 3 && state.world.week <= 47;
+}
+
+/** Sent off in the last fortnight, which is the classic reason to go and say sorry. */
+function sentOffRecently(state: CareerState): boolean {
+  const last = recentMatch(state);
+  return (last?.userLine?.red ?? 0) > 0;
+}
+
 /** True after a win, or a personal performance worth being thanked for. */
 function goodWeek(state: CareerState): boolean {
-  const last = state.matchLog[0];
+  const last = recentMatch(state);
   if (!last || !last.userLine?.played) return false;
   const club = state.player.clubId;
   if (!club) return false;
@@ -284,10 +309,14 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
     category: 'manager',
     cost: 1,
     riskKey: 'risk.low',
-    // You apologise after something happened: a row, a red card, a bad afternoon.
+    // You apologise for something that happened: a row, a red card, a bad afternoon that
+    // is still in the air. A low relationship on its own is not an apology, it is a mood,
+    // and offering one out of nowhere is how a player looks strange rather than sorry.
     available: (s) =>
       hasClub(s) &&
-      (Boolean(s.flags['incidentWithManager']) || s.relationships.manager < 45 || (badWeek(s) && s.relationships.manager < 60)),
+      (Boolean(s.flags['incidentWithManager']) ||
+        sentOffRecently(s) ||
+        (badWeek(s) && s.relationships.manager < 60)),
   },
   {
     id: 'acceptBenchRole',
@@ -335,23 +364,31 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
     cost: 1,
     riskKey: 'risk.low',
     available: (s) =>
-      hasClub(s) && (Boolean(s.flags['incidentWithFans']) || s.relationships.fans < 45 || (badWeek(s) && s.relationships.fans < 58)),
+      hasClub(s) &&
+      (Boolean(s.flags['incidentWithFans']) || sentOffRecently(s) || (badWeek(s) && s.relationships.fans < 58)),
   },
-  { id: 'signAutographs', category: 'fans', cost: 1, riskKey: 'risk.low', available: (s) => hasClub(s) && !s.retired },
+  {
+    // Nobody waits outside a training ground in the middle of the summer.
+    id: 'signAutographs',
+    category: 'fans',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && inSeason(s),
+  },
   {
     // Dinner is for a squad you are part of, and it costs money you have.
     id: 'teamDinner',
     category: 'teammates',
     cost: 2,
     riskKey: 'risk.low',
-    available: (s) => hasClub(s) && !s.retired && s.finances.balance > 5_000,
+    available: (s) => hasClub(s) && !s.retired && inSeason(s) && s.finances.balance > 5_000,
   },
   {
     id: 'extraTrainingWithTeammates',
     category: 'teammates',
     cost: 1,
     riskKey: 'risk.low',
-    available: (s) => hasClub(s) && !s.retired && s.player.condition.fatigue < 70,
+    available: (s) => hasClub(s) && !s.retired && inSeason(s) && s.player.condition.fatigue < 70,
   },
   {
     id: 'apologiseTeammates',
@@ -359,7 +396,7 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
     cost: 1,
     riskKey: 'risk.low',
     available: (s) =>
-      hasClub(s) && (Boolean(s.flags['dressingRoomFallout']) || s.relationships.teammates < 45),
+      hasClub(s) && (Boolean(s.flags['dressingRoomFallout']) || (sentOffRecently(s) && s.relationships.teammates < 55)),
   },
   {
     id: 'meetBoard',
@@ -431,6 +468,20 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
       const before = player.attributes[focus];
       player.attributes[focus] = clamp(before + rng.range(0.4, 1.2), 1, 99);
       track(changes, `change.attr.${focus}`, before, player.attributes[focus]);
+
+      // Being told what is wrong with you is not always useful. Some coaches are working
+      // from a video of a bad afternoon, and a player who takes it all to heart starts
+      // thinking on the pitch instead of playing.
+      const harsh = rng.chance(clamp(0.34 - (rel.manager - 50) / 260, 0.12, 0.5));
+      if (harsh) {
+        const dented = rng.pick(['composure', 'dribbling', 'vision'] as const);
+        const wasAt = player.attributes[dented];
+        player.attributes[dented] = clamp(wasAt - rng.range(0.4, 1.1), 1, 99);
+        track(changes, `change.attr.${dented}`, wasAt, player.attributes[dented]);
+        player.morale = clamp(player.morale - 4, 0, 100);
+        narrativeKey = `action.${id}.harsh`;
+        break;
+      }
       narrativeKey = `action.${id}.good`;
       break;
     }
@@ -507,6 +558,17 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
       adjustRelationship(state, 'fans', swing(4), changes);
       player.fame = clamp(player.fame + 1.5, 0, 100);
       player.condition.fatigue = clamp(player.condition.fatigue + 2, 0, 100);
+
+      // An hour outside the ground is an hour on your feet, and there is always one who
+      // has come to say something rather than to get a signature.
+      if (rng.chance(0.28)) {
+        const before = player.attributes.concentration;
+        player.attributes.concentration = clamp(before - rng.range(0.3, 0.9), 1, 99);
+        track(changes, 'change.attr.concentration', before, player.attributes.concentration);
+        player.morale = clamp(player.morale - 3, 0, 100);
+        narrativeKey = `action.${id}.sour`;
+        break;
+      }
       narrativeKey = `action.${id}.good`;
       break;
     }
@@ -515,6 +577,19 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
       player.morale = clamp(player.morale + 5, 0, 100);
       player.condition.fatigue = clamp(player.condition.fatigue + 6, 0, 100);
       state.finances.balance -= 4000;
+
+      // Some of these finish at eleven and some of them do not. A professional gets away
+      // with it more often, which is most of what being a professional is.
+      const late = rng.chance(clamp(0.42 - player.personality.professionalism / 280, 0.12, 0.55));
+      if (late) {
+        player.fitness = clamp(player.fitness - rng.range(3, 7), 0, 100);
+        const before = player.condition.sharpness;
+        player.condition.sharpness = clamp(before - rng.range(3, 8), 0, 100);
+        track(changes, 'change.sharpness', before, player.condition.sharpness);
+        player.personality.professionalism = clamp(player.personality.professionalism - 0.6, 1, 99);
+        narrativeKey = `action.${id}.late`;
+        break;
+      }
       narrativeKey = `action.${id}.good`;
       break;
     }
@@ -525,6 +600,18 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
       const before = player.condition.sharpness;
       player.condition.sharpness = clamp(before + 6, 0, 100);
       track(changes, 'change.sharpness', before, player.condition.sharpness);
+
+      // Extra work on top of a full week is where legs go. The more tired he already is,
+      // the more likely this is the session he regrets.
+      const overcooked = rng.chance(clamp(player.condition.fatigue / 220, 0.08, 0.45));
+      if (overcooked) {
+        player.fitness = clamp(player.fitness - rng.range(4, 9), 0, 100);
+        const pace = player.attributes.pace;
+        player.attributes.pace = clamp(pace - rng.range(0.2, 0.7), 1, 99);
+        track(changes, 'change.attr.pace', pace, player.attributes.pace);
+        narrativeKey = `action.${id}.overcooked`;
+        break;
+      }
       narrativeKey = `action.${id}.good`;
       break;
     }
@@ -550,12 +637,26 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
       adjustRelationship(state, 'board', swing(5), changes);
       adjustRelationship(state, 'fans', swing(4), changes);
       adjustRelationship(state, 'media', swing(3), changes);
+
+      // The dressing room has a word for a player who says all the right things in front
+      // of a camera, and it is not a compliment.
+      if (rng.chance(0.3)) {
+        adjustRelationship(state, 'teammates', -swing(6), changes);
+        narrativeKey = `action.${id}.creep`;
+        break;
+      }
       narrativeKey = `action.${id}.good`;
       break;
     }
     case 'quietWeek': {
       player.condition.fatigue = clamp(player.condition.fatigue - 10, 0, 100);
       player.morale = clamp(player.morale + 2, 0, 100);
+
+      // Rest is not free. A week of doing nothing takes the edge off, and the edge is
+      // what the first twenty minutes on Saturday are made of.
+      const before = player.condition.sharpness;
+      player.condition.sharpness = clamp(before - rng.range(2, 6), 0, 100);
+      track(changes, 'change.sharpness', before, player.condition.sharpness);
       narrativeKey = `action.${id}.good`;
       break;
     }

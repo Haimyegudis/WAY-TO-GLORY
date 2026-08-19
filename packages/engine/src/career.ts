@@ -38,6 +38,21 @@ import { createCup, drawRound, isCupFinal, isCupSemi, recordTieResult, type CupS
 import { runAbstractMarket, runSquadWindow, type SquadMove } from './market.js';
 import { negotiate, type ContractAsk, type NegotiationOutcome } from './negotiate.js';
 import {
+  applyMilestoneAnswer,
+  milestoneById,
+  milestoneFor,
+  settleClaim,
+  type MilestoneId,
+} from './milestones.js';
+import {
+  availableMentors,
+  followAdvice,
+  mentorById,
+  talkToMentor,
+  type MentorReply,
+  type MentorTopic,
+} from './mentor.js';
+import {
   applyQualifierResult,
   campaignFame,
   createCampaign,
@@ -722,7 +737,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   let playedThisWeek = 0;
 
   // 0a. The week before a big one starts on the Monday.
-  announceBigMatch(state, index);
+  const weekImportance = announceBigMatch(state, index);
 
   // 0. Nothing waits for ever. A club that hears nothing back signs someone else and
   // an agent stops calling, otherwise unanswered approaches pile up and quietly choke
@@ -866,6 +881,9 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
   }
 
+  // 7b. The press, on the weeks the press cares.
+  if (club) askTheMedia(state, weekImportance);
+
   // 8. Career events. His life keeps happening at the same rate; what changed is how
   // much of it is allowed to stop him. A season holds a handful of real forks - a move,
   // an operation, a contract - and a great deal of noise around them, and being asked
@@ -1006,28 +1024,92 @@ function buildEventContext(state: CareerState, index: PackIndex): EventContext {
  * the player hears about it before he plays it - which is most of what makes those
  * weeks different from the other thirty.
  */
-function announceBigMatch(state: CareerState, index: PackIndex): void {
+/**
+ * The press, on the weeks the press turns up.
+ *
+ * This is deliberately rare. A debut, a derby, a final, the first game after a move, the
+ * week the rumours start - and nothing in between, because a microphone every Thursday is
+ * a chore rather than a moment. What he says moves real numbers, and if he makes a claim
+ * he then has to go and back it up on the pitch.
+ */
+/** Puts a question on the table, once per kind per season. */
+function raiseMilestone(state: CareerState, id: MilestoneId): void {
+  const askedKey = `asked:${id}:${state.world.season}`;
+  if (state.flags[askedKey]) return;
+  const question = milestoneById(id);
+  if (!question) return;
+  if (state.pendingDecisions.some((decision) => decision.eventId.startsWith('milestone:'))) return;
+  state.flags[askedKey] = true;
+
   const club = userClub(state);
-  if (!club) return;
+  const decisionId = `milestone_${id}_${state.world.season}_${state.world.week}`;
+  state.pendingDecisions.push({
+    id: decisionId,
+    kind: 'event',
+    eventId: `milestone:${id}`,
+    category: 'media',
+    textKey: `milestone.${id}`,
+    textArgs: { club: club?.name ?? '' },
+    options: question.answers.map((answer) => ({
+      id: answer.id,
+      labelKey: `milestone.${id}.${answer.id}`,
+      effects: [],
+    })),
+    blocking: true,
+    expiresWeek: state.world.season * 52 + state.world.week + 2,
+  });
+  pushInbox(state, 'media', `milestone.${id}`, { club: club?.name ?? '' }, decisionId);
+}
+
+function askTheMedia(state: CareerState, importance: MatchImportance): void {
+  if (state.flags['claimAttribute']) return;
+
+  const weeksAtNewClub =
+    state.world.season * 52 + state.world.week - Number(state.flags['lastTransferWeek'] ?? -999);
+  const rumoured = state.transferOffers.length > 0 || Boolean(state.flags['transferRequested']);
+  const id = milestoneFor(importance, { weeksAtNewClub, rumoured });
+  if (id) raiseMilestone(state, id);
+}
+
+/** Answering the press. The trade is applied, and any claim is left for the pitch. */
+export function answerMedia(state: CareerState, decisionId: string, optionId: string): boolean {
+  const at = state.pendingDecisions.findIndex((decision) => decision.id === decisionId);
+  if (at === -1) return false;
+  const decision = state.pendingDecisions[at]!;
+  const id = decision.eventId.replace('milestone:', '') as MilestoneId;
+  const question = milestoneById(id);
+  const answer = question?.answers.find((entry) => entry.id === optionId);
+  if (!answer) return false;
+
+  state.pendingDecisions.splice(at, 1);
+  applyMilestoneAnswer(state, answer);
+  return true;
+}
+
+/** Announces the week's fixture if it is worth announcing, and says what kind it is. */
+function announceBigMatch(state: CareerState, index: PackIndex): MatchImportance {
+  const club = userClub(state);
+  if (!club) return 'normal';
   const week = state.world.week;
 
   const compState = state.world.competitions[club.competitionId];
   const fixture = compState?.fixtures.find(
     (f) => !f.played && f.week === week && (f.homeClubId === club.id || f.awayClubId === club.id),
   );
-  if (!fixture) return;
+  if (!fixture) return 'normal';
 
   const importance = matchImportanceFor(state, index, club.competitionId, fixture.homeClubId, fixture.awayClubId);
-  if (importance === 'normal') return;
+  if (importance === 'normal') return 'normal';
 
   const announced = `bigMatch:${state.world.season}:${week}`;
-  if (state.flags['lastBigMatch'] === announced) return;
+  if (state.flags['lastBigMatch'] === announced) return importance;
   state.flags['lastBigMatch'] = announced;
 
   const opponentId = fixture.homeClubId === club.id ? fixture.awayClubId : fixture.homeClubId;
   const opponent = state.world.clubs[opponentId];
   pushInbox(state, 'club', `inbox.buildUp.${importance}`, { opponent: opponent?.name ?? '' });
   pushNews(state, `news.buildUp.${importance}`, { club: club.name, opponent: opponent?.name ?? '' }, 'high');
+  return importance;
 }
 
 function matchImportanceFor(
@@ -1649,6 +1731,7 @@ function playUserMatch(
     pushInbox(state, 'club', 'inbox.debut', { club: club.name });
     pushNews(state, 'news.debut', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'high');
     unlock(state, 'firstProMatch', { club: club.name });
+    raiseMilestone(state, 'debut');
   }
 
   applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled);
@@ -1733,7 +1816,10 @@ function applyMatchToPlayer(
     player.reputation = clamp(player.reputation + line.goals * 0.35 + line.assists * 0.2 + (line.motm ? 0.5 : 0), 0, 100);
     player.fame = clamp(player.fame + line.goals * 0.4 + (line.motm ? 0.6 : 0), 0, 100);
 
-    if (stats.goals >= 1 && !state.achievements.some((a) => a.id === 'firstGoal')) unlock(state, 'firstGoal');
+    if (stats.goals >= 1 && !state.achievements.some((a) => a.id === 'firstGoal')) {
+      unlock(state, 'firstGoal');
+      raiseMilestone(state, 'firstGoal');
+    }
     if (line.goals >= 3) unlock(state, 'hatTrick');
     if (stats.apps === 1) unlock(state, 'debut');
 
@@ -1774,6 +1860,12 @@ function applyMatchToPlayer(
       const injury = rollInjury(rng, player, state.world.season, 1.2);
       player.condition.injuries.push(injury);
       pushInbox(state, 'medical', 'inbox.injuredMatch', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
+    }
+
+    // Anything he promised in front of a camera is settled by what he just did.
+    const carried = settleClaim(rng, state, line.rating);
+    if (carried !== null) {
+      pushInbox(state, 'media', carried ? 'inbox.claimBackedUp' : 'inbox.claimFailed', {});
     }
 
     if (line.goals > 0) {
@@ -1918,6 +2010,8 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
 
   // Individual honours, decided before the world ages and the season rolls over.
   applyAwards(state, index, rng);
+
+  if (trophies.length > 0) raiseMilestone(state, 'trophyNight');
 
   // Career record for the season.
   const record: CareerSeasonRecord = {
@@ -3075,6 +3169,38 @@ export function askForTerms(
     );
   }
   return outcome;
+}
+
+/** The old players who would take his call, given who he is and how known he is. */
+export function mentorChoices(state: CareerState) {
+  return availableMentors(state);
+}
+
+/**
+ * Asking one of them to take an interest. He can change his mind later, but the bond
+ * starts again from nothing when he does - these are relationships, not equipment slots.
+ */
+export function chooseMentor(state: CareerState, mentorId: string): boolean {
+  const mentor = mentorById(mentorId);
+  if (!mentor) return false;
+  if (state.mentor?.id === mentorId) return true;
+
+  state.mentor = { id: mentorId, bond: 12, lastTalkWeek: -99, talks: 0, followed: 0 };
+  pushInbox(state, 'personal', 'inbox.mentorAgreed', { mentor: mentor.name });
+  return true;
+}
+
+/** A conversation with him. Returns what he said, or null if it is too soon to ask again. */
+export function askMentor(state: CareerState, topic: MentorTopic): MentorReply | null {
+  const rng = mainRng(state);
+  const reply = talkToMentor(rng, state, topic, minutesPct(state));
+  commitRng(state, rng);
+  return reply;
+}
+
+/** Doing what he suggested: the brief goes to the agent and he notices that it did. */
+export function takeMentorAdvice(state: CareerState, reply: MentorReply): void {
+  followAdvice(state, reply);
 }
 
 export function signAgent(state: CareerState, agentId: string): boolean {

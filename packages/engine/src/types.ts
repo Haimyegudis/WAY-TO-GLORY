@@ -1,5 +1,6 @@
 /** Core domain model. Everything here is plain data so it can be JSON-serialised into a save. */
 import type { QualifyingCampaign } from './qualifying.js';
+import type { MentorState } from './mentor.js';
 
 export type Position =
   | 'GK'
@@ -608,6 +609,8 @@ export interface CareerState {
   lastResult: DecisionResult | null;
   world: WorldState;
   nationalTeam: NationalTeamState;
+  /** The old player who took an interest in him, if he has asked one to. */
+  mentor?: MentorState;
   /** The qualifying campaign his country is playing for the next tournament, if any. */
   campaign?: QualifyingCampaign;
   /** Campaigns already settled, so a career remembers the summers it missed. */

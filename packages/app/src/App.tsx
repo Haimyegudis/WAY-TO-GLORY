@@ -16,6 +16,7 @@ import { NationalScreen } from './screens/NationalScreen.js';
 import { SocialScreen } from './screens/SocialScreen.js';
 import { SettingsScreen } from './screens/SettingsScreen.js';
 import { DecisionSheet } from './screens/DecisionSheet.js';
+import { MentorScreen } from './screens/MentorScreen.js';
 import { ResultSheet } from './screens/ResultSheet.js';
 
 /**
@@ -96,6 +97,7 @@ function Game() {
         {screen === 'national' && <NationalScreen />}
         {screen === 'social' && <SocialScreen />}
         {screen === 'settings' && <SettingsScreen />}
+        {screen === 'mentor' && <MentorScreen />}
 
         {!pending && !result && !state?.retired && !watchingMatch && <ContinueDock />}
         <Tabs />
@@ -141,12 +143,31 @@ function ContinueDock() {
   );
 }
 
+/**
+ * Four places he goes constantly, and everything else behind one button.
+ *
+ * The bar used to be five tabs where three of them were doors to somewhere else: club
+ * hid training and the transfer market, career hid the national team and settings. That
+ * meant the way to reach half the game was to guess which tab it was filed under. Now
+ * the four he actually lives in are on the bar and the rest is a list he can read.
+ */
 const TABS: { id: Screen; key: string; icon: JSX.Element }[] = [
   { id: 'hub', key: 'nav.hub', icon: <IconHome /> },
   { id: 'matches', key: 'nav.matches', icon: <IconBall /> },
   { id: 'club', key: 'nav.club', icon: <IconShield /> },
   { id: 'social', key: 'nav.social', icon: <IconChat /> },
-  { id: 'career', key: 'nav.career', icon: <IconTrophy /> },
+];
+
+/** Everything else, named for what it is rather than for where it was filed. */
+const MORE: { id: Screen; key: string; hint: string }[] = [
+  { id: 'train', key: 'nav.train', hint: 'nav.train.hint' },
+  { id: 'market', key: 'nav.market', hint: 'nav.market.hint' },
+  { id: 'club', key: 'nav.tables', hint: 'nav.tables.hint' },
+  { id: 'matches', key: 'nav.results', hint: 'nav.results.hint' },
+  { id: 'mentor', key: 'nav.mentor', hint: 'nav.mentor.hint' },
+  { id: 'national', key: 'nav.national', hint: 'nav.national.hint' },
+  { id: 'career', key: 'nav.career', hint: 'nav.career.hint' },
+  { id: 'settings', key: 'nav.settings', hint: 'nav.settings.hint' },
 ];
 
 function Tabs() {
@@ -154,31 +175,86 @@ function Tabs() {
   const screen = useGame((s) => s.screen);
   const goto = useGame((s) => s.goto);
   const state = useGame((s) => s.state);
+  const [openMore, setOpenMore] = useState(false);
   const unread = state?.inbox.filter((m) => !m.read).length ?? 0;
   const actionsLeft = state ? state.socialActions.perWeek - state.socialActions.used : 0;
+  const offers = state?.transferOffers.length ?? 0;
 
   return (
-    <nav className="tabs">
-      {TABS.map((tab) => {
-        const active =
-          screen === tab.id ||
-          (tab.id === 'matches' && screen === 'match') ||
-          (tab.id === 'career' && (screen === 'national' || screen === 'settings')) ||
-          (tab.id === 'club' && (screen === 'train' || screen === 'market'));
-        const badge = tab.id === 'hub' ? unread : tab.id === 'social' ? actionsLeft : 0;
-        return (
-          <button key={tab.id} className={`tab ${active ? 'tab-active' : ''}`} onClick={() => goto(tab.id)}>
-            {tab.icon}
-            <span>{t(tab.key)}</span>
-            {badge > 0 && (
-              <em className="tab-badge" style={tab.id === 'social' ? { background: 'var(--amber)', color: '#17120a' } : undefined}>
-                {badge}
-              </em>
-            )}
-          </button>
-        );
-      })}
-    </nav>
+    <>
+      {openMore && (
+        <div className="sheet-backdrop" onClick={() => setOpenMore(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('nav.more')}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="sheet-grip" />
+            <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('nav.more')}</p>
+            <ul className="list" style={{ marginBlockStart: 8 }}>
+              {MORE.map((entry) => (
+                <li key={entry.key} className="list-item">
+                  <button
+                    className="inbox-row"
+                    onClick={() => {
+                      setOpenMore(false);
+                      goto(entry.id);
+                    }}
+                  >
+                    <span className="grow" style={{ minWidth: 0 }}>
+                      <span className="inbox-title">{t(entry.key)}</span>
+                      <span className="inbox-when faint">{t(entry.hint)}</span>
+                    </span>
+                    {entry.id === 'market' && offers > 0 && <em className="tab-badge">{offers}</em>}
+                    <span className="inbox-chevron">›</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      <nav className="tabs">
+        {TABS.map((tab) => {
+          const active = screen === tab.id || (tab.id === 'matches' && screen === 'match');
+          const badge = tab.id === 'hub' ? unread : tab.id === 'social' ? actionsLeft : 0;
+          return (
+            <button key={tab.id} className={`tab ${active ? 'tab-active' : ''}`} onClick={() => goto(tab.id)}>
+              {tab.icon}
+              <span>{t(tab.key)}</span>
+              {badge > 0 && (
+                <em className="tab-badge" style={tab.id === 'social' ? { background: 'var(--amber)', color: '#17120a' } : undefined}>
+                  {badge}
+                </em>
+              )}
+            </button>
+          );
+        })}
+
+        <button
+          className={`tab ${MORE.some((entry) => entry.id === screen) && !TABS.some((tab) => tab.id === screen) ? 'tab-active' : ''}`}
+          aria-haspopup="dialog"
+          aria-expanded={openMore}
+          onClick={() => setOpenMore((open) => !open)}
+        >
+          <IconMore />
+          <span>{t('nav.more')}</span>
+          {offers > 0 && <em className="tab-badge">{offers}</em>}
+        </button>
+      </nav>
+    </>
+  );
+}
+
+/** Three lines. Everybody on earth knows what it means. */
+function IconMore() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
   );
 }
 
