@@ -6,7 +6,7 @@ import { playTournament, tournamentFor } from '../src/tournament.js';
 import { ageFactor, developWeek, headroom, updateCondition } from '../src/development.js';
 import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
 import { buildAttributes, generatePlayer } from '../src/generate.js';
-import { pickLineup, selectionScore } from '../src/selection.js';
+import { CAMEO_MINUTES, eligibleForSenior, pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
 import { YOUTH_MAX_AGE, countryLeagues, userYouthCompetition, userYouthCompetitionId, youthCompetitionId } from '../src/youth.js';
@@ -890,8 +890,17 @@ describe('half time', () => {
       playWeek(state, index);
       state.pendingDecisions = [];
     }
-    const club = state.world.clubs[state.player.clubId!]!;
-    const squad = userSquad(state);
+    // Four seasons in he is usually a senior somewhere. If a move has left him without
+    // a club for the moment, the test still needs eleven men, so we borrow a squad.
+    const clubId = state.player.clubId ?? Object.keys(state.world.squads)[0]!;
+    const club = state.world.clubs[clubId]!;
+    const squad = [
+      ...(state.world.squads[clubId] ?? []).flatMap((id) => {
+        const found = state.world.players[id];
+        return found ? [found] : [];
+      }),
+      state.player,
+    ];
     const opponent = Object.values(state.world.clubs)
       .find((c) => c.competitionId === club.competitionId && c.id !== club.id)!;
 
@@ -1241,6 +1250,101 @@ describe('the youth league', () => {
         const age = state.world.season - player.birthYear;
         expect(age, `${player.lastName} is ${age} in the youth league`).toBeLessThanOrEqual(YOUTH_MAX_AGE);
         expect(age).toBeGreaterThanOrEqual(14);
+      }
+    }
+  });
+});
+
+describe('the age gate', () => {
+  function boy(age: number, ovr: number, potential: number) {
+    const player = generatePlayer(new Rng(3), loadedIndex(), {
+      clubId: 'c', pos: 'CAM', age, targetOvr: ovr, season: 2026, countryCode: 'ISR',
+    });
+    player.potential = potential;
+    return player;
+  }
+
+  let cachedIndex: ReturnType<typeof indexPack> | null = null;
+  function loadedIndex() {
+    if (!cachedIndex) cachedIndex = indexPack(loadPack());
+    return cachedIndex;
+  }
+
+  it('never lets a fifteen year old near a senior pitch', () => {
+    const gate = eligibleForSenior(boy(15, 70, 95), 2026, {
+      calledUp: true, clubOvr: 70, managerTrust: 95,
+    });
+    expect(gate.allowed).toBe(false);
+    expect(gate.maxMinutes).toBe(0);
+  });
+
+  it('gives an exceptional sixteen year old the last half hour, not the shirt', () => {
+    const gate = eligibleForSenior(boy(16, 70, 90), 2026, {
+      calledUp: true, clubOvr: 70, managerTrust: 70,
+    });
+    expect(gate.allowed).toBe(true);
+    expect(gate.maxMinutes).toBeLessThanOrEqual(CAMEO_MINUTES);
+  });
+
+  it('keeps an ordinary sixteen year old in the academy', () => {
+    const ordinary = eligibleForSenior(boy(16, 45, 70), 2026, {
+      calledUp: true, clubOvr: 70, managerTrust: 70,
+    });
+    expect(ordinary.allowed).toBe(false);
+
+    const untrusted = eligibleForSenior(boy(17, 70, 90), 2026, {
+      calledUp: true, clubOvr: 70, managerTrust: 30,
+    });
+    expect(untrusted.allowed).toBe(false);
+  });
+
+  it('stops asking the question at eighteen', () => {
+    const gate = eligibleForSenior(boy(18, 40, 50), 2026, {
+      calledUp: false, clubOvr: 90, managerTrust: 10,
+    });
+    expect(gate.allowed).toBe(true);
+    expect(gate.maxMinutes).toBe(90);
+  });
+
+  it('never generates a child into a senior squad', () => {
+    const { state } = startedCareer({ seed: 4242 });
+    for (const [clubId, ids] of Object.entries(state.world.squads)) {
+      for (const id of ids) {
+        const player = state.world.players[id];
+        if (!player || player.isUser) continue;
+        const age = state.world.season - player.birthYear;
+        expect(age, `${player.lastName} is ${age} at ${clubId}`).toBeGreaterThanOrEqual(16);
+      }
+    }
+  });
+
+  it('does not put a fifteen year old in the first team of a top club', () => {
+    const { state, index } = startedCareer({ seed: 12 });
+    for (let i = 0; i < 52 * 3; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      const age = state.world.season - state.player.birthYear;
+      if (age >= 16) continue;
+      for (const match of state.matchLog) {
+        if (match.competitionId.endsWith('.youth')) continue;
+        expect(match.userLine?.played ?? false, `a ${age} year old played a senior match`).toBe(false);
+      }
+    }
+  });
+
+  it('holds a sixteen year old to cameos in senior football', () => {
+    const { state, index } = startedCareer({ seed: 99 });
+    for (let i = 0; i < 52 * 4; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      for (const match of state.matchLog) {
+        if (match.competitionId.endsWith('.youth')) continue;
+        const line = match.userLine;
+        if (!line?.played) continue;
+        const ageThen = match.season - state.player.birthYear;
+        if (ageThen >= 18) continue;
+        expect(line.minutes, `a ${ageThen} year old played ${line.minutes} minutes`).toBeLessThanOrEqual(CAMEO_MINUTES);
+        expect(line.started).toBe(false);
       }
     }
   });

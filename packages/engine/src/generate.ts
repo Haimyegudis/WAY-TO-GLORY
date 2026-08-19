@@ -238,7 +238,13 @@ const SQUAD_TEMPLATE: { pos: Position; count: number }[] = [
   { pos: 'ST', count: 3 },
 ];
 
-/** Age curve for a squad: a few kids, a core in its prime, a couple of veterans. */
+/**
+ * Age curve for a squad: a few kids, a core in its prime, a couple of veterans.
+ *
+ * The youngest here is seventeen, and he is on the bench. Sixteen year olds belong in
+ * the academy; the exceptional one is promoted by the game, not generated into a squad
+ * list as though a title-winning side routinely registers children.
+ */
 function squadAge(rng: Rng, slotIndex: number): number {
   const roll = rng.next();
   if (slotIndex < 3 || roll < 0.18) return rng.int(17, 21);

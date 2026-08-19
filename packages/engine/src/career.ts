@@ -21,7 +21,14 @@ import {
   updateCondition,
   updateForm,
 } from './development.js';
-import { isAvailable, pickBestLineup, resolveMinutes, type SelectionContext } from './selection.js';
+import {
+  capMinutes,
+  eligibleForSenior,
+  isAvailable,
+  pickBestLineup,
+  resolveMinutes,
+  type SelectionContext,
+} from './selection.js';
 import {
   clubRating,
   simulateQuickResult,
@@ -2135,11 +2142,34 @@ function playUserMatch(
   // same eleven, the same minutes, the same seed. Only the second half is still open.
   const held = state.pendingHalfTime?.matchId === matchId ? state.pendingHalfTime : null;
 
-  const lineup = held?.lineup ?? pickBestLineup(rng, squad.filter((p) => p.id !== player.id || available), selectionCtx);
+  // A boy who is not old enough for this level is not in the reckoning at all, and one
+  // who is only just old enough gets the end of it rather than the start.
+  const gate = youthMatch
+    ? { allowed: true, maxMinutes: 90 }
+    : eligibleForSenior(player, state.world.season, {
+      calledUp: Boolean(state.flags['calledUpToSeniors']),
+      clubOvr: clubBaseOvr(club),
+      managerTrust: state.managerTrust,
+    });
+  const pickable = available && gate.allowed;
+
+  const lineup = held?.lineup ?? pickBestLineup(
+    rng,
+    squad.filter((p) => {
+      if (p.id === player.id) return pickable;
+      if (youthMatch) return true;
+      return eligibleForSenior(p, state.world.season, {
+        calledUp: true,
+        clubOvr: clubBaseOvr(club),
+        managerTrust: 70,
+      }).allowed;
+    }),
+    selectionCtx,
+  );
   const minutes = held?.minutes ?? (youthMatch
     ? { played: true, started: true, minutes: 90, slot: player.primaryPos }
-    : available
-      ? resolveMinutes(rng, player.id, lineup, player)
+    : pickable
+      ? capMinutes(resolveMinutes(rng, player.id, lineup, player), gate, player)
       : { played: false, started: false, minutes: 0, slot: null });
 
   const opponentStarIds = state.world.squads[opponentId] ?? [];
@@ -2211,12 +2241,12 @@ function playUserMatch(
   if (held) state.pendingHalfTime = undefined;
 
   const result = outcome.result;
-  if (!available) {
+  if (!pickable) {
     result.userLine!.reasonNotPlayed = suspension
       ? 'suspended'
       : isInjured(player)
         ? 'injured'
-        : isAcademyPlayer(state)
+        : isAcademyPlayer(state) || !gate.allowed
           ? 'notInSquad'
           : 'notSelected';
   }

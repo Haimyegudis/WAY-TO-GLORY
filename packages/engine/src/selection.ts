@@ -26,6 +26,69 @@ export interface Lineup {
   scores: Record<string, number>;
 }
 
+/** Below this nobody is registered for senior football at all. */
+export const SENIOR_MIN_AGE = 16;
+/** From here the age of a player stops being a question. */
+export const SENIOR_FREE_AGE = 18;
+/** What a sixteen or seventeen year old is given when he is given anything. */
+export const CAMEO_MINUTES = 30;
+
+export interface SeniorGateContext {
+  /** The first team has asked to have a look at him. */
+  calledUp: boolean;
+  /** The level the club's senior squad plays at, on the OVR scale. */
+  clubOvr: number;
+  managerTrust: number;
+}
+
+export interface SeniorGate {
+  allowed: boolean;
+  /** The most he can be given. Ninety once he is old enough to be picked properly. */
+  maxMinutes: number;
+}
+
+/**
+ * Whether a boy is allowed on a senior pitch at all, and how much of one.
+ *
+ * A fifteen year old does not play for the first team of a title-winning club, and a
+ * sixteen year old who does play is a story, not a routine: he has to be close to the
+ * level around him, wanted by the manager, and even then he gets the last half hour
+ * rather than the shirt. At eighteen the question stops being asked.
+ */
+export function eligibleForSenior(player: Player, season: number, ctx: SeniorGateContext): SeniorGate {
+  const age = season - player.birthYear;
+  if (age >= SENIOR_FREE_AGE) return { allowed: true, maxMinutes: 90 };
+  if (age < SENIOR_MIN_AGE) return { allowed: false, maxMinutes: 0 };
+
+  const ovr = ratingAt(player.attributes, player.primaryPos);
+  const exceptional =
+    ctx.calledUp &&
+    ovr >= ctx.clubOvr - 6 &&
+    player.potential >= 80 &&
+    ctx.managerTrust >= 55;
+
+  return exceptional
+    ? { allowed: true, maxMinutes: CAMEO_MINUTES }
+    : { allowed: false, maxMinutes: 0 };
+}
+
+/** Trim a lineup place down to what a boy of his age is actually given. */
+export function capMinutes(outcome: MinutesOutcome, gate: SeniorGate, player: Player): MinutesOutcome {
+  if (gate.maxMinutes >= 90 || !outcome.played) return outcome;
+  if (!gate.allowed) return { played: false, started: false, minutes: 0, slot: null };
+  if (outcome.minutes <= gate.maxMinutes && !outcome.started) return outcome;
+
+  // He does not start, whatever the team sheet said: he comes on at the end.
+  const on = 90 - gate.maxMinutes;
+  return {
+    played: true,
+    started: false,
+    minutes: gate.maxMinutes,
+    slot: outcome.slot ?? player.primaryPos,
+    cameOnMinute: on,
+  };
+}
+
 /**
  * Fit and allowed to play. A suspension is served in the competition it was earned in:
  * a red card in the cup does not keep a player out of the league.
