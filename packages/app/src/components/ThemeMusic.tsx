@@ -52,9 +52,17 @@ export function ThemeMusic({ playing, track = 'theme' }: { playing: boolean; tra
     };
     start();
 
-    const onFirstTouch = () => start();
-    window.addEventListener('pointerdown', onFirstTouch, { once: true });
-    return () => window.removeEventListener('pointerdown', onFirstTouch);
+    // Browsers block audio until the page has been touched, and the first touch can
+    // land anywhere, so keep trying on every interaction until it is actually playing.
+    const retry = () => {
+      if (!audio.paused) {
+        window.removeEventListener('pointerdown', retry);
+        return;
+      }
+      start();
+    };
+    window.addEventListener('pointerdown', retry);
+    return () => window.removeEventListener('pointerdown', retry);
   }, [playing, muted, track]);
 
   return <audio ref={audioRef} src={`/audio/${track}.mp3`} loop preload="none" />;

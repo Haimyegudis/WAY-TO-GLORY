@@ -37,7 +37,10 @@ export function Hub() {
     <div className="screen stack">
       <div className="row-between">
         <span className="eyebrow">{formatSeason(state.world.season)}</span>
-        <span className="eyebrow">{t('hub.week', { week: state.world.week })}</span>
+        <span className="row" style={{ gap: 10 }}>
+          <span className="eyebrow">{t('hub.week', { week: state.world.week })}</span>
+          <button className="icon-btn" aria-label={t('settings.title')} onClick={() => goto('settings')}>⚙</button>
+        </span>
       </div>
 
       <header className="identity">

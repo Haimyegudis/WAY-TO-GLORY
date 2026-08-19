@@ -811,3 +811,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 /* A quiet way to turn the sound off, out of the way of everything else. */
 
+/* A small icon button for the header row. */
+.icon-btn {
+  background: none; border: 0; color: var(--muted); font-size: 15px; line-height: 1;
+  padding: 2px 4px; cursor: pointer;
+}
+.icon-btn:hover { color: var(--gold); }
