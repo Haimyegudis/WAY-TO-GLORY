@@ -18,6 +18,7 @@ import { SettingsScreen } from './screens/SettingsScreen.js';
 import { DecisionSheet } from './screens/DecisionSheet.js';
 import { MentorScreen } from './screens/MentorScreen.js';
 import { ResultSheet } from './screens/ResultSheet.js';
+import { nextFixture } from './state/selectors.js';
 
 /**
  * One stadium photograph carries the whole game; each screen only shifts how far
@@ -70,6 +71,7 @@ export function App() {
 
 function Game() {
   const screen = useGame((s) => s.screen);
+  useBackToHub();
   const state = useGame((s) => s.state);
   const result = useGame((s) => s.result);
   const liveMatchId = useGame((s) => s.liveMatchId);
@@ -134,6 +136,30 @@ function Stadium({ dim }: { dim: number }) {
   );
 }
 
+/**
+ * The back gesture, which on a phone is a hardware button and on a browser is the arrow.
+ *
+ * Left alone it leaves the game entirely, which is a brutal thing to do to somebody four
+ * seasons into a career, so a state is kept on the history stack and put straight back
+ * whenever it is popped: back becomes a step towards his own screen rather than the door
+ * out. The one place it does nothing is a match in progress - there is no tab back to the
+ * pitch, so walking away from a live game would strand him.
+ */
+function useBackToHub(): void {
+  useEffect(() => {
+    window.history.pushState({ game: true }, '');
+    const onPop = () => {
+      window.history.pushState({ game: true }, '');
+      const game = useGame.getState();
+      const inTheMatch = game.liveMatchId !== null || game.state?.pendingHalfTime != null;
+      if (inTheMatch) return;
+      if (game.screen !== 'hub') game.goto('hub');
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+}
+
 function ContinueDock() {
   const t = useT();
   const advance = useGame((s) => s.advance);
@@ -147,15 +173,26 @@ function ContinueDock() {
   // everything else his club wanted from him went past unread. Now the whistle puts him
   // back on his own screen, and the week only moves when he says so.
   const afterMatch = screen === 'match' && state?.lastMatch != null;
+  // A button should say what happens when it is pressed. With his club playing this
+  // week, pressing it kicks a match off; the rest of the year it walks the calendar on.
+  const upcoming = state && !afterMatch ? nextFixture(state) : null;
+  const kickOff = upcoming != null && upcoming.fixture.week === state?.world.week;
+  const label = afterMatch
+    ? t('action.doneWithMatch')
+    : kickOff
+      ? t('action.startMatch')
+      : injured
+        ? t('action.continueTo')
+        : t('action.continue');
 
   return (
     <div className="continue-dock">
       <button
-        className={`continue ${injured && !afterMatch ? 'continue-alt' : ''}`}
+        className={`continue ${injured && !afterMatch && !kickOff ? 'continue-alt' : ''}`}
         disabled={busy}
         onClick={() => (afterMatch ? goto('hub') : advance(52))}
       >
-        {afterMatch ? t('action.doneWithMatch') : injured ? t('action.continueTo') : t('action.continue')}
+        {label}
       </button>
     </div>
   );

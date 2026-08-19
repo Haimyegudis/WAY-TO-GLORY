@@ -184,6 +184,10 @@ export function LiveMatch({
     };
   }, [shown, minute, events, state, lang]);
 
+  // The moment itself, as opposed to the board that stays up after it: the ball is
+  // still crossing the screen on the minute it went in, and not a minute later.
+  const goalSplash = goalMoment && goalMoment.minute === minute ? goalMoment : null;
+
   const lastScore = [...shown].reverse().find((e) => e.score)?.score;
   // Coming back on for the second half, the board does not reset: the goals from the
   // half he already watched are on it before a ball is kicked.
@@ -229,6 +233,16 @@ export function LiveMatch({
           {...(state.player.shirtNumber !== undefined ? { userNumber: state.player.shirtNumber } : {})}
           replayLabel={t('live.replay')}
         />
+        {goalSplash && (
+          <div
+            className={`goal-splash ${goalSplash.ours ? '' : 'goal-splash-against'}`}
+            key={`${goalSplash.minute}-${goalSplash.ours}`}
+            aria-hidden="true"
+          >
+            <span className="goal-splash-ball" />
+            <span className="goal-splash-word">GOAL</span>
+          </div>
+        )}
         {goalMoment && (
           <div className={`goal-card ${goalMoment.ours ? '' : 'goal-card-against'}`} role="status">
             <span className="goal-word">{t('live.goal')}</span>
