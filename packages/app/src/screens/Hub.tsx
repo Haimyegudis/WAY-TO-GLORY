@@ -12,7 +12,8 @@ import { getPack, useGame } from '../state/store.js';
 import { myClub, myPosition, nextFixture, seasonLine, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, localiseArgs } from '../lib/club.js';
 import { competitionName } from '../lib/names.js';
-import { Card, Chip, ClubLine, Crest, Gauge, RatingBadge, Stat } from '../components/ui.js';
+import { seasonGoalStanding } from '@fc/engine';
+import { Card, Chip, ClubLine, Crest, Gauge, Meter, RatingBadge, Stat } from '../components/ui.js';
 import { DecisionOptions } from './DecisionSheet.js';
 
 export function Hub() {
@@ -48,6 +49,8 @@ export function Hub() {
   const frozen = (state.world.season * 52 + state.world.week) < Number(state.flags['benchedUntilWeek'] ?? 0);
 
   const ovrTone = ovr >= 82 ? 'ovr-tile-elite' : ovr >= 70 ? 'ovr-tile-high' : '';
+  const goal = state.seasonGoal?.season === state.world.season ? state.seasonGoal : null;
+  const standing = seasonGoalStanding(state);
 
   return (
     <div className="screen stack">
@@ -115,6 +118,46 @@ export function Hub() {
           </p>
           <YouthStanding />
           <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t('hub.youthHint')}</p>
+        </Card>
+      )}
+
+      {/*
+        * What the season is for.
+        *
+        * The summer conversation is only worth having if he can see it all year, so the
+        * three terms it was written in are on his own screen with where he stands
+        * against each of them.
+        */}
+      {goal && standing && (
+        <Card title={t('seasonGoal.title')}>
+          <div className="stack" style={{ gap: 10 }}>
+            <div>
+              <div className="row-between" style={{ marginBlockEnd: 4 }}>
+                <span style={{ fontSize: 13 }}>{t('seasonGoal.minutes')}</span>
+                <span className="num" style={{ fontSize: 12 }}>
+                  {Math.round(standing.minutesPct * 100)}% / {Math.round(goal.minutes * 100)}%
+                </span>
+              </div>
+              <Meter value={Math.min(100, (standing.minutesPct / Math.max(0.01, goal.minutes)) * 100)} tone={standing.metMinutes ? 'amber' : 'blue'} />
+            </div>
+            {goal.contributions > 0 && (
+              <div>
+                <div className="row-between" style={{ marginBlockEnd: 4 }}>
+                  <span style={{ fontSize: 13 }}>{t('seasonGoal.contributions')}</span>
+                  <span className="num" style={{ fontSize: 12 }}>{standing.contributions} / {goal.contributions}</span>
+                </div>
+                <Meter value={Math.min(100, (standing.contributions / Math.max(1, goal.contributions)) * 100)} tone={standing.metContributions ? 'amber' : 'blue'} />
+              </div>
+            )}
+            {goal.tablePosition !== null && standing.position !== null && (
+              <div className="row-between">
+                <span style={{ fontSize: 13 }}>{t('seasonGoal.position')}</span>
+                <span className="num" style={{ fontSize: 12 }}>
+                  {standing.position} / {goal.tablePosition}
+                </span>
+              </div>
+            )}
+          </div>
         </Card>
       )}
 

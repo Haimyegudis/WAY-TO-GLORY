@@ -222,6 +222,26 @@ export interface SeasonStats {
   ratedApps: number;
 }
 
+/**
+ * What the manager wants out of him this season.
+ *
+ * Set in the summer, in his own words, and settled on the last day. The stake is his:
+ * take what he is offered, ask for a harder brief because he believes he is worth it,
+ * or take the safe one and be judged gently. What it costs and pays is trust, which is
+ * the currency everything else in a season is bought with.
+ */
+export interface SeasonGoal {
+  season: number;
+  /** Share of the club's minutes he is expected to play, 0-1. */
+  minutes: number;
+  /** Goals and assists together: one number, because a winger is judged on both. */
+  contributions: number;
+  /** Where the club is expected to finish, when it has a league to finish in. */
+  tablePosition: number | null;
+  stake: 'safe' | 'agreed' | 'bold';
+  settled?: boolean;
+}
+
 export interface CareerSeasonRecord extends SeasonStats {
   age: number;
   ovrStart: number;
@@ -637,6 +657,8 @@ export interface CareerState {
   /** Campaigns already settled, so a career remembers the summers it missed. */
   campaignHistory?: QualifyingCampaign[];
   seasonHistory: CareerSeasonRecord[];
+  /** What the manager asked of him this season, and what it is worth. */
+  seasonGoal?: SeasonGoal;
   matchLog: MatchResult[];           // recent matches only (compacted)
   lastMatch: MatchResult | null;
   trophies: { season: number; competitionId: string; kind: 'league' | 'cup' | 'promotion' }[];

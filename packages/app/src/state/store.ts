@@ -28,6 +28,7 @@ import {
   askForTerms as engineAskForTerms,
   answerMedia as engineAnswerMedia,
   answerMentor as engineAnswerMentor,
+  answerSeasonGoal as engineAnswerSeasonGoal,
   chooseMentor as engineChooseMentor,
   askMentor as engineAskMentor,
   takeMentorAdvice as engineTakeMentorAdvice,
@@ -459,6 +460,18 @@ export const useGame = create<GameStore>((set, get) => ({
     }
     // The old player asking him something is not a scripted event either: it moves the
     // relationship and a little of who he is, and it hands back what it moved.
+    // The summer conversation with the manager sets the season's target rather than
+    // running an event's effects, so it is answered by the engine that owns it.
+    if (decisionId.startsWith('seasonGoal_')) {
+      const goalResult = engineAnswerSeasonGoal(state, index, decisionId, optionId);
+      if (goalResult) {
+        const slot = get().activeSaveId;
+        if (slot) persistTo(slot, state, (saves) => set({ saves }));
+        set({ state: { ...state } });
+        return;
+      }
+    }
+
     if (decisionId.startsWith('mentorPrompt_')) {
       const mentorResult = engineAnswerMentor(state, decisionId, optionId);
       const mentorSlot = get().activeSaveId;

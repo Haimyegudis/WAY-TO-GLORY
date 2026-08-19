@@ -11,6 +11,7 @@ import {
   advanceWeek,
   answerMedia,
   answerOffer,
+  answerSeasonGoal,
   currentOvr,
   resumeHalfTime,
   userSquad,
@@ -212,6 +213,7 @@ for (let s = 0; s < seedCount; s++) {
     events: 0,
     offers: 0,
     injuries: 0,
+    goals: 0,
     clubs: new Set<string>([state.player.clubId ?? '']),
   };
 
@@ -249,6 +251,11 @@ for (let s = 0; s < seedCount; s++) {
       }
       const option = decision.options[rng.int(0, decision.options.length - 1)];
       if (!option) continue;
+      if (decision.eventId === 'seasonGoal') {
+        counts.goals++;
+        answerSeasonGoal(state, index, decision.id, option.id);
+        continue;
+      }
       if (decision.eventId.startsWith('milestone:')) {
         counts.media++;
         answerMedia(state, index, decision.id, option.id);
@@ -275,7 +282,7 @@ for (let s = 0; s < seedCount; s++) {
   console.log(
     `seed ${seed}: ${counts.weeks} weeks, retired at ${age} on ovr ${ovr}, ` +
       `${counts.matches} match stops, ${counts.halfTimes} team talks, ${counts.media} press, ` +
-      `${counts.events} events, ${counts.offers} offers, ${counts.clubs.size} clubs, ` +
+      `${counts.events} events, ${counts.offers} offers, ${counts.goals} season targets, ${counts.clubs.size} clubs, ` +
       `${state.inbox.length} in the inbox`,
   );
 }

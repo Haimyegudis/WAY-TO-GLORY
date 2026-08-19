@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ContractAsk, PendingDecision, TransferOffer } from '@fc/engine';
 import { CONTRACT_ASKS, expectedMinutesFor } from '@fc/engine';
-import { formatMoney, useLang, useT } from '../i18n/index.js';
+import { formatMoney, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { clubName } from '../lib/club.js';
@@ -39,6 +39,7 @@ function SheetShell({ category, title, children }: { category: string; title: st
  */
 export function DecisionOptions({ decision, onAnswered }: { decision: PendingDecision; onAnswered?: () => void }) {
   const t = useT();
+  const lang = useLang((s) => s.lang);
   const decide = useGame((s) => s.decide);
   const answer = (optionId: string) => {
     // Answering from a message closes the message, so what changed is what he sees next.
@@ -55,7 +56,14 @@ export function DecisionOptions({ decision, onAnswered }: { decision: PendingDec
           style={{ animation: 'rise 0.3s ease both', animationDelay: `${70 + i * 55}ms` }}
           onClick={() => answer(option.id)}
         >
-          <span style={{ fontSize: 14.5, fontWeight: 600 }}>{t(`${decision.textKey}.${option.id}`)}</span>
+          {/* A pack event names its options by convention - the question's key plus the
+              option's id - but a question the engine builds carries its own label, and
+              that one has to win or the button prints the raw id. */}
+          <span style={{ fontSize: 14.5, fontWeight: 600 }}>
+            {option.labelKey && hasTranslation(lang, option.labelKey)
+              ? t(option.labelKey)
+              : t(`${decision.textKey}.${option.id}`)}
+          </span>
           {option.riskKey && (
             <span className={`risk ${riskClass(option.riskKey)}`} style={{ display: 'block', marginBlockStart: 5 }}>
               {t(option.riskKey)}

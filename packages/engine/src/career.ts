@@ -17,6 +17,12 @@ import {
   type UserPlayerInput,
 } from './generate.js';
 import {
+  goalProgress,
+  goalVerdict,
+  proposedGoal,
+  type GoalStake,
+} from './season-goal.js';
+import {
   developWeek,
   dietCost,
   driftPotential,
@@ -1251,6 +1257,140 @@ function raiseMilestone(state: CareerState, id: MilestoneId, force = false): voi
     expiresWeek: state.world.season * 52 + state.world.week + 2,
   });
   pushInbox(state, 'media', `milestone.${id}`, { club: club?.name ?? '' }, decisionId);
+}
+
+/**
+ * The summer conversation.
+ *
+ * Not for a boy in the academy - nobody sits a fifteen year old down and asks him for
+ * eleven goals - and not for a player without a club. Everyone else gets asked what the
+ * season is for, and gets to argue about it.
+ */
+function askWhatTheSeasonIsFor(state: CareerState, index: PackIndex): void {
+  const player = state.player;
+  if (state.retired || !player.clubId || isAcademyPlayer(state)) return;
+  if (state.seasonGoal && state.seasonGoal.season === state.world.season) return;
+  if (state.pendingDecisions.some((d) => d.eventId === 'seasonGoal')) return;
+
+  const ctx = seasonGoalContext(state, index);
+  const proposal = proposedGoal(ctx, 'agreed');
+  const club = ctx.club;
+
+  const decisionId = `seasonGoal_${state.world.season}`;
+  state.pendingDecisions.push({
+    id: decisionId,
+    kind: 'event',
+    eventId: 'seasonGoal',
+    category: 'club',
+    textKey: 'seasonGoal.ask',
+    textArgs: {
+      club: club?.name ?? '',
+      minutes: Math.round(proposal.minutes * 100),
+      contributions: proposal.contributions,
+      ...(proposal.tablePosition !== null ? { position: proposal.tablePosition } : {}),
+    },
+    options: (['agreed', 'bold', 'safe'] as GoalStake[]).map((stake) => ({
+      id: stake,
+      labelKey: `seasonGoal.stake.${stake}`,
+      riskKey: `seasonGoal.stake.${stake}.hint`,
+      effects: [],
+    })),
+    blocking: true,
+    expiresWeek: state.world.season * 52 + state.world.week + 6,
+  });
+}
+
+/** The club, the league it is in and where that league expects it to finish. */
+function seasonGoalContext(state: CareerState, index: PackIndex) {
+  const club = userClub(state) ?? null;
+  const comp = club ? state.world.competitions[club.competitionId] : undefined;
+  const leagueSize = comp ? Object.keys(comp.table).length : 0;
+
+  // Where the club belongs, by the strength of everyone else in the division. Last
+  // season's finish would be truer, but a promoted club has no last season here.
+  let expectedPosition: number | null = null;
+  if (club && comp && leagueSize > 1) {
+    const rivals = Object.keys(comp.table)
+      .map((id) => state.world.clubs[id])
+      .filter((c): c is Club => Boolean(c))
+      .sort((a, b) => b.strength - a.strength);
+    const at = rivals.findIndex((c) => c.id === club.id);
+    expectedPosition = at >= 0 ? at + 1 : null;
+  }
+
+  return { state, club, expectedPosition, leagueSize };
+}
+
+/** He has said what he thinks of the brief; the season now has a target in it. */
+export function answerSeasonGoal(
+  state: CareerState,
+  index: PackIndex,
+  decisionId: string,
+  optionId: string,
+): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex((decision) => decision.id === decisionId);
+  if (at === -1) return null;
+  const stake = (['safe', 'agreed', 'bold'] as GoalStake[]).includes(optionId as GoalStake)
+    ? (optionId as GoalStake)
+    : 'agreed';
+
+  state.pendingDecisions.splice(at, 1);
+  const goal = proposedGoal(seasonGoalContext(state, index), stake);
+  state.seasonGoal = goal;
+
+  // Asking for the hard brief is itself a statement, and a manager hears it as one.
+  if (stake === 'bold') adjustRelationship(state, 'manager', 3);
+  if (stake === 'safe') adjustRelationship(state, 'manager', -2);
+
+  pushInbox(state, 'manager', `seasonGoal.set.${stake}`, {
+    minutes: Math.round(goal.minutes * 100),
+    contributions: goal.contributions,
+    ...(goal.tablePosition !== null ? { position: goal.tablePosition } : {}),
+  });
+
+  return { changes: [], consequences: [] };
+}
+
+/** What he actually did this season, in the same three terms the brief was written in. */
+export function seasonGoalStanding(state: CareerState): ReturnType<typeof goalProgress> | null {
+  const goal = state.seasonGoal;
+  if (!goal || goal.season !== state.world.season) return null;
+  const stats = state.world.seasonStats[state.player.id];
+  const club = userClub(state);
+  const comp = club ? state.world.competitions[club.competitionId] : undefined;
+  const position = club && comp ? positionOf(comp, club.id) : null;
+
+  return goalProgress(goal, {
+    minutesPct: minutesPct(state),
+    contributions: (stats?.goals ?? 0) + (stats?.assists ?? 0),
+    position,
+  });
+}
+
+/** The last day of the season: what the brief was worth. */
+function settleSeasonGoal(state: CareerState, leaguePosition: number | null): void {
+  const goal = state.seasonGoal;
+  if (!goal || goal.settled || goal.season !== state.world.season) return;
+
+  const stats = state.world.seasonStats[state.player.id];
+  const progress = goalProgress(goal, {
+    minutesPct: minutesPct(state),
+    contributions: (stats?.goals ?? 0) + (stats?.assists ?? 0),
+    position: leaguePosition,
+  });
+  const verdict = goalVerdict(goal, progress);
+
+  adjustRelationship(state, 'manager', verdict.trust);
+  state.player.morale = clamp(state.player.morale + verdict.morale, 0, 100);
+  state.player.reputation = clamp(state.player.reputation + verdict.reputation, 0, 100);
+  goal.settled = true;
+
+  pushInbox(state, 'manager', `seasonGoal.verdict.${verdict.outcome}`, {
+    minutes: Math.round(progress.minutesPct * 100),
+    target: Math.round(goal.minutes * 100),
+    contributions: progress.contributions,
+    wanted: goal.contributions,
+  });
 }
 
 /** The matches he has actually been on the pitch for this season, newest first. */
@@ -2814,6 +2954,9 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     stats.competitionId = youthDivision;
   }
 
+  // What the summer's conversation was worth, before the season is filed away.
+  settleSeasonGoal(state, leaguePosition);
+
   // Career record for the season.
   const record: CareerSeasonRecord = {
     ...stats,
@@ -2892,6 +3035,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   initSeason(state, index, rng);
   initCampaign(state, index, rng);
   ensureModelledSquads(state, index, rng);
+  askWhatTheSeasonIsFor(state, index);
   state.world.seasonStats[player.id] = emptySeasonStats(state.world.season, player.clubId, userClub(state)?.competitionId ?? null);
   state.flags['seasonStartOvr'] = overall(player.attributes, player.primaryPos, player.secondaryPos);
 
