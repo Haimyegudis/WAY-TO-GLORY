@@ -63,7 +63,14 @@ export function MatchCentre() {
   const liveMatchId = useGame((s) => s.liveMatchId);
   const endLive = useGame((s) => s.endLive);
   const match = state.lastMatch;
-  const half = state.pendingHalfTime;
+  // The dressing room, but only while he is actually standing in it: a break he has
+  // already answered, or one belonging to a match that has since been played, is a
+  // record and not a question - and it was coming up in place of the match report.
+  const pendingHalf = state.pendingHalfTime;
+  const half =
+    pendingHalf && pendingHalf.chosen === undefined && pendingHalf.matchId !== state.lastMatch?.id
+      ? pendingHalf
+      : undefined;
   const liveFrom = useGame((s) => s.liveFromMinute);
   // Which match he has already walked off the pitch for. This is held per match rather
   // than as a plain flag: the screen never unmounts between games, and a flag left

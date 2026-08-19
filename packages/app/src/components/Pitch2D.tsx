@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Club, MatchEvent } from '@fc/engine';
+import { Football } from './Football.js';
 import { clubColor } from '../lib/club.js';
 
 /**
@@ -205,9 +206,16 @@ function playFor(event: MatchEvent, rightwards: boolean): Play {
  * the ball - the team in possession pushes on, the other drops - which is most of what
  * makes a two-dimensional match look like football rather than like table hockey.
  */
-function positionsFor(ballX: number, ballY: number, attackingRight: boolean, isHome: boolean) {
+function positionsFor(
+  ballX: number,
+  ballY: number,
+  attackingRight: boolean,
+  isHome: boolean,
+  /** True for the side the move belongs to: one of them has the ball at his feet. */
+  inPossession: boolean,
+) {
   const attackingThisWay = isHome === attackingRight;
-  return SHAPE.map((slot) => {
+  const men = SHAPE.map((slot) => {
     const own = isHome ? slot : { ...slot, x: PITCH_LENGTH - slot.x, y: PITCH_WIDTH - slot.y };
     const goalkeeper = slot.number === 1;
 
@@ -227,6 +235,42 @@ function positionsFor(ballX: number, ballY: number, attackingRight: boolean, isH
       y: Math.max(3, Math.min(PITCH_WIDTH - 3, y)),
     };
   });
+
+  /*
+   * Somebody is on the ball.
+   *
+   * Drifting toward it is not the same as having it: the whole side leaned the right
+   * way and the ball still sat in a gap ten metres from the nearest man, which is the
+   * one thing that never happens in football. So the closest man of the side the move
+   * belongs to is put on it, a stride behind it in the direction he is going, and that
+   * reads as a player carrying the ball rather than a ball travelling on its own.
+   *
+   * Only him, only when he is close enough that stepping across is a run and not a
+   * teleport, and never when the ball has crossed the line - a ball in the net belongs
+   * to nobody.
+   */
+  if (!inPossession) return men;
+  if (ballX <= 0 || ballX >= PITCH_LENGTH) return men;
+
+  let carrier = -1;
+  let closest = Infinity;
+  men.forEach((man, i) => {
+    if (SHAPE[i]!.number === 1) return;
+    const distance = Math.hypot(man.x - ballX, man.y - ballY);
+    if (distance < closest) {
+      closest = distance;
+      carrier = i;
+    }
+  });
+  if (carrier < 0 || closest > 16) return men;
+
+  const behind = attackingRight ? -1.9 : 1.9;
+  men[carrier] = {
+    ...men[carrier]!,
+    x: Math.max(2, Math.min(PITCH_LENGTH - 2, ballX + behind)),
+    y: Math.max(3, Math.min(PITCH_WIDTH - 3, ballY + 0.6)),
+  };
+  return men;
 }
 
 /** Shirt numbers for a side, taken from the squad where we know it. */
@@ -339,8 +383,10 @@ export function Pitch2D({
     };
   }, [beat, userIsHome]);
 
-  const homePlayers = positionsFor(ball.x, ball.y, attackingRight, true);
-  const awayPlayers = positionsFor(ball.x, ball.y, attackingRight, false);
+  // The move runs the way the side in possession attacks, so that side is the one with
+  // a man on the ball.
+  const homePlayers = positionsFor(ball.x, ball.y, attackingRight, true, attackingRight);
+  const awayPlayers = positionsFor(ball.x, ball.y, attackingRight, false, !attackingRight);
 
   // The referee keeps a diagonal, a few metres off the ball, like a real one.
   const referee = {
@@ -436,8 +482,7 @@ export function Pitch2D({
           className="pitch-ball"
           style={{ transform: `translate(${ball.x}px, ${ball.y}px)`, transition: `transform ${travel}ms cubic-bezier(0.35,0,0.3,1)` }}
         >
-          <circle r="1.25" fill="#ffffff" stroke="#1b1b1b" strokeWidth="0.28" />
-          <circle r="0.42" fill="#1b1b1b" />
+          <Football r={1.25} />
         </g>
       </svg>
       {replaying && <span className="pitch-replay">{replayLabel}</span>}

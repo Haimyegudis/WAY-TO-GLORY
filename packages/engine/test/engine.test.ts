@@ -1032,6 +1032,23 @@ describe('half time', () => {
     }
   });
 
+  it('never leaves a team talk hanging once it has been answered', () => {
+    // An answered break that is never cleared is not a harmless leftover: the app shows
+    // the dressing room in place of the match report, for every match after it.
+    const { state, index } = startedCareer({ seed: 4242 });
+    let answered = 0;
+    for (let i = 0; i < 52 * 3; i++) {
+      const result = advanceWeek(state, index);
+      state.pendingDecisions = [];
+      if (result.stopped !== 'halfTime') continue;
+      const held = state.pendingHalfTime!;
+      resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+      answered++;
+      expect(state.pendingHalfTime, 'the interval was still on the table after it was answered').toBeUndefined();
+    }
+    expect(answered, 'no interval ever came up').toBeGreaterThan(0);
+  });
+
   it('never offers an instruction that is all upside', () => {
     // For three of these, a number below one is the good news: less fatigue, fewer
     // cards, fewer knocks. Everything else is better the higher it is.

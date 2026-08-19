@@ -2192,7 +2192,20 @@ export function resumeHalfTime(
     state.flags['defiedTheManager'] = 0;
   }
 
-  return advanceWeek(state, index);
+  const result = advanceWeek(state, index);
+  // A team talk is over once the match it belongs to has been played. Normally the
+  // replay of that match clears it; if the week rolled something else instead - a
+  // call-up, a postponement - nothing did, and the dressing room came back up over
+  // every match report he opened from then on.
+  //
+  // The test is the match log, not whether he answered: an answered break whose match
+  // has not been played yet is exactly what the resumed week is on its way to play, and
+  // clearing that one sends him round the interval for ever.
+  const held2 = state.pendingHalfTime;
+  if (held2 && state.matchLog.some((match) => match.id === held2.matchId)) {
+    state.pendingHalfTime = undefined;
+  }
+  return result;
 }
 
 function playUserMatch(

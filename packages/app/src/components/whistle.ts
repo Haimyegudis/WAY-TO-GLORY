@@ -32,6 +32,40 @@ function element(kind: Blast): HTMLAudioElement | null {
 }
 
 /**
+ * Sound has to be asked for while he is touching the screen.
+ *
+ * A browser will not let a page make a noise on its own - and the whistle is blown by a
+ * clock running out, which is about as far from a tap as it gets. Safari is the strict
+ * one: an audio element that has never been played inside a gesture is never allowed to
+ * play at all, which is exactly why the referee's whistle came up on screen in silence.
+ *
+ * So both files are played once, silently, on the first touch of the app - a fraction of
+ * a second, muted, rewound immediately - and from then on the element is one the browser
+ * has already let him play, and half time can blow it whenever it likes.
+ */
+let primed = false;
+
+export function primeWhistles(): void {
+  if (primed) return;
+  primed = true;
+  for (const kind of ['halfTime', 'fullTime'] as Blast[]) {
+    const audio = element(kind);
+    if (!audio) continue;
+    audio.muted = true;
+    void audio
+      .play()
+      .then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.muted = false;
+      })
+      .catch(() => {
+        audio.muted = false;
+      });
+  }
+}
+
+/**
  * The same whistle asked for twice in the same moment is one whistle.
  *
  * The interval happens once, but the component that notices it can be mounted more than

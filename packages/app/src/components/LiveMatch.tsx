@@ -7,6 +7,7 @@ import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { Crest } from './ui.js';
 import { Pitch2D } from './Pitch2D.js';
+import { FootballIcon } from './Football.js';
 import { blowWhistle } from './whistle.js';
 import { playerName } from '../lib/names.js';
 
@@ -114,7 +115,9 @@ export function LiveMatch({
     const off = shown.find((e) => e.type === 'sub-off' || e.type === 'red');
     if (off && !leftPitch) {
       setLeftPitch(true);
-      setSpeed(6);
+      // Fast, but not so fast that the rest of the match is a blur: at six times the
+      // clock simply vanished and it read as the game skipping to the end on its own.
+      setSpeed(4);
     }
   }, [shown, leftPitch]);
 
@@ -263,7 +266,7 @@ export function LiveMatch({
             key={`${goalSplash.minute}-${goalSplash.ours}`}
             aria-hidden="true"
           >
-            <span className="goal-splash-ball" />
+            <FootballIcon size={96} className="goal-splash-ball" />
             <span className="goal-splash-word">GOAL!!!</span>
             {goalSplash.scorer && (
               <span className="goal-splash-scorer">
@@ -314,7 +317,7 @@ export function LiveMatch({
       )}
 
       {leftPitch && !done && (
-        <p className="live-note">{t('live.leftPitch')}</p>
+        <p className="live-note live-note-loud">{t('live.leftPitch')}</p>
       )}
 
       <div className="live-feed" ref={feedRef}>

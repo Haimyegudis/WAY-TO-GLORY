@@ -19,6 +19,7 @@ import { DecisionSheet } from './screens/DecisionSheet.js';
 import { MentorScreen } from './screens/MentorScreen.js';
 import { ResultSheet } from './screens/ResultSheet.js';
 import { nextFixture } from './state/selectors.js';
+import { primeWhistles } from './components/whistle.js';
 
 /**
  * One stadium photograph carries the whole game; each screen only shifts how far
@@ -183,6 +184,9 @@ function useBackGesture(): void {
     spare();
     let armed = false;
     const arm = () => {
+      // The first touch is the only chance to unlock sound: a browser will not let a
+      // page play anything it was not asked for by hand.
+      primeWhistles();
       if (armed) return;
       armed = true;
       spare();
