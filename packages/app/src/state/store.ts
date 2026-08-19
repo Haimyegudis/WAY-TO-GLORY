@@ -27,6 +27,7 @@ import {
   type HalfTimeInstructionId,
   askForTerms as engineAskForTerms,
   answerMedia as engineAnswerMedia,
+  answerMentor as engineAnswerMentor,
   chooseMentor as engineChooseMentor,
   askMentor as engineAskMentor,
   takeMentorAdvice as engineTakeMentorAdvice,
@@ -410,6 +411,15 @@ export const useGame = create<GameStore>((set, get) => ({
       // Answering closes the message it arrived in, whichever sheet he answered from:
       // what changed is the next thing he should be looking at, not the question again.
       set({ state: { ...state }, result: mediaResult, openMessageId: null });
+      return;
+    }
+    // The old player asking him something is not a scripted event either: it moves the
+    // relationship and a little of who he is, and it hands back what it moved.
+    if (decisionId.startsWith('mentorPrompt_')) {
+      const mentorResult = engineAnswerMentor(state, decisionId, optionId);
+      const mentorSlot = get().activeSaveId;
+      if (mentorSlot) persistTo(mentorSlot, state, (saves) => set({ saves }));
+      set({ state: { ...state }, result: mentorResult, openMessageId: null });
       return;
     }
     // Hanging them up is his own decision, so it is answered here rather than by the

@@ -14,6 +14,14 @@ import { YOUTH_SQUAD_SIZE, generateYouthSquad, youthSquad } from '../src/youth-s
 import { HALF_TIME_INSTRUCTIONS, instructionsFor, managerDemand, managerDictates } from '../src/halftime.js';
 import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/milestones.js';
+import {
+  MENTORS,
+  MENTOR_PROMPTS,
+  mentorPromptById,
+  mentorReachesOut,
+  mentorTopics,
+  talkToMentor,
+} from '../src/mentor.js';
 import type { MilestoneId } from '../src/milestones.js';
 import { generateOffers, isTransferWindow } from '../src/transfer.js';
 import { indexPack, validatePack } from '../src/data.js';
@@ -1410,5 +1418,97 @@ describe('the national youth sides', () => {
     expect(nt.youthGoals).toBeGreaterThanOrEqual(0);
     // Youth caps are not senior caps, whatever else happens.
     if (nt.youthCaps > 0) expect(nt.callUpHistory.some((c) => c.level !== 'senior')).toBe(true);
+  });
+});
+
+describe('the old player', () => {
+  const VOICES = ['winner', 'artist', 'grinder', 'captain', 'wanderer', 'wall'];
+
+  it('has one of every voice to be found somewhere', () => {
+    const voices = new Set(MENTORS.map((mentor) => mentor.voice));
+    for (const voice of VOICES) expect(voices.has(voice as never), `nobody speaks as ${voice}`).toBe(true);
+  });
+
+  it('answers in his own voice rather than a shared script', () => {
+    const { state } = startedCareer({ seed: 606 });
+    const lines = new Set<string>();
+
+    for (const voice of VOICES) {
+      const mentor = MENTORS.find((m) => m.voice === voice)!;
+      state.mentor = { id: mentor.id, bond: 60, lastTalkWeek: -99, talks: 3, followed: 1 };
+      const reply = talkToMentor(new Rng(9), state, 'advice', 0.5);
+      expect(reply, `${voice} said nothing`).not.toBeNull();
+      expect(reply!.lineKey).toContain(voice);
+      lines.add(reply!.lineKey);
+    }
+    // Six men, six different lines - which is the whole point of having a mentor.
+    expect(lines.size).toBe(VOICES.length);
+  });
+
+  it('opens up more questions as a career moves on', () => {
+    const { state } = startedCareer({ seed: 77 });
+    state.mentor = { id: MENTORS[0]!.id, bond: 40, lastTalkWeek: -99, talks: 6, followed: 2 };
+
+    const young = mentorTopics(state, 16);
+    expect(young).toContain('firstTeam');
+
+    state.world.youth = undefined;
+    state.player.squadRole = 'starter';
+    const older = mentorTopics(state, 28);
+    expect(older).toContain('body');
+    expect(older).not.toContain('firstTeam');
+    expect(older.length).toBeGreaterThan(3);
+  });
+
+  it('answers every topic it offers', () => {
+    const { state } = startedCareer({ seed: 78 });
+    const mentor = MENTORS[0]!;
+    state.mentor = { id: mentor.id, bond: 90, lastTalkWeek: -99, talks: 9, followed: 3 };
+
+    for (const topic of mentorTopics(state, 22)) {
+      state.mentor!.lastTalkWeek = -99;
+      const reply = talkToMentor(new Rng(3), state, topic, 0.6);
+      expect(reply, `${topic} went unanswered`).not.toBeNull();
+      expect(reply!.lineKey.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('gets in touch himself once he knows the player', () => {
+    const { state } = startedCareer({ seed: 4242 });
+    state.mentor = { id: MENTORS[0]!.id, bond: 40, lastTalkWeek: 0, talks: 0, followed: 0 };
+    const ctx = { recentRating: 5.9, minutesPct: 0.1, rumoured: false };
+
+    // Two conversations in, he has not earned the right to ask anything yet.
+    const rng = new Rng(5);
+    expect(mentorReachesOut(rng, state, ctx)).toBeNull();
+
+    state.mentor.talks = 4;
+    let asked: string | null = null;
+    for (let i = 0; i < 40 && !asked; i++) {
+      state.flags['mentorAskedWeek'] = -99;
+      asked = mentorReachesOut(rng, state, ctx);
+    }
+    expect(asked, 'he never once picked up the phone').not.toBeNull();
+    expect(mentorPromptById(asked as never)).toBeDefined();
+  });
+
+  it('leaves him alone for a while after asking', () => {
+    const { state } = startedCareer({ seed: 4243 });
+    state.mentor = { id: MENTORS[0]!.id, bond: 50, lastTalkWeek: 0, talks: 5, followed: 1 };
+    state.flags['mentorAskedWeek'] = state.world.season * 52 + state.world.week;
+    const rng = new Rng(11);
+    for (let i = 0; i < 20; i++) {
+      expect(mentorReachesOut(rng, state, { recentRating: 5.5, minutesPct: 0, rumoured: true })).toBeNull();
+    }
+  });
+
+  it('never asks a question with a free answer', () => {
+    for (const prompt of MENTOR_PROMPTS) {
+      expect(prompt.answers.length).toBeGreaterThanOrEqual(3);
+      const bonds = prompt.answers.map((a) => a.bond);
+      // Somewhere in every question there is an answer that costs him closeness.
+      expect(Math.min(...bonds), `${prompt.id} has no answer that costs anything`).toBeLessThan(5);
+      expect(Math.max(...bonds), `${prompt.id} has no answer worth giving`).toBeGreaterThan(3);
+    }
   });
 });

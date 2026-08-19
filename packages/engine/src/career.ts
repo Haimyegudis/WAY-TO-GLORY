@@ -64,6 +64,9 @@ import {
   followAdvice,
   mentorById,
   talkToMentor,
+  answerMentorPrompt,
+  mentorPromptById,
+  mentorReachesOut,
   type MentorReply,
   type MentorTopic,
 } from './mentor.js';
@@ -1002,6 +1005,10 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
       openAgentDecision(state, state.agentOffers);
     }
   }
+
+  // 7a2. The old player, on the weeks he has a reason. He is not a help page: sometimes
+  // he is the one who starts the conversation, and what he asks is the awkward question.
+  raiseMentorPrompt(state, rng);
 
   // 7b. The press, on the weeks the press cares.
   if (club) askTheMedia(state, index, weekImportance);
@@ -3955,8 +3962,107 @@ export function chooseMentor(state: CareerState, mentorId: string): boolean {
   if (state.mentor?.id === mentorId) return true;
 
   state.mentor = { id: mentorId, bond: 12, lastTalkWeek: -99, talks: 0, followed: 0 };
-  pushInbox(state, 'personal', 'inbox.mentorAgreed', { mentor: mentor.name });
+  // Six different men agreeing to take an interest should not send the same message.
+  // What he says yes with is the first thing the player learns about him.
+  pushInbox(state, 'personal', `mentor.intro.${mentor.voice}`, { mentor: mentor.name });
   return true;
+}
+
+/**
+ * The mentor getting in touch first.
+ *
+ * It arrives as a question in his inbox rather than as a sheet that stops his week -
+ * nothing about it is urgent, and the point of it is that somebody thought to ask.
+ */
+function raiseMentorPrompt(state: CareerState, rng: Rng): void {
+  const held = state.mentor;
+  if (!held) return;
+  if (state.pendingDecisions.some((decision) => decision.eventId.startsWith('mentorPrompt:'))) return;
+
+  const mentor = mentorById(held.id);
+  if (!mentor) return;
+
+  const ratings = state.matchLog
+    .filter((m) => m.season === state.world.season && m.userLine?.played)
+    .slice(0, 3)
+    .map((m) => m.userLine!.rating);
+  const recentRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+
+  const id = mentorReachesOut(rng, state, {
+    recentRating,
+    minutesPct: minutesPct(state),
+    rumoured: state.transferOffers.length > 0 || Boolean(state.flags['transferRequested']),
+  });
+  if (!id) return;
+
+  const prompt = mentorPromptById(id);
+  if (!prompt) return;
+
+  const absolute = state.world.season * 52 + state.world.week;
+  state.flags['mentorAskedWeek'] = absolute;
+  const asked = String(state.flags['mentorAsked'] ?? '').split(',').filter(Boolean);
+  if (!asked.includes(id)) asked.push(id);
+  state.flags['mentorAsked'] = asked.join(',');
+
+  const decisionId = `mentorPrompt_${id}_${state.world.season}_${state.world.week}`;
+  state.pendingDecisions.push({
+    id: decisionId,
+    kind: 'event',
+    eventId: `mentorPrompt:${id}`,
+    category: 'personal',
+    textKey: `mentorPrompt.${id}`,
+    textArgs: { mentor: mentor.name },
+    options: prompt.answers.map((answer) => ({
+      id: answer.id,
+      labelKey: `mentorPrompt.${id}.${answer.id}`,
+      effects: [],
+    })),
+    // He is not standing in the doorway. It waits in the inbox until the player opens it.
+    blocking: false,
+  });
+  pushInbox(state, 'personal', `mentorPrompt.${id}`, { mentor: mentor.name }, decisionId);
+}
+
+/**
+ * Answering him. Not a decision the event engine can resolve - it moves the relationship
+ * and a little of the player's character, and it hands back what it moved.
+ */
+export function answerMentor(state: CareerState, decisionId: string, optionId: string): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex((decision) => decision.id === decisionId);
+  if (at === -1) return null;
+  const decision = state.pendingDecisions[at]!;
+  const id = decision.eventId.replace('mentorPrompt:', '') as import('./mentor.js').MentorPromptId;
+  const prompt = mentorPromptById(id);
+  const answer = prompt?.answers.find((entry) => entry.id === optionId);
+  if (!answer) return null;
+
+  state.pendingDecisions.splice(at, 1);
+
+  const changes: AppliedChange[] = [];
+  const player = state.player;
+  const before = {
+    bond: state.mentor?.bond ?? 0,
+    morale: player.morale,
+    personality: { ...player.personality },
+    attributes: { ...player.attributes },
+  };
+
+  answerMentorPrompt(state, answer);
+
+  track(changes, 'change.mentorBond', before.bond, state.mentor?.bond ?? 0);
+  track(changes, 'change.morale', before.morale, player.morale);
+  for (const key of Object.keys(answer.personality ?? {})) {
+    const trait = key as keyof typeof player.personality;
+    track(changes, `change.personality.${trait}`, before.personality[trait], player.personality[trait]);
+  }
+  for (const key of Object.keys(answer.attributes ?? {})) {
+    const attribute = key as keyof typeof player.attributes;
+    track(changes, `change.attr.${attribute}`, before.attributes[attribute], player.attributes[attribute]);
+  }
+
+  const result: DecisionResult = { changes, consequences: [] };
+  state.lastResult = result;
+  return result;
 }
 
 /** A conversation with him. Returns what he said, or null if it is too soon to ask again. */

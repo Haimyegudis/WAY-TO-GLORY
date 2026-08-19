@@ -32,7 +32,25 @@ export type MentorSituation =
   | 'leadThem'
   | 'enjoyIt';
 
-export type MentorTopic = 'advice' | 'path' | 'support';
+/**
+ * The things he can actually ask.
+ *
+ * Three questions is not a relationship, it is a menu. These are the things a young
+ * player genuinely wants to ask somebody who has been through it, and which ones are
+ * on the table depends on where he is: a sixteen year old in an academy asks how you
+ * get into a first team, and a twenty-eight year old asks about his body.
+ */
+export type MentorTopic =
+  | 'advice'
+  | 'path'
+  | 'support'
+  | 'club'
+  | 'abroad'
+  | 'body'
+  | 'pressure'
+  | 'money'
+  | 'firstTeam'
+  | 'regret';
 
 export interface MentorState {
   id: string;
@@ -49,11 +67,34 @@ export interface MentorReply {
   mentorId: string;
   voice: MentorVoice;
   situation: MentorSituation;
+  /**
+   * The exact line he said, as a copy key. The engine picks it rather than the screen,
+   * because which of them is talking is half of what makes the answer worth having.
+   */
+  lineKey: string;
   /** The brief this advice would set, if he takes it. */
   brief: string | null;
   bond: number;
   /** The conversation did more harm than good, which happens with some of them. */
   misfired?: boolean;
+}
+
+/**
+ * The questions on the table this week. Some of them only make sense at a certain point
+ * in a career, and a list that never changes is a list nobody reads twice.
+ */
+export function mentorTopics(state: CareerState, age: number): MentorTopic[] {
+  const topics: MentorTopic[] = ['advice', 'path'];
+  const inAcademy = state.player.squadRole === 'academy' || Boolean(state.world.youth);
+  if (inAcademy) topics.push('firstTeam');
+  topics.push('club');
+  if (age >= 17 && age <= 30) topics.push('abroad');
+  if (age >= 26 || state.player.condition.injuryHistory.length >= 2) topics.push('body');
+  if (state.player.fame >= 20 || state.relationships.media < 45) topics.push('pressure');
+  if (state.contract) topics.push('money');
+  if ((state.mentor?.talks ?? 0) >= 4) topics.push('regret');
+  topics.push('support');
+  return topics;
 }
 
 /** How long he waits between calls. A mentor who is always available is not a mentor. */
@@ -176,7 +217,21 @@ export function talkToMentor(
     // Not advice. Just an hour with somebody who has had the same week.
     player.morale = clamp(player.morale + 6 + held.bond / 25, 0, 100);
     player.personality.pressureHandling = clamp(player.personality.pressureHandling + 0.5, 1, 99);
-    return { topic, mentorId: mentor.id, voice: mentor.voice, situation: read, brief: null, bond: held.bond };
+    return {
+      topic, mentorId: mentor.id, voice: mentor.voice, situation: read,
+      lineKey: `mentor.support.${mentor.voice}`, brief: null, bond: held.bond,
+    };
+  }
+
+  // The questions that are about a subject rather than about this week. They are not
+  // advice the agent can act on - they are the old player telling him how it went for
+  // him, which is the part a career page cannot give him.
+  if (topic !== 'advice' && topic !== 'path') {
+    applyTopicEffect(topic, player, held.bond);
+    return {
+      topic, mentorId: mentor.id, voice: mentor.voice, situation: read,
+      lineKey: `mentor.answer.${topic}.${mentor.voice}`, brief: null, bond: held.bond,
+    };
   }
 
   // A great player is not automatically a great teacher, and some of them have never
@@ -192,6 +247,7 @@ export function talkToMentor(
       mentorId: mentor.id,
       voice: mentor.voice,
       situation: read,
+      lineKey: `mentor.misfire.${mentor.voice}`,
       brief: null,
       bond: held.bond,
       misfired: true,
@@ -227,9 +283,48 @@ export function talkToMentor(
     mentorId: mentor.id,
     voice: mentor.voice,
     situation: read,
+    // Six men read the same season and six men say different things about it.
+    lineKey: `mentor.say.${read}.${mentor.voice}`,
     brief: BRIEF_FOR[read] ?? null,
     bond: held.bond,
   };
+}
+
+/**
+ * What an hour on one subject leaves behind. None of these is advice the agent acts on,
+ * so what they move is the player himself.
+ */
+function applyTopicEffect(topic: MentorTopic, player: CareerState['player'], bond: number): void {
+  const weight = 0.4 + bond / 140;
+  switch (topic) {
+    case 'club':
+      player.personality.loyalty = clamp(player.personality.loyalty + weight, 1, 99);
+      break;
+    case 'abroad':
+      player.personality.adaptability = clamp(player.personality.adaptability + weight, 1, 99);
+      break;
+    case 'body':
+      player.attributes.stamina = clamp(player.attributes.stamina + weight * 0.6, 1, 99);
+      player.personality.professionalism = clamp(player.personality.professionalism + weight, 1, 99);
+      break;
+    case 'pressure':
+      player.personality.pressureHandling = clamp(player.personality.pressureHandling + weight, 1, 99);
+      break;
+    case 'money':
+      player.personality.ambition = clamp(player.personality.ambition + weight * 0.7, 1, 99);
+      break;
+    case 'firstTeam':
+      player.attributes.decisions = clamp(player.attributes.decisions + weight * 0.6, 1, 99);
+      player.personality.determination = clamp(player.personality.determination + weight, 1, 99);
+      break;
+    case 'regret':
+      // The one conversation that costs nothing and changes how he sees the whole thing.
+      player.personality.consistency = clamp(player.personality.consistency + weight * 0.8, 1, 99);
+      player.morale = clamp(player.morale + 4, 0, 100);
+      break;
+    default:
+      break;
+  }
 }
 
 /**
@@ -242,4 +337,138 @@ export function followAdvice(state: CareerState, reply: MentorReply): void {
   state.mentor.followed += 1;
   state.mentor.bond = clamp(state.mentor.bond + 6, 0, 100);
   state.player.morale = clamp(state.player.morale + 2, 0, 100);
+}
+
+/**
+ * The call he did not make.
+ *
+ * A mentor who only ever answers is a help page with a face. The ones worth having ring
+ * you up in the week you played badly and ask you something you were avoiding - and what
+ * you answer tells him, and you, what kind of player you are turning into.
+ */
+export type MentorPromptId =
+  | 'whyThatPass'
+  | 'areYouEnjoyingIt'
+  | 'whoDoYouListenTo'
+  | 'whatAreYouAfraidOf'
+  | 'wouldYouLeave'
+  | 'whoAreYouDoingItFor';
+
+export interface MentorPromptAnswer {
+  id: string;
+  bond: number;
+  morale?: number;
+  personality?: Partial<Record<keyof CareerState['player']['personality'], number>>;
+  attributes?: Partial<Record<keyof CareerState['player']['attributes'], number>>;
+}
+
+export interface MentorPromptDef {
+  id: MentorPromptId;
+  answers: MentorPromptAnswer[];
+}
+
+/**
+ * The questions they ask. Each answer is a small trade in character, not a reward - the
+ * honest one costs a little pride, the defiant one costs the closeness.
+ */
+export const MENTOR_PROMPTS: MentorPromptDef[] = [
+  {
+    id: 'whyThatPass',
+    answers: [
+      { id: 'sawIt', bond: 5, personality: { ambition: 0.6 }, attributes: { vision: 0.8 } },
+      { id: 'panicked', bond: 8, morale: -2, attributes: { composure: 1 } },
+      { id: 'itWasOn', bond: -3, personality: { determination: 0.8 }, attributes: { decisions: -0.4 } },
+    ],
+  },
+  {
+    id: 'areYouEnjoyingIt',
+    answers: [
+      { id: 'yes', bond: 4, morale: 4 },
+      { id: 'notLately', bond: 9, morale: -3, personality: { professionalism: 0.9 } },
+      { id: 'notTheQuestion', bond: -2, personality: { ambition: 1 }, attributes: { concentration: 0.5 } },
+    ],
+  },
+  {
+    id: 'whoDoYouListenTo',
+    answers: [
+      { id: 'theCoach', bond: 4, personality: { professionalism: 1 } },
+      { id: 'myself', bond: -2, personality: { determination: 1.1, adaptability: -0.5 } },
+      { id: 'you', bond: 10, personality: { adaptability: 0.8, ambition: -0.4 } },
+    ],
+  },
+  {
+    id: 'whatAreYouAfraidOf',
+    answers: [
+      { id: 'notMakingIt', bond: 9, morale: -3, personality: { determination: 1.2 } },
+      { id: 'gettingHurt', bond: 7, attributes: { concentration: 0.6 }, personality: { pressureHandling: 0.6 } },
+      { id: 'nothing', bond: -3, personality: { pressureHandling: -0.6, ambition: 0.8 } },
+    ],
+  },
+  {
+    id: 'wouldYouLeave',
+    answers: [
+      { id: 'tomorrow', bond: 3, personality: { ambition: 1.2, loyalty: -1 } },
+      { id: 'notYet', bond: 6, personality: { loyalty: 1.1, ambition: -0.5 } },
+      { id: 'dependsWhoAsks', bond: 5, personality: { adaptability: 0.9 } },
+    ],
+  },
+  {
+    id: 'whoAreYouDoingItFor',
+    answers: [
+      { id: 'family', bond: 8, morale: 4, personality: { loyalty: 1 } },
+      { id: 'myself', bond: 4, personality: { ambition: 1.1 } },
+      { id: 'toProveThem', bond: 6, personality: { determination: 1.3, pressureHandling: -0.5 } },
+    ],
+  },
+];
+
+export function mentorPromptById(id: MentorPromptId): MentorPromptDef | undefined {
+  return MENTOR_PROMPTS.find((prompt) => prompt.id === id);
+}
+
+/**
+ * Whether he gets in touch this week, and about what. He asks when something has just
+ * happened - a bad run, a big night, a rumour - and never twice in a hurry.
+ */
+export function mentorReachesOut(
+  rng: Rng,
+  state: CareerState,
+  ctx: { recentRating: number | null; minutesPct: number; rumoured: boolean },
+): MentorPromptId | null {
+  const held = state.mentor;
+  if (!held) return null;
+  const absolute = state.world.season * 52 + state.world.week;
+  if (absolute - Number(state.flags['mentorAskedWeek'] ?? -99) < 10) return null;
+  // He has to know the player a little before he starts asking him things like this.
+  if (held.talks < 2) return null;
+  if (!rng.chance(0.22)) return null;
+
+  const asked = new Set(String(state.flags['mentorAsked'] ?? '').split(',').filter(Boolean));
+  const pool: MentorPromptId[] = [];
+  if (ctx.recentRating !== null && ctx.recentRating < 6.3) pool.push('whyThatPass', 'whatAreYouAfraidOf');
+  if (ctx.minutesPct < 0.25) pool.push('areYouEnjoyingIt', 'wouldYouLeave');
+  if (ctx.rumoured) pool.push('wouldYouLeave');
+  if (ctx.recentRating !== null && ctx.recentRating > 7.2) pool.push('whoAreYouDoingItFor', 'whoDoYouListenTo');
+  pool.push('whoDoYouListenTo', 'areYouEnjoyingIt');
+
+  const fresh = pool.filter((id) => !asked.has(id));
+  const from = fresh.length > 0 ? fresh : pool;
+  return from[rng.int(0, from.length - 1)] ?? null;
+}
+
+/** Answering him. Bond moves, and so does a little of who he is. */
+export function answerMentorPrompt(state: CareerState, answer: MentorPromptAnswer): void {
+  const held = state.mentor;
+  if (!held) return;
+  held.bond = clamp(held.bond + answer.bond, 0, 100);
+  const player = state.player;
+  if (answer.morale) player.morale = clamp(player.morale + answer.morale, 0, 100);
+  for (const [key, delta] of Object.entries(answer.personality ?? {})) {
+    const trait = key as keyof CareerState['player']['personality'];
+    player.personality[trait] = clamp(player.personality[trait] + delta, 1, 99);
+  }
+  for (const [key, delta] of Object.entries(answer.attributes ?? {})) {
+    const attribute = key as keyof CareerState['player']['attributes'];
+    player.attributes[attribute] = clamp(player.attributes[attribute] + delta, 1, 99);
+  }
 }

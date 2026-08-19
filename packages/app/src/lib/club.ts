@@ -1,3 +1,4 @@
+import { MENTORS } from '@fc/engine';
 import type { Club } from '@fc/engine';
 import type { Lang } from '../i18n/index.js';
 import { toHebrew } from './transliterate.js';
@@ -90,6 +91,13 @@ export function localiseArgs(
       const club = nameIndex.get(value.toLowerCase());
       if (club) {
         out[key] = clubName(club, lang);
+        changed = true;
+        continue;
+      }
+      // Old players are named the way everybody's father says them, not transliterated.
+      const mentor = MENTORS.find((entry) => entry.name === value);
+      if (mentor?.nameHe) {
+        out[key] = mentor.nameHe;
         changed = true;
         continue;
       }

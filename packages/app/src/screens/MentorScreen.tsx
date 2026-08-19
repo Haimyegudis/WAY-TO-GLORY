@@ -4,6 +4,7 @@ import {
   canTalkToMentor,
   mentorById,
   mentorChoices,
+  mentorTopics,
   type MentorReply,
   type MentorTopic,
 } from '@fc/engine';
@@ -36,6 +37,8 @@ export function MentorScreen() {
 
   const held = state.mentor;
   const mentor = held ? mentorById(held.id) : undefined;
+  const age = state.world.season - state.player.birthYear;
+  const topics: MentorTopic[] = mentorTopics(state, age);
   const name = (mentor: { name: string; nameHe: string }) => (lang === 'he' ? mentor.nameHe : mentor.name);
   // The clubs they are remembered with are in the pack, so they read in Hebrew too.
   const clubLabel = (raw: string) => {
@@ -137,9 +140,7 @@ export function MentorScreen() {
 
       {reply ? (
         <Card>
-          <p style={{ fontSize: 14.5, lineHeight: 1.7 }}>
-            {reply.topic === 'support' ? t('mentor.support.line') : t(`mentor.say.${reply.situation}`)}
-          </p>
+          <p style={{ fontSize: 14.5, lineHeight: 1.7 }}>{t(reply.lineKey)}</p>
 
           {reply.brief && !taken && (
             <div className="row" style={{ gap: 8, marginBlockStart: 14 }}>
@@ -164,9 +165,11 @@ export function MentorScreen() {
         </Card>
       ) : ready ? (
         <div className="stack" style={{ gap: 8 }}>
-          <button className="option" onClick={() => ask('advice')}>{t('mentor.ask.advice')}</button>
-          <button className="option" onClick={() => ask('path')}>{t('mentor.ask.path')}</button>
-          <button className="option" onClick={() => ask('support')}>{t('mentor.ask.support')}</button>
+          {topics.map((topic) => (
+            <button key={topic} className="option" onClick={() => ask(topic)}>
+              {t(`mentor.ask.${topic}`)}
+            </button>
+          ))}
         </div>
       ) : (
         <Empty>{t('mentor.tooSoon')}</Empty>
