@@ -1,6 +1,7 @@
 import { Rng, clamp, hashString, randomSeed } from './rng.js';
 import { FORMATIONS, overall, positionGroup, ratingAt } from './positions.js';
 import {
+  halfTimeFrequency,
   instructionsFor,
   managerDemand,
   managerDictates,
@@ -54,6 +55,7 @@ import {
   applyMilestoneAnswer,
   milestoneById,
   milestoneFor,
+  occasionMilestone,
   settleClaim,
   type MilestoneId,
 } from './milestones.js';
@@ -788,13 +790,38 @@ export function clubFormation(club: Club): string {
   return names[hashString(club.id) % names.length]!;
 }
 
+/**
+ * His share of the senior football his club has played.
+ *
+ * Youth minutes sit in the same season record - a career page should show the thirty
+ * games he played at fifteen - but they are not senior minutes, and everything that
+ * reads this is asking about senior football: selection, development, the national
+ * coaches, and whether he has outgrown the age group.
+ */
 export function minutesPct(state: CareerState): number {
   const stats = state.world.seasonStats[state.player.id];
   if (!stats) return 0;
   const club = userClub(state);
   const played = club ? state.world.competitions[club.competitionId]?.table[club.id]?.played ?? 0 : 0;
   if (played === 0) return 0;
-  return clamp(stats.minutes / (played * 90), 0, 1);
+  const youthMinutes = state.world.youth?.form.minutes ?? 0;
+  const senior = Math.max(0, stats.minutes - youthMinutes);
+  return clamp(senior / (played * 90), 0, 1);
+}
+
+/**
+ * His share of the youth football his club has played, on the same scale as
+ * `minutesPct`. A Sunday morning is still ninety minutes of football: it does not count
+ * as senior experience, but it very much counts as training.
+ */
+export function youthMinutesPct(state: CareerState): number {
+  const youth = state.world.youth;
+  const clubId = state.player.clubId;
+  if (!youth || !clubId) return 0;
+  const comp = userYouthCompetition(state);
+  const played = comp?.table[clubId]?.played ?? 0;
+  if (played === 0) return 0;
+  return clamp(youth.form.minutes / (played * 90), 0, 1);
 }
 
 /** One week of career time. Stops early when something needs the player's input. */
@@ -839,7 +866,11 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   const comp = userCompetition(state, index);
   // An academy player is playing youth football we don't simulate match by match,
   // but he is playing: development must not treat him as a benched senior.
-  const developmentMinutes = isAcademyPlayer(state) ? 0.68 : minutesPct(state);
+  // A boy playing thirty youth matches a year is developing, whatever the senior table
+  // says about him. Youth minutes are not senior experience, but they are football.
+  const developmentMinutes = isAcademyPlayer(state)
+    ? 0.68
+    : Math.max(minutesPct(state), youthMinutesPct(state) * 0.85);
   // Agreeing to lighten the load is not a note in a file: he trains a step below what
   // he asked for. Safer, and slower.
   const lightLoad = Boolean(state.flags['reducedLoad']);
@@ -1281,13 +1312,21 @@ function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImpo
   const weeksAtNewClub =
     state.world.season * 52 + state.world.week - Number(state.flags['lastTransferWeek'] ?? -999);
   const rumoured = state.transferOffers.length > 0 || Boolean(state.flags['transferRequested']);
-  const fixtureId = milestoneFor(importance, { weeksAtNewClub, rumoured });
-  if (fixtureId) {
-    raiseMilestone(state, fixtureId);
+  // An occasion first, then whatever he has actually been doing, and only then the
+  // background noise of a rumour - otherwise every microphone in a career is somebody
+  // asking whether he is leaving.
+  const occasionId = occasionMilestone(importance);
+  if (occasionId) {
+    raiseMilestone(state, occasionId);
     return;
   }
   const momentId = mediaMomentFor(state, index);
-  if (momentId) raiseMilestone(state, momentId);
+  if (momentId) {
+    raiseMilestone(state, momentId);
+    return;
+  }
+  const fallbackId = milestoneFor(importance, { weeksAtNewClub, rumoured });
+  if (fallbackId) raiseMilestone(state, fallbackId);
 }
 
 /**
@@ -1784,6 +1823,7 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
           youth.form.goals += line.goals;
           youth.form.assists += line.assists;
           youth.form.ratingSum += line.rating;
+          youth.form.minutes += line.minutes;
         }
         continue;
       }
@@ -2199,11 +2239,15 @@ function playUserMatch(
     matchId,
   };
 
-  // The break is only worth having when he is on the pitch to be told something.
+  // The break is only worth having when he is on the pitch to be told something, and
+  // only as often as he wants it: every match, the ones that matter, or never.
   const onPitchAtTheBreak =
     minutes.played && (minutes.cameOnMinute ?? 0) <= 45 && (minutes.offMinute ?? 90) > 45;
+  const frequency = halfTimeFrequency(state.flags['halfTimeTalks']);
+  const wantsTheRoom =
+    frequency === 'always' || (frequency === 'big' && importance !== 'normal');
 
-  if (!held && onPitchAtTheBreak) {
+  if (!held && onPitchAtTheBreak && wantsTheRoom) {
     const firstHalf = simulateUserMatch(new Rng(matchSeed), { ...baseCtx, stopAtHalfTime: true });
     const group = positionGroup(minutes.slot ?? player.primaryPos);
     const scoreDiff = userIsHome
@@ -2515,7 +2559,7 @@ function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng,
     leagueReputation: comp?.reputation ?? 35,
     index,
     nt: state.nationalTeam,
-    youthMinutesPct: youthForm && youthPlayed > 0 ? clamp(youthForm.apps / youthPlayed, 0, 1) : 0,
+    youthMinutesPct: youthMinutesPct(state),
     youthRating: youthForm && youthForm.apps > 0 ? youthForm.ratingSum / youthForm.apps : 0,
     youthGoals: youthForm?.goals ?? 0,
   };

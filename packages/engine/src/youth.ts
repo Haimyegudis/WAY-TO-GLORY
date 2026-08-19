@@ -40,6 +40,12 @@ export interface YouthForm {
   goals: number;
   assists: number;
   ratingSum: number;
+  /**
+   * Minutes played on Sunday mornings. Held separately because they land in the same
+   * season record as the senior ones, and a boy playing ninety minutes a week for the
+   * under-18s must not read as a first-team regular to everything that asks.
+   */
+  minutes: number;
 }
 
 export interface YouthWorld {
@@ -68,7 +74,7 @@ export function seniorCompetitionId(youthId: string): string {
 }
 
 export function emptyYouthForm(): YouthForm {
-  return { apps: 0, goals: 0, assists: 0, ratingSum: 0 };
+  return { apps: 0, goals: 0, assists: 0, ratingSum: 0, minutes: 0 };
 }
 
 /** A youth side is a fraction of the senior club's level, and the gap narrows with age. */

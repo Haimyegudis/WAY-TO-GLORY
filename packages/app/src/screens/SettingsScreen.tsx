@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { saveSizeBytes, serialize } from '@fc/engine';
+import { HALF_TIME_FREQUENCIES, halfTimeFrequency, saveSizeBytes, serialize } from '@fc/engine';
 import { LANG_LABEL, useLang, useT, type Lang } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 import { useMusicSetting } from '../components/ThemeMusic.js';
@@ -18,6 +18,8 @@ export function SettingsScreen() {
   const deleteSave = useGame((s) => s.deleteSave);
   const leaveCareer = useGame((s) => s.leaveCareer);
   const [confirming, setConfirming] = useState(false);
+  const setHalfTimeTalks = useGame((s) => s.setHalfTimeTalks);
+  const talks = halfTimeFrequency(state.flags['halfTimeTalks']);
 
   const download = () => {
     const blob = new Blob([serialize(state)], { type: 'application/json' });
@@ -47,6 +49,21 @@ export function SettingsScreen() {
             </button>
           ))}
         </div>
+      </Card>
+
+      <Card title={t('settings.halfTime')}>
+        <div className="seg">
+          {HALF_TIME_FREQUENCIES.map((option) => (
+            <button
+              key={option}
+              aria-pressed={talks === option}
+              onClick={() => setHalfTimeTalks(option)}
+            >
+              {t(`settings.halfTime.${option}`)}
+            </button>
+          ))}
+        </div>
+        <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 8 }}>{t('settings.halfTimeHint')}</p>
       </Card>
 
       <Card title={t('settings.saves')}>

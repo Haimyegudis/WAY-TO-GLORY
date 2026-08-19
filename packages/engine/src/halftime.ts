@@ -144,3 +144,18 @@ export function instructionsFor(group: PositionGroup): HalfTimeInstructionId[] {
   if (group === 'DEF') return ['holdShape', 'pushForward', 'chaseEverything', 'saveLegs'];
   return [...HALF_TIME_INSTRUCTIONS_ORDER];
 }
+
+/**
+ * How often he is stopped at the interval.
+ *
+ * Twenty team talks a season is a lot of team talks. Some players want every one of
+ * them and some want the dressing room to matter only on the nights that matter, so
+ * this is his to set - and it is kept in the save, because it is part of how he plays.
+ */
+export type HalfTimeFrequency = 'always' | 'big' | 'off';
+
+export const HALF_TIME_FREQUENCIES: readonly HalfTimeFrequency[] = ['always', 'big', 'off'];
+
+export function halfTimeFrequency(value: unknown): HalfTimeFrequency {
+  return value === 'big' || value === 'off' ? value : 'always';
+}

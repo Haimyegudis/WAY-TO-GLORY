@@ -625,6 +625,20 @@ export const MILESTONES: MilestoneQuestion[] = [
  * which is the point: a microphone means something because it is not always there.
  */
 export function milestoneFor(importance: MatchImportance, ctx: { weeksAtNewClub: number; rumoured: boolean }): MilestoneId | null {
+  const occasion = occasionMilestone(importance);
+  if (occasion) return occasion;
+  if (ctx.weeksAtNewClub >= 0 && ctx.weeksAtNewClub <= 2) return 'firstAfterTransfer';
+  if (ctx.rumoured) return 'transferRumour';
+  return null;
+}
+
+/**
+ * The question a fixture asks by itself. These outrank anything he has been doing,
+ * because a debut is a debut - but a transfer rumour is not an occasion, it is
+ * background noise, and it is left to the bottom of the pile so that a hat-trick, a
+ * sending off or a month on the bench gets asked about first.
+ */
+export function occasionMilestone(importance: MatchImportance): MilestoneId | null {
   switch (importance) {
     case 'debut':
     case 'firstProMatch':
@@ -641,11 +655,8 @@ export function milestoneFor(importance: MatchImportance, ctx: { weeksAtNewClub:
     case 'europeanNight':
       return 'bigMatch';
     default:
-      break;
+      return null;
   }
-  if (ctx.weeksAtNewClub >= 0 && ctx.weeksAtNewClub <= 2) return 'firstAfterTransfer';
-  if (ctx.rumoured) return 'transferRumour';
-  return null;
 }
 
 export function milestoneById(id: MilestoneId): MilestoneQuestion | undefined {

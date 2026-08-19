@@ -23,6 +23,7 @@ import {
   joinClub,
   resolveDecision,
   resumeHalfTime as engineResumeHalfTime,
+  type HalfTimeFrequency,
   type HalfTimeInstructionId,
   askForTerms as engineAskForTerms,
   answerMedia as engineAnswerMedia,
@@ -178,6 +179,8 @@ interface GameStore {
   endLive: () => void;
   /** Answer the dressing room and play the second half out. */
   chooseHalfTime: (instructionId: HalfTimeInstructionId) => void;
+  /** How often the dressing room stops his match. */
+  setHalfTimeTalks: (frequency: HalfTimeFrequency) => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
 }
@@ -526,6 +529,15 @@ export const useGame = create<GameStore>((set, get) => ({
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state }, screen: 'career' });
+  },
+
+  setHalfTimeTalks(frequency) {
+    const { state } = get();
+    if (!state) return;
+    state.flags['halfTimeTalks'] = frequency;
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
   },
 
   endLive() {
