@@ -36,6 +36,11 @@ export function isEligible(def: CareerEventDef, ctx: EventContext, state: Career
   const cooldownUntil = state.eventCooldowns[def.id];
   if (cooldownUntil !== undefined && ctx.absoluteWeek < cooldownUntil) return false;
 
+  // The category cooldown was being written after every event and never read, so the
+  // protection against two agent stories in a row did nothing at all.
+  const categoryUntil = state.eventCooldowns['cat:' + def.category];
+  if (categoryUntil !== undefined && ctx.absoluteWeek < categoryUntil) return false;
+
   const t = def.trigger;
   if (t.ageRange && (ctx.age < t.ageRange[0] || ctx.age > t.ageRange[1])) return false;
   if (t.seasonWeekRange && (ctx.seasonWeek < t.seasonWeekRange[0] || ctx.seasonWeek > t.seasonWeekRange[1])) return false;

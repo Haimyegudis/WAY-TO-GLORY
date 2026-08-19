@@ -568,7 +568,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .sheet {
   width: 100%;
   max-width: var(--frame);
-  max-height: calc(100dvh - 48px - var(--safe-bottom));
+  /* Never more than three quarters of the screen, so there is dim above and below and
+     the sheet reads as a panel in the middle rather than a page pinned to the top. */
+  max-height: min(72dvh, calc(100dvh - 96px - var(--safe-bottom)));
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px 14px 20px;

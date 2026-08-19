@@ -660,8 +660,12 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
 
   // 4. Wages.
   if (state.contract) {
-    state.finances.balance += state.contract.salaryPerWeek;
-    state.finances.careerEarnings += state.contract.salaryPerWeek;
+    // The agent's commission is real money, taken off the wage every week he is signed.
+    const gross = state.contract.salaryPerWeek;
+    const commission = state.agent ? Math.round(gross * state.agent.commissionPct) : 0;
+    state.finances.balance += gross - commission;
+    state.finances.careerEarnings += gross - commission;
+    if (commission > 0) state.flags['agentFeesPaid'] = Number(state.flags['agentFeesPaid'] ?? 0) + commission;
   }
 
   // 5. National team.
@@ -1381,8 +1385,8 @@ function playUserMatch(
   const youthMatch = youthOpponentRating !== undefined;
   // In his own age group he plays; it is senior football an academy player is kept out of.
   const available = youthMatch
-    ? isAvailable(player) && !suspension
-    : isAvailable(player) && !suspension && !isAcademyPlayer(state) && !isFrozenOut(state);
+    ? isAvailable(player, competitionId)
+    : isAvailable(player, competitionId) && !isAcademyPlayer(state) && !isFrozenOut(state);
 
   const rotationPressure = clamp(state.matchLog.filter((m) => m.season === state.world.season && m.week >= state.world.week - 2).length / 3, 0, 1);
   const selectionCtx: SelectionContext = {
@@ -1540,6 +1544,17 @@ function applyMatchToPlayer(
     // Cards and suspensions, using the competition's own rules.
     const competition = index.competitionById.get(competitionId);
     const rules = competition?.cards ?? { yellowSuspensionThreshold: 5, resetAfterMatchday: 0, secondYellowSuspension: 1, redSuspension: 3 };
+    // Most leagues wipe yellow-card totals after a given matchday; the rule was in the
+    // data and never applied.
+    const compState = state.world.competitions[competitionId];
+    const matchday = compState
+      ? compState.fixtures.filter((f) => f.played && f.week <= state.world.week).length / Math.max(1, compState.clubIds.length / 2)
+      : 0;
+    if (rules.resetAfterMatchday > 0 && matchday >= rules.resetAfterMatchday && !state.flags[`cardsReset:${competitionId}:${state.world.season}`]) {
+      state.flags[`cardsReset:${competitionId}:${state.world.season}`] = true;
+      player.condition.yellowCards[competitionId] = 0;
+    }
+
     if (line.yellow > 0) {
       const running = (player.condition.yellowCards[competitionId] ?? 0) + line.yellow;
       player.condition.yellowCards[competitionId] = running;

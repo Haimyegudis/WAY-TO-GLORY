@@ -85,9 +85,17 @@ export function rollInjury(rng: Rng, player: Player, season: number, contextRisk
     return (t.recurrenceProne ? 1 + priorSame * 0.6 : 1) * (t.type === 'acl' ? 0.35 : 1);
   })!;
 
+  // Dividing every weight by the same number changes nothing once the weights are
+  // normalised, which is why age, fatigue and a long injury history used to have no
+  // effect on how bad an injury was. Risk now tilts the distribution: the serious end
+  // gets heavier and the knocks get lighter.
+  const risk = contextRisk * ageRisk * historyRisk;
+  const SEVERITY_ORDER: InjurySeverity[] = ['minor', 'moderate', 'serious', 'major', 'careerThreatening'];
   const severity =
-    rng.weighted(type.severities, (s) => SEVERITY_WEIGHT[s] / (contextRisk * ageRisk * historyRisk)) ??
-    type.severities[0]!;
+    rng.weighted(type.severities, (s) => {
+      const step = SEVERITY_ORDER.indexOf(s);          // 0 for a knock, 4 for the worst
+      return SEVERITY_WEIGHT[s] * Math.pow(risk, step - 1);
+    }) ?? type.severities[0]!;
 
   const [minW, maxW] = type.weeks[severity];
   const weeks = Math.max(1, Math.round(rng.int(minW, maxW) * clamp(ageRisk * 0.9, 0.85, 1.4)));

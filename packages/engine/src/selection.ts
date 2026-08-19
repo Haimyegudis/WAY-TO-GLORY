@@ -26,11 +26,17 @@ export interface Lineup {
   scores: Record<string, number>;
 }
 
-export function isAvailable(player: Player): boolean {
+/**
+ * Fit and allowed to play. A suspension is served in the competition it was earned in:
+ * a red card in the cup does not keep a player out of the league.
+ */
+export function isAvailable(player: Player, competitionId?: string): boolean {
   if (player.retired) return false;
   if (player.condition.injuries.length > 0) return false;
-  if (player.condition.suspensions.some((s) => s.matchesRemaining > 0)) return false;
-  return true;
+  const banned = player.condition.suspensions.some(
+    (s) => s.matchesRemaining > 0 && (competitionId === undefined || s.competitionId === competitionId),
+  );
+  return !banned;
 }
 
 /**
@@ -88,7 +94,7 @@ function totalScore(lineup: Lineup): number {
 
 export function pickLineup(rng: Rng, squad: Player[], ctx: SelectionContext): Lineup {
   const slots = FORMATIONS[ctx.formation] ?? FORMATIONS['4-3-3']!;
-  const available = squad.filter(isAvailable);
+  const available = squad.filter((player) => isAvailable(player));
   const scores: Record<string, number> = {};
 
   for (const player of available) {
