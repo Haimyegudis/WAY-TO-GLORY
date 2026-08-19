@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MatchEvent, MatchResult } from '@fc/engine';
+import type { MatchEvent, MatchResult, Player } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { competitionLabel } from '../lib/names.js';
 import { clubShortName } from '../lib/club.js';
@@ -9,7 +9,7 @@ import { Crest } from './ui.js';
 import { Pitch2D } from './Pitch2D.js';
 import { FootballIcon } from './Football.js';
 import { blowWhistle } from './whistle.js';
-import { playerName } from '../lib/names.js';
+import { findPlayer, playerName } from '../lib/names.js';
 
 /** Beats worth stopping on: the clock hangs for a moment so they land. */
 const DECISIVE = new Set<MatchEvent['type']>([
@@ -25,6 +25,26 @@ function variantKey(key: string, minute: number): string {
   if (!varied.includes(key)) return key;
   const variant = minute % 3;
   return variant === 0 ? key : `${key}${variant + 1}`;
+}
+
+/**
+ * The eleven on the pitch for a club, from whichever register this match belongs to: a
+ * Sunday morning in the age group is played by boys the senior world has never heard of.
+ */
+function squadOf(
+  state: { world: { squads: Record<string, string[]>; players: Record<string, Player>; youth?: { squads: Record<string, string[]>; players: Record<string, Player> } } },
+  clubId: string,
+): Player[] {
+  const senior = (state.world.squads[clubId] ?? []).flatMap((id) => {
+    const found = state.world.players[id];
+    return found ? [found] : [];
+  });
+  if (senior.length > 0) return senior;
+  const youth = state.world.youth;
+  return (youth?.squads[clubId] ?? []).flatMap((id) => {
+    const found = youth?.players[id];
+    return found ? [found] : [];
+  });
 }
 
 function toneOf(event: MatchEvent): string {
@@ -128,7 +148,7 @@ export function LiveMatch({
   const scorerName = (event: MatchEvent): string => {
     if (!event.playerId || event.playerId === state.player.id) return '';
     if (event.type !== 'goal' && event.type !== 'assist' && event.type !== 'concede') return '';
-    const player = state.world.players[event.playerId];
+    const player = findPlayer(state, event.playerId);
     return player ? playerName(player, lang) : '';
   };
 
@@ -176,7 +196,7 @@ export function LiveMatch({
     const named = (event?: MatchEvent) => {
       if (!event) return '';
       if (event.playerId === state.player.id) return playerName(state.player, lang);
-      const who = event.playerId ? state.world.players[event.playerId] : undefined;
+      const who = findPlayer(state, event.playerId);
       return who ? playerName(who, lang) : '';
     };
     return {
@@ -246,8 +266,8 @@ export function LiveMatch({
           away={away}
           event={onPitch}
           userIsHome={state.player.clubId === match.homeClubId}
-          homeSquad={(state.world.squads[match.homeClubId] ?? []).flatMap((id) => { const found = state.world.players[id]; return found ? [found] : []; })}
-          awaySquad={(state.world.squads[match.awayClubId] ?? []).flatMap((id) => { const found = state.world.players[id]; return found ? [found] : []; })}
+          homeSquad={squadOf(state, match.homeClubId)}
+          awaySquad={squadOf(state, match.awayClubId)}
           {...(state.player.shirtNumber !== undefined ? { userNumber: state.player.shirtNumber } : {})}
           replayLabel={t('live.replay')}
         />

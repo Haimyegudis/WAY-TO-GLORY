@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION, GAME_VERSION } from './career.js';
+import { overall } from './positions.js';
 import type { CareerState } from './types.js';
 
 export interface SaveEnvelope {
@@ -136,6 +137,60 @@ const MIGRATIONS: Record<number, Migration> = {
     };
     nt.youthCaps = nt.youthCaps ?? 0;
     nt.youthGoals = nt.youthGoals ?? 0;
+
+    return state;
+  },
+
+  /**
+   * Schema 2 to 3: one man, once.
+   *
+   * The pack used to carry a marquee player under two spellings - Vinicius Junior by
+   * keyboard and Vinícius Júnior by encyclopedia - and the squad builder planted both,
+   * so careers started before that was fixed have him twice on the team sheet. A new
+   * career gets a clean squad; this is for the ones already being played.
+   *
+   * The better-rated of the two stays and the other is taken off the sheet. Anything
+   * written down about him - a goal in a match report - already survives a player it
+   * cannot find, so nothing else has to be rewritten.
+   */
+  2: (state) => {
+    // Letters of any script, not just a-z: most of a squad is generated with Hebrew
+    // names, and stripping to Latin turned every one of them into the same empty key -
+    // which would have deleted a whole team rather than one twin.
+    const fold = (word: string) =>
+      word
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]/gu, '');
+
+    for (const [clubId, ids] of Object.entries(state.world.squads)) {
+      const best = new Map<string, string>();
+      const dropped = new Set<string>();
+
+      for (const id of ids) {
+        const player = state.world.players[id];
+        if (!player || player.isUser) continue;
+        const key = `${fold(player.firstName)}|${fold(player.lastName)}`;
+        const held = best.get(key);
+        if (!held) {
+          best.set(key, id);
+          continue;
+        }
+        const other = state.world.players[held]!;
+        const keep = overall(player.attributes, player.primaryPos, player.secondaryPos) >
+          overall(other.attributes, other.primaryPos, other.secondaryPos)
+          ? id
+          : held;
+        const drop = keep === id ? held : id;
+        best.set(key, keep);
+        dropped.add(drop);
+      }
+
+      if (dropped.size === 0) continue;
+      state.world.squads[clubId] = ids.filter((id) => !dropped.has(id));
+      for (const id of dropped) delete state.world.players[id];
+    }
 
     return state;
   },

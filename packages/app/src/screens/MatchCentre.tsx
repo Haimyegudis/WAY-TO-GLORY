@@ -4,7 +4,7 @@ import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubShortName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, recentMatches } from '../state/selectors.js';
-import { competitionLabel, playerName } from '../lib/names.js';
+import { competitionLabel, findPlayer, playerName } from '../lib/names.js';
 import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 import { LiveMatch } from '../components/LiveMatch.js';
 import { HalfTimeSheet } from './HalfTimeSheet.js';
@@ -18,15 +18,11 @@ function variantKey(key: string, minute: number): string {
 }
 
 /** The name behind a goal, an assist or a booking, when we model that player. */
-function namedFor(
-  event: { type: string; playerId?: string; byUser: boolean },
-  state: { player: { id: string }; world: { players: Record<string, import('@fc/engine').Player> } },
-  lang: 'he' | 'en',
-): string {
+function namedFor(event: { type: string; playerId?: string; byUser: boolean }, state: CareerState, lang: 'he' | 'en'): string {
   if (!event.playerId) return '';
   if (event.type !== 'goal' && event.type !== 'assist' && event.type !== 'concede') return '';
   if (event.playerId === state.player.id) return '';
-  const player = state.world.players[event.playerId];
+  const player = findPlayer(state, event.playerId);
   return player ? playerName(player, lang) : '';
 }
 

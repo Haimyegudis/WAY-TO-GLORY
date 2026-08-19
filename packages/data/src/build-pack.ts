@@ -197,7 +197,7 @@ function sameManKey(clubId: string, firstName: string, lastName: string): string
       .normalize('NFD')
       .replace(/[̀-ͯ]/g, '')
       .toLowerCase()
-      .replace(/[^a-z]/g, '');
+      .replace(/[^\p{L}\p{N}]/gu, '');
   return `${clubId}|${fold(firstName)}|${fold(lastName)}`;
 }
 

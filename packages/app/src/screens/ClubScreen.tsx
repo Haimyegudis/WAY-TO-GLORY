@@ -8,7 +8,7 @@ import {
 } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { cityName, clubName, clubShortName } from '../lib/club.js';
-import { competitionLabel, competitionName, playerName } from '../lib/names.js';
+import { competitionLabel, competitionName, findPlayer, playerName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
 import { Card, ClubLine, Crest, Empty, Meter } from '../components/ui.js';
@@ -583,12 +583,12 @@ function Scorers() {
 
   const nameOf = (playerId: string): string => {
     if (playerId === state.player.id) return `${state.player.firstName} ${state.player.lastName}`;
-    const player = state.world.players[playerId];
+    const player = findPlayer(state, playerId);
     return player ? playerName(player, lang) : playerId;
   };
 
   const clubOf = (playerId: string) => {
-    const player = playerId === state.player.id ? state.player : state.world.players[playerId];
+    const player = findPlayer(state, playerId);
     return player?.clubId ? club(state, player.clubId) : null;
   };
 

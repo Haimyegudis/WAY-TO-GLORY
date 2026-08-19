@@ -185,7 +185,7 @@ import type {
   UserMatchLine,
 } from './types.js';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const GAME_VERSION = '0.1.0';
 
 export function emptySeasonStats(season: number, clubId: string | null, competitionId: string | null): SeasonStats {

@@ -27,6 +27,7 @@ import { generateOffers, isTransferWindow } from '../src/transfer.js';
 import { indexPack, validatePack } from '../src/data.js';
 import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
 import {
+  SCHEMA_VERSION,
   advanceWeek,
   answerMedia,
   createCareer,
@@ -1049,6 +1050,35 @@ describe('half time', () => {
     expect(answered, 'no interval ever came up').toBeGreaterThan(0);
   });
 
+  it('takes a player off the sheet when the same man was planted twice', () => {
+    // Careers begun before the two spellings were merged have him in the squad twice -
+    // Vinicius Junior by keyboard and Vinícius Júnior by encyclopedia - and the squad
+    // lives in the save, so only a migration can get him off the sheet.
+    const { state } = startedCareer({ seed: 31 });
+    const clubId = state.player.clubId!;
+    const ids = state.world.squads[clubId]!;
+    const twin = { ...state.world.players[ids[0]!]!, id: 'twin_of_the_first' };
+    twin.firstName = twin.firstName.replace(/e/i, 'é');
+    state.world.players[twin.id] = twin;
+    state.world.squads[clubId] = [...ids, twin.id];
+    const before = state.world.squads[clubId]!.length;
+
+    const raw = JSON.stringify({
+      schemaVersion: 2,
+      gameVersion: '0.1.0',
+      savedAt: '2026-01-01T00:00:00.000Z',
+      state,
+    });
+    const loaded = deserialize(raw);
+
+    expect(loaded.world.squads[clubId]!.length).toBe(before - 1);
+    const names = loaded.world.squads[clubId]!.map((id) => {
+      const man = loaded.world.players[id]!;
+      return `${man.firstName} ${man.lastName}`.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    });
+    expect(new Set(names).size, 'the same man is still on the sheet twice').toBe(names.length);
+  });
+
   it('never offers an instruction that is all upside', () => {
     // For three of these, a number below one is the good news: less fatigue, fewer
     // cards, fewer knocks. Everything else is better the higher it is.
@@ -1225,7 +1255,7 @@ describe('the youth league', () => {
     });
     const loaded = deserialize(raw);
 
-    expect(loaded.schemaVersion).toBe(2);
+    expect(loaded.schemaVersion).toBe(SCHEMA_VERSION);
     expect(loaded.world.youth).toBeUndefined();
     expect(loaded.world.youthLegacy).toBeDefined();
     expect(loaded.nationalTeam.youthCaps).toBe(0);

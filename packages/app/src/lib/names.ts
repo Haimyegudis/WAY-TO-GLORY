@@ -65,3 +65,23 @@ export function competitionLabel(
 
   return t('club.cup');
 }
+
+/**
+ * The man behind an id, wherever the game keeps him.
+ *
+ * Senior football and the age group are two registers: the boys in the youth league are
+ * not in world.players at all. Every screen that looked in one of them printed nothing
+ * for the other, which is why a Sunday morning match said a goal had been scored and
+ * never said by whom.
+ */
+export function findPlayer(
+  state: {
+    player: Player;
+    world: { players: Record<string, Player>; youth?: { players: Record<string, Player> } };
+  },
+  id: string | undefined,
+): Player | null {
+  if (!id) return null;
+  if (id === state.player.id) return state.player;
+  return state.world.players[id] ?? state.world.youth?.players[id] ?? null;
+}

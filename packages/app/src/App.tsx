@@ -211,7 +211,15 @@ function useBackGesture(): void {
       primeWhistles();
       refill();
     };
-    const touch = ['pointerdown', 'keydown', 'touchstart'] as const;
+    /*
+     * Which events count as "he touched it".
+     *
+     * Not every input event grants the page user activation, and only an entry pushed
+     * with activation is one the back gesture will honour. pointerdown alone was not
+     * enough, so the whole set a browser accepts is listened for - the finger going
+     * down, the finger coming up, the tap that follows, a key either way.
+     */
+    const touch = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown', 'keyup'] as const;
     for (const event of touch) window.addEventListener(event, touched, { passive: true });
     // Coming back to the app from another one - or out of the phone's back stack - is a
     // fresh start for all of this.
@@ -220,11 +228,14 @@ function useBackGesture(): void {
     const onPop = () => {
       if (leaving) return;
       spares = Math.max(0, spares - 1);
+      // Landing on an entry the game never pushed means the browser walked past the
+      // buffer. Build it again before doing anything else, or the next swipe is out.
+      if (!window.history.state?.game) spares = 0;
+      refill();
       const game = useGame.getState();
 
       // The screen in front of him first: a form in the middle of its own steps.
       if (game.backHandler?.()) {
-        spare();
         armedAt = 0;
         return;
       }
@@ -234,7 +245,6 @@ function useBackGesture(): void {
       const canStepBack =
         game.phase === 'playing' && !inTheMatch && (game.trail.length > 0 || game.screen !== 'hub');
       if (canStepBack) {
-        spare();
         game.back();
         armedAt = 0;
         return;
@@ -259,7 +269,6 @@ function useBackGesture(): void {
         return;
       }
       armedAt = Date.now();
-      spare();
       game.showToast(say.current('action.backAgainToExit'));
     };
 
