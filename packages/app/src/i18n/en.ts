@@ -226,6 +226,14 @@ export const en: Record<string, string> = {
   'market.earnings': 'Career earnings',
 
   // ---------------------------------------------------------------- national
+  'national.road': 'The road to a call-up',
+  'national.road.level': 'At your age you belong to the {level}. The association watching you closest is {country}.',
+  'national.road.rating': 'Your rating against the standard',
+  'national.road.interest': 'How closely they are watching',
+  'national.road.advice.rating': 'The standard is still a way off. Keep training - without the rating there is no conversation.',
+  'national.road.advice.youthMinutes': 'The rating is fine, but somebody has to see you play. Minutes in the youth league are what moves this.',
+  'national.road.advice.minutes': 'The rating is fine. Now it is senior minutes - nobody picks a substitute.',
+  'national.road.advice.keepGoing': 'You are on the radar. A few good games in a row and it comes.',
   'national.title': 'National team',
   'national.eligible': 'Eligible for',
   'national.committed': 'Committed to {country}',

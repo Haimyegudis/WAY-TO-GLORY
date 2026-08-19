@@ -2,7 +2,17 @@ import { useLang, useT } from '../i18n/index.js';
 import { countryName as localisedCountry } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { Chip, Meter, Card, Stat } from '../components/ui.js';
-import { qualifyingTable } from '@fc/engine';
+import {
+  currentOvr,
+  levelForAge,
+  minutesPct,
+  nationalStandard,
+  qualifyingTable,
+  youthMinutesPct,
+} from '@fc/engine';
+
+/** The interest a selector needs before he picks up the phone. Mirrors rollCallUp. */
+const CALL_UP_INTEREST = 55;
 
 export function NationalScreen() {
   const t = useT();
@@ -13,6 +23,33 @@ export function NationalScreen() {
   const nt = state.nationalTeam;
 
   const countryName = (code: string) => localisedCountry(pack.countries.find((c) => c.code === code), lang) || code;
+
+  const road = (() => {
+    const age = state.world.season - state.player.birthYear;
+    const level = levelForAge(age);
+    if (!level) return null;
+    // The association that likes him most is the one he is playing for the attention of.
+    const code = [...nt.eligibleCountries].sort((a, b) => (nt.interest[b] ?? 0) - (nt.interest[a] ?? 0))[0];
+    if (!code) return null;
+    const country = pack.countries.find((c) => c.code === code);
+    if (!country) return null;
+
+    const bar = Math.round(nationalStandard(country.reputation, level));
+    const ovr = currentOvr(state);
+    const interest = Math.round(nt.interest[code] ?? 0);
+    const senior = minutesPct(state);
+    const youth = youthMinutesPct(state);
+
+    // One line of advice, and it is the true one: the biggest thing standing in his way.
+    const advice =
+      ovr < bar - 4 ? 'national.road.advice.rating'
+      : level === 'u17' || level === 'u19'
+        ? (youth < 0.4 && senior < 0.2 ? 'national.road.advice.youthMinutes' : 'national.road.advice.keepGoing')
+        : senior < 0.35 ? 'national.road.advice.minutes'
+        : 'national.road.advice.keepGoing';
+
+    return { level, code, bar, ovr, interest, advice };
+  })();
 
   return (
     <div className="screen stack">
@@ -34,6 +71,34 @@ export function NationalScreen() {
           <Stat label={t('career.season')} value={nt.callUpHistory.length} />
         </div>
       </Card>
+
+      {/*
+        * The road to a call-up.
+        *
+        * The interest meters below say how close he is without ever saying to what, or
+        * what would move them, so a fifteen year old reads "not tied to any association"
+        * and closes the screen. This is the same arithmetic the selector uses, printed:
+        * the level his age belongs to, the standard for it, where he stands against it,
+        * and the one thing most worth doing about it.
+        */}
+      {road && (
+        <Card title={t('national.road')}>
+          <p style={{ fontSize: 14, marginBlockEnd: 10 }}>
+            {t('national.road.level', { level: t(`national.level.${road.level}`), country: countryName(road.code) })}
+          </p>
+          <div className="row-between" style={{ marginBlockEnd: 4 }}>
+            <span className="faint" style={{ fontSize: 12 }}>{t('national.road.rating')}</span>
+            <span className="num" style={{ fontSize: 12 }}>{road.ovr} / {road.bar}</span>
+          </div>
+          <Meter value={Math.min(100, (road.ovr / road.bar) * 100)} tone={road.ovr >= road.bar ? 'amber' : 'blue'} />
+          <div className="row-between" style={{ marginBlock: '10px 4px' }}>
+            <span className="faint" style={{ fontSize: 12 }}>{t('national.road.interest')}</span>
+            <span className="num" style={{ fontSize: 12 }}>{road.interest} / {CALL_UP_INTEREST}</span>
+          </div>
+          <Meter value={(road.interest / CALL_UP_INTEREST) * 100} tone={road.interest >= CALL_UP_INTEREST ? 'amber' : 'blue'} />
+          <p className="faint" style={{ fontSize: 12, marginBlockStart: 10 }}>{t(road.advice)}</p>
+        </Card>
+      )}
 
       <Card title={t('national.eligible')}>
         <div className="stack" style={{ gap: 10 }}>

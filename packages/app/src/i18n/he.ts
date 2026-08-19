@@ -222,6 +222,14 @@ export const he: Record<string, string> = {
   'market.earnings': 'הכנסות בקריירה',
 
   // ---------------------------------------------------------------- national
+  'national.road': 'הדרך לזימון',
+  'national.road.level': 'בגילך אתה שייך ל{level}. המדינה שהכי עוקבת אחריך היא {country}.',
+  'national.road.rating': 'הציון שלך מול הרף',
+  'national.road.interest': 'כמה עוקבים אחריך',
+  'national.road.advice.rating': 'הרף עוד רחוק. תמשיך להתאמן ולהשתפר — בלי ציון אין שיחה.',
+  'national.road.advice.youthMinutes': 'הציון שלך בסדר, אבל המאמן צריך לראות אותך משחק. דקות בליגת הנוער הן מה שיזיז את זה.',
+  'national.road.advice.minutes': 'הציון שלך בסדר. עכשיו צריך דקות בקבוצה הבוגרת — ספסל לא מזמין אף אחד.',
+  'national.road.advice.keepGoing': 'אתה על הרדאר. עוד כמה משחקים טובים ברצף וזה יגיע.',
   'national.title': 'נבחרת',
   'national.eligible': 'זכאי לשחק עבור',
   'national.committed': 'מחויב ל{country}',
