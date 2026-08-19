@@ -1435,4 +1435,10 @@ export const he: Record<string, string> = {
   'inbox.mustLeaveAcademy.body': 'זה הרגע שבו הרבה קריירות נגמרות בשקט: המועדון שגידל אותך החליט שאתה לא בשבילו. המועדונים שעל השולחן קטנים יותר, וזה בדיוק העניין — לך לאן שתשחק.',
   'inbox.noOffersAtEighteen': 'בן 18, בלי מקום בסגל הבוגרים של {club}, ואף אחד לא פנה.',
   'inbox.noOffersAtEighteen.body': 'קיץ קשה. תתאמן, תחכה לחלון, ותן למישהו סיבה להרים טלפון.',
+
+'competition.youth': 'ליגת נוער',
+  'competition.youthOf': '{league} · נוער',
+  'hub.youth': 'ליגת הנוער',
+  'hub.youthLine': '{apps} משחקים · {goals} שערים · {assists} בישולים · ציון {rating}',
+  'hub.youthHint': 'מה שאתה עושה פה זה מה שגורם לבוגרים לשים לב אליך.',
 };

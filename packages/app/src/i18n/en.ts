@@ -1433,4 +1433,10 @@ export const en: Record<string, string> = {
   'inbox.mustLeaveAcademy.body': 'This is the moment a lot of careers quietly end: the club that raised you has decided you are not for them. The clubs on the table are smaller, and that is the point - go where you will play.',
   'inbox.noOffersAtEighteen': 'Eighteen, no place in the senior squad at {club}, and nobody has come in for you.',
   'inbox.noOffersAtEighteen.body': 'A hard summer. Train, wait for the window, and give somebody a reason to make the call.',
+
+'competition.youth': 'Youth league',
+  'competition.youthOf': '{league} · youth',
+  'hub.youth': 'Youth league',
+  'hub.youthLine': '{apps} matches · {goals} goals · {assists} assists · rating {rating}',
+  'hub.youthHint': 'What you do here is what gets you seen by the first team.',
 };

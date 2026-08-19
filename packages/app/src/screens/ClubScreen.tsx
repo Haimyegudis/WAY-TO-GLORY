@@ -338,8 +338,9 @@ function LeagueTable() {
   const [selected, setSelected] = useState(myCompetition);
 
   const leagues = pack.competitions.filter((competition) => state.world.competitions[competition.id]);
+  const youth = state.world.youth;
 
-  const compState = state.world.competitions[selected];
+  const compState = selected === youth?.competitionId ? youth : state.world.competitions[selected];
   const rows = compState ? sortedTable(compState) : [];
 
   return (
@@ -357,6 +358,9 @@ function LeagueTable() {
               {competitionName(competition, lang)}
             </option>
           ))}
+          {youth && (
+            <option value={youth.competitionId}>{competitionLabel(youth.competitionId, pack, lang, t)}</option>
+          )}
         </select>
       }
     >
@@ -461,6 +465,7 @@ function Scorers() {
   const [chart, setChart] = useState<'goals' | 'assists' | 'cards'>('goals');
 
   const leagues = pack.competitions.filter((competition) => state.world.competitions[competition.id]);
+  const youth = state.world.youth;
   const compState = state.world.competitions[selected];
 
   type ChartRow = { playerId: string; value: number; second?: number };
@@ -511,6 +516,9 @@ function Scorers() {
               {competitionName(competition, lang)}
             </option>
           ))}
+          {youth && (
+            <option value={youth.competitionId}>{competitionLabel(youth.competitionId, pack, lang, t)}</option>
+          )}
         </select>
       }
     >

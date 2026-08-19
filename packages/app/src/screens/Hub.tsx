@@ -87,6 +87,20 @@ export function Hub() {
         </div>
       </Card>
 
+      {state.world.youth && (state.world.youthForm?.apps ?? 0) > 0 && (
+        <Card title={t('hub.youth')}>
+          <p style={{ fontSize: 13.5 }}>
+            {t('hub.youthLine', {
+              apps: state.world.youthForm!.apps,
+              goals: state.world.youthForm!.goals,
+              assists: state.world.youthForm!.assists,
+              rating: (state.world.youthForm!.ratingSum / Math.max(1, state.world.youthForm!.apps)).toFixed(2),
+            })}
+          </p>
+          <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t('hub.youthHint')}</p>
+        </Card>
+      )}
+
       <Card title={t('hub.skills')}>
         <div className="grid-3" style={{ gap: 10 }}>
           {skillProfile(player.attributes, player.primaryPos).map((skill) => (

@@ -35,12 +35,18 @@ export function competitionLabel(
   id: string,
   pack: { competitions: Competition[]; countries: Country[] },
   lang: Lang,
-  t: (key: string) => string,
+  t: (key: string, args?: Record<string, string | number>) => string,
 ): string {
   const league = pack.competitions.find((c) => c.id === id);
   if (league) return competitionName(league, lang);
 
   if (id === 'ucl' || id === 'uel' || id === 'uecl') return t(`competition.${id}`);
+
+  // The youth league carries the name of the division it shadows.
+  if (id.endsWith('.youth')) {
+    const parent = pack.competitions.find((c) => c.id === id.slice(0, -'.youth'.length));
+    return parent ? t('competition.youthOf', { league: competitionName(parent, lang) }) : t('competition.youth');
+  }
 
   const cupMatch = /^([a-z]{3})_cup$/.exec(id);
   if (cupMatch) {
