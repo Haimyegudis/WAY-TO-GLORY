@@ -555,12 +555,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   background: rgba(3, 5, 8, 0.78);
   backdrop-filter: blur(8px);
   display: flex;
-  /* Centred with auto margins rather than align-items: a sheet taller than the screen
-     would otherwise overflow upwards, off the top, where it cannot be reached. */
-  align-items: flex-start;
+  /* Centred on the screen, and the sheet itself is never taller than the screen, so it
+     cannot overflow past the top the way a centred flex item does. */
+  align-items: center;
   justify-content: center;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   padding: 12px 0 calc(12px + var(--safe-bottom));
   animation: fade 0.22s ease both;
 }
@@ -569,8 +568,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .sheet {
   width: 100%;
   max-width: var(--frame);
-  margin: auto;
-  max-height: none;
+  max-height: calc(100dvh - 48px - var(--safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px 14px 20px;
   background: var(--surface);
   border-radius: var(--radius-lg);

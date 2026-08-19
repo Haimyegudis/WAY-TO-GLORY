@@ -24,6 +24,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // A new build takes over on the next load instead of waiting for every tab to
+        // close, which is what leaves a phone showing a half-updated app.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // The data pack is large but static: cache it so the game opens offline.
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,json}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
