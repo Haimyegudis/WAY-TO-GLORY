@@ -1,0 +1,258 @@
+[
+  {
+    "name": "chin-bones-decr.target",
+    "path": "makehuman/data/targets/chin/chin-bones-decr.target",
+    "sha": "a95b8e6296f3147240bda356875b706c4359dfef",
+    "size": 3902,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-bones-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-bones-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a95b8e6296f3147240bda356875b706c4359dfef",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-bones-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-bones-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a95b8e6296f3147240bda356875b706c4359dfef",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-bones-decr.target"
+    }
+  },
+  {
+    "name": "chin-bones-incr.target",
+    "path": "makehuman/data/targets/chin/chin-bones-incr.target",
+    "sha": "c4be5381866fafba57b499e83ba5712da284b592",
+    "size": 11831,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-bones-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-bones-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c4be5381866fafba57b499e83ba5712da284b592",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-bones-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-bones-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c4be5381866fafba57b499e83ba5712da284b592",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-bones-incr.target"
+    }
+  },
+  {
+    "name": "chin-cleft-decr.target",
+    "path": "makehuman/data/targets/chin/chin-cleft-decr.target",
+    "sha": "3ccb921f56576454edfe9b19fa8c636454952f98",
+    "size": 1001,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-cleft-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-cleft-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3ccb921f56576454edfe9b19fa8c636454952f98",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-cleft-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-cleft-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3ccb921f56576454edfe9b19fa8c636454952f98",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-cleft-decr.target"
+    }
+  },
+  {
+    "name": "chin-cleft-incr.target",
+    "path": "makehuman/data/targets/chin/chin-cleft-incr.target",
+    "sha": "64ce85b41b9e0aebb8ad292de574720a5f6bdf7b",
+    "size": 1323,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-cleft-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-cleft-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/64ce85b41b9e0aebb8ad292de574720a5f6bdf7b",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-cleft-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-cleft-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/64ce85b41b9e0aebb8ad292de574720a5f6bdf7b",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-cleft-incr.target"
+    }
+  },
+  {
+    "name": "chin-height-decr.target",
+    "path": "makehuman/data/targets/chin/chin-height-decr.target",
+    "sha": "abf9afbfc1b45944f3984fa27f0da2f70ffd48c3",
+    "size": 4603,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-height-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-height-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/abf9afbfc1b45944f3984fa27f0da2f70ffd48c3",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-height-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-height-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/abf9afbfc1b45944f3984fa27f0da2f70ffd48c3",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-height-decr.target"
+    }
+  },
+  {
+    "name": "chin-height-incr.target",
+    "path": "makehuman/data/targets/chin/chin-height-incr.target",
+    "sha": "16600f6a37c7bad1ba4c666d257e90091ad7286b",
+    "size": 9131,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-height-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-height-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/16600f6a37c7bad1ba4c666d257e90091ad7286b",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-height-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-height-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/16600f6a37c7bad1ba4c666d257e90091ad7286b",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-height-incr.target"
+    }
+  },
+  {
+    "name": "chin-jaw-drop-decr.target",
+    "path": "makehuman/data/targets/chin/chin-jaw-drop-decr.target",
+    "sha": "4e61f6dd8857665e0642efc4d925ade1372eeb54",
+    "size": 1561,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-jaw-drop-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-jaw-drop-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4e61f6dd8857665e0642efc4d925ade1372eeb54",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-jaw-drop-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-jaw-drop-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4e61f6dd8857665e0642efc4d925ade1372eeb54",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-jaw-drop-decr.target"
+    }
+  },
+  {
+    "name": "chin-jaw-drop-incr.target",
+    "path": "makehuman/data/targets/chin/chin-jaw-drop-incr.target",
+    "sha": "056fa59e6bb282d1cbb56d74ede6887188a73cf2",
+    "size": 1415,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-jaw-drop-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-jaw-drop-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/056fa59e6bb282d1cbb56d74ede6887188a73cf2",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-jaw-drop-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-jaw-drop-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/056fa59e6bb282d1cbb56d74ede6887188a73cf2",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-jaw-drop-incr.target"
+    }
+  },
+  {
+    "name": "chin-prognathism-decr.target",
+    "path": "makehuman/data/targets/chin/chin-prognathism-decr.target",
+    "sha": "199d1d7f8b9f6b0fb344b674458104acd445e062",
+    "size": 7788,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prognathism-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prognathism-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/199d1d7f8b9f6b0fb344b674458104acd445e062",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-prognathism-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prognathism-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/199d1d7f8b9f6b0fb344b674458104acd445e062",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prognathism-decr.target"
+    }
+  },
+  {
+    "name": "chin-prognathism-incr.target",
+    "path": "makehuman/data/targets/chin/chin-prognathism-incr.target",
+    "sha": "9cbb7901993784f82f97cf4573fddd246fd60a9c",
+    "size": 5360,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prognathism-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prognathism-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/9cbb7901993784f82f97cf4573fddd246fd60a9c",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-prognathism-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prognathism-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/9cbb7901993784f82f97cf4573fddd246fd60a9c",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prognathism-incr.target"
+    }
+  },
+  {
+    "name": "chin-prominent-decr.target",
+    "path": "makehuman/data/targets/chin/chin-prominent-decr.target",
+    "sha": "20b9007a5ee9bc671e54d70b5cb93d95314c0ef6",
+    "size": 3522,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prominent-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prominent-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/20b9007a5ee9bc671e54d70b5cb93d95314c0ef6",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-prominent-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prominent-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/20b9007a5ee9bc671e54d70b5cb93d95314c0ef6",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prominent-decr.target"
+    }
+  },
+  {
+    "name": "chin-prominent-incr.target",
+    "path": "makehuman/data/targets/chin/chin-prominent-incr.target",
+    "sha": "06038d8062647d7845c9b14599c969d180062211",
+    "size": 2338,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prominent-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prominent-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/06038d8062647d7845c9b14599c969d180062211",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-prominent-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-prominent-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/06038d8062647d7845c9b14599c969d180062211",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-prominent-incr.target"
+    }
+  },
+  {
+    "name": "chin-triangle.target",
+    "path": "makehuman/data/targets/chin/chin-triangle.target",
+    "sha": "05a8040058be8dfb4961fe42ffb68ce65daf5458",
+    "size": 7024,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-triangle.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-triangle.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/05a8040058be8dfb4961fe42ffb68ce65daf5458",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-triangle.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-triangle.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/05a8040058be8dfb4961fe42ffb68ce65daf5458",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-triangle.target"
+    }
+  },
+  {
+    "name": "chin-width-decr.target",
+    "path": "makehuman/data/targets/chin/chin-width-decr.target",
+    "sha": "5dcb2e236c7fe8c28b2e21b4ae5d0abd8510a2f4",
+    "size": 2853,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-width-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-width-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/5dcb2e236c7fe8c28b2e21b4ae5d0abd8510a2f4",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-width-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-width-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/5dcb2e236c7fe8c28b2e21b4ae5d0abd8510a2f4",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-width-decr.target"
+    }
+  },
+  {
+    "name": "chin-width-incr.target",
+    "path": "makehuman/data/targets/chin/chin-width-incr.target",
+    "sha": "ce13cc1c443cf705c5ef50ac6360a73801315fd7",
+    "size": 3706,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-width-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-width-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/ce13cc1c443cf705c5ef50ac6360a73801315fd7",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/chin/chin-width-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/chin-width-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/ce13cc1c443cf705c5ef50ac6360a73801315fd7",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/chin/chin-width-incr.target"
+    }
+  },
+  {
+    "name": "images",
+    "path": "makehuman/data/targets/chin/images",
+    "sha": "d2d0ffac7088732e8083d86b4478949f2c112f1f",
+    "size": 0,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/images?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/tree/master/makehuman/data/targets/chin/images",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/trees/d2d0ffac7088732e8083d86b4478949f2c112f1f",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/chin/images?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/trees/d2d0ffac7088732e8083d86b4478949f2c112f1f",
+      "html": "https://github.com/makehumancommunity/makehuman/tree/master/makehuman/data/targets/chin/images"
+    }
+  }
+]

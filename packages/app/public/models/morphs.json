@@ -1,0 +1,204 @@
+{
+  "note": "MakeHuman morph targets, released CC0 in 2020 by Data Collection AB, Joel Palmius and Jonas Hauquier.",
+  "scale": 20000,
+  "sliders": [
+    {
+      "id": "maleEuropean",
+      "up": {
+        "at": 0,
+        "count": 19150
+      },
+      "down": {
+        "at": 191500,
+        "count": 0
+      }
+    },
+    {
+      "id": "maleAfrican",
+      "up": {
+        "at": 191500,
+        "count": 19150
+      },
+      "down": {
+        "at": 383000,
+        "count": 0
+      }
+    },
+    {
+      "id": "maleAsian",
+      "up": {
+        "at": 383000,
+        "count": 19150
+      },
+      "down": {
+        "at": 574500,
+        "count": 0
+      }
+    },
+    {
+      "id": "noseWidth",
+      "up": {
+        "at": 574500,
+        "count": 448
+      },
+      "down": {
+        "at": 578980,
+        "count": 312
+      }
+    },
+    {
+      "id": "noseLength",
+      "up": {
+        "at": 582100,
+        "count": 395
+      },
+      "down": {
+        "at": 586052,
+        "count": 335
+      }
+    },
+    {
+      "id": "noseHump",
+      "up": {
+        "at": 589404,
+        "count": 406
+      },
+      "down": {
+        "at": 593464,
+        "count": 28
+      }
+    },
+    {
+      "id": "mouthWidth",
+      "up": {
+        "at": 593744,
+        "count": 962
+      },
+      "down": {
+        "at": 603364,
+        "count": 838
+      }
+    },
+    {
+      "id": "lips",
+      "up": {
+        "at": 611744,
+        "count": 261
+      },
+      "down": {
+        "at": 614356,
+        "count": 310
+      }
+    },
+    {
+      "id": "eyeSize",
+      "up": {
+        "at": 617456,
+        "count": 1180
+      },
+      "down": {
+        "at": 629256,
+        "count": 1174
+      }
+    },
+    {
+      "id": "eyeOpen",
+      "up": {
+        "at": 640996,
+        "count": 664
+      },
+      "down": {
+        "at": 647636,
+        "count": 944
+      }
+    },
+    {
+      "id": "cheekbones",
+      "up": {
+        "at": 657076,
+        "count": 118
+      },
+      "down": {
+        "at": 658256,
+        "count": 168
+      }
+    },
+    {
+      "id": "jaw",
+      "up": {
+        "at": 659936,
+        "count": 571
+      },
+      "down": {
+        "at": 665648,
+        "count": 178
+      }
+    },
+    {
+      "id": "chin",
+      "up": {
+        "at": 667428,
+        "count": 115
+      },
+      "down": {
+        "at": 668580,
+        "count": 188
+      }
+    },
+    {
+      "id": "faceFat",
+      "up": {
+        "at": 670460,
+        "count": 730
+      },
+      "down": {
+        "at": 677760,
+        "count": 743
+      }
+    },
+    {
+      "id": "headWidth",
+      "up": {
+        "at": 685192,
+        "count": 5240
+      },
+      "down": {
+        "at": 737592,
+        "count": 5202
+      }
+    },
+    {
+      "id": "muscle",
+      "up": {
+        "at": 789612,
+        "count": 3022
+      },
+      "down": {
+        "at": 819832,
+        "count": 2661
+      }
+    },
+    {
+      "id": "shoulders",
+      "up": {
+        "at": 846444,
+        "count": 6304
+      },
+      "down": {
+        "at": 909484,
+        "count": 6342
+      }
+    },
+    {
+      "id": "belly",
+      "up": {
+        "at": 972904,
+        "count": 638
+      },
+      "down": {
+        "at": 979284,
+        "count": 253
+      }
+    }
+  ]
+}

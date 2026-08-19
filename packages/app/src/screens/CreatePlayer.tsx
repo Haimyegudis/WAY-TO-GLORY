@@ -3,7 +3,10 @@ import { defaultShirtNumber, type Foot, type Position } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { countryName } from '../lib/names.js';
 import {
+  BODY_SLIDERS,
+  HERITAGES,
   BUILD_SHAPES,
+  FACE_SLIDERS,
   EYE_COLOURS,
   EYE_SHAPES,
   FACIAL_HAIRS,
@@ -15,6 +18,7 @@ import {
   SKIN_TONES,
   defaultLook,
   lookFromSeed,
+  shapeFromChoices,
   type AvatarLook,
 } from '@fc/engine';
 import { AvatarView } from '../avatar/AvatarView.js';
@@ -67,6 +71,40 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
   );
 }
 
+/**
+ * One feature, moved by hand.
+ *
+ * Nought is the face as it comes; either end is as far as MakeHuman's own target for
+ * that feature goes. Naming both ends - "narrow" and "wide" rather than "-1" and "1" -
+ * is the difference between a control and a number.
+ */
+function Slider({
+  label, ends, value, onChange,
+}: {
+  label: string;
+  ends: [string, string];
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <div style={{ marginBlockStart: 12 }}>
+      <div className="row-between" style={{ marginBlockEnd: 2 }}>
+        <span className="eyebrow">{label}</span>
+        <span className="faint" style={{ fontSize: 11 }}>{ends[0]} · {ends[1]}</span>
+      </div>
+      <input
+        className="look-slider"
+        type="range"
+        min={-100}
+        max={100}
+        step={5}
+        value={Math.round(value * 100)}
+        onChange={(event) => onChange(Number(event.target.value) / 100)}
+      />
+    </div>
+  );
+}
+
 function Swatch({ colour, on, onClick }: { colour: string; on: boolean; onClick: () => void }) {
   return (
     <button
@@ -77,6 +115,9 @@ function Swatch({ colour, on, onClick }: { colour: string; on: boolean; onClick:
     />
   );
 }
+
+/** Where every slider stands right now: what he picked, plus anything he has moved. */
+const shapeOf = (look: AvatarLook) => shapeFromChoices(look);
 
 /** The kit he is shown in before he has a club: plain, and not anybody's colours. */
 const KIT = { shirt: '#e9edf3', shorts: '#1b2333', socks: '#e9edf3' };
@@ -111,6 +152,7 @@ export function CreatePlayer() {
   /** Until he touches it, the number follows the position he picked. */
   const [shirtTouched, setShirtTouched] = useState(draft?.shirtNumber !== undefined);
   const [look, setLook] = useState<AvatarLook>(draft?.look ?? defaultLook());
+  const [framing, setFraming] = useState<'body' | 'face'>('body');
 
   // The back gesture belongs to this form while it is open: it walks back through the
   // steps, and only once he is at the first one does it mean anything else.
@@ -249,7 +291,23 @@ export function CreatePlayer() {
           */}
         {step === 2 && (
           <Card title={t('create.look')}>
-            <AvatarView look={look} heightCm={heightCm} kit={KIT} height={250} />
+            <div className="seg" style={{ marginBlockEnd: 8 }}>
+              <button aria-pressed={framing === 'body'} onClick={() => setFraming('body')}>{t('look.wholeBody')}</button>
+              <button aria-pressed={framing === 'face'} onClick={() => setFraming('face')}>{t('look.faceOnly')}</button>
+            </div>
+            <AvatarView look={look} heightCm={heightCm} kit={KIT} height={250} framing={framing} spin={framing === 'body'} />
+
+            <Picker label={t('look.heritage')}>
+              {HERITAGES.map((heritage) => (
+                <Chip
+                  key={heritage}
+                  on={(look.heritage ?? 'european') === heritage}
+                  onClick={() => setLook({ ...look, heritage })}
+                >
+                  {t(`look.heritage.${heritage}`)}
+                </Chip>
+              ))}
+            </Picker>
 
             <Picker label={t('look.skin')}>
               {SKIN_TONES.map((tone, i) => (
@@ -332,6 +390,32 @@ export function CreatePlayer() {
                 </Chip>
               ))}
             </Picker>
+
+            <div style={{ marginBlockStart: 18 }}>
+              <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('look.face')}</p>
+              {FACE_SLIDERS.map((slider) => (
+                <Slider
+                  key={slider}
+                  label={t(`look.slider.${slider}`)}
+                  ends={[t(`look.slider.${slider}.low`), t(`look.slider.${slider}.high`)]}
+                  value={shapeOf(look)[slider] ?? 0}
+                  onChange={(next) => setLook({ ...look, shape: { ...shapeOf(look), [slider]: next } })}
+                />
+              ))}
+            </div>
+
+            <div style={{ marginBlockStart: 18 }}>
+              <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('look.bodyShape')}</p>
+              {BODY_SLIDERS.map((slider) => (
+                <Slider
+                  key={slider}
+                  label={t(`look.slider.${slider}`)}
+                  ends={[t(`look.slider.${slider}.low`), t(`look.slider.${slider}.high`)]}
+                  value={shapeOf(look)[slider] ?? 0}
+                  onChange={(next) => setLook({ ...look, shape: { ...shapeOf(look), [slider]: next } })}
+                />
+              ))}
+            </div>
 
             <Picker label={t('look.wearing')}>
               <Chip on={look.earring} onClick={() => setLook({ ...look, earring: !look.earring })}>{t('look.earring')}</Chip>

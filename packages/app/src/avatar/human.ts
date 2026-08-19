@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { SKIN_TONES, type AvatarLook } from '@fc/engine';
-import type { KitColours } from './build.js';
+import { SKIN_TONES, shapeFromChoices, type AvatarLook, type ShapeSlider } from '@fc/engine';
+import { addFeatures, type HeadFrame, type KitColours } from './build.js';
 
 /**
  * The player, on a real human body.
@@ -31,6 +31,67 @@ async function loadHuman(): Promise<{ position: Float32Array; normal: Float32Arr
     };
   })();
   return cached;
+}
+
+interface Morphs {
+  scale: number;
+  sliders: Record<string, { up: { at: number; count: number }; down: { at: number; count: number } }>;
+  data: ArrayBuffer;
+}
+
+let morphCache: Promise<Morphs> | null = null;
+
+/**
+ * The sliders themselves: which vertices each direction of each feature moves, and by
+ * how much, quantised to sixteen bits.
+ */
+async function loadMorphs(): Promise<Morphs> {
+  morphCache ??= (async () => {
+    const [meta, data] = await Promise.all([
+      fetch('/models/morphs.json').then((r) => r.json()),
+      fetch('/models/morphs.bin').then((r) => r.arrayBuffer()),
+    ]);
+    const sliders: Morphs['sliders'] = {};
+    for (const entry of meta.sliders as { id: string; up: { at: number; count: number }; down: { at: number; count: number } }[]) {
+      sliders[entry.id] = { up: entry.up, down: entry.down };
+    }
+    return { scale: meta.scale as number, sliders, data };
+  })();
+  return morphCache;
+}
+
+/**
+ * The face he asked for, applied to the face MakeHuman ships.
+ *
+ * Every slider is two morph targets, one either way; a value of 0.6 moves six tenths of
+ * the way along the "more" one and nothing along the "less" one. This is the same
+ * arithmetic MakeHuman does, on the same data, with the deltas unpacked from sixteen bits
+ * as they are read.
+ */
+function applyMorphs(position: Float32Array, morphs: Morphs, values: Record<string, number | undefined>): void {
+  for (const [id, raw] of Object.entries(values)) {
+    const weight = Math.max(-1, Math.min(1, raw ?? 0));
+    if (Math.abs(weight) < 0.01) continue;
+    const slider = morphs.sliders[id];
+    if (!slider) continue;
+    const side = weight > 0 ? slider.up : slider.down;
+    if (side.count === 0) continue;
+
+    // Read through a copy rather than a view: a typed array over a buffer has to start
+    // on its own alignment, and one misaligned slider used to throw and take the whole
+    // figure with it - silently, because the build is asynchronous.
+    const indices = new Uint32Array(morphs.data.slice(side.at, side.at + side.count * 4));
+    const deltas = new Int16Array(
+      morphs.data.slice(side.at + side.count * 4, side.at + side.count * 4 + side.count * 6),
+    );
+    const amount = Math.abs(weight) / morphs.scale;
+    for (let i = 0; i < side.count; i++) {
+      const at = indices[i]! * 3;
+      position[at] = position[at]! + deltas[i * 3]! * amount;
+      position[at + 1] = position[at + 1]! + deltas[i * 3 + 1]! * amount;
+      position[at + 2] = position[at + 2]! + deltas[i * 3 + 2]! * amount;
+    }
+  }
 }
 
 /** Where a vertex sits up the body, 0 at the feet and 1 at the crown. */
@@ -159,11 +220,64 @@ const skinMaterial = (colour: string) =>
     emissive: new THREE.Color(colour).multiplyScalar(0.06),
   });
 
+/**
+ * Where the head ended up, measured off the body that was actually built.
+ *
+ * Hair, a beard and an earring were hung off three numbers measured by hand on the base
+ * mesh, and then the morph targets moved the head - a man is taller and wider in the
+ * skull than the average body he is built from - and the hair stayed behind, over his
+ * face. So the same slice is boxed on both bodies and the hand-measured numbers are
+ * carried across by the difference: the placement stays as it was tuned, on the head it
+ * is actually on.
+ */
+const TUNED = { y: 0.925, z: 0.012, r: 0.052 };
+
+function headBox(position: Float32Array): { y: number; z: number; r: number; top: number } {
+  let top = -Infinity;
+  for (let i = 1; i < position.length; i += 3) top = Math.max(top, position[i]!);
+  const cut = top * 0.865;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (let i = 0; i < position.length; i += 3) {
+    const y = position[i + 1]!;
+    if (y < cut) continue;
+    minX = Math.min(minX, position[i]!); maxX = Math.max(maxX, position[i]!);
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    minZ = Math.min(minZ, position[i + 2]!); maxZ = Math.max(maxZ, position[i + 2]!);
+  }
+  return { y: (minY + maxY) / 2, z: (minZ + maxZ) / 2, r: (maxX - minX) / 2, top };
+}
+
+let baseHead: { y: number; z: number; r: number; top: number } | null = null;
+
+function headFrame(base: Float32Array, position: Float32Array): HeadFrame {
+  baseHead ??= headBox(base);
+  const now = headBox(position);
+  return {
+    y: TUNED.y + (now.y - baseHead.y),
+    z: TUNED.z + (now.z - baseHead.z),
+    r: TUNED.r * (now.r / baseHead.r),
+    top: now.top,
+  };
+}
+
 export async function buildHuman(look: AvatarLook, heightCm: number, kit: KitColours): Promise<THREE.Group> {
-  const base = await loadHuman();
+  const [base, morphs] = await Promise.all([loadHuman(), loadMorphs()]);
   const group = new THREE.Group();
 
-  const position = shape(base.position, look);
+  /*
+   * The man first.
+   *
+   * MakeHuman's base mesh is the average of everybody, and on screen that average reads
+   * as a woman: narrow shoulders, soft jaw, no brow. His heritage's young adult male is
+   * applied in full before anything else, and every other slider is a change to that
+   * man rather than to the neutral body underneath him.
+   */
+  const morphed = new Float32Array(base.position);
+  const heritage = look.heritage ?? 'european';
+  const macro = heritage === 'african' ? 'maleAfrican' : heritage === 'asian' ? 'maleAsian' : 'maleEuropean';
+  applyMorphs(morphed, morphs, { [macro]: 1 } as Record<string, number>);
+  applyMorphs(morphed, morphs, shapeFromChoices(look));
+  const position = shape(morphed, look);
   const normal = recomputeNormals(position, base.index);
 
   const skin = new THREE.BufferGeometry();
@@ -211,6 +325,9 @@ export async function buildHuman(look: AvatarLook, heightCm: number, kit: KitCol
     0.009, matte('#15181d', { roughness: 0.42 }),
   );
   if (boots) group.add(boots);
+
+  // Hair, a beard and jewellery, hung off the head this body actually has.
+  addFeatures(group, look, headFrame(base.position, position));
 
   // A tall man is taller: the mesh is exactly one unit high, so this is his height in
   // metres and nothing else has to know about it.

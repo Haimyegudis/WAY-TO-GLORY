@@ -18,6 +18,30 @@ export type MouthShape = 'thin' | 'even' | 'full';
 export type BuildShape = 'slight' | 'lean' | 'athletic' | 'strong' | 'heavy';
 export type LimbLength = 'short' | 'normal' | 'long';
 export type SleeveLength = 'short' | 'long';
+export type Heritage = 'european' | 'african' | 'asian';
+
+export const HERITAGES: readonly Heritage[] = ['european', 'african', 'asian'];
+
+/**
+ * The sliders the face and body are actually shaped by.
+ *
+ * Each runs from -1 to 1 with 0 as the face MakeHuman ships, and each is a pair of that
+ * project's own morph targets. The named shapes above - a wide nose, narrow eyes - are
+ * starting points that write into these; the sliders are what the mesh reads.
+ */
+export type ShapeSlider =
+  | 'noseWidth' | 'noseLength' | 'noseHump'
+  | 'mouthWidth' | 'lips'
+  | 'eyeSize' | 'eyeOpen'
+  | 'cheekbones' | 'jaw' | 'chin' | 'faceFat' | 'headWidth'
+  | 'muscle' | 'shoulders' | 'belly';
+
+export const FACE_SLIDERS: readonly ShapeSlider[] = [
+  'headWidth', 'faceFat', 'cheekbones', 'jaw', 'chin',
+  'eyeSize', 'eyeOpen', 'noseWidth', 'noseLength', 'noseHump', 'mouthWidth', 'lips',
+];
+
+export const BODY_SLIDERS: readonly ShapeSlider[] = ['muscle', 'shoulders', 'belly'];
 
 export interface AvatarLook {
   /** Index into SKIN_TONES. */
@@ -37,6 +61,14 @@ export interface AvatarLook {
   earring: boolean;
   necklace: boolean;
   bracelet: boolean;
+  /**
+   * Which of MakeHuman's macro bodies he is built from. The base mesh is the average of
+   * everybody and reads as a woman on screen; this is what makes him a man, and it
+   * carries the face of that heritage with it.
+   */
+  heritage?: Heritage;
+  /** Slider values, -1 to 1. Anything missing is the face as it comes. */
+  shape?: Partial<Record<ShapeSlider, number>>;
 }
 
 /** Skin, from the palest to the darkest, evenly spaced so a slider feels even. */
@@ -59,9 +91,32 @@ export const MOUTH_SHAPES: readonly MouthShape[] = ['thin', 'even', 'full'];
 export const BUILD_SHAPES: readonly BuildShape[] = ['slight', 'lean', 'athletic', 'strong', 'heavy'];
 export const LIMB_LENGTHS: readonly LimbLength[] = ['short', 'normal', 'long'];
 
+/**
+ * What the named choices mean in slider terms.
+ *
+ * Picking "wide" for a nose is a starting point rather than a separate system: it writes
+ * the sliders, and moving a slider afterwards is refining the same face.
+ */
+export function shapeFromChoices(look: AvatarLook): Partial<Record<ShapeSlider, number>> {
+  const base: Partial<Record<ShapeSlider, number>> = {};
+  if (look.nose === 'small') { base.noseWidth = -0.55; base.noseLength = -0.5; }
+  if (look.nose === 'wide') base.noseWidth = 0.75;
+  if (look.nose === 'hooked') { base.noseHump = 0.85; base.noseLength = 0.35; }
+  if (look.mouth === 'thin') base.lips = -0.6;
+  if (look.mouth === 'full') { base.lips = 0.75; base.mouthWidth = 0.2; }
+  if (look.eyes === 'narrow') base.eyeOpen = -0.7;
+  if (look.eyes === 'wide') { base.eyeOpen = 0.6; base.eyeSize = 0.35; }
+  if (look.build === 'slight') { base.muscle = -0.65; base.shoulders = -0.4; base.belly = -0.3; }
+  if (look.build === 'lean') { base.muscle = -0.25; base.shoulders = -0.1; }
+  if (look.build === 'strong') { base.muscle = 0.6; base.shoulders = 0.45; }
+  if (look.build === 'heavy') { base.muscle = 0.2; base.belly = 0.8; base.shoulders = 0.15; }
+  return { ...base, ...(look.shape ?? {}) };
+}
+
 export function defaultLook(): AvatarLook {
   return {
     skin: 2,
+    heritage: 'european',
     hair: 'short',
     hairColour: 1,
     facialHair: 'none',
@@ -89,8 +144,10 @@ export function lookFromSeed(seed: string): AvatarLook {
     const x = Math.imul(h ^ (salt * 2654435761), 2246822519);
     return Math.abs(x >>> 0) % n;
   };
+  const heritages = HERITAGES;
   return {
     skin: pick(SKIN_TONES.length, 1),
+    heritage: heritages[pick(heritages.length, 15)]!,
     hair: HAIR_STYLES[pick(HAIR_STYLES.length, 2)]!,
     hairColour: pick(HAIR_COLOURS.length, 3),
     facialHair: FACIAL_HAIRS[pick(FACIAL_HAIRS.length, 4)]!,

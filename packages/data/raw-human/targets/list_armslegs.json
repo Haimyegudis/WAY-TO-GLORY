@@ -1,0 +1,2258 @@
+[
+  {
+    "name": "images",
+    "path": "makehuman/data/targets/armslegs/images",
+    "sha": "de7481b720a7f08ce37e815023b82258dfdc31ed",
+    "size": 0,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/images?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/tree/master/makehuman/data/targets/armslegs/images",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/trees/de7481b720a7f08ce37e815023b82258dfdc31ed",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/images?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/trees/de7481b720a7f08ce37e815023b82258dfdc31ed",
+      "html": "https://github.com/makehumancommunity/makehuman/tree/master/makehuman/data/targets/armslegs/images"
+    }
+  },
+  {
+    "name": "l-foot-scale-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-decr.target",
+    "sha": "994d17447701b2ecc25979044302a5648e8f05c8",
+    "size": 37491,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/994d17447701b2ecc25979044302a5648e8f05c8",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/994d17447701b2ecc25979044302a5648e8f05c8",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-decr.target"
+    }
+  },
+  {
+    "name": "l-foot-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-depth-decr.target",
+    "sha": "067b3b95a35e5ec5fc1d1fb5d9a998107893ac79",
+    "size": 25784,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/067b3b95a35e5ec5fc1d1fb5d9a998107893ac79",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/067b3b95a35e5ec5fc1d1fb5d9a998107893ac79",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "l-foot-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-depth-incr.target",
+    "sha": "847e1d78ef03ba313ac968dadfae65b0c272380f",
+    "size": 24570,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/847e1d78ef03ba313ac968dadfae65b0c272380f",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/847e1d78ef03ba313ac968dadfae65b0c272380f",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "l-foot-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-horiz-decr.target",
+    "sha": "7d76648f9200ca4a7984bbda9fc954c2d7d20d6d",
+    "size": 25216,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7d76648f9200ca4a7984bbda9fc954c2d7d20d6d",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7d76648f9200ca4a7984bbda9fc954c2d7d20d6d",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "l-foot-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-horiz-incr.target",
+    "sha": "fdad29baf30632d03859856db9c640650ce5629c",
+    "size": 25139,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/fdad29baf30632d03859856db9c640650ce5629c",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/fdad29baf30632d03859856db9c640650ce5629c",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "l-foot-scale-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-incr.target",
+    "sha": "57d2fdd5700589f8743d13f08ae591df428405cf",
+    "size": 35666,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/57d2fdd5700589f8743d13f08ae591df428405cf",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/57d2fdd5700589f8743d13f08ae591df428405cf",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-incr.target"
+    }
+  },
+  {
+    "name": "l-foot-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-vert-decr.target",
+    "sha": "8fe079327d8d16b36a49f73e2a4d6886838d1359",
+    "size": 24142,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8fe079327d8d16b36a49f73e2a4d6886838d1359",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8fe079327d8d16b36a49f73e2a4d6886838d1359",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "l-foot-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-scale-vert-incr.target",
+    "sha": "1101ef159b6b5c0835dfc1810ab69bc03cce1c06",
+    "size": 25512,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1101ef159b6b5c0835dfc1810ab69bc03cce1c06",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1101ef159b6b5c0835dfc1810ab69bc03cce1c06",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "l-foot-trans-backward.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-trans-backward.target",
+    "sha": "6bd90a7631914fe0778bbc3f8f21232bdb1a3c44",
+    "size": 34307,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-backward.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-backward.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6bd90a7631914fe0778bbc3f8f21232bdb1a3c44",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-trans-backward.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-backward.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6bd90a7631914fe0778bbc3f8f21232bdb1a3c44",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-backward.target"
+    }
+  },
+  {
+    "name": "l-foot-trans-down.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-trans-down.target",
+    "sha": "72787a8dd1665c793497909971cc7563f369fe78",
+    "size": 25664,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-down.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-down.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/72787a8dd1665c793497909971cc7563f369fe78",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-trans-down.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-down.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/72787a8dd1665c793497909971cc7563f369fe78",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-down.target"
+    }
+  },
+  {
+    "name": "l-foot-trans-forward.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-trans-forward.target",
+    "sha": "277dcab2d230fa61b972ae369b7de631d3dee54a",
+    "size": 32201,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-forward.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-forward.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/277dcab2d230fa61b972ae369b7de631d3dee54a",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-trans-forward.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-forward.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/277dcab2d230fa61b972ae369b7de631d3dee54a",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-forward.target"
+    }
+  },
+  {
+    "name": "l-foot-trans-in.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-trans-in.target",
+    "sha": "98a75d86e6506c39e4cba0a1c775c0c014dd0ee7",
+    "size": 27705,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-in.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-in.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/98a75d86e6506c39e4cba0a1c775c0c014dd0ee7",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-trans-in.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-in.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/98a75d86e6506c39e4cba0a1c775c0c014dd0ee7",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-in.target"
+    }
+  },
+  {
+    "name": "l-foot-trans-out.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-trans-out.target",
+    "sha": "3ef4171a07ba68c893d7677544de87fb36b561af",
+    "size": 29569,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-out.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-out.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3ef4171a07ba68c893d7677544de87fb36b561af",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-trans-out.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-out.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3ef4171a07ba68c893d7677544de87fb36b561af",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-out.target"
+    }
+  },
+  {
+    "name": "l-foot-trans-up.target",
+    "path": "makehuman/data/targets/armslegs/l-foot-trans-up.target",
+    "sha": "86cbce79c67aaa45a4c8cbc19865a6260669f9e2",
+    "size": 25766,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-up.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-up.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/86cbce79c67aaa45a4c8cbc19865a6260669f9e2",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-foot-trans-up.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-foot-trans-up.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/86cbce79c67aaa45a4c8cbc19865a6260669f9e2",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-foot-trans-up.target"
+    }
+  },
+  {
+    "name": "l-hand-fingers-diameter-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-fingers-diameter-decr.target",
+    "sha": "03133c6ef4c399240911f67e30d675762d741686",
+    "size": 30148,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-diameter-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-diameter-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/03133c6ef4c399240911f67e30d675762d741686",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-fingers-diameter-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-diameter-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/03133c6ef4c399240911f67e30d675762d741686",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-diameter-decr.target"
+    }
+  },
+  {
+    "name": "l-hand-fingers-diameter-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-fingers-diameter-incr.target",
+    "sha": "dde38281416666b26a392a54a0a78060e8fc97c4",
+    "size": 30945,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-diameter-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-diameter-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/dde38281416666b26a392a54a0a78060e8fc97c4",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-fingers-diameter-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-diameter-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/dde38281416666b26a392a54a0a78060e8fc97c4",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-diameter-incr.target"
+    }
+  },
+  {
+    "name": "l-hand-fingers-distance-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-fingers-distance-decr.target",
+    "sha": "1b19a1b74fccd9b76f08d78109f85b63264a9b25",
+    "size": 30351,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-distance-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-distance-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1b19a1b74fccd9b76f08d78109f85b63264a9b25",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-fingers-distance-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-distance-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1b19a1b74fccd9b76f08d78109f85b63264a9b25",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-distance-decr.target"
+    }
+  },
+  {
+    "name": "l-hand-fingers-distance-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-fingers-distance-incr.target",
+    "sha": "59925c29b8d78197d11f73cfc4b4048faa94e291",
+    "size": 30346,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-distance-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-distance-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/59925c29b8d78197d11f73cfc4b4048faa94e291",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-fingers-distance-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-distance-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/59925c29b8d78197d11f73cfc4b4048faa94e291",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-distance-incr.target"
+    }
+  },
+  {
+    "name": "l-hand-fingers-length-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-fingers-length-decr.target",
+    "sha": "225e2c124c96c0d2fcb48f8d53599b4024771d94",
+    "size": 30732,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-length-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-length-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/225e2c124c96c0d2fcb48f8d53599b4024771d94",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-fingers-length-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-length-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/225e2c124c96c0d2fcb48f8d53599b4024771d94",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-length-decr.target"
+    }
+  },
+  {
+    "name": "l-hand-fingers-length-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-fingers-length-incr.target",
+    "sha": "09681976d8b2d9826f69063894a5197edaf20442",
+    "size": 29122,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-length-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-length-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/09681976d8b2d9826f69063894a5197edaf20442",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-fingers-length-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-fingers-length-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/09681976d8b2d9826f69063894a5197edaf20442",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-fingers-length-incr.target"
+    }
+  },
+  {
+    "name": "l-hand-scale-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-scale-decr.target",
+    "sha": "d0818dbd1e4877912629c24d31d459fe31112907",
+    "size": 41816,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-scale-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-scale-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d0818dbd1e4877912629c24d31d459fe31112907",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-scale-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-scale-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d0818dbd1e4877912629c24d31d459fe31112907",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-scale-decr.target"
+    }
+  },
+  {
+    "name": "l-hand-scale-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-scale-incr.target",
+    "sha": "24782061e8fe3b1ecc46221c766cc0d25b8f1ef3",
+    "size": 40538,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-scale-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-scale-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/24782061e8fe3b1ecc46221c766cc0d25b8f1ef3",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-scale-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-scale-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/24782061e8fe3b1ecc46221c766cc0d25b8f1ef3",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-scale-incr.target"
+    }
+  },
+  {
+    "name": "l-hand-trans-in.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-trans-in.target",
+    "sha": "43a90c973dbb7a761e11c310a67733d461baa8bb",
+    "size": 44279,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-trans-in.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-trans-in.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/43a90c973dbb7a761e11c310a67733d461baa8bb",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-trans-in.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-trans-in.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/43a90c973dbb7a761e11c310a67733d461baa8bb",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-trans-in.target"
+    }
+  },
+  {
+    "name": "l-hand-trans-out.target",
+    "path": "makehuman/data/targets/armslegs/l-hand-trans-out.target",
+    "sha": "f354a5f21f67a703ebf8aafca9f6c403c1f4fd50",
+    "size": 40879,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-trans-out.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-trans-out.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f354a5f21f67a703ebf8aafca9f6c403c1f4fd50",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-hand-trans-out.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-hand-trans-out.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f354a5f21f67a703ebf8aafca9f6c403c1f4fd50",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-hand-trans-out.target"
+    }
+  },
+  {
+    "name": "l-leg-valgus-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-leg-valgus-decr.target",
+    "sha": "30ae1c9937b0f256233769a756f74e9939b2a3bb",
+    "size": 22545,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-leg-valgus-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-leg-valgus-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/30ae1c9937b0f256233769a756f74e9939b2a3bb",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-leg-valgus-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-leg-valgus-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/30ae1c9937b0f256233769a756f74e9939b2a3bb",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-leg-valgus-decr.target"
+    }
+  },
+  {
+    "name": "l-leg-valgus-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-leg-valgus-incr.target",
+    "sha": "a996da6fc0362d92363bb72cee27826c7aab6df5",
+    "size": 16852,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-leg-valgus-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-leg-valgus-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a996da6fc0362d92363bb72cee27826c7aab6df5",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-leg-valgus-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-leg-valgus-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a996da6fc0362d92363bb72cee27826c7aab6df5",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-leg-valgus-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-fat-decr.target",
+    "sha": "8a67d0709ffe7ecfea77e2ed82ecd90ff4c1e29b",
+    "size": 6903,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8a67d0709ffe7ecfea77e2ed82ecd90ff4c1e29b",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8a67d0709ffe7ecfea77e2ed82ecd90ff4c1e29b",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-fat-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-fat-incr.target",
+    "sha": "cf9d0db695f80c8f1bf69f81363fc3cb00f10c2e",
+    "size": 13422,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cf9d0db695f80c8f1bf69f81363fc3cb00f10c2e",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cf9d0db695f80c8f1bf69f81363fc3cb00f10c2e",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-fat-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-muscle-decr.target",
+    "sha": "cecfb29d9a995a96c4f654a8f274ca4f787e891e",
+    "size": 5306,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cecfb29d9a995a96c4f654a8f274ca4f787e891e",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cecfb29d9a995a96c4f654a8f274ca4f787e891e",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-muscle-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-muscle-incr.target",
+    "sha": "92a959281fd60f90424d30f415f5f71a17194bce",
+    "size": 5706,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/92a959281fd60f90424d30f415f5f71a17194bce",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/92a959281fd60f90424d30f415f5f71a17194bce",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-muscle-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-scale-depth-decr.target",
+    "sha": "81a30b187704b009ea53fa943bb7d8cf25da6a80",
+    "size": 9771,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/81a30b187704b009ea53fa943bb7d8cf25da6a80",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/81a30b187704b009ea53fa943bb7d8cf25da6a80",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-scale-depth-incr.target",
+    "sha": "43bfc180292affcaf22a5f58a45834836b13c035",
+    "size": 9554,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/43bfc180292affcaf22a5f58a45834836b13c035",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/43bfc180292affcaf22a5f58a45834836b13c035",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-decr.target",
+    "sha": "32cedd7ff3847c6815d4740278cd7b3ad154ceae",
+    "size": 46539,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/32cedd7ff3847c6815d4740278cd7b3ad154ceae",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/32cedd7ff3847c6815d4740278cd7b3ad154ceae",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-incr.target",
+    "sha": "feac050e7ec377f269c7d44037e7677dd2f434b9",
+    "size": 42666,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/feac050e7ec377f269c7d44037e7677dd2f434b9",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/feac050e7ec377f269c7d44037e7677dd2f434b9",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-scale-vert-decr.target",
+    "sha": "f73c042729e3efd60061361251efa73bc835fe42",
+    "size": 8956,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f73c042729e3efd60061361251efa73bc835fe42",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f73c042729e3efd60061361251efa73bc835fe42",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerarm-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerarm-scale-vert-incr.target",
+    "sha": "8ef14ff2967d7617cd47f732c01e26e453ee5d3d",
+    "size": 8395,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8ef14ff2967d7617cd47f732c01e26e453ee5d3d",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8ef14ff2967d7617cd47f732c01e26e453ee5d3d",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerarm-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-fat-decr.target",
+    "sha": "77d524d65ded0070c90f87df7652566ddf62011a",
+    "size": 6606,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/77d524d65ded0070c90f87df7652566ddf62011a",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/77d524d65ded0070c90f87df7652566ddf62011a",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-fat-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-fat-incr.target",
+    "sha": "c2bee91c51de04365869d8c70109b6683c7322bd",
+    "size": 8639,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c2bee91c51de04365869d8c70109b6683c7322bd",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c2bee91c51de04365869d8c70109b6683c7322bd",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-fat-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-muscle-decr.target",
+    "sha": "b6006b7e52d19dfc1ea8abac57aafcf129ef9afe",
+    "size": 6512,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b6006b7e52d19dfc1ea8abac57aafcf129ef9afe",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b6006b7e52d19dfc1ea8abac57aafcf129ef9afe",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-muscle-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-muscle-incr.target",
+    "sha": "1bf7eec202cb0507761a45e31895e8b18b16891f",
+    "size": 7083,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1bf7eec202cb0507761a45e31895e8b18b16891f",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1bf7eec202cb0507761a45e31895e8b18b16891f",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-muscle-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-scale-depth-decr.target",
+    "sha": "c3b8368f9be0305659587b4e20efd77297e556cf",
+    "size": 10280,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c3b8368f9be0305659587b4e20efd77297e556cf",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c3b8368f9be0305659587b4e20efd77297e556cf",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-scale-depth-incr.target",
+    "sha": "4c4799aa667f926e2dc5217523a53b92242b2454",
+    "size": 12948,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4c4799aa667f926e2dc5217523a53b92242b2454",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4c4799aa667f926e2dc5217523a53b92242b2454",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-decr.target",
+    "sha": "1e74cd8bb2a52e9ca821cc4d5380a4bd0ef0ab4a",
+    "size": 7995,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1e74cd8bb2a52e9ca821cc4d5380a4bd0ef0ab4a",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1e74cd8bb2a52e9ca821cc4d5380a4bd0ef0ab4a",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-incr.target",
+    "sha": "357e25f60bd72d24cc1a7b6ede9f66c92f2eb251",
+    "size": 10386,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/357e25f60bd72d24cc1a7b6ede9f66c92f2eb251",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/357e25f60bd72d24cc1a7b6ede9f66c92f2eb251",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-scale-vert-decr.target",
+    "sha": "cc2447673b29a66b38dbbbf9a872c60417890eab",
+    "size": 35551,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cc2447673b29a66b38dbbbf9a872c60417890eab",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cc2447673b29a66b38dbbbf9a872c60417890eab",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "l-lowerleg-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-lowerleg-scale-vert-incr.target",
+    "sha": "4d59920dcec50e1e4edf5c2fcb0685faf70c0be3",
+    "size": 37234,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4d59920dcec50e1e4edf5c2fcb0685faf70c0be3",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4d59920dcec50e1e4edf5c2fcb0685faf70c0be3",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-lowerleg-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-fat-decr.target",
+    "sha": "ecb733833ef2e46e448a54f8481c416acf14d6df",
+    "size": 12917,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/ecb733833ef2e46e448a54f8481c416acf14d6df",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/ecb733833ef2e46e448a54f8481c416acf14d6df",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-fat-decr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-fat-incr.target",
+    "sha": "a91c7e5fb4088ec533d3b6529f090b66c5c5f1fb",
+    "size": 13437,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a91c7e5fb4088ec533d3b6529f090b66c5c5f1fb",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a91c7e5fb4088ec533d3b6529f090b66c5c5f1fb",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-fat-incr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-muscle-decr.target",
+    "sha": "3efebde1459bc7abe30307f7b037e24d6749cc1e",
+    "size": 7128,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3efebde1459bc7abe30307f7b037e24d6749cc1e",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3efebde1459bc7abe30307f7b037e24d6749cc1e",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-muscle-decr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-muscle-incr.target",
+    "sha": "6d60be62441dddd428523bf1c1f01bb78a237631",
+    "size": 6926,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6d60be62441dddd428523bf1c1f01bb78a237631",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6d60be62441dddd428523bf1c1f01bb78a237631",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-muscle-incr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-scale-depth-decr.target",
+    "sha": "396626806062c722e483e743960fd95bee37ebe6",
+    "size": 6452,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/396626806062c722e483e743960fd95bee37ebe6",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/396626806062c722e483e743960fd95bee37ebe6",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-scale-depth-incr.target",
+    "sha": "1193bd6dfe0e9ed4d2e3ccfa2e1657851333f9df",
+    "size": 6479,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1193bd6dfe0e9ed4d2e3ccfa2e1657851333f9df",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1193bd6dfe0e9ed4d2e3ccfa2e1657851333f9df",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-scale-horiz-decr.target",
+    "sha": "9dbf7343daa96947e33ac4648e6f5a996e840910",
+    "size": 44043,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/9dbf7343daa96947e33ac4648e6f5a996e840910",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/9dbf7343daa96947e33ac4648e6f5a996e840910",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-scale-horiz-incr.target",
+    "sha": "3414d2c69871f3cc4eef2f329d5734c6ec2bd261",
+    "size": 41574,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3414d2c69871f3cc4eef2f329d5734c6ec2bd261",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3414d2c69871f3cc4eef2f329d5734c6ec2bd261",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-scale-vert-decr.target",
+    "sha": "25a1dae890ae95b961271e7fc54a6b1d1fb5e7b5",
+    "size": 6141,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/25a1dae890ae95b961271e7fc54a6b1d1fb5e7b5",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/25a1dae890ae95b961271e7fc54a6b1d1fb5e7b5",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-scale-vert-incr.target",
+    "sha": "6c18548a14161fa3995620bbeb814b2ee82d8ba0",
+    "size": 6085,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6c18548a14161fa3995620bbeb814b2ee82d8ba0",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6c18548a14161fa3995620bbeb814b2ee82d8ba0",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-shoulder-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-decr.target",
+    "sha": "bb5321a24056065705c761485b9c38e187e65cee",
+    "size": 1973,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/bb5321a24056065705c761485b9c38e187e65cee",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/bb5321a24056065705c761485b9c38e187e65cee",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-decr.target"
+    }
+  },
+  {
+    "name": "l-upperarm-shoulder-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-incr.target",
+    "sha": "8b7a68ae1755075505aae515a367e9ba57312653",
+    "size": 5387,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8b7a68ae1755075505aae515a367e9ba57312653",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8b7a68ae1755075505aae515a367e9ba57312653",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperarm-shoulder-muscle-incr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-fat-decr.target",
+    "sha": "840c3c3df777cfdb64e699244679178d2248f094",
+    "size": 9846,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/840c3c3df777cfdb64e699244679178d2248f094",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/840c3c3df777cfdb64e699244679178d2248f094",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-fat-decr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-fat-incr.target",
+    "sha": "a47b2867e606044568ce44a6ab377c09eaefb481",
+    "size": 21834,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a47b2867e606044568ce44a6ab377c09eaefb481",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a47b2867e606044568ce44a6ab377c09eaefb481",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-fat-incr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-muscle-decr.target",
+    "sha": "dbd5bf11a8d0352269813a001fbfef4a1559437f",
+    "size": 9314,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/dbd5bf11a8d0352269813a001fbfef4a1559437f",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/dbd5bf11a8d0352269813a001fbfef4a1559437f",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-muscle-decr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-muscle-incr.target",
+    "sha": "534e022f995865ebfe5ac6b8f03107c5dbf81e57",
+    "size": 10261,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/534e022f995865ebfe5ac6b8f03107c5dbf81e57",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/534e022f995865ebfe5ac6b8f03107c5dbf81e57",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-muscle-incr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-scale-depth-decr.target",
+    "sha": "b90497fbdc41676cb4b91eab04b02f1b4f9c6463",
+    "size": 8626,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b90497fbdc41676cb4b91eab04b02f1b4f9c6463",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b90497fbdc41676cb4b91eab04b02f1b4f9c6463",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-scale-depth-incr.target",
+    "sha": "48fbe3b204d0a8151052a24e2611c440959067b4",
+    "size": 8883,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/48fbe3b204d0a8151052a24e2611c440959067b4",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/48fbe3b204d0a8151052a24e2611c440959067b4",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-scale-horiz-decr.target",
+    "sha": "e01682b598b0738820199bcb0f0c1f8aada18b42",
+    "size": 9541,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/e01682b598b0738820199bcb0f0c1f8aada18b42",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/e01682b598b0738820199bcb0f0c1f8aada18b42",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-scale-horiz-incr.target",
+    "sha": "a9842ac1dd07089d292329f23204345e2f830fc3",
+    "size": 12354,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a9842ac1dd07089d292329f23204345e2f830fc3",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a9842ac1dd07089d292329f23204345e2f830fc3",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-scale-vert-decr.target",
+    "sha": "bd2965563dd7583ace21b18b7a911d79d35aa144",
+    "size": 13080,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/bd2965563dd7583ace21b18b7a911d79d35aa144",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/bd2965563dd7583ace21b18b7a911d79d35aa144",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "l-upperleg-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/l-upperleg-scale-vert-incr.target",
+    "sha": "341c0cad2fde51528403393af24a4e1f81857fbe",
+    "size": 10553,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/341c0cad2fde51528403393af24a4e1f81857fbe",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/l-upperleg-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/l-upperleg-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/341c0cad2fde51528403393af24a4e1f81857fbe",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/l-upperleg-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "lowerlegs-height-decr.target",
+    "path": "makehuman/data/targets/armslegs/lowerlegs-height-decr.target",
+    "sha": "0babdf20a85a7a0eeb4a9768190ac6617af7793f",
+    "size": 59660,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/lowerlegs-height-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/lowerlegs-height-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0babdf20a85a7a0eeb4a9768190ac6617af7793f",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/lowerlegs-height-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/lowerlegs-height-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0babdf20a85a7a0eeb4a9768190ac6617af7793f",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/lowerlegs-height-decr.target"
+    }
+  },
+  {
+    "name": "lowerlegs-height-incr.target",
+    "path": "makehuman/data/targets/armslegs/lowerlegs-height-incr.target",
+    "sha": "015a59810620d93f87dd2fe814741939bf047c79",
+    "size": 75540,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/lowerlegs-height-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/lowerlegs-height-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/015a59810620d93f87dd2fe814741939bf047c79",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/lowerlegs-height-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/lowerlegs-height-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/015a59810620d93f87dd2fe814741939bf047c79",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/lowerlegs-height-incr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-decr.target",
+    "sha": "7af53deffc7b933b0bc09fbe1f79ac7f67b5d203",
+    "size": 36597,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7af53deffc7b933b0bc09fbe1f79ac7f67b5d203",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7af53deffc7b933b0bc09fbe1f79ac7f67b5d203",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-decr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-depth-decr.target",
+    "sha": "6b225c0727a03caf77bffea3f06ff4881a17f790",
+    "size": 24643,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6b225c0727a03caf77bffea3f06ff4881a17f790",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/6b225c0727a03caf77bffea3f06ff4881a17f790",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-depth-incr.target",
+    "sha": "e2c3b0fbfcd3b9c5a74a7db89bfa8874a84ea1cd",
+    "size": 23430,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/e2c3b0fbfcd3b9c5a74a7db89bfa8874a84ea1cd",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/e2c3b0fbfcd3b9c5a74a7db89bfa8874a84ea1cd",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-horiz-decr.target",
+    "sha": "b67368bcf1cc429d1f11bc647c7bd9bbabf122eb",
+    "size": 24031,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b67368bcf1cc429d1f11bc647c7bd9bbabf122eb",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b67368bcf1cc429d1f11bc647c7bd9bbabf122eb",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-horiz-incr.target",
+    "sha": "11b3254a331669d7981d0ae5fc302cd029843439",
+    "size": 24037,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/11b3254a331669d7981d0ae5fc302cd029843439",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/11b3254a331669d7981d0ae5fc302cd029843439",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-incr.target",
+    "sha": "8301f90ae7fb219d4d62810da2829a6a4cad65a3",
+    "size": 35118,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8301f90ae7fb219d4d62810da2829a6a4cad65a3",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/8301f90ae7fb219d4d62810da2829a6a4cad65a3",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-incr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-vert-decr.target",
+    "sha": "f502a7d9771827c58c626bae2c81118f9a34743d",
+    "size": 23053,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f502a7d9771827c58c626bae2c81118f9a34743d",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f502a7d9771827c58c626bae2c81118f9a34743d",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "r-foot-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-scale-vert-incr.target",
+    "sha": "22b4a5cb30f6654340418ac2f5eca0640b536ebd",
+    "size": 24374,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/22b4a5cb30f6654340418ac2f5eca0640b536ebd",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/22b4a5cb30f6654340418ac2f5eca0640b536ebd",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "r-foot-trans-backward.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-trans-backward.target",
+    "sha": "091af7134cc0c65f9e43d5132a03f8795e82b6c4",
+    "size": 31901,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-backward.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-backward.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/091af7134cc0c65f9e43d5132a03f8795e82b6c4",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-trans-backward.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-backward.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/091af7134cc0c65f9e43d5132a03f8795e82b6c4",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-backward.target"
+    }
+  },
+  {
+    "name": "r-foot-trans-down.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-trans-down.target",
+    "sha": "a664c494e2c5599bf9384b49db4b20ffb73d1657",
+    "size": 24504,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-down.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-down.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a664c494e2c5599bf9384b49db4b20ffb73d1657",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-trans-down.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-down.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a664c494e2c5599bf9384b49db4b20ffb73d1657",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-down.target"
+    }
+  },
+  {
+    "name": "r-foot-trans-forward.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-trans-forward.target",
+    "sha": "d848b14d2d8ff525c49f663e442d1748b5dd587a",
+    "size": 29795,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-forward.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-forward.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d848b14d2d8ff525c49f663e442d1748b5dd587a",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-trans-forward.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-forward.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d848b14d2d8ff525c49f663e442d1748b5dd587a",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-forward.target"
+    }
+  },
+  {
+    "name": "r-foot-trans-in.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-trans-in.target",
+    "sha": "60cc2357f3c5515ae330945facd59a65bd731236",
+    "size": 24819,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-in.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-in.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/60cc2357f3c5515ae330945facd59a65bd731236",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-trans-in.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-in.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/60cc2357f3c5515ae330945facd59a65bd731236",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-in.target"
+    }
+  },
+  {
+    "name": "r-foot-trans-out.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-trans-out.target",
+    "sha": "15d2ad2047b4228127a36775bf440ae0e867c01f",
+    "size": 30283,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-out.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-out.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/15d2ad2047b4228127a36775bf440ae0e867c01f",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-trans-out.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-out.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/15d2ad2047b4228127a36775bf440ae0e867c01f",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-out.target"
+    }
+  },
+  {
+    "name": "r-foot-trans-up.target",
+    "path": "makehuman/data/targets/armslegs/r-foot-trans-up.target",
+    "sha": "74421e36dd551391853b529e86a3119e6f60a18e",
+    "size": 24600,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-up.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-up.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/74421e36dd551391853b529e86a3119e6f60a18e",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-foot-trans-up.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-foot-trans-up.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/74421e36dd551391853b529e86a3119e6f60a18e",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-foot-trans-up.target"
+    }
+  },
+  {
+    "name": "r-hand-fingers-diameter-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-fingers-diameter-decr.target",
+    "sha": "95ed16982d90b7eb69de690ec403adbf3709e2c9",
+    "size": 29890,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-diameter-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-diameter-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/95ed16982d90b7eb69de690ec403adbf3709e2c9",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-fingers-diameter-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-diameter-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/95ed16982d90b7eb69de690ec403adbf3709e2c9",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-diameter-decr.target"
+    }
+  },
+  {
+    "name": "r-hand-fingers-diameter-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-fingers-diameter-incr.target",
+    "sha": "3dde399db6cd94ed6c2c3ddc74a182530855a017",
+    "size": 30988,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-diameter-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-diameter-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3dde399db6cd94ed6c2c3ddc74a182530855a017",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-fingers-diameter-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-diameter-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3dde399db6cd94ed6c2c3ddc74a182530855a017",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-diameter-incr.target"
+    }
+  },
+  {
+    "name": "r-hand-fingers-distance-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-fingers-distance-decr.target",
+    "sha": "1ee1308f4bb3cddb5e0a0d08b7f0e885863e9263",
+    "size": 29990,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-distance-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-distance-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1ee1308f4bb3cddb5e0a0d08b7f0e885863e9263",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-fingers-distance-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-distance-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1ee1308f4bb3cddb5e0a0d08b7f0e885863e9263",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-distance-decr.target"
+    }
+  },
+  {
+    "name": "r-hand-fingers-distance-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-fingers-distance-incr.target",
+    "sha": "260422491919273917399884da244bd6768fb09b",
+    "size": 30367,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-distance-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-distance-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/260422491919273917399884da244bd6768fb09b",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-fingers-distance-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-distance-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/260422491919273917399884da244bd6768fb09b",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-distance-incr.target"
+    }
+  },
+  {
+    "name": "r-hand-fingers-length-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-fingers-length-decr.target",
+    "sha": "62764bfd5b2198221f7de8d57380edf1d5aeead2",
+    "size": 29678,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-length-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-length-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/62764bfd5b2198221f7de8d57380edf1d5aeead2",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-fingers-length-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-length-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/62764bfd5b2198221f7de8d57380edf1d5aeead2",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-length-decr.target"
+    }
+  },
+  {
+    "name": "r-hand-fingers-length-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-fingers-length-incr.target",
+    "sha": "39ef97250f6d4c30636e9d4e1d88d4b4587b2223",
+    "size": 30087,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-length-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-length-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/39ef97250f6d4c30636e9d4e1d88d4b4587b2223",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-fingers-length-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-fingers-length-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/39ef97250f6d4c30636e9d4e1d88d4b4587b2223",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-fingers-length-incr.target"
+    }
+  },
+  {
+    "name": "r-hand-scale-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-scale-decr.target",
+    "sha": "c561f29b1d3e4ed6c0fcf2bea07f5c7221f6679d",
+    "size": 40238,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-scale-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-scale-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c561f29b1d3e4ed6c0fcf2bea07f5c7221f6679d",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-scale-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-scale-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c561f29b1d3e4ed6c0fcf2bea07f5c7221f6679d",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-scale-decr.target"
+    }
+  },
+  {
+    "name": "r-hand-scale-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-scale-incr.target",
+    "sha": "c58e5039db523f69b820d3ea38315991dac2bb06",
+    "size": 41556,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-scale-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-scale-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c58e5039db523f69b820d3ea38315991dac2bb06",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-scale-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-scale-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/c58e5039db523f69b820d3ea38315991dac2bb06",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-scale-incr.target"
+    }
+  },
+  {
+    "name": "r-hand-trans-in.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-trans-in.target",
+    "sha": "d4b7d8f99d233bb00a1bf325b5efc39768afb30c",
+    "size": 42034,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-trans-in.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-trans-in.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d4b7d8f99d233bb00a1bf325b5efc39768afb30c",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-trans-in.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-trans-in.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d4b7d8f99d233bb00a1bf325b5efc39768afb30c",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-trans-in.target"
+    }
+  },
+  {
+    "name": "r-hand-trans-out.target",
+    "path": "makehuman/data/targets/armslegs/r-hand-trans-out.target",
+    "sha": "9e6da73c9da26fc26d19ff9c2b63b68a64e85feb",
+    "size": 42500,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-trans-out.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-trans-out.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/9e6da73c9da26fc26d19ff9c2b63b68a64e85feb",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-hand-trans-out.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-hand-trans-out.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/9e6da73c9da26fc26d19ff9c2b63b68a64e85feb",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-hand-trans-out.target"
+    }
+  },
+  {
+    "name": "r-leg-valgus-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-leg-valgus-decr.target",
+    "sha": "841f4a6a74f46990f1f7b554b8b00f852201703b",
+    "size": 23186,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-leg-valgus-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-leg-valgus-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/841f4a6a74f46990f1f7b554b8b00f852201703b",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-leg-valgus-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-leg-valgus-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/841f4a6a74f46990f1f7b554b8b00f852201703b",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-leg-valgus-decr.target"
+    }
+  },
+  {
+    "name": "r-leg-valgus-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-leg-valgus-incr.target",
+    "sha": "0d8320cd43755517e813c309e8595f41e6d7829e",
+    "size": 15629,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-leg-valgus-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-leg-valgus-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0d8320cd43755517e813c309e8595f41e6d7829e",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-leg-valgus-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-leg-valgus-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0d8320cd43755517e813c309e8595f41e6d7829e",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-leg-valgus-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-fat-decr.target",
+    "sha": "2366e44323ddfa48f2d6a30bc2e3cd3c5f3684a5",
+    "size": 6704,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/2366e44323ddfa48f2d6a30bc2e3cd3c5f3684a5",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/2366e44323ddfa48f2d6a30bc2e3cd3c5f3684a5",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-fat-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-fat-incr.target",
+    "sha": "a6e299f738534b6e32bd96fae1054c5d30d07ef3",
+    "size": 12993,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a6e299f738534b6e32bd96fae1054c5d30d07ef3",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a6e299f738534b6e32bd96fae1054c5d30d07ef3",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-fat-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-muscle-decr.target",
+    "sha": "b300b2e1a5312057d3b39e80bc265a2c19ed37e2",
+    "size": 5093,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b300b2e1a5312057d3b39e80bc265a2c19ed37e2",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b300b2e1a5312057d3b39e80bc265a2c19ed37e2",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-muscle-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-muscle-incr.target",
+    "sha": "444ab994bb2102f26baa867f1588febedea5d1de",
+    "size": 5585,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/444ab994bb2102f26baa867f1588febedea5d1de",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/444ab994bb2102f26baa867f1588febedea5d1de",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-muscle-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-scale-depth-decr.target",
+    "sha": "a546891bc25691e4541b7779606edb844c1c9006",
+    "size": 9548,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a546891bc25691e4541b7779606edb844c1c9006",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a546891bc25691e4541b7779606edb844c1c9006",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-scale-depth-incr.target",
+    "sha": "4a81ed2382eb4ba9df80e0d5a4a1e9b4da64a832",
+    "size": 9215,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4a81ed2382eb4ba9df80e0d5a4a1e9b4da64a832",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4a81ed2382eb4ba9df80e0d5a4a1e9b4da64a832",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-decr.target",
+    "sha": "614eac4df01e54ded8d6abbfd4cd37fe1cc48f81",
+    "size": 44099,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/614eac4df01e54ded8d6abbfd4cd37fe1cc48f81",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/614eac4df01e54ded8d6abbfd4cd37fe1cc48f81",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-incr.target",
+    "sha": "1b42bb46b5671996fed9e64ebc0981b92b871dd1",
+    "size": 44346,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1b42bb46b5671996fed9e64ebc0981b92b871dd1",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/1b42bb46b5671996fed9e64ebc0981b92b871dd1",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-scale-vert-decr.target",
+    "sha": "e0e3a3599a289b349c973188133d8dfa23e34b9b",
+    "size": 8380,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/e0e3a3599a289b349c973188133d8dfa23e34b9b",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/e0e3a3599a289b349c973188133d8dfa23e34b9b",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerarm-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerarm-scale-vert-incr.target",
+    "sha": "0e4643bdcb9cf85123b0ecfc90462b63fb22b597",
+    "size": 8381,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0e4643bdcb9cf85123b0ecfc90462b63fb22b597",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0e4643bdcb9cf85123b0ecfc90462b63fb22b597",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerarm-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-fat-decr.target",
+    "sha": "cc1eb8d979fc5bbd17e751f673ee670d7bf183f6",
+    "size": 6511,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cc1eb8d979fc5bbd17e751f673ee670d7bf183f6",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cc1eb8d979fc5bbd17e751f673ee670d7bf183f6",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-fat-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-fat-incr.target",
+    "sha": "92384f123884d1024f9c7bae5fab5838e1ccd0e9",
+    "size": 8402,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/92384f123884d1024f9c7bae5fab5838e1ccd0e9",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/92384f123884d1024f9c7bae5fab5838e1ccd0e9",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-fat-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-muscle-decr.target",
+    "sha": "70386b02e6d63a6eccca5f513703ee0f85b0b93c",
+    "size": 6404,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/70386b02e6d63a6eccca5f513703ee0f85b0b93c",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/70386b02e6d63a6eccca5f513703ee0f85b0b93c",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-muscle-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-muscle-incr.target",
+    "sha": "b9aa5ede5ae8571478692c0981b1915afe0fc9dc",
+    "size": 6661,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b9aa5ede5ae8571478692c0981b1915afe0fc9dc",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b9aa5ede5ae8571478692c0981b1915afe0fc9dc",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-muscle-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-scale-depth-decr.target",
+    "sha": "309761426fe4488e91177454c6ef8875f27afa4a",
+    "size": 9906,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/309761426fe4488e91177454c6ef8875f27afa4a",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/309761426fe4488e91177454c6ef8875f27afa4a",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-scale-depth-incr.target",
+    "sha": "320eb2e3eaf6e8efe47fb0c300be514103b24aee",
+    "size": 12547,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/320eb2e3eaf6e8efe47fb0c300be514103b24aee",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/320eb2e3eaf6e8efe47fb0c300be514103b24aee",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-decr.target",
+    "sha": "2318dc64c541bc0e0b777f150d4f7457562075ea",
+    "size": 7674,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/2318dc64c541bc0e0b777f150d4f7457562075ea",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/2318dc64c541bc0e0b777f150d4f7457562075ea",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-incr.target",
+    "sha": "d303c9843d06ca1849d18e7fbc07b6e5d6404b8a",
+    "size": 10296,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d303c9843d06ca1849d18e7fbc07b6e5d6404b8a",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/d303c9843d06ca1849d18e7fbc07b6e5d6404b8a",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-scale-vert-decr.target",
+    "sha": "7990569cf35b598ad1a6d408c8abf3b01c27d3eb",
+    "size": 35878,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7990569cf35b598ad1a6d408c8abf3b01c27d3eb",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7990569cf35b598ad1a6d408c8abf3b01c27d3eb",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "r-lowerleg-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-lowerleg-scale-vert-incr.target",
+    "sha": "a2b6b5efca8aa16a314ec8e007efccdf85da1185",
+    "size": 37878,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a2b6b5efca8aa16a314ec8e007efccdf85da1185",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a2b6b5efca8aa16a314ec8e007efccdf85da1185",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-lowerleg-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-fat-decr.target",
+    "sha": "b72925671f5815f4c7c8ae9c9c96e42a96f5cce0",
+    "size": 12697,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b72925671f5815f4c7c8ae9c9c96e42a96f5cce0",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/b72925671f5815f4c7c8ae9c9c96e42a96f5cce0",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-fat-decr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-fat-incr.target",
+    "sha": "0865350738ddc6e42ec6e8c966b7958cdc1d7cd8",
+    "size": 13333,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0865350738ddc6e42ec6e8c966b7958cdc1d7cd8",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/0865350738ddc6e42ec6e8c966b7958cdc1d7cd8",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-fat-incr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-muscle-decr.target",
+    "sha": "502cb673cb67f9d6fd54a569e9b82ef9ec70757f",
+    "size": 6983,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/502cb673cb67f9d6fd54a569e9b82ef9ec70757f",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/502cb673cb67f9d6fd54a569e9b82ef9ec70757f",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-muscle-decr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-muscle-incr.target",
+    "sha": "3c312e445189d836bf6413903207542955a15ca5",
+    "size": 6953,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3c312e445189d836bf6413903207542955a15ca5",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3c312e445189d836bf6413903207542955a15ca5",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-muscle-incr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-scale-depth-decr.target",
+    "sha": "78ce8c9b097a5eda6e72ae4ed0a28c1e548ec7c0",
+    "size": 6355,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/78ce8c9b097a5eda6e72ae4ed0a28c1e548ec7c0",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/78ce8c9b097a5eda6e72ae4ed0a28c1e548ec7c0",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-scale-depth-incr.target",
+    "sha": "513a76a13a4fac0df97d2637d3ce354522c8b3bb",
+    "size": 6382,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/513a76a13a4fac0df97d2637d3ce354522c8b3bb",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/513a76a13a4fac0df97d2637d3ce354522c8b3bb",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-scale-horiz-decr.target",
+    "sha": "5a9360f12b324645a92b89666326cb03d4db43a6",
+    "size": 41190,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/5a9360f12b324645a92b89666326cb03d4db43a6",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/5a9360f12b324645a92b89666326cb03d4db43a6",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-scale-horiz-incr.target",
+    "sha": "a4f3a6d4413cce85c2962d9a5afe8556b7b38e93",
+    "size": 43440,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a4f3a6d4413cce85c2962d9a5afe8556b7b38e93",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/a4f3a6d4413cce85c2962d9a5afe8556b7b38e93",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-scale-vert-decr.target",
+    "sha": "5f54281dae31e6d9fa4fa976d2912e309e02bde1",
+    "size": 6074,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/5f54281dae31e6d9fa4fa976d2912e309e02bde1",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/5f54281dae31e6d9fa4fa976d2912e309e02bde1",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-scale-vert-incr.target",
+    "sha": "26ac3720fc60d0a1403df04e411c3eaf550bcfca",
+    "size": 6043,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/26ac3720fc60d0a1403df04e411c3eaf550bcfca",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/26ac3720fc60d0a1403df04e411c3eaf550bcfca",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-shoulder-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-decr.target",
+    "sha": "f8023b211fb60db7521fa10b013513857e197d69",
+    "size": 1914,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f8023b211fb60db7521fa10b013513857e197d69",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/f8023b211fb60db7521fa10b013513857e197d69",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-decr.target"
+    }
+  },
+  {
+    "name": "r-upperarm-shoulder-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-incr.target",
+    "sha": "99375b9747b8b0578035aa9315c33f28aef6dce9",
+    "size": 5529,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/99375b9747b8b0578035aa9315c33f28aef6dce9",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/99375b9747b8b0578035aa9315c33f28aef6dce9",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperarm-shoulder-muscle-incr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-fat-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-fat-decr.target",
+    "sha": "980e7900563f714a6c45e2762ced196efd5d2ee2",
+    "size": 9485,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-fat-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-fat-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/980e7900563f714a6c45e2762ced196efd5d2ee2",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-fat-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-fat-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/980e7900563f714a6c45e2762ced196efd5d2ee2",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-fat-decr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-fat-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-fat-incr.target",
+    "sha": "61b1f0315c74188b80965b3c89562605dc809d44",
+    "size": 21608,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-fat-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-fat-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/61b1f0315c74188b80965b3c89562605dc809d44",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-fat-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-fat-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/61b1f0315c74188b80965b3c89562605dc809d44",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-fat-incr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-muscle-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-muscle-decr.target",
+    "sha": "3377513cb0c72267ae2691baaac1fb4cba1872b2",
+    "size": 9006,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-muscle-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-muscle-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3377513cb0c72267ae2691baaac1fb4cba1872b2",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-muscle-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-muscle-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/3377513cb0c72267ae2691baaac1fb4cba1872b2",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-muscle-decr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-muscle-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-muscle-incr.target",
+    "sha": "82555abf562bbda689187f655060ee80d0ed1816",
+    "size": 10099,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-muscle-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-muscle-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/82555abf562bbda689187f655060ee80d0ed1816",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-muscle-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-muscle-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/82555abf562bbda689187f655060ee80d0ed1816",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-muscle-incr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-scale-depth-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-scale-depth-decr.target",
+    "sha": "77b98c08f72b7ccd7349bec59d5cbaac8c3ba2be",
+    "size": 8497,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-depth-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-depth-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/77b98c08f72b7ccd7349bec59d5cbaac8c3ba2be",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-scale-depth-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-depth-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/77b98c08f72b7ccd7349bec59d5cbaac8c3ba2be",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-depth-decr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-scale-depth-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-scale-depth-incr.target",
+    "sha": "92e540c3d2c9ada652d06be2e73bad8094782efa",
+    "size": 8631,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-depth-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-depth-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/92e540c3d2c9ada652d06be2e73bad8094782efa",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-scale-depth-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-depth-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/92e540c3d2c9ada652d06be2e73bad8094782efa",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-depth-incr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-scale-horiz-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-scale-horiz-decr.target",
+    "sha": "cf1fe69e8ff1a686227e43744fe4e73cc1d88b15",
+    "size": 9393,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cf1fe69e8ff1a686227e43744fe4e73cc1d88b15",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/cf1fe69e8ff1a686227e43744fe4e73cc1d88b15",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-decr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-scale-horiz-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-scale-horiz-incr.target",
+    "sha": "7e3c0dcb3e88e23cbf07c84ddae68393b3e8dde0",
+    "size": 12309,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7e3c0dcb3e88e23cbf07c84ddae68393b3e8dde0",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/7e3c0dcb3e88e23cbf07c84ddae68393b3e8dde0",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-horiz-incr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-scale-vert-decr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-scale-vert-decr.target",
+    "sha": "4995570df86d96db259fe8b799e5ae430e0e17f3",
+    "size": 12057,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-vert-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-vert-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4995570df86d96db259fe8b799e5ae430e0e17f3",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-scale-vert-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-vert-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4995570df86d96db259fe8b799e5ae430e0e17f3",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-vert-decr.target"
+    }
+  },
+  {
+    "name": "r-upperleg-scale-vert-incr.target",
+    "path": "makehuman/data/targets/armslegs/r-upperleg-scale-vert-incr.target",
+    "sha": "21555e401c5314e5975753419e5a5e39d2840193",
+    "size": 10753,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-vert-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-vert-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/21555e401c5314e5975753419e5a5e39d2840193",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/r-upperleg-scale-vert-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/r-upperleg-scale-vert-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/21555e401c5314e5975753419e5a5e39d2840193",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/r-upperleg-scale-vert-incr.target"
+    }
+  },
+  {
+    "name": "upperlegs-height-decr.target",
+    "path": "makehuman/data/targets/armslegs/upperlegs-height-decr.target",
+    "sha": "4ef4b6f3ae0d4a85f93c0c24f2bf66db89f588b8",
+    "size": 93294,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/upperlegs-height-decr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/upperlegs-height-decr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4ef4b6f3ae0d4a85f93c0c24f2bf66db89f588b8",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/upperlegs-height-decr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/upperlegs-height-decr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/4ef4b6f3ae0d4a85f93c0c24f2bf66db89f588b8",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/upperlegs-height-decr.target"
+    }
+  },
+  {
+    "name": "upperlegs-height-incr.target",
+    "path": "makehuman/data/targets/armslegs/upperlegs-height-incr.target",
+    "sha": "314b4f8ec633568b9af790f3855bc930fc8677f7",
+    "size": 107509,
+    "url": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/upperlegs-height-incr.target?ref=master",
+    "html_url": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/upperlegs-height-incr.target",
+    "git_url": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/314b4f8ec633568b9af790f3855bc930fc8677f7",
+    "download_url": "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/armslegs/upperlegs-height-incr.target",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/makehumancommunity/makehuman/contents/makehuman/data/targets/armslegs/upperlegs-height-incr.target?ref=master",
+      "git": "https://api.github.com/repos/makehumancommunity/makehuman/git/blobs/314b4f8ec633568b9af790f3855bc930fc8677f7",
+      "html": "https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/targets/armslegs/upperlegs-height-incr.target"
+    }
+  }
+]

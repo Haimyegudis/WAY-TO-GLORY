@@ -40,7 +40,7 @@ export default defineConfig({
           {
             // The human body: one binary, fetched the first time somebody makes a player
             // and kept, so the character works with no network like everything else.
-            urlPattern: /\/models\/human\.(bin|json)$/,
+            urlPattern: /\/models\/(human|morphs)\.(bin|json)$/,
             handler: 'CacheFirst',
             options: { cacheName: 'human', expiration: { maxEntries: 4 } },
           },

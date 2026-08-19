@@ -17,9 +17,22 @@ export interface KitColours {
   number?: number;
 }
 
-/** Where the head sits on the base mesh, measured off it once. */
-const HEAD = { y: 0.925, z: 0.012, r: 0.052 };
-const WRIST = { y: 0.545, x: 0.205 };
+/**
+ * Where the head actually ended up.
+ *
+ * It used to be three numbers measured off the base mesh once, and then the morph
+ * targets moved the head - a man is taller than the average body he is built from - and
+ * the hair stayed where the average head had been, which put it over his face.
+ */
+export interface HeadFrame {
+  /** Centre of the head. */
+  y: number;
+  z: number;
+  /** Half the width of the head. */
+  r: number;
+  /** The top of him, for anything measured as a fraction of his height. */
+  top: number;
+}
 
 const matte = (colour: string, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
   new THREE.MeshStandardMaterial({ color: new THREE.Color(colour), roughness: 0.88, metalness: 0.02, ...extra });
@@ -34,12 +47,13 @@ function sphere(radius: number, material: THREE.Material, segments = 22): THREE.
 }
 
 /** Hair, a beard and jewellery, added to a body that already has a face. */
-export function addFeatures(group: THREE.Group, look: AvatarLook): void {
+export function addFeatures(group: THREE.Group, look: AvatarLook, HEAD: HeadFrame): void {
+  const WRIST = { y: HEAD.top * 0.545, x: HEAD.top * 0.205 };
   const colour = HAIR_COLOURS[look.hairColour] ?? HAIR_COLOURS[0]!;
   const hair = matte(colour, { roughness: 0.95 });
 
-  addHair(group, look, hair);
-  addFacialHair(group, look, colour);
+  addHair(group, look, hair, HEAD);
+  addFacialHair(group, look, colour, HEAD);
 
   if (look.earring) {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.008, 0.0022, 8, 16), shiny('#e8d48a'));
@@ -60,14 +74,22 @@ export function addFeatures(group: THREE.Group, look: AvatarLook): void {
   }
 }
 
-function addHair(group: THREE.Group, look: AvatarLook, hair: THREE.Material): void {
+function addHair(group: THREE.Group, look: AvatarLook, hair: THREE.Material, HEAD: HeadFrame): void {
   if (look.hair === 'bald') return;
 
-  /** A skull cap: a sphere cut off below the ears so it sits on the head, not over it. */
+  /**
+   * A skull cap.
+   *
+   * The eyes sit at the middle of a head, not below it, so a hemisphere centred on the
+   * head reaches down over them - which is what the close-up showed: a bowl of hair to
+   * the eyebrows. The cut stops above the middle and the whole cap is tilted back, so it
+   * rises to a hairline at the front and falls to the nape behind.
+   */
   const cap = (grow: number, drop: number) => {
-    const geometry = new THREE.SphereGeometry(HEAD.r * (1 + grow), 26, 20, 0, Math.PI * 2, 0, Math.PI * (0.5 + drop));
+    const geometry = new THREE.SphereGeometry(HEAD.r * (1 + grow), 26, 20, 0, Math.PI * 2, 0, Math.PI * (0.34 + drop));
     const mesh = new THREE.Mesh(geometry, hair);
-    mesh.position.set(0, HEAD.y + 0.012, HEAD.z - 0.002);
+    mesh.position.set(0, HEAD.y + 0.014, HEAD.z - 0.002);
+    mesh.rotation.x = -0.3;
     mesh.scale.set(1, 1.05, 1.02);
     mesh.castShadow = true;
     group.add(mesh);
@@ -99,10 +121,10 @@ function addHair(group: THREE.Group, look: AvatarLook, hair: THREE.Material): vo
       break;
     }
     case 'afro': {
-      const puff = sphere(HEAD.r * 1.42, hair, 24);
-      puff.scale.set(1, 0.96, 1);
-      puff.position.set(0, HEAD.y + 0.028, HEAD.z - 0.004);
-      group.add(puff);
+      // A ball of hair centred on the head is a ball of hair with a head inside it: the
+      // afro is the same cap, grown, and it keeps the face.
+      const puff = cap(0.4, 0.12);
+      puff.scale.set(1.02, 1.1, 1.04);
       break;
     }
     case 'long': {
@@ -123,7 +145,7 @@ function addHair(group: THREE.Group, look: AvatarLook, hair: THREE.Material): vo
   }
 }
 
-function addFacialHair(group: THREE.Group, look: AvatarLook, colour: string): void {
+function addFacialHair(group: THREE.Group, look: AvatarLook, colour: string, HEAD: HeadFrame): void {
   if (look.facialHair === 'none') return;
   const stubble = look.facialHair === 'stubble';
   const hair = new THREE.MeshStandardMaterial({
