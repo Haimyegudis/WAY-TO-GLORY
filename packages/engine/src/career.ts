@@ -146,6 +146,7 @@ import type {
   TransferOffer,
   CompetitionSeasonState,
   TrainingIntensity,
+  UserMatchLine,
 } from './types.js';
 
 export const SCHEMA_VERSION = 1;
@@ -779,6 +780,10 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   const healed = tickInjuries(player);
   for (const injury of healed) {
     pushInbox(state, 'medical', 'inbox.injuryHealed', { type: `injury.${injury.type}` });
+    // Months out is a story. A fortnight with a dead leg is not.
+    if (injury.severity === 'serious' || injury.severity === 'major' || injury.severity === 'careerThreatening') {
+      state.flags['returnedFromLayoff'] = true;
+    }
   }
   // An injury that was rushed back can go again, and the risk was set by the treatment
   // he chose. It rides for a few weeks after the return and then he is clear.
@@ -882,7 +887,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   }
 
   // 7b. The press, on the weeks the press cares.
-  if (club) askTheMedia(state, weekImportance);
+  if (club) askTheMedia(state, index, weekImportance);
 
   // 8. Career events. His life keeps happening at the same rate; what changed is how
   // much of it is allowed to stop him. A season holds a handful of real forks - a move,
@@ -1032,14 +1037,29 @@ function buildEventContext(state: CareerState, index: PackIndex): EventContext {
  * a chore rather than a moment. What he says moves real numbers, and if he makes a claim
  * he then has to go and back it up on the pitch.
  */
-/** Puts a question on the table, once per kind per season. */
-function raiseMilestone(state: CareerState, id: MilestoneId): void {
+/** How long the press leaves him alone between questions. */
+const MEDIA_COOLDOWN_WEEKS = 4;
+
+/**
+ * Puts a question on the table, once per kind per season.
+ *
+ * A microphone every week is a chore, so anything the press turns up for of its own
+ * accord waits for the cooldown. The handful of nights that belong to the player -
+ * his debut, a first cap, a trophy - are not made to queue behind a bad run.
+ */
+function raiseMilestone(state: CareerState, id: MilestoneId, force = false): void {
   const askedKey = `asked:${id}:${state.world.season}`;
   if (state.flags[askedKey]) return;
   const question = milestoneById(id);
   if (!question) return;
   if (state.pendingDecisions.some((decision) => decision.eventId.startsWith('milestone:'))) return;
+
+  const absolute = state.world.season * 52 + state.world.week;
+  const last = Number(state.flags['lastMediaWeek'] ?? -999);
+  if (!force && absolute - last < MEDIA_COOLDOWN_WEEKS) return;
+
   state.flags[askedKey] = true;
+  state.flags['lastMediaWeek'] = absolute;
 
   const club = userClub(state);
   const decisionId = `milestone_${id}_${state.world.season}_${state.world.week}`;
@@ -1061,14 +1081,131 @@ function raiseMilestone(state: CareerState, id: MilestoneId): void {
   pushInbox(state, 'media', `milestone.${id}`, { club: club?.name ?? '' }, decisionId);
 }
 
-function askTheMedia(state: CareerState, importance: MatchImportance): void {
-  if (state.flags['claimAttribute']) return;
+/** The matches he has actually been on the pitch for this season, newest first. */
+function recentAppearances(state: CareerState, count: number): UserMatchLine[] {
+  return state.matchLog
+    .filter((m) => m.season === state.world.season && m.userLine?.played)
+    .slice(0, count)
+    .map((m) => m.userLine!);
+}
 
+/**
+ * What happened to him lately that somebody would want a word about.
+ *
+ * This is the half of the press that is not about the fixture list. A hat-trick, a
+ * sending off, a month on the bench, four bad games in a row - the weeks a career is
+ * actually decided in, and the ones nobody used to ask him about.
+ */
+function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | null {
+  const player = state.player;
+  const club = userClub(state);
+  const last = state.lastMatch?.userLine;
+
+  if (last?.played && state.lastMatch?.season === state.world.season) {
+    if (last.goals >= 3) return 'hatTrick';
+    if (last.red > 0) return 'sentOff';
+  }
+
+  // Back from something that kept him out for months.
+  if (state.flags['returnedFromLayoff']) {
+    state.flags['returnedFromLayoff'] = false;
+    return 'injuryReturn';
+  }
+
+  // Dropped: he was starting, and now he is not being picked at all.
+  const seasonMatches = state.matchLog.filter((m) => m.season === state.world.season && m.userLine);
+  const lastFour = seasonMatches.slice(0, 4).map((m) => m.userLine!);
+  if (
+    lastFour.length === 4 &&
+    !lastFour[0]!.played &&
+    lastFour[0]!.reasonNotPlayed === 'notSelected' &&
+    lastFour.slice(1).every((line) => line.started)
+  ) {
+    return 'dropped';
+  }
+
+  const appearances = recentAppearances(state, 5);
+  if (appearances.length >= 4 && appearances.slice(0, 4).every((line) => line.rating < 6.3)) {
+    return 'badRun';
+  }
+
+  const group = positionGroup(player.primaryPos);
+  if (
+    group === 'ATT' &&
+    appearances.length >= 5 &&
+    appearances.every((line) => line.goals === 0 && line.assists === 0)
+  ) {
+    return 'goalDrought';
+  }
+
+  // A poor night on a big night is the one they replay.
+  const lastResult = state.lastMatch;
+  if (
+    lastResult?.userLine?.played &&
+    lastResult.season === state.world.season &&
+    lastResult.importance &&
+    lastResult.importance !== 'normal' &&
+    lastResult.userLine.rating < 6.0
+  ) {
+    return 'punditCriticism';
+  }
+
+  // The run-in, from the wrong end of the table.
+  if (club && state.world.week >= 26) {
+    const compState = state.world.competitions[club.competitionId];
+    if (compState) {
+      const rows = sortedTable(compState);
+      const place = rows.findIndex((row) => row.clubId === club.id);
+      if (place >= 0 && place >= rows.length - 3 && rows[place]!.played >= 15) return 'relegationFight';
+    }
+  }
+
+  // A contract running down with nothing signed is a story before it is a decision.
+  if (
+    state.contract &&
+    state.contract.endSeason <= state.world.season &&
+    state.world.week >= 20 &&
+    player.reputation >= 25
+  ) {
+    return 'contractStandoff';
+  }
+
+  // Somebody from the other lot had something to say before a derby.
+  const nextImportance = upcomingImportance(state, index);
+  if ((nextImportance === 'derby' || nextImportance === 'rival') && state.flags[`asked:derby:${state.world.season}`]) {
+    return 'rivalDig';
+  }
+
+  return null;
+}
+
+/** The importance of the fixture he is about to play, if there is one this week. */
+function upcomingImportance(state: CareerState, index: PackIndex): MatchImportance {
+  const club = userClub(state);
+  if (!club) return 'normal';
+  const compState = state.world.competitions[club.competitionId];
+  const fixture = compState?.fixtures.find(
+    (f) => !f.played && f.week >= state.world.week && (f.homeClubId === club.id || f.awayClubId === club.id),
+  );
+  if (!fixture) return 'normal';
+  return matchImportanceFor(state, index, club.competitionId, fixture.homeClubId, fixture.awayClubId);
+}
+
+/**
+ * The two ways a microphone finds him: the fixture list, and his own life. The fixture
+ * comes first - a derby is a derby - and what he has been doing fills the other weeks.
+ */
+function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImportance): void {
   const weeksAtNewClub =
     state.world.season * 52 + state.world.week - Number(state.flags['lastTransferWeek'] ?? -999);
   const rumoured = state.transferOffers.length > 0 || Boolean(state.flags['transferRequested']);
-  const id = milestoneFor(importance, { weeksAtNewClub, rumoured });
-  if (id) raiseMilestone(state, id);
+  const fixtureId = milestoneFor(importance, { weeksAtNewClub, rumoured });
+  if (fixtureId) {
+    raiseMilestone(state, fixtureId);
+    return;
+  }
+  const momentId = mediaMomentFor(state, index);
+  if (momentId) raiseMilestone(state, momentId);
 }
 
 /**
@@ -1735,7 +1872,7 @@ function playUserMatch(
     pushInbox(state, 'club', 'inbox.debut', { club: club.name });
     pushNews(state, 'news.debut', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'high');
     unlock(state, 'firstProMatch', { club: club.name });
-    raiseMilestone(state, 'debut');
+    raiseMilestone(state, 'debut', true);
   }
 
   applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled);
@@ -1927,6 +2064,9 @@ function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng,
   if (callUp.isFirst) {
     pushInbox(state, 'national', 'inbox.firstCallUp', { country: country.name, level: callUp.level });
     unlock(state, 'firstCallUp', { country: country.name });
+    // A first cap at any level is one of the nights that belongs to him; it does not
+    // wait behind whatever the press asked about a fortnight ago.
+    raiseMilestone(state, 'nationalCallUp', true);
   }
 
   const matches = rng.int(1, 2);
@@ -2017,7 +2157,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   // Individual honours, decided before the world ages and the season rolls over.
   applyAwards(state, index, rng);
 
-  if (trophies.length > 0) raiseMilestone(state, 'trophyNight');
+  if (trophies.length > 0) raiseMilestone(state, 'trophyNight', true);
 
   // Career record for the season.
   const record: CareerSeasonRecord = {

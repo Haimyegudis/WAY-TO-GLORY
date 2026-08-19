@@ -818,6 +818,27 @@ describe('the press', () => {
     }
   });
 
+  it('turns up over a career, and never twice in a fortnight', () => {
+    const { state, index } = startedCareer({ seed: 5150 });
+    const asked: { id: string; week: number }[] = [];
+
+    for (let i = 0; i < 52 * 6; i++) {
+      advanceWeek(state, index);
+      for (const decision of state.pendingDecisions) {
+        if (!decision.eventId.startsWith('milestone:')) continue;
+        asked.push({
+          id: decision.eventId.slice('milestone:'.length),
+          week: state.world.season * 52 + state.world.week,
+        });
+      }
+      state.pendingDecisions = [];
+    }
+
+    // Six seasons of football produces more than one question, from more than one cause.
+    expect(asked.length).toBeGreaterThan(3);
+    expect(new Set(asked.map((entry) => entry.id)).size).toBeGreaterThan(1);
+  });
+
   it('never offers an answer that costs nothing at all', () => {
     for (const question of MILESTONES) {
       for (const answer of question.answers) {
