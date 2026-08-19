@@ -20,13 +20,14 @@ import {
   answerMedia,
   createCareer,
   grudgeClubId,
+  resumeHalfTime,
   currentOvr,
   getAcademyOffers,
   joinClub,
   mentalFactor,
   userSquad,
 } from '../src/career.js';
-import { DEFAULT_INPUT, loadPack, startedCareer } from './helpers.js';
+import { DEFAULT_INPUT, loadPack, playWeek, startedCareer } from './helpers.js';
 import type { Player, Position, TrainingPlan } from '../src/types.js';
 
 const TRAINING: TrainingPlan = { intensity: 'normal', focus: 'balanced', diet: 'normal' };
@@ -339,7 +340,7 @@ describe('career', () => {
     const runOnce = () => {
       const { state, index } = startedCareer({ seed: 777 });
       for (let i = 0; i < 120; i++) {
-        advanceWeek(state, index);
+        playWeek(state, index);
         state.pendingDecisions = [];
       }
       return state;
@@ -355,7 +356,7 @@ describe('career', () => {
     const { state, index } = startedCareer();
     let promoted = false;
     for (let i = 0; i < 52 * 5 && !promoted; i++) {
-      advanceWeek(state, index);
+      playWeek(state, index);
       state.pendingDecisions = [];
       if (state.player.squadRole !== 'academy') promoted = true;
     }
@@ -365,7 +366,7 @@ describe('career', () => {
   it('keeps the world sane over five seasons', () => {
     const { state, index } = startedCareer({ seed: 31337 });
     for (let i = 0; i < 52 * 5; i++) {
-      advanceWeek(state, index);
+      playWeek(state, index);
       state.pendingDecisions = [];
     }
 
@@ -393,7 +394,7 @@ describe('career', () => {
   it('plays no more league matches than the fixture list allows', () => {
     const { state, index } = startedCareer({ seed: 2024 });
     for (let i = 0; i < 52 * 6; i++) {
-      advanceWeek(state, index);
+      playWeek(state, index);
       state.pendingDecisions = [];
     }
     const maxRounds = Math.max(
@@ -600,7 +601,7 @@ describe('ovr agrees with the headline ratings', () => {
 describe('europe', () => {
   it('runs a full season and crowns three winners', () => {
     const { state, index } = startedCareer({ seed: 21 });
-    for (let i = 0; i < 53; i++) advanceWeek(state, index);
+    for (let i = 0; i < 53; i++) playWeek(state, index);
 
     const winners = state.world.history.europeanWinners ?? [];
     const tiers = new Set(winners.map((w) => w.tier));
@@ -611,7 +612,7 @@ describe('europe', () => {
 
   it('qualifies clubs from the league table, not at random', () => {
     const { state, index } = startedCareer({ seed: 22 });
-    for (let i = 0; i < 53; i++) advanceWeek(state, index);
+    for (let i = 0; i < 53; i++) playWeek(state, index);
 
     const entrants: string[] = [];
     for (const competition of Object.values(state.world.europe ?? {})) {
@@ -678,7 +679,7 @@ describe('europe', () => {
 describe('awards', () => {
   it('hands out the honours every season and names a winner', () => {
     const { state, index } = startedCareer({ seed: 23 });
-    for (let i = 0; i < 53 * 2; i++) advanceWeek(state, index);
+    for (let i = 0; i < 53 * 2; i++) playWeek(state, index);
 
     const awards = state.world.history.awards ?? [];
     expect(awards.length).toBeGreaterThan(6);
@@ -826,7 +827,7 @@ describe('the press', () => {
     const asked: { id: string; week: number }[] = [];
 
     for (let i = 0; i < 52 * 6; i++) {
-      advanceWeek(state, index);
+      playWeek(state, index);
       for (const decision of state.pendingDecisions) {
         if (!decision.eventId.startsWith('milestone:')) continue;
         asked.push({
@@ -884,7 +885,7 @@ describe('half time', () => {
     const { state, index } = startedCareer({ seed: 8080 });
     // Play until he is a senior with a club squad around him.
     for (let i = 0; i < 52 * 4; i++) {
-      advanceWeek(state, index);
+      playWeek(state, index);
       state.pendingDecisions = [];
     }
     const club = state.world.clubs[state.player.clubId!]!;
@@ -952,6 +953,62 @@ describe('half time', () => {
     // Different orders produce different second halves; the same seed, the same first.
     expect(forward.halfTimeScore).toEqual(legs.halfTimeScore);
     expect(forward.fatigueFactor).toBeGreaterThan(legs.fatigueFactor);
+  });
+
+  it('stops the week at the interval without writing anything to the world', () => {
+    const { state, index } = startedCareer({ seed: 4242 });
+
+    let paused = null as ReturnType<typeof advanceWeek> | null;
+    for (let i = 0; i < 52 * 3; i++) {
+      const result = advanceWeek(state, index);
+      if (result.stopped === 'halfTime') {
+        paused = result;
+        expect(state.pendingHalfTime).toBeDefined();
+        const held = state.pendingHalfTime!;
+        // The stopped match itself has not landed anywhere: it is not the last match
+        // played, it is not in the log, and the fixture is still waiting.
+        expect(state.lastMatch?.id).not.toBe(held.matchId);
+        expect(state.matchLog.some((m) => m.id === held.matchId)).toBe(false);
+        const comp = state.world.competitions[held.competitionId] ?? state.world.youth;
+        const fixture = comp?.fixtures.find(
+          (f) => f.homeClubId === held.homeClubId && f.awayClubId === held.awayClubId && f.week === state.world.week,
+        );
+        if (fixture) expect(fixture.played, 'the fixture was written off before the whistle').toBe(false);
+        break;
+      }
+      state.pendingDecisions = [];
+    }
+
+    expect(paused, 'no match ever reached the interval').not.toBeNull();
+    const held = state.pendingHalfTime!;
+    expect(held).toBeDefined();
+    expect(held.firstHalfEvents.every((e) => e.minute <= 45)).toBe(true);
+    expect(held.options.length).toBeGreaterThan(1);
+
+    const watched = held.firstHalfEvents.map((e) => [e.minute, e.type, e.detailKey ?? '']);
+    const resumed = resumeHalfTime(state, index, held.options[0]!);
+
+    expect(resumed.stopped).not.toBe('halfTime');
+    expect(state.pendingHalfTime).toBeUndefined();
+    expect(state.lastMatch).not.toBeNull();
+    expect(
+      state.lastMatch!.events!.filter((e) => e.minute <= 45).map((e) => [e.minute, e.type, e.detailKey ?? '']),
+      'the half he watched changed under him',
+    ).toEqual(watched);
+  });
+
+  it('gives orders to a boy and leaves a trusted senior to decide', () => {
+    const { state, index } = startedCareer({ seed: 777 });
+    for (let i = 0; i < 52 * 3; i++) {
+      const result = advanceWeek(state, index);
+      state.pendingDecisions = [];
+      if (result.stopped !== 'halfTime') continue;
+      const held = state.pendingHalfTime!;
+      // Whoever is talking, he is never handed a list with nothing on it.
+      expect(held.options.length).toBeGreaterThan(0);
+      if (held.demand !== null) expect(held.options).toContain(held.demand);
+      resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+    }
   });
 
   it('never offers an instruction that is all upside', () => {

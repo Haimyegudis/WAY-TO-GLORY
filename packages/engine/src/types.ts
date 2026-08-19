@@ -607,6 +607,8 @@ export interface CareerState {
   /** Absolute week each conversation becomes available again: you cannot ask twice. */
   actionCooldowns?: Record<string, number>;
   lastResult: DecisionResult | null;
+  /** A match waiting on a team talk. Present only between the two whistles. */
+  pendingHalfTime?: PendingHalfTime;
   world: WorldState;
   nationalTeam: NationalTeamState;
   /** The old player who took an interest in him, if he has asked one to. */
@@ -642,6 +644,38 @@ export interface CareerState {
 
 export interface TickResult {
   state: CareerState;
-  stopped: 'decision' | 'match' | 'seasonEnd' | 'retired' | 'week';
+  stopped: 'decision' | 'match' | 'seasonEnd' | 'retired' | 'week' | 'halfTime';
   log: string[];
+}
+
+/**
+ * A match stopped at the break.
+ *
+ * Nothing in it has touched the world yet: the fixture is still unplayed, the table has
+ * not moved, and the player has not been given so much as a minute. What is held here
+ * is the seed the match was rolled from and the team sheet it was rolled with, which is
+ * enough to play the same first half again and then play a different second one.
+ */
+export interface PendingHalfTime {
+  matchId: string;
+  competitionId: string;
+  homeClubId: string;
+  awayClubId: string;
+  importance: MatchImportance;
+  /** Set when the stopped match is a youth fixture. */
+  youthOpponentRating?: number;
+  matchSeed: number;
+  lineup: import('./selection.js').Lineup;
+  minutes: import('./selection.js').MinutesOutcome;
+  firstHalfEvents: MatchEvent[];
+  /** Home goals, away goals - in that order, whichever side he is on. */
+  score: [number, number];
+  /** How he has played so far, so the dressing room has something to react to. */
+  rating: number;
+  /** What the manager wants, or null when it is left to the player. */
+  demand: import('./halftime.js').HalfTimeInstructionId | null;
+  options: import('./halftime.js').HalfTimeInstructionId[];
+  /** Filled in when he answers, and read by the resumed simulation. */
+  chosen?: import('./halftime.js').HalfTimeInstructionId;
+  obeyed?: boolean;
 }

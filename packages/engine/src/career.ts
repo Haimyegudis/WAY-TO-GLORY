@@ -1,5 +1,11 @@
 import { Rng, clamp, hashString, randomSeed } from './rng.js';
 import { FORMATIONS, overall, positionGroup, ratingAt } from './positions.js';
+import {
+  instructionsFor,
+  managerDemand,
+  managerDictates,
+  type HalfTimeInstructionId,
+} from './halftime.js';
 import { indexPack, type DataPack, type PackIndex } from './data.js';
 import {
   clubBaseOvr,
@@ -136,6 +142,7 @@ import type {
   Competition,
   Contract,
   InboxMessage,
+  MatchEvent,
   MatchImportance,
   MatchResult,
   NewsItem,
@@ -745,8 +752,17 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // off every other event in the game.
   expireDecisions(state);
 
-  // 1. Domestic and international fixtures.
-  const userMatch = simulateWeekFixtures(state, index, rng, club);
+  // 1. Domestic and international fixtures. A match he is playing stops at the interval
+  // the first time through: nothing has been written to the world at that point, so the
+  // week simply starts again once he has been told what the second half looks like.
+  let userMatch: MatchResult | null;
+  try {
+    userMatch = simulateWeekFixtures(state, index, rng, club);
+  } catch (error) {
+    if (!(error instanceof HalfTimeInterrupt)) throw error;
+    commitRng(state, rng);
+    return { state, stopped: 'halfTime', log };
+  }
   if (userMatch) {
     playedThisWeek += userMatch.userLine?.minutes ?? 0;
     stopped = 'match';
@@ -1835,6 +1851,70 @@ function simulateCupWeek(state: CareerState, index: PackIndex, rng: Rng, club: C
   return userResult;
 }
 
+/**
+ * Thrown out of a match that has reached the interval and is waiting on a team talk.
+ *
+ * The alternative is threading a "paused" value back through every caller that plays a
+ * fixture - league, cup, Europe, youth - and each of them would have to know not to
+ * write the result. The throw leaves all of them exactly as they were.
+ */
+class HalfTimeInterrupt extends Error {
+  constructor() {
+    super('half time');
+    this.name = 'HalfTimeInterrupt';
+  }
+}
+
+/** How the first half has gone for him, read off what he has actually done in it. */
+function ratingSoFar(events: MatchEvent[], playerId: string): number {
+  let rating = 6.4;
+  for (const event of events) {
+    if (event.playerId !== playerId) continue;
+    if (event.type === 'goal' || event.type === 'penaltyScored') rating += 1.1;
+    else if (event.type === 'assist') rating += 0.8;
+    else if (event.type === 'save' && event.detailKey === 'match.event.userSave') rating += 0.2;
+    else if (event.type === 'tackle') rating += 0.15;
+    else if (event.type === 'miss') rating -= 0.15;
+    else if (event.type === 'penaltyMissed') rating -= 0.9;
+    else if (event.type === 'yellow') rating -= 0.15;
+    else if (event.type === 'red') rating -= 1.2;
+    else if (event.type === 'concede') rating -= 0.3;
+  }
+  return clamp(Math.round(rating * 10) / 10, 3, 10);
+}
+
+/**
+ * The second half, once he has answered.
+ *
+ * Obeying is worth trust; refusing costs it, and the refusal is remembered until the
+ * final whistle settles it. Then the week is simply walked again: every fixture that
+ * was already played is flagged, so nothing happens twice, and the match that stopped
+ * picks up from the seed it was rolled with.
+ */
+export function resumeHalfTime(
+  state: CareerState,
+  index: PackIndex,
+  instructionId: HalfTimeInstructionId,
+): TickResult {
+  const held = state.pendingHalfTime;
+  if (!held) return advanceWeek(state, index);
+
+  const obeyed = held.demand === null || held.demand === instructionId;
+  held.chosen = instructionId;
+  held.obeyed = obeyed;
+
+  if (held.demand !== null) {
+    // Doing as he is told is the cheapest trust in football. Refusing is not free, and
+    // whether it was worth it is decided by the next forty-five minutes.
+    adjustRelationship(state, 'manager', obeyed ? 3 : -6);
+    state.flags['defiedTheManager'] = obeyed ? 0 : 1;
+  } else {
+    state.flags['defiedTheManager'] = 0;
+  }
+
+  return advanceWeek(state, index);
+}
+
 function playUserMatch(
   state: CareerState,
   index: PackIndex,
@@ -1870,19 +1950,25 @@ function playUserMatch(
     importantMatch: importance !== 'normal',
   };
 
-  const lineup = pickBestLineup(rng, squad.filter((p) => p.id !== player.id || available), selectionCtx);
-  const minutes = youthMatch
+  const matchId = `m_${state.world.season}_${state.world.week}_${homeClubId}_${awayClubId}`;
+  // A match that was stopped at the break comes back with its team sheet intact: the
+  // same eleven, the same minutes, the same seed. Only the second half is still open.
+  const held = state.pendingHalfTime?.matchId === matchId ? state.pendingHalfTime : null;
+
+  const lineup = held?.lineup ?? pickBestLineup(rng, squad.filter((p) => p.id !== player.id || available), selectionCtx);
+  const minutes = held?.minutes ?? (youthMatch
     ? { played: true, started: true, minutes: 90, slot: player.primaryPos }
     : available
       ? resolveMinutes(rng, player.id, lineup, player)
-      : { played: false, started: false, minutes: 0, slot: null };
+      : { played: false, started: false, minutes: 0, slot: null });
 
   const opponentStarIds = state.world.squads[opponentId] ?? [];
   const opponentStars = opponentStarIds.map((id) => state.world.players[id]).filter((p): p is Player => !!p);
   const opponentRating = youthOpponentRating
     ?? (opponentStars.length >= 8 ? teamRatingFromSquad(opponentStars) : clubRating(opponent));
 
-  const outcome = simulateUserMatch(rng, {
+  const matchSeed = held?.matchSeed ?? rng.int(1, 2 ** 30);
+  const baseCtx = {
     mental: mentalFactor(state) * occasionFactor(state, importance) * grudgeFactor(state, opponentId, userIsHome),
     penaltyTaker: Boolean(state.flags['penaltyTaker']),
     season: state.world.season,
@@ -1898,8 +1984,49 @@ function playUserMatch(
     lineup,
     minutes,
     importance,
-    matchId: `m_${state.world.season}_${state.world.week}_${homeClubId}_${awayClubId}`,
+    matchId,
+  };
+
+  // The break is only worth having when he is on the pitch to be told something.
+  const onPitchAtTheBreak =
+    minutes.played && (minutes.cameOnMinute ?? 0) <= 45 && (minutes.offMinute ?? 90) > 45;
+
+  if (!held && onPitchAtTheBreak) {
+    const firstHalf = simulateUserMatch(new Rng(matchSeed), { ...baseCtx, stopAtHalfTime: true });
+    const group = positionGroup(minutes.slot ?? player.primaryPos);
+    const scoreDiff = userIsHome
+      ? firstHalf.result.homeGoals - firstHalf.result.awayGoals
+      : firstHalf.result.awayGoals - firstHalf.result.homeGoals;
+    const soFar = ratingSoFar(firstHalf.events, player.id);
+    const dictates = managerDictates(state.managerTrust, player.squadRole);
+
+    state.pendingHalfTime = {
+      matchId,
+      competitionId,
+      homeClubId,
+      awayClubId,
+      importance,
+      ...(youthOpponentRating !== undefined ? { youthOpponentRating } : {}),
+      matchSeed,
+      lineup,
+      minutes,
+      firstHalfEvents: firstHalf.events,
+      score: [firstHalf.result.homeGoals, firstHalf.result.awayGoals],
+      rating: soFar,
+      demand: dictates ? managerDemand(rng, scoreDiff, soFar, group) : null,
+      options: instructionsFor(group),
+    };
+    // Nothing above this line has touched the world, and the caller has not marked the
+    // fixture played yet, so the week can simply be walked again once he has answered.
+    throw new HalfTimeInterrupt();
+  }
+
+  const outcome = simulateUserMatch(new Rng(matchSeed), {
+    ...baseCtx,
+    ...(held?.chosen ? { instruction: held.chosen } : {}),
   });
+  const instructionFatigue = outcome.fatigueFactor;
+  if (held) state.pendingHalfTime = undefined;
 
   const result = outcome.result;
   if (!available) {
@@ -1932,7 +2059,7 @@ function playUserMatch(
     raiseMilestone(state, 'debut', true);
   }
 
-  applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled);
+  applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled, instructionFatigue);
 
   state.lastMatch = result;
   state.matchLog.unshift(result);
@@ -2039,6 +2166,8 @@ function applyMatchToPlayer(
   result: MatchResult,
   competitionId: string,
   injuryRolled: boolean,
+  /** What the second half's instruction did to his legs. 1 is an ordinary afternoon. */
+  fatigueFactor = 1,
 ): void {
   const line = result.userLine;
   if (!line) return;
@@ -2058,6 +2187,13 @@ function applyMatchToPlayer(
     stats.ratingSum += line.rating;
     stats.ratedApps++;
     if (line.motm) stats.motm++;
+
+    // Forty-five minutes chasing every lost cause costs more than forty-five minutes of
+    // keeping the ball. Whatever he was told at the break is paid for in his legs.
+    if (fatigueFactor !== 1) {
+      const extra = (fatigueFactor - 1) * (line.minutes / 90) * 12;
+      player.condition.fatigue = clamp(player.condition.fatigue + extra, 0, 100);
+    }
 
     // Manager trust follows performance, weighted by how much of the game he played.
     const weight = clamp(line.minutes / 90, 0.2, 1);
@@ -2112,6 +2248,20 @@ function applyMatchToPlayer(
       const injury = rollInjury(rng, player, state.world.season, 1.2);
       player.condition.injuries.push(injury);
       pushInbox(state, 'medical', 'inbox.injuredMatch', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
+    }
+
+    // Going against the manager at the break is settled the same way everything else
+    // in this game is: by what happened next.
+    if (state.flags['defiedTheManager']) {
+      state.flags['defiedTheManager'] = 0;
+      if (line.rating >= 7.2) {
+        adjustRelationship(state, 'manager', 9);
+        player.personality.determination = clamp(player.personality.determination + 1.2, 1, 99);
+        pushInbox(state, 'manager', 'inbox.halfTime.vindicated', {});
+      } else if (line.rating < 6.4) {
+        adjustRelationship(state, 'manager', -7);
+        pushInbox(state, 'manager', 'inbox.halfTime.toldYouSo', {});
+      }
     }
 
     // Anything he promised in front of a camera is settled by what he just did, and
