@@ -216,76 +216,171 @@ export function actionCooldownLeft(state: CareerState, id: PlayerActionId): numb
 
 const hasClub = (state: CareerState) => state.player.clubId !== null;
 
+/**
+ * Whether an action makes sense right now.
+ *
+ * A player does not apologise for nothing, does not demand games while he is playing
+ * every week, and does not thank a crowd that has just booed him off. Every option on
+ * the people screen has to be something this player would actually do this week, or
+ * the screen turns into a list of buttons rather than a set of decisions.
+ */
+const seniorAtClub = (state: CareerState) =>
+  hasClub(state) && state.player.squadRole !== 'academy' && !state.retired;
+
+/** How much of the football he is getting, from the role the club gave him. */
+const benched = (state: CareerState) =>
+  ['fringe', 'bench', 'rotation', 'prospect', 'futureProspect'].includes(state.player.squadRole);
+
+/** Recent form on the pitch, from this season's matches. */
+function recentRating(state: CareerState): number | null {
+  const rated = state.matchLog.filter((m) => m.userLine?.played).slice(0, 4);
+  if (rated.length === 0) return null;
+  return rated.reduce((sum, m) => sum + (m.userLine?.rating ?? 0), 0) / rated.length;
+}
+
+/** True after a defeat, a heavy one, or a sending off - the weeks you say sorry. */
+function badWeek(state: CareerState): boolean {
+  const last = state.matchLog[0];
+  if (!last) return false;
+  const club = state.player.clubId;
+  if (!club) return false;
+  const isHome = last.homeClubId === club;
+  const forGoals = isHome ? last.homeGoals : last.awayGoals;
+  const against = isHome ? last.awayGoals : last.homeGoals;
+  const sentOff = (last.userLine?.red ?? 0) > 0;
+  return sentOff || forGoals < against;
+}
+
+/** True after a win, or a personal performance worth being thanked for. */
+function goodWeek(state: CareerState): boolean {
+  const last = state.matchLog[0];
+  if (!last || !last.userLine?.played) return false;
+  const club = state.player.clubId;
+  if (!club) return false;
+  const isHome = last.homeClubId === club;
+  const forGoals = isHome ? last.homeGoals : last.awayGoals;
+  const against = isHome ? last.awayGoals : last.homeGoals;
+  return forGoals > against || (last.userLine.rating ?? 0) >= 7.5;
+}
+
 export const PLAYER_ACTIONS: PlayerActionDef[] = [
   {
+    // Only worth asking when you are not in the side, or the manager has cooled on you.
     id: 'askManagerTrust',
     category: 'manager',
     cost: 1,
     riskKey: 'risk.medium',
-    available: (s) => hasClub(s) && s.player.squadRole !== 'academy',
+    available: (s) => seniorAtClub(s) && (benched(s) || s.relationships.manager < 60),
   },
-  { id: 'askManagerFeedback', category: 'manager', cost: 1, riskKey: 'risk.low', available: hasClub },
+  {
+    id: 'askManagerFeedback',
+    category: 'manager',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired,
+  },
   {
     id: 'apologiseManager',
     category: 'manager',
     cost: 1,
     riskKey: 'risk.low',
-    available: (s) => hasClub(s) && (s.relationships.manager < 45 || Boolean(s.flags['incidentWithManager'])),
+    // You apologise after something happened: a row, a red card, a bad afternoon.
+    available: (s) =>
+      hasClub(s) &&
+      (Boolean(s.flags['incidentWithManager']) || s.relationships.manager < 45 || (badWeek(s) && s.relationships.manager < 60)),
   },
   {
     id: 'acceptBenchRole',
     category: 'manager',
     cost: 1,
     riskKey: 'risk.low',
-    available: (s) => hasClub(s) && s.relationships.manager < 55,
+    // Accepting a role you do not have makes no sense.
+    available: (s) => seniorAtClub(s) && benched(s),
   },
   {
     id: 'demandPlayingTime',
     category: 'manager',
     cost: 1,
     riskKey: 'risk.high',
-    available: (s) => hasClub(s) && s.player.squadRole !== 'academy',
+    // Demanding games while you play every week is not a conversation, it is a tantrum.
+    available: (s) => seniorAtClub(s) && benched(s),
   },
   {
     id: 'requestTransferTalk',
     category: 'board',
     cost: 2,
     riskKey: 'risk.high',
-    available: (s) => hasClub(s) && s.player.squadRole !== 'academy',
+    // You ask to leave when you are not playing, not wanted, or unhappy.
+    available: (s) =>
+      seniorAtClub(s) && (benched(s) || Boolean(s.flags['transferListed']) || s.player.morale < 40),
   },
-  { id: 'thankFans', category: 'fans', cost: 1, riskKey: 'risk.low', available: hasClub },
+  {
+    // Thanking the crowd belongs to a week that went well.
+    id: 'thankFans',
+    category: 'fans',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && goodWeek(s),
+  },
   {
     id: 'admitBadForm',
     category: 'fans',
     cost: 1,
     riskKey: 'risk.low',
-    available: (s) => s.player.form < 45,
+    available: (s) => hasClub(s) && (s.player.form < 45 || (recentRating(s) ?? 7) < 6.2),
   },
   {
     id: 'apologiseFans',
     category: 'fans',
     cost: 1,
     riskKey: 'risk.low',
-    available: (s) => s.relationships.fans < 45 || Boolean(s.flags['incidentWithFans']),
+    available: (s) =>
+      hasClub(s) && (Boolean(s.flags['incidentWithFans']) || s.relationships.fans < 45 || (badWeek(s) && s.relationships.fans < 58)),
   },
-  { id: 'signAutographs', category: 'fans', cost: 1, riskKey: 'risk.low', available: hasClub },
-  { id: 'teamDinner', category: 'teammates', cost: 2, riskKey: 'risk.low', available: hasClub },
-  { id: 'extraTrainingWithTeammates', category: 'teammates', cost: 1, riskKey: 'risk.low', available: hasClub },
+  { id: 'signAutographs', category: 'fans', cost: 1, riskKey: 'risk.low', available: (s) => hasClub(s) && !s.retired },
+  {
+    // Dinner is for a squad you are part of, and it costs money you have.
+    id: 'teamDinner',
+    category: 'teammates',
+    cost: 2,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && s.finances.balance > 5_000,
+  },
+  {
+    id: 'extraTrainingWithTeammates',
+    category: 'teammates',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && s.player.condition.fatigue < 70,
+  },
   {
     id: 'apologiseTeammates',
     category: 'teammates',
     cost: 1,
     riskKey: 'risk.low',
-    available: (s) => s.relationships.teammates < 45 || Boolean(s.flags['dressingRoomFallout']),
+    available: (s) =>
+      hasClub(s) && (Boolean(s.flags['dressingRoomFallout']) || s.relationships.teammates < 45),
   },
   {
     id: 'meetBoard',
     category: 'board',
     cost: 2,
     riskKey: 'risk.medium',
-    available: (s) => hasClub(s) && s.player.squadRole !== 'academy',
+    // The board sees senior players with something to discuss: a contract, or a future.
+    available: (s) =>
+      seniorAtClub(s) &&
+      (s.contract === null ||
+        s.contract.endSeason - s.world.season <= 1 ||
+        Boolean(s.flags['transferListed']) ||
+        s.player.reputation >= 55),
   },
-  { id: 'praiseClubInMedia', category: 'board', cost: 1, riskKey: 'risk.low', available: hasClub },
+  {
+    id: 'praiseClubInMedia',
+    category: 'board',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && s.relationships.board < 75,
+  },
   { id: 'quietWeek', category: 'personal', cost: 1, riskKey: 'risk.low', available: () => true },
 ];
 

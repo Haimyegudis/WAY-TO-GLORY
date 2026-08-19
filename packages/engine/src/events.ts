@@ -297,7 +297,7 @@ export function resolveDecision(
     state.eventCooldowns[def.id] = absoluteWeek + def.cooldownWeeks;
     if (def.oncePerCareer) state.firedOnceEvents.push(def.id);
     // Keep the same category from firing twice in a row.
-    state.eventCooldowns['cat:' + def.category] = absoluteWeek + 3;
+    state.eventCooldowns['cat:' + def.category] = absoluteWeek + 2;
   }
 
   state.pendingDecisions.splice(index, 1);

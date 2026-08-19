@@ -679,7 +679,9 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 8. Career events. Only another event blocks one: a transfer approach sitting on
   // the table should not stop the rest of his life happening.
   const eventPending = state.pendingDecisions.some((d) => d.kind === 'event');
-  if (!eventPending && rng.chance(0.22)) {
+  // A footballer's week has something in it more often than not: this is the rate at
+  // which life asks him a question, and at 0.22 the game felt like an empty calendar.
+  if (!eventPending && rng.chance(0.4)) {
     const ctx = buildEventContext(state, index);
     const def = pickEvent(rng, index.pack.events, ctx, state);
     if (def) {
@@ -870,7 +872,7 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
     const isUserComp = compState.competitionId === userCompId;
 
     for (const fixture of compState.fixtures) {
-      if (fixture.played || fixture.week !== week) continue;
+      if (fixture.played || fixture.week > week) continue;
 
       const involvesUser = club !== null && (fixture.homeClubId === club.id || fixture.awayClubId === club.id);
       if (involvesUser) {
@@ -930,7 +932,7 @@ function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: 
 
     if (isGroupStage(competition)) {
       for (const fixture of competition.fixtures) {
-        if (fixture.played || fixture.week !== week) continue;
+        if (fixture.played || fixture.week > week) continue;
         const home = state.world.clubs[fixture.homeClubId];
         const away = state.world.clubs[fixture.awayClubId];
         if (!home || !away) { fixture.played = true; continue; }
@@ -959,7 +961,7 @@ function simulateEuroWeek(state: CareerState, index: PackIndex, rng: Rng, club: 
     }
 
     for (const tie of competition.ties) {
-      if (tie.played || tie.week !== week) continue;
+      if (tie.played || tie.week > week) continue;
       const home = state.world.clubs[tie.homeClubId];
       const away = state.world.clubs[tie.awayClubId];
       if (!home || !away) { tie.played = true; continue; }
@@ -1022,7 +1024,7 @@ function playQualifyingWeek(
   let userResult: MatchResult | null = null;
 
   for (const tie of qualifying.ties) {
-    if (tie.played || tie.week !== week) continue;
+    if (tie.played || tie.week > week) continue;
     const home = state.world.clubs[tie.homeClubId];
     const away = state.world.clubs[tie.awayClubId];
     if (!home || !away) { tie.played = true; continue; }
@@ -1194,7 +1196,7 @@ function simulateCupWeek(state: CareerState, index: PackIndex, rng: Rng, club: C
 
   for (const cup of Object.values(state.world.cups)) {
     if (cup.finished) continue;
-    const ties = cup.ties.filter((t) => !t.played && t.week === week);
+    const ties = cup.ties.filter((t) => !t.played && t.week <= week);
     if (ties.length === 0) continue;
 
     for (const tie of ties) {

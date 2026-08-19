@@ -511,9 +511,30 @@ describe('training and state feed performance', () => {
     performAction(new Rng(5), state, 'quietWeek');
     expect(state.socialActions.used).toBe(1);
     expect(availableActions(state).length).toBeGreaterThan(0);
-    performAction(new Rng(6), state, 'thankFans');
+    // askManagerFeedback is one of the few that makes sense in any week.
+    performAction(new Rng(6), state, 'askManagerFeedback');
     expect(state.socialActions.used).toBe(2);
     expect(availableActions(state)).toHaveLength(0);
+  });
+
+  it('only offers what a player would actually do this week', () => {
+    const { state } = startedCareer();
+    state.socialActions = { used: 0, perWeek: 4 };
+    // Everyone is content and nothing has happened yet.
+    state.relationships.manager = 60;
+    state.relationships.fans = 60;
+    state.relationships.teammates = 60;
+    const ids = availableActions(state).map((a) => a.id);
+
+    // Nothing to apologise for, no crowd to thank, and he is not asking to leave a
+    // club he has just joined.
+    expect(ids).not.toContain('apologiseManager');
+    expect(ids).not.toContain('apologiseFans');
+    expect(ids).not.toContain('thankFans');
+
+    // Fall out with the dressing room and the apology appears.
+    state.relationships.teammates = 30;
+    expect(availableActions(state).map((a) => a.id)).toContain('apologiseTeammates');
   });
 });
 

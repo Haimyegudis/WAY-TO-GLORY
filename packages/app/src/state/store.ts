@@ -159,15 +159,9 @@ export const useGame = create<GameStore>((set, get) => ({
     for (let i = 0; i < weeks; i++) {
       result = advanceWeek(state, index);
       if (state.retired) break;
-      // Stop the moment the world needs the player: a decision, a new season, or a
-      // match he was actually involved in. A match he watched from outside the squad
-      // is not worth interrupting the week for.
-      if (result.stopped === 'match') {
-        const line = state.lastMatch?.userLine;
-        const notable = line?.played || (state.lastMatch?.importance && state.lastMatch.importance !== 'normal');
-        if (notable) break;
-        continue;
-      }
+      // Every match his club plays stops the clock, whether he was in it or not:
+      // watching from the bench is still his Saturday.
+      if (result.stopped === 'match') break;
       if (result.stopped !== 'week') break;
     }
 
@@ -176,8 +170,9 @@ export const useGame = create<GameStore>((set, get) => ({
       state: { ...state },
       busy: false,
       lastTick: result?.stopped ?? null,
-      screen: result?.stopped === 'match' && state.lastMatch?.userLine?.played ? 'match' : get().screen,
-      // A match he played gets watched, not just read.
+      // A match always opens the match screen, from any tab.
+      screen: result?.stopped === 'match' ? 'match' : get().screen,
+      // A match he played gets watched minute by minute; one he sat out is just read.
       liveMatchId:
         result?.stopped === 'match' && state.lastMatch?.userLine?.played ? state.lastMatch.id : null,
     });
