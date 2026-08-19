@@ -367,10 +367,10 @@ export const useGame = create<GameStore>((set, get) => ({
     // A question from the press is not a scripted event: the answer is a trade applied
     // straight to his attributes, and any claim in it is settled the next time he plays.
     if (decisionId.startsWith('milestone_')) {
-      engineAnswerMedia(state, decisionId, optionId);
+      const mediaResult = engineAnswerMedia(state, decisionId, optionId);
       const mediaSlot = get().activeSaveId;
       if (mediaSlot) persistTo(mediaSlot, state, (saves) => set({ saves }));
-      set({ state: { ...state }, result: null });
+      set({ state: { ...state }, result: mediaResult });
       return;
     }
     // Hanging them up is his own decision, so it is answered here rather than by the
@@ -495,7 +495,12 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   endLive() {
-    set({ liveMatchId: null });
+    // Anything the match itself settled - a promise made in front of a camera, say -
+    // is shown once the whistle has gone rather than on top of the football.
+    const { state } = get();
+    const settled = state?.lastResult ?? null;
+    if (state) state.lastResult = null;
+    set({ liveMatchId: null, result: settled, ...(state ? { state: { ...state } } : {}) });
   },
 
   openMessage(id) {

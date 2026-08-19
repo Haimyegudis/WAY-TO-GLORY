@@ -22,6 +22,7 @@ export * from './transfer.js';
 export * from './agents.js';
 export * from './national.js';
 export * from './events.js';
+export * from './milestones.js';
 export * from './social.js';
 export * from './career.js';
 export * from './save.js';

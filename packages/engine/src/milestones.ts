@@ -12,7 +12,15 @@
  * answer here - the quiet one costs him the crowd, the loud one costs him if he fails.
  */
 import { Rng, clamp } from './rng.js';
-import type { AttributeKey, CareerState, MatchImportance, PersonalityKey } from './types.js';
+import { track } from './social.js';
+import type {
+  AppliedChange,
+  AttributeKey,
+  CareerState,
+  DecisionResult,
+  MatchImportance,
+  PersonalityKey,
+} from './types.js';
 
 export type MilestoneId =
   | 'debut'
@@ -43,6 +51,12 @@ export interface MilestoneAnswer {
 export interface MilestoneQuestion {
   id: MilestoneId;
   answers: MilestoneAnswer[];
+}
+
+/** A claim that has been settled: whether he backed it up, and what it moved. */
+export interface ClaimSettlement {
+  carried: boolean;
+  result: DecisionResult;
 }
 
 /**
@@ -208,10 +222,13 @@ export const MILESTONES: MilestoneQuestion[] = [
     id: 'trophyNight',
     answers: [
       {
+        // Hands the night to everybody else. The dressing room will not forget it, and
+        // neither will the people writing about somebody else's season.
         id: 'creditThem',
-        personality: { professionalism: 1.3 },
-        relationships: { teammates: 10, manager: 6, board: 4 },
+        personality: { professionalism: 1.3, ambition: -0.8 },
+        relationships: { teammates: 10, manager: 6, board: 4, media: -4 },
         morale: 6,
+        fame: -2,
       },
       {
         id: 'firstOfMany',
@@ -264,31 +281,56 @@ export function milestoneById(id: MilestoneId): MilestoneQuestion | undefined {
  * A claim is not settled here. He has said it in front of a camera and now he has to go
  * out and look like he meant it, so the promise is held until the next time he plays.
  */
-export function applyMilestoneAnswer(state: CareerState, answer: MilestoneAnswer): void {
+export function applyMilestoneAnswer(state: CareerState, answer: MilestoneAnswer): DecisionResult {
   const player = state.player;
+  const changes: AppliedChange[] = [];
 
   for (const [key, delta] of Object.entries(answer.attributes ?? {})) {
     const attribute = key as AttributeKey;
-    player.attributes[attribute] = clamp(player.attributes[attribute] + delta, 1, 99);
+    const before = player.attributes[attribute];
+    player.attributes[attribute] = clamp(before + delta, 1, 99);
+    track(changes, `change.attr.${attribute}`, before, player.attributes[attribute]);
   }
   for (const [key, delta] of Object.entries(answer.personality ?? {})) {
     const trait = key as PersonalityKey;
-    player.personality[trait] = clamp(player.personality[trait] + delta, 1, 99);
+    const before = player.personality[trait];
+    player.personality[trait] = clamp(before + delta, 1, 99);
+    track(changes, `change.personality.${trait}`, before, player.personality[trait]);
   }
   for (const [key, delta] of Object.entries(answer.relationships ?? {})) {
     const who = key as 'manager' | 'teammates' | 'fans' | 'board' | 'media';
-    state.relationships[who] = clamp(state.relationships[who] + delta, 0, 100);
-    if (who === 'manager') state.managerTrust = clamp(state.managerTrust + delta, 0, 100);
+    const before = state.relationships[who];
+    state.relationships[who] = clamp(before + delta, 0, 100);
+    if (who === 'manager') state.managerTrust = state.relationships[who];
+    track(changes, `change.${who}`, before, state.relationships[who]);
   }
 
-  if (answer.morale) player.morale = clamp(player.morale + answer.morale, 0, 100);
-  if (answer.fame) player.fame = clamp(player.fame + answer.fame, 0, 100);
-  if (answer.reputation) player.reputation = clamp(player.reputation + answer.reputation, 0, 100);
+  if (answer.morale) {
+    const before = player.morale;
+    player.morale = clamp(before + answer.morale, 0, 100);
+    track(changes, 'change.morale', before, player.morale);
+  }
+  if (answer.fame) {
+    const before = player.fame;
+    player.fame = clamp(before + answer.fame, 0, 100);
+    track(changes, 'change.fame', before, player.fame);
+  }
+  if (answer.reputation) {
+    const before = player.reputation;
+    player.reputation = clamp(before + answer.reputation, 0, 100);
+    track(changes, 'change.reputation', before, player.reputation);
+  }
 
   if (answer.backsItUp) {
     state.flags['claimAttribute'] = answer.backsItUp.attribute;
     state.flags['claimSwing'] = answer.backsItUp.swing;
   }
+
+  return {
+    changes,
+    consequences: [],
+    ...(answer.backsItUp ? { narrativeKey: 'milestone.claimMade' } : {}),
+  };
 }
 
 /**
@@ -296,7 +338,7 @@ export function applyMilestoneAnswer(state: CareerState, answer: MilestoneAnswer
  * up and the attribute he staked goes up by more than he risked, fall short and it goes
  * down by more than he stood to gain. Nobody remembers a quiet man who had a bad game.
  */
-export function settleClaim(rng: Rng, state: CareerState, rating: number): boolean | null {
+export function settleClaim(rng: Rng, state: CareerState, rating: number): ClaimSettlement | null {
   const attribute = state.flags['claimAttribute'];
   const swing = Number(state.flags['claimSwing'] ?? 0);
   if (typeof attribute !== 'string' || swing <= 0) return null;
@@ -309,9 +351,30 @@ export function settleClaim(rng: Rng, state: CareerState, rating: number): boole
 
   const performance = (rating - 6.7) / 1.3;
   const carried = performance + rng.gauss(0, 0.3) > 0;
-  state.player.attributes[key] = clamp(state.player.attributes[key] + swing * (carried ? 1 : -1.15), 1, 99);
-  state.player.morale = clamp(state.player.morale + (carried ? 6 : -8), 0, 100);
-  state.relationships.media = clamp(state.relationships.media + (carried ? 6 : -8), 0, 100);
-  state.relationships.fans = clamp(state.relationships.fans + (carried ? 7 : -9), 0, 100);
-  return carried;
+  const changes: AppliedChange[] = [];
+
+  const attrBefore = state.player.attributes[key];
+  state.player.attributes[key] = clamp(attrBefore + swing * (carried ? 1 : -1.15), 1, 99);
+  track(changes, `change.attr.${key}`, attrBefore, state.player.attributes[key]);
+
+  const moraleBefore = state.player.morale;
+  state.player.morale = clamp(moraleBefore + (carried ? 6 : -8), 0, 100);
+  track(changes, 'change.morale', moraleBefore, state.player.morale);
+
+  const mediaBefore = state.relationships.media;
+  state.relationships.media = clamp(mediaBefore + (carried ? 6 : -8), 0, 100);
+  track(changes, 'change.media', mediaBefore, state.relationships.media);
+
+  const fansBefore = state.relationships.fans;
+  state.relationships.fans = clamp(fansBefore + (carried ? 7 : -9), 0, 100);
+  track(changes, 'change.fans', fansBefore, state.relationships.fans);
+
+  return {
+    carried,
+    result: {
+      changes,
+      consequences: [],
+      narrativeKey: carried ? 'milestone.claimKept' : 'milestone.claimBroken',
+    },
+  };
 }

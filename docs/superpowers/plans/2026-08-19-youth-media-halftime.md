@@ -17,7 +17,7 @@
 - Senior football minimum age is **16**. Ages 16-17 need a first-team call-up, ability within 6 OVR of the club's level, potential ≥ 80 and `managerTrust ≥ 55`, and are capped at a late substitute appearance of ≤ 30 minutes. From 18 there is no restriction.
 - Youth ages are **14 to 19**. A player leaves the youth system at the end of the season in which he turns 19.
 - Youth promotion and relegation are **2 up, 2 down**, computed from the youth table alone and applied only to `YouthWorld.membership`.
-- Tests run with `npm test` (which is `node --test` inside `packages/engine`).
+- Tests run with `npm test` (which is vitest inside `packages/engine`).
 - Commit after every task.
 
 ## File Structure

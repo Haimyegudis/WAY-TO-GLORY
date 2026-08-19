@@ -1071,19 +1071,23 @@ function askTheMedia(state: CareerState, importance: MatchImportance): void {
   if (id) raiseMilestone(state, id);
 }
 
-/** Answering the press. The trade is applied, and any claim is left for the pitch. */
-export function answerMedia(state: CareerState, decisionId: string, optionId: string): boolean {
+/**
+ * Answering the press. The trade is applied and handed straight back, so what he said
+ * is followed by what it cost him; any claim inside it is left for the pitch to settle.
+ */
+export function answerMedia(state: CareerState, decisionId: string, optionId: string): DecisionResult | null {
   const at = state.pendingDecisions.findIndex((decision) => decision.id === decisionId);
-  if (at === -1) return false;
+  if (at === -1) return null;
   const decision = state.pendingDecisions[at]!;
   const id = decision.eventId.replace('milestone:', '') as MilestoneId;
   const question = milestoneById(id);
   const answer = question?.answers.find((entry) => entry.id === optionId);
-  if (!answer) return false;
+  if (!answer) return null;
 
   state.pendingDecisions.splice(at, 1);
-  applyMilestoneAnswer(state, answer);
-  return true;
+  const result = applyMilestoneAnswer(state, answer);
+  state.lastResult = result;
+  return result;
 }
 
 /** Announces the week's fixture if it is worth announcing, and says what kind it is. */
@@ -1862,10 +1866,12 @@ function applyMatchToPlayer(
       pushInbox(state, 'medical', 'inbox.injuredMatch', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
     }
 
-    // Anything he promised in front of a camera is settled by what he just did.
-    const carried = settleClaim(rng, state, line.rating);
-    if (carried !== null) {
-      pushInbox(state, 'media', carried ? 'inbox.claimBackedUp' : 'inbox.claimFailed', {});
+    // Anything he promised in front of a camera is settled by what he just did, and
+    // what it cost or paid is put in front of him rather than filed away.
+    const settled = settleClaim(rng, state, line.rating);
+    if (settled) {
+      pushInbox(state, 'media', settled.carried ? 'inbox.claimBackedUp' : 'inbox.claimFailed', {});
+      state.lastResult = settled.result;
     }
 
     if (line.goals > 0) {

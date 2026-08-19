@@ -9,10 +9,12 @@ import { buildAttributes, generatePlayer } from '../src/generate.js';
 import { pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
+import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/milestones.js';
 import { generateOffers, isTransferWindow } from '../src/transfer.js';
 import { indexPack, validatePack } from '../src/data.js';
 import {
   advanceWeek,
+  answerMedia,
   createCareer,
   currentOvr,
   getAcademyOffers,
@@ -735,5 +737,75 @@ describe('transfer offers', () => {
     expect(isTransferWindow(1, 'ISR')).toBe(false);
     expect(isTransferWindow(11, 'ISR')).toBe(true);
     expect(isTransferWindow(33, 'ISR')).toBe(true);
+  });
+});
+
+describe('the press', () => {
+  /** Puts a question on the table the way `raiseMilestone` does, without a whole season. */
+  function askHim(state: ReturnType<typeof startedCareer>['state'], id: 'debut' | 'derby') {
+    const question = milestoneById(id)!;
+    const decision = {
+      id: `milestone_${id}_1_1`,
+      kind: 'event' as const,
+      eventId: `milestone:${id}`,
+      category: 'media' as const,
+      textKey: `milestone.${id}`,
+      options: question.answers.map((answer) => ({
+        id: answer.id,
+        labelKey: `milestone.${id}.${answer.id}`,
+        effects: [],
+      })),
+      blocking: true,
+    };
+    state.pendingDecisions.push(decision);
+    return decision;
+  }
+
+  it('hands back what the answer changed', () => {
+    const { state } = startedCareer();
+    const decision = askHim(state, 'debut');
+    const result = answerMedia(state, decision.id, decision.options[0]!.id);
+
+    expect(result).not.toBeNull();
+    expect(result!.changes.length).toBeGreaterThan(0);
+    for (const change of result!.changes) {
+      expect(change.before).not.toBe(change.after);
+      expect(['good', 'bad', 'neutral']).toContain(change.tone);
+    }
+    expect(state.pendingDecisions.some((d) => d.id === decision.id)).toBe(false);
+  });
+
+  it('records a public claim so the next match has to settle it', () => {
+    const { state } = startedCareer();
+    const question = milestoneById('debut')!;
+    const bold = question.answers.find((answer) => answer.backsItUp)!;
+    const result = applyMilestoneAnswer(state, bold);
+
+    expect(result.narrativeKey).toBe('milestone.claimMade');
+    expect(state.flags['claimAttribute']).toBe(bold.backsItUp!.attribute);
+    expect(Number(state.flags['claimSwing'])).toBeGreaterThan(0);
+  });
+
+  it('refuses an answer that was never on the table', () => {
+    const { state } = startedCareer();
+    const decision = askHim(state, 'derby');
+    expect(answerMedia(state, decision.id, 'nothing-he-said')).toBeNull();
+  });
+
+  it('never offers an answer that costs nothing at all', () => {
+    for (const question of MILESTONES) {
+      for (const answer of question.answers) {
+        const deltas = [
+          ...Object.values(answer.attributes ?? {}),
+          ...Object.values(answer.personality ?? {}),
+          ...Object.values(answer.relationships ?? {}),
+          answer.morale ?? 0,
+          answer.fame ?? 0,
+          answer.reputation ?? 0,
+        ];
+        const costs = deltas.some((delta) => delta < 0) || Boolean(answer.backsItUp);
+        expect(costs, `${question.id}.${answer.id} risks nothing`).toBe(true);
+      }
+    }
   });
 });
