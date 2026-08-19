@@ -38,6 +38,13 @@ export default defineConfig({
         globIgnores: ['**/crests/**', '**/crests.html', '**/audio/**'],
         runtimeCaching: [
           {
+            // The human body: one binary, fetched the first time somebody makes a player
+            // and kept, so the character works with no network like everything else.
+            urlPattern: /\/models\/human\.(bin|json)$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'human', expiration: { maxEntries: 4 } },
+          },
+          {
             // The soundtrack is cached the first time it is heard, not on install.
             urlPattern: /\/audio\/.*\.mp3$/,
             handler: 'CacheFirst',

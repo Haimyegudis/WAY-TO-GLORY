@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { AvatarLook } from '@fc/engine';
-import { buildAvatar, type KitColours } from './build.js';
+import { addFeatures, type KitColours } from './build.js';
+import { buildHuman } from './human.js';
 
 /**
  * The figure on screen, turned by a finger.
@@ -90,25 +91,39 @@ export function AvatarView({
     };
   }, [height, spin]);
 
-  // The figure, rebuilt whenever what he looks like changes.
+  // The figure, rebuilt whenever what he looks like changes. The body is a real mesh
+  // loaded once and shaped per look, so this is asynchronous the first time and instant
+  // after that.
   useEffect(() => {
+    let alive = true;
     const view = scene.current;
     if (!view) return;
-    if (figure.current) {
-      view.remove(figure.current);
-      figure.current.traverse((part) => {
-        const mesh = part as THREE.Mesh;
-        if (mesh.geometry) mesh.geometry.dispose();
-        const material = mesh.material as THREE.Material | THREE.Material[] | undefined;
-        if (Array.isArray(material)) material.forEach((m) => m.dispose());
-        else material?.dispose();
-      });
-    }
-    const built = buildAvatar(look, heightCm, kit);
-    built.rotation.y = turn.current;
-    view.add(built);
-    figure.current = built;
+    void (async () => {
+      const built = await buildHuman(look, heightCm, kit);
+      if (!alive || !scene.current) return;
+      addFeatures(built, look);
+      clear();
+      built.rotation.y = turn.current;
+      scene.current.add(built);
+      figure.current = built;
+    })();
+    return () => { alive = false; };
   }, [look, heightCm, kit]);
+
+  /** Take the old figure off the scene and give its geometry back to the card. */
+  const clear = () => {
+    const view = scene.current;
+    if (!view || !figure.current) return;
+    view.remove(figure.current);
+    figure.current.traverse((part) => {
+      const mesh = part as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      const material = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(material)) material.forEach((m) => m.dispose());
+      else material?.dispose();
+    });
+    figure.current = null;
+  };
 
   return (
     <div
