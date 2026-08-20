@@ -4,7 +4,6 @@ import { useLang, useT } from '../i18n/index.js';
 import { countryName } from '../lib/names.js';
 import {
   BODY_SLIDERS,
-  HERITAGES,
   BUILD_SHAPES,
   FACE_SLIDERS,
   EYE_COLOURS,
@@ -21,12 +20,22 @@ import {
   shapeFromChoices,
   type AvatarLook,
 } from '@fc/engine';
-import { AvatarView } from '../avatar/AvatarView.js';
+import { Avatar2D } from '../avatar/Avatar2D.js';
 import { getPack, useGame } from '../state/store.js';
 import { Card } from '../components/ui.js';
 import { PitchPicker } from '../components/PitchPicker.js';
 
 const STEPS = ['create.identity', 'create.physical', 'create.look', 'create.position', 'create.world'] as const;
+
+/**
+ * The look screen, in parts.
+ *
+ * Skin, hair, beard, face, body and what he wears, one at a time under a figure that
+ * stays where it is. One list of everything meant the beard was being chosen with the
+ * face three screens above it.
+ */
+const LOOK_TABS = ['skin', 'hair', 'beard', 'face', 'body', 'extras'] as const;
+type LookTab = (typeof LOOK_TABS)[number];
 
 /**
  * The same numbers the engine applies to a new player's attributes, shown while he
@@ -74,9 +83,9 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
 /**
  * One feature, moved by hand.
  *
- * Nought is the face as it comes; either end is as far as MakeHuman's own target for
- * that feature goes. Naming both ends - "narrow" and "wide" rather than "-1" and "1" -
- * is the difference between a control and a number.
+ * Nought is the face as it comes, and either end is as far as that feature goes. Naming
+ * both ends - "narrow" and "wide" rather than "-1" and "1" - is the difference between a
+ * control and a number.
  */
 function Slider({
   label, ends, value, onChange,
@@ -120,7 +129,7 @@ function Swatch({ colour, on, onClick }: { colour: string; on: boolean; onClick:
 const shapeOf = (look: AvatarLook) => shapeFromChoices(look);
 
 /** The kit he is shown in before he has a club: plain, and not anybody's colours. */
-const KIT = { shirt: '#e9edf3', shorts: '#1b2333', socks: '#e9edf3' };
+const KIT = { shirt: '#e9edf3', shorts: '#3b4a68', socks: '#e9edf3' };
 
 export function CreatePlayer() {
   const t = useT();
@@ -153,6 +162,7 @@ export function CreatePlayer() {
   const [shirtTouched, setShirtTouched] = useState(draft?.shirtNumber !== undefined);
   const [look, setLook] = useState<AvatarLook>(draft?.look ?? defaultLook());
   const [framing, setFraming] = useState<'body' | 'face'>('body');
+  const [part, setPart] = useState<LookTab>('skin');
 
   // The back gesture belongs to this form while it is open: it walks back through the
   // steps, and only once he is at the first one does it mean anything else.
@@ -282,146 +292,157 @@ export function CreatePlayer() {
         )}
 
         {/*
-          * Him, in three dimensions.
+          * Him, drawn.
           *
-          * Eighteen seasons of a career and the only thing on screen that was supposed
-          * to be him was a shirt number. He is built out of shapes rather than a
-          * downloaded model, so it costs nothing to ship and every choice below moves a
-          * number rather than swapping a picture.
+          * Eighteen seasons of a career and the only thing on screen that was supposed to
+          * be him was a shirt number. He is vector shapes rather than a downloaded model,
+          * so it costs nothing to ship and every choice below moves a number rather than
+          * swapping a picture.
+          *
+          * The figure stays put at the top while he builds it. It used to sit above one
+          * long list, so by the time he reached the beard he was choosing blind - which is
+          * the whole problem with a list: the thing it changes has scrolled off.
           */}
         {step === 2 && (
           <Card title={t('create.look')}>
-            <div className="seg" style={{ marginBlockEnd: 8 }}>
-              <button aria-pressed={framing === 'body'} onClick={() => setFraming('body')}>{t('look.wholeBody')}</button>
-              <button aria-pressed={framing === 'face'} onClick={() => setFraming('face')}>{t('look.faceOnly')}</button>
-            </div>
-            <AvatarView look={look} heightCm={heightCm} kit={KIT} height={250} framing={framing} spin={framing === 'body'} />
-
-            <Picker label={t('look.heritage')}>
-              {HERITAGES.map((heritage) => (
-                <Chip
-                  key={heritage}
-                  on={(look.heritage ?? 'european') === heritage}
-                  onClick={() => setLook({ ...look, heritage })}
-                >
-                  {t(`look.heritage.${heritage}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.skin')}>
-              {SKIN_TONES.map((tone, i) => (
-                <Swatch key={tone} colour={tone} on={look.skin === i} onClick={() => setLook({ ...look, skin: i })} />
-              ))}
-            </Picker>
-
-            <Picker label={t('look.hair')}>
-              {HAIR_STYLES.map((style) => (
-                <Chip key={style} on={look.hair === style} onClick={() => setLook({ ...look, hair: style })}>
-                  {t(`look.hair.${style}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.hairColour')}>
-              {HAIR_COLOURS.map((colour, i) => (
-                <Swatch key={colour} colour={colour} on={look.hairColour === i} onClick={() => setLook({ ...look, hairColour: i })} />
-              ))}
-            </Picker>
-
-            <Picker label={t('look.facialHair')}>
-              {FACIAL_HAIRS.map((style) => (
-                <Chip key={style} on={look.facialHair === style} onClick={() => setLook({ ...look, facialHair: style })}>
-                  {t(`look.facialHair.${style}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.eyes')}>
-              {EYE_SHAPES.map((shape) => (
-                <Chip key={shape} on={look.eyes === shape} onClick={() => setLook({ ...look, eyes: shape })}>
-                  {t(`look.eyes.${shape}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.eyeColour')}>
-              {EYE_COLOURS.map((colour, i) => (
-                <Swatch key={colour} colour={colour} on={look.eyeColour === i} onClick={() => setLook({ ...look, eyeColour: i })} />
-              ))}
-            </Picker>
-
-            <Picker label={t('look.nose')}>
-              {NOSE_SHAPES.map((shape) => (
-                <Chip key={shape} on={look.nose === shape} onClick={() => setLook({ ...look, nose: shape })}>
-                  {t(`look.nose.${shape}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.mouth')}>
-              {MOUTH_SHAPES.map((shape) => (
-                <Chip key={shape} on={look.mouth === shape} onClick={() => setLook({ ...look, mouth: shape })}>
-                  {t(`look.mouth.${shape}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.build')}>
-              {BUILD_SHAPES.map((shape) => (
-                <Chip key={shape} on={look.build === shape} onClick={() => setLook({ ...look, build: shape })}>
-                  {t(`look.build.${shape}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.limbs')}>
-              {LIMB_LENGTHS.map((length) => (
-                <Chip key={length} on={look.limbs === length} onClick={() => setLook({ ...look, limbs: length })}>
-                  {t(`look.limbs.${length}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <Picker label={t('look.sleeves')}>
-              {(['short', 'long'] as const).map((length) => (
-                <Chip key={length} on={look.sleeves === length} onClick={() => setLook({ ...look, sleeves: length })}>
-                  {t(`look.sleeves.${length}`)}
-                </Chip>
-              ))}
-            </Picker>
-
-            <div style={{ marginBlockStart: 18 }}>
-              <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('look.face')}</p>
-              {FACE_SLIDERS.map((slider) => (
-                <Slider
-                  key={slider}
-                  label={t(`look.slider.${slider}`)}
-                  ends={[t(`look.slider.${slider}.low`), t(`look.slider.${slider}.high`)]}
-                  value={shapeOf(look)[slider] ?? 0}
-                  onChange={(next) => setLook({ ...look, shape: { ...shapeOf(look), [slider]: next } })}
-                />
-              ))}
+            <div className="look-stage">
+              <div className="seg" style={{ marginBlockEnd: 8 }}>
+                <button aria-pressed={framing === 'body'} onClick={() => setFraming('body')}>{t('look.wholeBody')}</button>
+                <button aria-pressed={framing === 'face'} onClick={() => setFraming('face')}>{t('look.faceOnly')}</button>
+              </div>
+              <Avatar2D look={look} heightCm={heightCm} kit={KIT} height={framing === 'face' ? 190 : 240} framing={framing} />
+              <div className="look-tabs">
+                {LOOK_TABS.map((tab) => (
+                  <button key={tab} aria-pressed={part === tab} onClick={() => setPart(tab)}>
+                    {t(`look.tab.${tab}`)}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div style={{ marginBlockStart: 18 }}>
-              <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('look.bodyShape')}</p>
-              {BODY_SLIDERS.map((slider) => (
-                <Slider
-                  key={slider}
-                  label={t(`look.slider.${slider}`)}
-                  ends={[t(`look.slider.${slider}.low`), t(`look.slider.${slider}.high`)]}
-                  value={shapeOf(look)[slider] ?? 0}
-                  onChange={(next) => setLook({ ...look, shape: { ...shapeOf(look), [slider]: next } })}
-                />
-              ))}
-            </div>
+            {part === 'skin' && (
+              <Picker label={t('look.skin')}>
+                {SKIN_TONES.map((tone, i) => (
+                  <Swatch key={tone} colour={tone} on={look.skin === i} onClick={() => setLook({ ...look, skin: i })} />
+                ))}
+              </Picker>
+            )}
 
-            <Picker label={t('look.wearing')}>
-              <Chip on={look.earring} onClick={() => setLook({ ...look, earring: !look.earring })}>{t('look.earring')}</Chip>
-              <Chip on={look.necklace} onClick={() => setLook({ ...look, necklace: !look.necklace })}>{t('look.necklace')}</Chip>
-              <Chip on={look.bracelet} onClick={() => setLook({ ...look, bracelet: !look.bracelet })}>{t('look.bracelet')}</Chip>
-            </Picker>
+            {part === 'hair' && (
+              <>
+                <Picker label={t('look.hair')}>
+                  {HAIR_STYLES.map((style) => (
+                    <Chip key={style} on={look.hair === style} onClick={() => setLook({ ...look, hair: style })}>
+                      {t(`look.hair.${style}`)}
+                    </Chip>
+                  ))}
+                </Picker>
+                <Picker label={t('look.hairColour')}>
+                  {HAIR_COLOURS.map((colour, i) => (
+                    <Swatch key={colour} colour={colour} on={look.hairColour === i} onClick={() => setLook({ ...look, hairColour: i })} />
+                  ))}
+                </Picker>
+              </>
+            )}
+
+            {part === 'beard' && (
+              <Picker label={t('look.facialHair')}>
+                {FACIAL_HAIRS.map((style) => (
+                  <Chip key={style} on={look.facialHair === style} onClick={() => setLook({ ...look, facialHair: style })}>
+                    {t(`look.facialHair.${style}`)}
+                  </Chip>
+                ))}
+              </Picker>
+            )}
+
+            {part === 'face' && (
+              <>
+                <Picker label={t('look.eyes')}>
+                  {EYE_SHAPES.map((shape) => (
+                    <Chip key={shape} on={look.eyes === shape} onClick={() => setLook({ ...look, eyes: shape })}>
+                      {t(`look.eyes.${shape}`)}
+                    </Chip>
+                  ))}
+                </Picker>
+                <Picker label={t('look.eyeColour')}>
+                  {EYE_COLOURS.map((colour, i) => (
+                    <Swatch key={colour} colour={colour} on={look.eyeColour === i} onClick={() => setLook({ ...look, eyeColour: i })} />
+                  ))}
+                </Picker>
+                <Picker label={t('look.nose')}>
+                  {NOSE_SHAPES.map((shape) => (
+                    <Chip key={shape} on={look.nose === shape} onClick={() => setLook({ ...look, nose: shape })}>
+                      {t(`look.nose.${shape}`)}
+                    </Chip>
+                  ))}
+                </Picker>
+                <Picker label={t('look.mouth')}>
+                  {MOUTH_SHAPES.map((shape) => (
+                    <Chip key={shape} on={look.mouth === shape} onClick={() => setLook({ ...look, mouth: shape })}>
+                      {t(`look.mouth.${shape}`)}
+                    </Chip>
+                  ))}
+                </Picker>
+                <div style={{ marginBlockStart: 14 }}>
+                  <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('look.face')}</p>
+                  {FACE_SLIDERS.map((slider) => (
+                    <Slider
+                      key={slider}
+                      label={t(`look.slider.${slider}`)}
+                      ends={[t(`look.slider.${slider}.low`), t(`look.slider.${slider}.high`)]}
+                      value={shapeOf(look)[slider] ?? 0}
+                      onChange={(next) => setLook({ ...look, shape: { ...shapeOf(look), [slider]: next } })}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {part === 'body' && (
+              <>
+                <Picker label={t('look.build')}>
+                  {BUILD_SHAPES.map((shape) => (
+                    <Chip key={shape} on={look.build === shape} onClick={() => setLook({ ...look, build: shape })}>
+                      {t(`look.build.${shape}`)}
+                    </Chip>
+                  ))}
+                </Picker>
+                <Picker label={t('look.limbs')}>
+                  {LIMB_LENGTHS.map((length) => (
+                    <Chip key={length} on={look.limbs === length} onClick={() => setLook({ ...look, limbs: length })}>
+                      {t(`look.limbs.${length}`)}
+                    </Chip>
+                  ))}
+                </Picker>
+                <Picker label={t('look.sleeves')}>
+                  {(['short', 'long'] as const).map((length) => (
+                    <Chip key={length} on={look.sleeves === length} onClick={() => setLook({ ...look, sleeves: length })}>
+                      {t(`look.sleeves.${length}`)}
+                    </Chip>
+                  ))}
+                </Picker>
+                <div style={{ marginBlockStart: 14 }}>
+                  <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('look.bodyShape')}</p>
+                  {BODY_SLIDERS.map((slider) => (
+                    <Slider
+                      key={slider}
+                      label={t(`look.slider.${slider}`)}
+                      ends={[t(`look.slider.${slider}.low`), t(`look.slider.${slider}.high`)]}
+                      value={shapeOf(look)[slider] ?? 0}
+                      onChange={(next) => setLook({ ...look, shape: { ...shapeOf(look), [slider]: next } })}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {part === 'extras' && (
+              <Picker label={t('look.wearing')}>
+                <Chip on={look.earring} onClick={() => setLook({ ...look, earring: !look.earring })}>{t('look.earring')}</Chip>
+                <Chip on={look.necklace} onClick={() => setLook({ ...look, necklace: !look.necklace })}>{t('look.necklace')}</Chip>
+                <Chip on={look.bracelet} onClick={() => setLook({ ...look, bracelet: !look.bracelet })}>{t('look.bracelet')}</Chip>
+              </Picker>
+            )}
 
             <button className="btn btn-quiet btn-block" style={{ marginBlockStart: 12 }} onClick={() => setLook(lookFromSeed(String(Date.now())))}>
               {t('look.surprise')}

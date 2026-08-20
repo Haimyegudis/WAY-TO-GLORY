@@ -2647,7 +2647,7 @@ function playUserMatch(
     pushInbox(state, 'club', 'inbox.debut', { club: club.name });
     pushNews(state, 'news.debut', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'high');
     unlock(state, 'firstProMatch', { club: club.name });
-    raiseMilestone(state, 'debut', true);
+    raiseMilestone(state, 'debut', { force: true });
   }
 
   applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled, instructionFatigue);
@@ -2920,7 +2920,7 @@ function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng,
     unlock(state, 'firstCallUp', { country: country.name });
     // A first cap at any level is one of the nights that belongs to him; it does not
     // wait behind whatever the press asked about a fortnight ago.
-    raiseMilestone(state, 'nationalCallUp', true);
+    raiseMilestone(state, 'nationalCallUp', { force: true });
   }
 
   const matches = rng.int(1, 2);
@@ -3026,7 +3026,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   // Individual honours, decided before the world ages and the season rolls over.
   applyAwards(state, index, rng);
 
-  if (trophies.length > 0) raiseMilestone(state, 'trophyNight', true);
+  if (trophies.length > 0) raiseMilestone(state, 'trophyNight', { force: true });
 
   // A season spent mostly on Sunday mornings is a youth season, and the career page
   // should say so rather than filing thirty youth appearances under the first division.

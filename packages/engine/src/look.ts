@@ -18,16 +18,13 @@ export type MouthShape = 'thin' | 'even' | 'full';
 export type BuildShape = 'slight' | 'lean' | 'athletic' | 'strong' | 'heavy';
 export type LimbLength = 'short' | 'normal' | 'long';
 export type SleeveLength = 'short' | 'long';
-export type Heritage = 'european' | 'african' | 'asian';
-
-export const HERITAGES: readonly Heritage[] = ['european', 'african', 'asian'];
 
 /**
  * The sliders the face and body are actually shaped by.
  *
- * Each runs from -1 to 1 with 0 as the face MakeHuman ships, and each is a pair of that
- * project's own morph targets. The named shapes above - a wide nose, narrow eyes - are
- * starting points that write into these; the sliders are what the mesh reads.
+ * Each runs from -1 to 1 with 0 as the face as it comes. The named shapes above - a wide
+ * nose, narrow eyes - are starting points that write into these; the sliders are what the
+ * drawing reads.
  */
 export type ShapeSlider =
   | 'noseWidth' | 'noseLength' | 'noseHump'
@@ -61,12 +58,6 @@ export interface AvatarLook {
   earring: boolean;
   necklace: boolean;
   bracelet: boolean;
-  /**
-   * Which of MakeHuman's macro bodies he is built from. The base mesh is the average of
-   * everybody and reads as a woman on screen; this is what makes him a man, and it
-   * carries the face of that heritage with it.
-   */
-  heritage?: Heritage;
   /** Slider values, -1 to 1. Anything missing is the face as it comes. */
   shape?: Partial<Record<ShapeSlider, number>>;
 }
@@ -116,7 +107,6 @@ export function shapeFromChoices(look: AvatarLook): Partial<Record<ShapeSlider, 
 export function defaultLook(): AvatarLook {
   return {
     skin: 2,
-    heritage: 'european',
     hair: 'short',
     hairColour: 1,
     facialHair: 'none',
@@ -144,10 +134,8 @@ export function lookFromSeed(seed: string): AvatarLook {
     const x = Math.imul(h ^ (salt * 2654435761), 2246822519);
     return Math.abs(x >>> 0) % n;
   };
-  const heritages = HERITAGES;
   return {
     skin: pick(SKIN_TONES.length, 1),
-    heritage: heritages[pick(heritages.length, 15)]!,
     hair: HAIR_STYLES[pick(HAIR_STYLES.length, 2)]!,
     hairColour: pick(HAIR_COLOURS.length, 3),
     facialHair: FACIAL_HAIRS[pick(FACIAL_HAIRS.length, 4)]!,
