@@ -2,7 +2,6 @@
 import type { QualifyingCampaign } from './qualifying.js';
 import type { MentorState } from './mentor.js';
 import type { LifeState } from './life.js';
-import type { AvatarLook } from './look.js';
 
 export type Position =
   | 'GK'
@@ -129,8 +128,6 @@ export interface Player {
   reputation: number;               // 0-100
   fame: number;                     // 0-100
   isUser: boolean;
-  /** What he looks like. Only the player's own is authored; the rest are seeded. */
-  look?: AvatarLook;
   isReal?: boolean;                 // came from the real-names data pack
   retired?: boolean;
 }

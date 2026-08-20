@@ -30,7 +30,7 @@ let buildUpsBeforeTheMatch = 0;
 let notBlocking = 0;
 
 for (let seed = firstSeed; seed < firstSeed + seedCount; seed++) {
-  const { state, index } = startedCareer(seed);
+  const { state, index } = startedCareer({ seed });
   const rng = new Rng(seed * 977 + 5);
   let redsSeen = 0;
 
