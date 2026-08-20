@@ -112,4 +112,80 @@ export const MANUAL_CLUBS: Record<string, ManualClub[]> = {
     { name: 'Renate FC', short: 'Renate', city: 'Renate', strength: 36 },
     { name: 'US Alessandria', short: 'Alessandria', city: 'Alessandria', strength: 35 },
   ],
+
+  /*
+   * Argentina: the sixteen clubs the league is actually about. The real Liga Profesional
+   * runs to twenty-eight in two zones, which is a table nobody can read on a phone.
+   */
+  'arg.1': [
+    { name: 'River Plate', short: 'River', city: 'Buenos Aires', strength: 76 },
+    { name: 'Boca Juniors', short: 'Boca', city: 'Buenos Aires', strength: 75 },
+    { name: 'Racing Club', short: 'Racing', city: 'Avellaneda', strength: 72 },
+    { name: 'Velez Sarsfield', short: 'Velez', city: 'Buenos Aires', strength: 70 },
+    { name: 'Estudiantes', short: 'Estudiantes', city: 'La Plata', strength: 69 },
+    { name: 'San Lorenzo', short: 'San Lorenzo', city: 'Buenos Aires', strength: 67 },
+    { name: 'Independiente', short: 'Independiente', city: 'Avellaneda', strength: 67 },
+    { name: 'Talleres', short: 'Talleres', city: 'Cordoba', strength: 66 },
+    { name: 'Rosario Central', short: 'Central', city: 'Rosario', strength: 66 },
+    { name: 'Lanus', short: 'Lanus', city: 'Lanus', strength: 65 },
+    { name: 'Newells Old Boys', short: "Newell's", city: 'Rosario', strength: 63 },
+    { name: 'Argentinos Juniors', short: 'Argentinos', city: 'Buenos Aires', strength: 63 },
+    { name: 'Defensa y Justicia', short: 'Defensa', city: 'Florencio Varela', strength: 62 },
+    { name: 'Huracan', short: 'Huracan', city: 'Buenos Aires', strength: 61 },
+    { name: 'Godoy Cruz', short: 'Godoy Cruz', city: 'Mendoza', strength: 59 },
+    { name: 'Banfield', short: 'Banfield', city: 'Banfield', strength: 58 },
+  ],
+
+  /* Brazil: the twenty of Série A. */
+  'bra.1': [
+    { name: 'Flamengo', short: 'Flamengo', city: 'Rio de Janeiro', strength: 79 },
+    { name: 'Palmeiras', short: 'Palmeiras', city: 'Sao Paulo', strength: 78 },
+    { name: 'Botafogo', short: 'Botafogo', city: 'Rio de Janeiro', strength: 74 },
+    { name: 'Cruzeiro', short: 'Cruzeiro', city: 'Belo Horizonte', strength: 73 },
+    { name: 'Sao Paulo', short: 'Sao Paulo', city: 'Sao Paulo', strength: 72 },
+    { name: 'Fluminense', short: 'Fluminense', city: 'Rio de Janeiro', strength: 71 },
+    { name: 'Internacional', short: 'Inter', city: 'Porto Alegre', strength: 70 },
+    { name: 'Corinthians', short: 'Corinthians', city: 'Sao Paulo', strength: 70 },
+    { name: 'Atletico Mineiro', short: 'Atletico MG', city: 'Belo Horizonte', strength: 70 },
+    { name: 'Gremio', short: 'Gremio', city: 'Porto Alegre', strength: 69 },
+    { name: 'Bahia', short: 'Bahia', city: 'Salvador', strength: 68 },
+    { name: 'Fortaleza', short: 'Fortaleza', city: 'Fortaleza', strength: 66 },
+    { name: 'Vasco da Gama', short: 'Vasco', city: 'Rio de Janeiro', strength: 66 },
+    { name: 'Red Bull Bragantino', short: 'Bragantino', city: 'Braganca Paulista', strength: 65 },
+    { name: 'Santos', short: 'Santos', city: 'Santos', strength: 65 },
+    { name: 'Ceara', short: 'Ceara', city: 'Fortaleza', strength: 61 },
+    { name: 'Sport Recife', short: 'Sport', city: 'Recife', strength: 60 },
+    { name: 'Vitoria', short: 'Vitoria', city: 'Salvador', strength: 59 },
+    { name: 'Juventude', short: 'Juventude', city: 'Caxias do Sul', strength: 58 },
+    { name: 'Mirassol', short: 'Mirassol', city: 'Mirassol', strength: 58 },
+  ],
+
+  /*
+   * The United States: twenty of MLS, as one table. The real league is thirty clubs in two
+   * conferences with a play-off at the end of it; this is the half of it that a career in
+   * the league would actually be played against.
+   */
+  'usa.1': [
+    { name: 'Inter Miami', short: 'Miami', city: 'Miami', strength: 71 },
+    { name: 'Los Angeles FC', short: 'LAFC', city: 'Los Angeles', strength: 70 },
+    { name: 'LA Galaxy', short: 'Galaxy', city: 'Los Angeles', strength: 67 },
+    { name: 'Seattle Sounders', short: 'Seattle', city: 'Seattle', strength: 67 },
+    { name: 'Columbus Crew', short: 'Columbus', city: 'Columbus', strength: 67 },
+    { name: 'FC Cincinnati', short: 'Cincinnati', city: 'Cincinnati', strength: 66 },
+    { name: 'Philadelphia Union', short: 'Philadelphia', city: 'Philadelphia', strength: 65 },
+    { name: 'New York City FC', short: 'NYCFC', city: 'New York', strength: 64 },
+    { name: 'New York Red Bulls', short: 'Red Bulls', city: 'Harrison', strength: 64 },
+    { name: 'Atlanta United', short: 'Atlanta', city: 'Atlanta', strength: 63 },
+    { name: 'Orlando City', short: 'Orlando', city: 'Orlando', strength: 63 },
+    { name: 'Portland Timbers', short: 'Portland', city: 'Portland', strength: 62 },
+    { name: 'Nashville SC', short: 'Nashville', city: 'Nashville', strength: 62 },
+    { name: 'Minnesota United', short: 'Minnesota', city: 'Saint Paul', strength: 61 },
+    { name: 'Austin FC', short: 'Austin', city: 'Austin', strength: 60 },
+    { name: 'Real Salt Lake', short: 'Salt Lake', city: 'Sandy', strength: 60 },
+    { name: 'Sporting Kansas City', short: 'Sporting KC', city: 'Kansas City', strength: 59 },
+    { name: 'Houston Dynamo', short: 'Houston', city: 'Houston', strength: 59 },
+    { name: 'Chicago Fire', short: 'Chicago', city: 'Chicago', strength: 58 },
+    { name: 'New England Revolution', short: 'New England', city: 'Foxborough', strength: 57 },
+  ],
+
 };

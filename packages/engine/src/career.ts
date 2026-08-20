@@ -3422,7 +3422,7 @@ function playSummerTournament(state: CareerState, index: PackIndex, rng: Rng): v
     }
   }
 
-  const result = playTournament(rng, id, player, country.code, country.reputation, season, minutesPct(state));
+  const result = playTournament(rng, id, player, country.code, country.reputation, season, minutesPct(state), index);
   state.tournaments = state.tournaments ?? [];
   state.tournaments.push(result);
 

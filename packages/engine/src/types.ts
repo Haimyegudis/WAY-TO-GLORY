@@ -200,6 +200,14 @@ export interface Country {
   reputation: number;
   competitionIds: string[];
   nameLocale: string;             // which name pool generated players use
+  /**
+   * Which continent's competitions it belongs to.
+   *
+   * Everything used to be Europe, so "does this nation play a Euro" was the same
+   * question as "is this nation in the pack". It stopped being the same question the
+   * day Brazil was added.
+   */
+  confederation?: 'UEFA' | 'CONMEBOL' | 'CONCACAF';
   /** The domestic cup, by its real name. */
   cupName?: string;
   cupNameHe?: string;

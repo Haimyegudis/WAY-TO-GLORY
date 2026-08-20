@@ -98,6 +98,12 @@ export const COMPETITIONS: CompetitionSeed[] = [
   { id: 'at.1', name: 'Bundesliga (AUT)', nameHe: 'בונדסליגה אוסטרית', country: 'AUT', tier: 1, reputation: 62, rounds: 2, relegationAuto: 1, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
   { id: 'gr.1', name: 'Super League', nameHe: 'סופר ליג יוונית', country: 'GRE', tier: 1, reputation: 60, rounds: 2, relegationAuto: 2, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
   { id: 'sco.1', name: 'Scottish Premiership', nameHe: 'ליגה סקוטית', country: 'SCO', tier: 1, reputation: 58, rounds: 2, relegationAuto: 1, uclQual: 1, uel: 1, uelQual: 1, uecl: 1, cards: STANDARD_CARDS },
+
+  // The Americas. No European qualification: their continental cups are not modelled, so
+  // a season here is won at home.
+  { id: 'arg.1', name: 'Liga Profesional', nameHe: 'הליגה הארגנטינאית', country: 'ARG', tier: 1, reputation: 70, rounds: 2, cards: STANDARD_CARDS, manual: true },
+  { id: 'bra.1', name: 'Brasileirão Série A', nameHe: 'הליגה הברזילאית', country: 'BRA', tier: 1, reputation: 73, rounds: 2, cards: STANDARD_CARDS, manual: true },
+  { id: 'usa.1', name: 'Major League Soccer', nameHe: 'MLS', country: 'USA', tier: 1, reputation: 60, rounds: 2, cards: STANDARD_CARDS, manual: true },
 ];
 
 export interface CountrySeed {
@@ -108,6 +114,8 @@ export interface CountrySeed {
   nameLocale: string;
   cupName: string;
   cupNameHe: string;
+  /** Defaults to UEFA: everything here was European until the Americas arrived. */
+  confederation?: 'UEFA' | 'CONMEBOL' | 'CONCACAF';
 }
 
 export const COUNTRIES: CountrySeed[] = [
@@ -137,6 +145,12 @@ export const COUNTRIES: CountrySeed[] = [
   { code: 'AUT', name: 'Austria', nameHe: 'אוסטריה', reputation: 72, nameLocale: 'de' , cupName: 'ÖFB-Cup', cupNameHe: 'גביע אוסטריה' },
   { code: 'GRE', name: 'Greece', nameHe: 'יוון', reputation: 66, nameLocale: 'gr' , cupName: 'Greek Cup', cupNameHe: 'גביע יוון' },
   { code: 'SCO', name: 'Scotland', nameHe: 'סקוטלנד', reputation: 66, nameLocale: 'en' , cupName: 'Scottish Cup', cupNameHe: 'גביע סקוטלנד' },
+
+  // Across the water. Not in Europe, so nothing here plays for a European place - but a
+  // career that starts in Buenos Aires or ends in Miami is a career people actually have.
+  { code: 'ARG', name: 'Argentina', nameHe: 'ארגנטינה', reputation: 84, nameLocale: 'es' , cupName: 'Copa Argentina', cupNameHe: 'גביע ארגנטינה', confederation: 'CONMEBOL' },
+  { code: 'BRA', name: 'Brazil', nameHe: 'ברזיל', reputation: 86, nameLocale: 'pt' , cupName: 'Copa do Brasil', cupNameHe: 'גביע ברזיל', confederation: 'CONMEBOL' },
+  { code: 'USA', name: 'United States', nameHe: 'ארצות הברית', reputation: 63, nameLocale: 'en' , cupName: 'US Open Cup', cupNameHe: 'גביע ארה״ב', confederation: 'CONCACAF' },
 ];
 
 /** Clubs whose global standing is bigger than this season's results suggest. */

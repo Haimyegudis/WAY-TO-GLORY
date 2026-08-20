@@ -272,6 +272,33 @@ export const MENTORS: MentorDef[] = [
   m('cyp_pittas', 'CYP', 'Pambos Pittas', 'פמבוס פיטאס', 'MF', '1974-1990', 'Omonia', 'oneClubMan', 'captain'),
   m('cyp_charalambous', 'CYP', 'Costas Charalambous', 'קוסטס חרלמבוס', 'DF', '1990-2008', 'APOEL', 'captain', 'wall'),
   m('cyp_panayiotou', 'CYP', 'Nikos Panayiotou', 'ניקוס פנאיוטו', 'GK', '1985-2002', 'Omonia', 'keeper', 'wall'),
+
+  // ---------------------------------------------------------------- Argentina
+  m('arg_maradona', 'ARG', 'Diego Maradona', 'דייגו מראדונה', 'FW', '1976-1997', 'Napoli', 'worldCup', 'artist'),
+  m('arg_kempes', 'ARG', 'Mario Kempes', 'מריו קמפס', 'FW', '1970-1996', 'Valencia', 'worldCup', 'grinder'),
+  m('arg_batistuta', 'ARG', 'Gabriel Batistuta', 'גבריאל בטיסטוטה', 'FW', '1988-2005', 'Fiorentina', 'goalMachine', 'wanderer'),
+  m('arg_zanetti', 'ARG', 'Javier Zanetti', 'חבייר סאנטי', 'DF', '1992-2014', 'Internazionale Milano', 'oneClubMan', 'captain'),
+  m('arg_riquelme', 'ARG', 'Juan Román Riquelme', 'חואן רומן ריקלמה', 'MF', '1996-2014', 'Boca Juniors', 'playmaker', 'artist'),
+  m('arg_ayala', 'ARG', 'Roberto Ayala', 'רוברטו איאלה', 'DF', '1993-2010', 'Valencia', 'captain', 'wall'),
+  m('arg_fillol', 'ARG', 'Ubaldo Fillol', 'אובלדו פיז׳ול', 'GK', '1969-1991', 'River Plate', 'keeper', 'wall'),
+
+  // ---------------------------------------------------------------- Brazil
+  m('bra_pele', 'BRA', 'Pelé', 'פלה', 'FW', '1956-1977', 'Santos', 'worldCup', 'winner'),
+  m('bra_ronaldo', 'BRA', 'Ronaldo Nazário', 'רונאלדו נזאריו', 'FW', '1993-2011', 'Internazionale Milano', 'ballonDor', 'wanderer'),
+  m('bra_romario', 'BRA', 'Romário', 'רומאריו', 'FW', '1985-2009', 'Barcelona', 'goalMachine', 'artist'),
+  m('bra_cafu', 'BRA', 'Cafu', 'קאפו', 'DF', '1989-2008', 'Milan', 'captain', 'captain'),
+  m('bra_robertocarlos', 'BRA', 'Roberto Carlos', 'רוברטו קרלוס', 'DF', '1991-2015', 'Real Madrid', 'europeanCup', 'winner'),
+  m('bra_socrates', 'BRA', 'Sócrates', 'סוקראטס', 'MF', '1974-1989', 'Corinthians', 'playmaker', 'artist'),
+  m('bra_taffarel', 'BRA', 'Cláudio Taffarel', 'קלאודיו טאפארל', 'GK', '1985-2003', 'Galatasaray', 'keeper', 'grinder'),
+
+  // ---------------------------------------------------------------- United States
+  m('usa_donovan', 'USA', 'Landon Donovan', 'לנדון דונובן', 'FW', '2001-2016', 'LA Galaxy', 'goalMachine', 'winner'),
+  m('usa_dempsey', 'USA', 'Clint Dempsey', 'קלינט דמפסי', 'FW', '2004-2018', 'Fulham', 'pioneer', 'grinder'),
+  m('usa_friedel', 'USA', 'Brad Friedel', 'בראד פרידל', 'GK', '1992-2015', 'Blackburn Rovers', 'keeper', 'grinder'),
+  m('usa_howard', 'USA', 'Tim Howard', 'טים הווארד', 'GK', '1997-2019', 'Everton', 'keeper', 'wall'),
+  m('usa_reyna', 'USA', 'Claudio Reyna', 'קלאודיו ריינה', 'MF', '1994-2008', 'Rangers', 'captain', 'captain'),
+  m('usa_mcbride', 'USA', 'Brian McBride', 'בריאן מקברייד', 'FW', '1994-2010', 'Fulham', 'pioneer', 'wanderer'),
+  m('usa_pope', 'USA', 'Eddie Pope', 'אדי פופ', 'DF', '1996-2007', 'DC United', 'oneClubMan', 'wall'),
 ];
 
 /** The mentors a player from this country can approach. */

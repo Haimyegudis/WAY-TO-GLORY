@@ -333,6 +333,7 @@ async function main(): Promise<void> {
     code: c.code,
     name: c.name,
     nameHe: c.nameHe,
+    ...(c.confederation ? { confederation: c.confederation } : {}),
     reputation: c.reputation,
     competitionIds: competitions.filter((comp) => comp.country === c.code).map((comp) => comp.id),
     nameLocale: c.nameLocale,

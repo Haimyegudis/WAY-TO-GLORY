@@ -57,6 +57,9 @@ const SEARCH_ALIASES: Record<string, string> = {
   eng_nottingham_forest_fc: 'Nottingham Forest',
   gre_ae_kifisias: 'Kifisia',
   isr_ironi_nesher: 'Hapoel Nesher',
+  arg_estudiantes: 'Estudiantes de La Plata',
+  arg_newells_old_boys: "Newell's Old Boys",
+  usa_la_galaxy: 'LA Galaxy',
 };
 
 const COUNTRY: Record<string, string> = {

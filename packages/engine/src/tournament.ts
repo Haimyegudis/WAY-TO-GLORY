@@ -48,8 +48,11 @@ export function tournamentFor(season: number): TournamentId | null {
 
 /** Only European nations play a Euro; everyone plays a World Cup. */
 export function nationEligible(id: TournamentId, countryCode: string, index: PackIndex): boolean {
+  const country = index.countryByCode.get(countryCode);
+  if (!country) return false;
   if (id === 'worldCup') return true;
-  return index.countryByCode.has(countryCode);
+  // Anything without a confederation on it predates the Americas and is European.
+  return (country.confederation ?? 'UEFA') === 'UEFA';
 }
 
 const KNOCKOUT_ORDER: ('r16' | 'qf' | 'sf' | 'final')[] = ['r16', 'qf', 'sf', 'final'];
@@ -66,13 +69,27 @@ export function playTournament(
   countryReputation: number,
   season: number,
   minutesShare: number,
+  index?: PackIndex,
 ): TournamentResult {
   const matches: TournamentMatch[] = [];
   let caps = 0;
   let goals = 0;
   let ratingSum = 0;
 
-  const opponents = ['ESP', 'FRA', 'GER', 'ITA', 'ENG', 'POR', 'NED', 'BEL', 'TUR', 'GRE', 'SCO', 'ISR', 'AUT'];
+  /*
+   * Who he could be drawn against.
+   *
+   * A Euro is Europe; a World Cup is everybody, which is the point of it. Falling back
+   * to the European list keeps old saves and tests working where no pack was handed in.
+   */
+  const fromPack = index
+    ? [...index.countryByCode.values()]
+        .filter((c) => (id === 'worldCup' ? true : (c.confederation ?? 'UEFA') === 'UEFA'))
+        .map((c) => c.code)
+    : [];
+  const opponents = fromPack.length >= 6
+    ? fromPack
+    : ['ESP', 'FRA', 'GER', 'ITA', 'ENG', 'POR', 'NED', 'BEL', 'TUR', 'GRE', 'SCO', 'ISR', 'AUT'];
   const drawOpponent = (): string => {
     const pool = opponents.filter((c) => c !== countryCode);
     return pool[rng.int(0, pool.length - 1)] ?? 'ESP';

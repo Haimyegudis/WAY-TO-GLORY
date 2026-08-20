@@ -26,6 +26,8 @@ export function ClubScreen() {
   const inTheAgeGroup = Boolean(state.world.youth && userYouthCompetitionId(state));
   const [tab, setTab] = useState<Tab>(inTheAgeGroup ? 'youth' : 'table');
   const home = myClub(state);
+  // Whether his football happens in Europe at all.
+  const inEurope = ((getPack().countries.find((c) => c.code === home?.country)?.confederation ?? 'UEFA') === 'UEFA');
 
   if (!home) {
     return (
@@ -72,8 +74,12 @@ export function ClubScreen() {
         {state.world.youth && (
           <button aria-pressed={tab === 'youth'} onClick={() => setTab('youth')}>{t('youth.tab')}</button>
         )}
-        {/* Europe is there whether or not his own club is in it: he wants to follow it. */}
-        {Object.keys(state.world.europe ?? {}).length > 0 && (
+        {/*
+          Europe is there whether or not his own club is in it: he wants to follow it.
+          Not, though, if he plays in Brazil - a Thursday night in Trabzon is nothing to
+          do with him, and the tab was offering him a competition he cannot reach.
+        */}
+        {Object.keys(state.world.europe ?? {}).length > 0 && inEurope && (
           <button aria-pressed={tab === 'europe'} onClick={() => setTab('europe')}>{t('competition.europe')}</button>
         )}
       </div>

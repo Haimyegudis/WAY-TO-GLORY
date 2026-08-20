@@ -83,7 +83,15 @@ export function createCampaign(
   const home = index.countryByCode.get(countryCode);
   if (!home) return null;
 
-  const field = [...index.countryByCode.values()].filter((country) => country.code !== countryCode);
+  // His own continent qualifies with him: a South American group with Cyprus in it is
+  // not a qualifying group, it is a fixture list nobody believes.
+  const confederation = home.confederation ?? 'UEFA';
+  const neighbours = [...index.countryByCode.values()].filter(
+    (country) => country.code !== countryCode && (country.confederation ?? 'UEFA') === confederation,
+  );
+  const field = neighbours.length >= 3
+    ? neighbours
+    : [...index.countryByCode.values()].filter((country) => country.code !== countryCode);
   if (field.length < 3) return null;
 
   const pick = (low: number, high: number): string | null => {
