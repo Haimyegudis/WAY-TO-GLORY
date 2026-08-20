@@ -43,7 +43,14 @@ export function CreatePlayer() {
   // Coming back from the club offers, the form opens on the last step with every answer
   // where he left it: he came back to change one thing, not to type it all again.
   const draft = useGame((s) => s.draft);
-  const home = pack.countries[0]?.code ?? 'ISR';
+  /*
+   * Where a new career starts from, unless he says otherwise.
+   *
+   * The form opened on whichever country the pack happened to list first, which is
+   * Switzerland; this is an Israeli game, so it opens on Israel and every other country
+   * is one tap away in the same list.
+   */
+  const home = pack.countries.some((c) => c.code === 'ISR') ? 'ISR' : pack.countries[0]?.code ?? 'ISR';
 
   const [step, setStep] = useState(draft ? STEPS.length - 1 : 0);
   const [firstName, setFirstName] = useState(draft?.firstName ?? '');
