@@ -1075,6 +1075,38 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
   }
 
+  /*
+   * 6b. Out of contract, and nobody ringing.
+   *
+   * Every approach above needs a club to approach him at, so a released player fell out
+   * of the market entirely: the phone went quiet the day his contract ended and stayed
+   * quiet until he was old enough for the game to retire him. A free agent can sign in
+   * any week of the year - that is the one advantage of being one - so he is offered
+   * something roughly once a month until he takes it.
+   */
+  const clublessSince = Number(state.flags['clublessSince'] ?? 0);
+  if (!club && !state.retired) {
+    const absolute = season * 52 + week;
+    if (clublessSince === 0) state.flags['clublessSince'] = absolute;
+    const lastCall = Number(state.flags['freeAgentCall'] ?? 0);
+    if (state.transferOffers.length === 0 && absolute - lastCall >= 4) {
+      state.flags['freeAgentCall'] = absolute;
+      // Without a club he has no minutes to show and no level to be measured against,
+      // so this is the market at its most generous: whoever needs a player.
+      const offers = generateOffers({ state, index, rng, minutesPct: 0, maxOffers: 4 });
+      if (offers.length > 0) {
+        state.transferOffers = offers;
+        openOfferDecision(state, offers);
+        pushInbox(state, 'club', 'inbox.freeAgentInterest', {
+          club: state.world.clubs[offers[0]!.clubId]?.name ?? '',
+          count: offers.length,
+        });
+      }
+    }
+  } else if (club && clublessSince !== 0) {
+    state.flags['clublessSince'] = 0;
+  }
+
   // 7. Agent offers early in the career.
   const agentSeason = club?.country;
   const agentWindowOpen = isTransferWindow(week, agentSeason) || isWindowApproaching(week, agentSeason);
@@ -3752,6 +3784,11 @@ function handleContractEnd(
     pushInbox(state, 'club', 'inbox.contractExtended', { club: club.name, comp: comp?.name ?? '' });
   } else {
     state.contract = null;
+    // Where he was, so the market still knows what level of player it is looking at
+    // once he no longer has a club to be judged by.
+    state.flags['lastClubLevel'] = clubBaseOvr(club);
+    state.flags['lastLeagueReputation'] = index.competitionById.get(club.competitionId)?.reputation ?? 40;
+    state.flags['lastTier'] = club.tier;
     player.clubId = null;
     player.squadRole = 'fringe';
     pushInbox(state, 'club', 'inbox.released', { club: club.name });

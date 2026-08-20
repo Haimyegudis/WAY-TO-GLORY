@@ -2811,7 +2811,11 @@
   "isr_beitar_kfar_saba": {
     "clubId": "isr_beitar_kfar_saba",
     "tried": true,
-    "title": "Beitar Kfar Saba F.C."
+    "title": "Beitar Kfar Saba F.C.",
+    "crest": "isr_beitar_kfar_saba.png",
+    "source": "manual",
+    "sourceRef": "https://upload.wikimedia.org/wikipedia/he/0/0c/Kfs.png?utm_source=he.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "color": "#fefe00"
   },
   "isr_hapoel_herzliya": {
     "clubId": "isr_hapoel_herzliya",
@@ -5094,13 +5098,6 @@
     "sourceRef": "135160",
     "color": "#e41512"
   },
-  "arg_san_lorenzo": {
-    "clubId": "arg_san_lorenzo",
-    "crest": "arg_san_lorenzo.png",
-    "source": "wikipedia:en",
-    "sourceRef": "Wiktionary-logo-en-v2.svg",
-    "color": "#00005a"
-  },
   "arg_independiente": {
     "clubId": "arg_independiente",
     "crest": "arg_independiente.png",
@@ -5267,27 +5264,6 @@
     "sourceRef": "134736",
     "color": "#d20139"
   },
-  "bra_santos": {
-    "clubId": "bra_santos",
-    "crest": "bra_santos.png",
-    "source": "wikipedia:en",
-    "sourceRef": "Wiktionary-logo-en-v2.svg",
-    "color": "#00005a"
-  },
-  "bra_ceara": {
-    "clubId": "bra_ceara",
-    "crest": "bra_ceara.png",
-    "source": "wikipedia:en",
-    "sourceRef": "Wiktionary-logo-en-v2.svg",
-    "color": "#00005a"
-  },
-  "bra_sport_recife": {
-    "clubId": "bra_sport_recife",
-    "crest": "bra_sport_recife.png",
-    "source": "wikipedia:en",
-    "sourceRef": "Sport Club Recife.svg",
-    "color": "#d61f27"
-  },
   "bra_vitoria": {
     "clubId": "bra_vitoria",
     "crest": "bra_vitoria.png",
@@ -5448,5 +5424,32 @@
     "source": "thesportsdb",
     "sourceRef": "134159",
     "color": "#092240"
+  },
+  "bra_santos": {
+    "clubId": "bra_santos",
+    "crest": "bra_santos.png",
+    "source": "thesportsdb",
+    "sourceRef": "134286",
+    "color": "#c69f0f"
+  },
+  "bra_ceara": {
+    "clubId": "bra_ceara",
+    "crest": "bra_ceara.png",
+    "source": "thesportsdb",
+    "sourceRef": "134744"
+  },
+  "bra_sport_recife": {
+    "clubId": "bra_sport_recife",
+    "crest": "bra_sport_recife.png",
+    "source": "thesportsdb",
+    "sourceRef": "136250",
+    "color": "#db1921"
+  },
+  "arg_san_lorenzo": {
+    "clubId": "arg_san_lorenzo",
+    "crest": "arg_san_lorenzo.png",
+    "source": "manual",
+    "sourceRef": "Escudo del Club Atletico San Lorenzo de Almagro.svg",
+    "color": "#263a54"
   }
 }

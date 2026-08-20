@@ -420,6 +420,7 @@ export const en: Record<string, string> = {
   'inbox.agentInterest': '{count} agents want to represent you.',
   'inbox.agentSigned': '{name} is now your agent.',
   'inbox.contractExtended': '{club} have extended your contract.',
+  'inbox.freeAgentInterest': 'You are out of contract and {count} clubs are interested. {club} called first.',
   'inbox.released': '{club} have released you.',
   'inbox.loanEnded': 'Your loan is over. Back to {club}.',
   'inbox.firstCallUp': '{country} have called you up at {level} level.',

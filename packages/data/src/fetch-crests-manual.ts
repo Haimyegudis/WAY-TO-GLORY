@@ -30,6 +30,11 @@ const MANUAL: Record<string, { url?: string; wiki?: { lang: string; title: strin
   isr_hapoel_herzliya: { file: { lang: 'he', title: 'קובץ:Hapoel herzlya.gif' } },
   isr_maccabi_ironi_amishav: { wiki: { lang: 'he', title: 'מכבי עירוני עמישב' } },
   isr_hapoel_ironi_arad: { wiki: { lang: 'he', title: 'הפועל עירוני ערד' } },
+  // The football database only knows a basketball club by this name, and the article's
+  // lead image is not the badge, so the escudo is named directly.
+  arg_san_lorenzo: {
+    url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Escudo_del_Club_Atl%C3%A9tico_San_Lorenzo_de_Almagro.svg/330px-Escudo_del_Club_Atl%C3%A9tico_San_Lorenzo_de_Almagro.svg.png',
+  },
 };
 
 /** Files listed on the article, when the summary has no usable lead image. */

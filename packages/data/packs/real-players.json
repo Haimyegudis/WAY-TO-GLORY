@@ -93008,5 +93008,995 @@
       "country": "USA",
       "source": "thesportsdb"
     }
+  ],
+  "bra_corinthians": [
+    {
+      "firstName": "Allan",
+      "lastName": "Allan",
+      "clubId": "bra_corinthians",
+      "pos": "CDM",
+      "ovr": 69,
+      "age": 28,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Andre",
+      "lastName": "Andre",
+      "clubId": "bra_corinthians",
+      "pos": "CM",
+      "ovr": 73,
+      "age": 31,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "André",
+      "lastName": "Carrillo",
+      "clubId": "bra_corinthians",
+      "pos": "CM",
+      "ovr": 64,
+      "age": 34,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "André",
+      "lastName": "Ramalho",
+      "clubId": "bra_corinthians",
+      "pos": "CB",
+      "ovr": 73,
+      "age": 33,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Breno",
+      "lastName": "Bidon",
+      "clubId": "bra_corinthians",
+      "pos": "CM",
+      "ovr": 67,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Charles",
+      "lastName": "Charles",
+      "clubId": "bra_corinthians",
+      "pos": "CM",
+      "ovr": 65,
+      "age": 29,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Diego",
+      "lastName": "da Cruz Lopes",
+      "clubId": "bra_corinthians",
+      "pos": "CM",
+      "ovr": 65,
+      "age": 18,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Fabrizio",
+      "lastName": "Angileri",
+      "clubId": "bra_corinthians",
+      "pos": "LB",
+      "ovr": 70,
+      "age": 31,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Felipe",
+      "lastName": "Longo",
+      "clubId": "bra_corinthians",
+      "pos": "GK",
+      "ovr": 64,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_atletico_mineiro": [
+    {
+      "firstName": "Alan",
+      "lastName": "Franco",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "CM",
+      "ovr": 71,
+      "age": 27,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Alan",
+      "lastName": "Minda",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "RW",
+      "ovr": 65,
+      "age": 22,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Alexsander",
+      "lastName": "Alexsander",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "CDM",
+      "ovr": 73,
+      "age": 22,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Ángelo",
+      "lastName": "Preciado",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "RB",
+      "ovr": 66,
+      "age": 27,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Angelo",
+      "lastName": "Preciado Quiñónez",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "CB",
+      "ovr": 68,
+      "age": 27,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Bernard",
+      "lastName": "Bernard",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "LW",
+      "ovr": 72,
+      "age": 33,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Dudu",
+      "lastName": "Dudu",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "LW",
+      "ovr": 67,
+      "age": 33,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Everson",
+      "lastName": "Everson",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "GK",
+      "ovr": 69,
+      "age": 35,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Gabriel",
+      "lastName": "Delfim",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "GK",
+      "ovr": 74,
+      "age": 23,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Gustavo",
+      "lastName": "Scarpa",
+      "clubId": "bra_atletico_mineiro",
+      "pos": "CAM",
+      "ovr": 67,
+      "age": 31,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_gremio": [
+    {
+      "firstName": "Alexander",
+      "lastName": "Aravena",
+      "clubId": "bra_gremio",
+      "pos": "RW",
+      "ovr": 72,
+      "age": 23,
+      "country": "CHI",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "André",
+      "lastName": "Henrique",
+      "clubId": "bra_gremio",
+      "pos": "ST",
+      "ovr": 67,
+      "age": 24,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Arthur",
+      "lastName": "Melo",
+      "clubId": "bra_gremio",
+      "pos": "CDM",
+      "ovr": 69,
+      "age": 29,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Bernardo",
+      "lastName": "Schons Zortea",
+      "clubId": "bra_gremio",
+      "pos": "CM",
+      "ovr": 61,
+      "age": 18,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Caio",
+      "lastName": "Paulista",
+      "clubId": "bra_gremio",
+      "pos": "LB",
+      "ovr": 72,
+      "age": 27,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Carlos",
+      "lastName": "Vinícius",
+      "clubId": "bra_gremio",
+      "pos": "CF",
+      "ovr": 71,
+      "age": 30,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Cristian",
+      "lastName": "Pavón",
+      "clubId": "bra_gremio",
+      "pos": "LW",
+      "ovr": 64,
+      "age": 29,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Dodi",
+      "lastName": "Dodi",
+      "clubId": "bra_gremio",
+      "pos": "CM",
+      "ovr": 70,
+      "age": 29,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Edenilson",
+      "lastName": "Edenilson",
+      "clubId": "bra_gremio",
+      "pos": "CM",
+      "ovr": 66,
+      "age": 36,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Erick",
+      "lastName": "Noriega",
+      "clubId": "bra_gremio",
+      "pos": "CB",
+      "ovr": 69,
+      "age": 24,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_bahia": [
+    {
+      "firstName": "Ademir",
+      "lastName": "Ademir",
+      "clubId": "bra_bahia",
+      "pos": "RW",
+      "ovr": 67,
+      "age": 30,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Alejo",
+      "lastName": "Véliz",
+      "clubId": "bra_bahia",
+      "pos": "CF",
+      "ovr": 73,
+      "age": 22,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Çağatay",
+      "lastName": "Yılmaz",
+      "clubId": "bra_bahia",
+      "pos": "CM",
+      "ovr": 72,
+      "age": 25,
+      "country": "TUR",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Caio",
+      "lastName": "Alexandre",
+      "clubId": "bra_bahia",
+      "pos": "CDM",
+      "ovr": 64,
+      "age": 26,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Cristian",
+      "lastName": "Olivera",
+      "clubId": "bra_bahia",
+      "pos": "RW",
+      "ovr": 73,
+      "age": 23,
+      "country": "URU",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Danilo",
+      "lastName": "Fernandes",
+      "clubId": "bra_bahia",
+      "pos": "GK",
+      "ovr": 59,
+      "age": 37,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "David",
+      "lastName": "Duarte",
+      "clubId": "bra_bahia",
+      "pos": "CB",
+      "ovr": 69,
+      "age": 30,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "David",
+      "lastName": "Martins Almeida de Lira",
+      "clubId": "bra_bahia",
+      "pos": "CM",
+      "ovr": 58,
+      "age": 18,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Erick",
+      "lastName": "Erick",
+      "clubId": "bra_bahia",
+      "pos": "CDM",
+      "ovr": 66,
+      "age": 28,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Erick",
+      "lastName": "Pulga",
+      "clubId": "bra_bahia",
+      "pos": "LW",
+      "ovr": 73,
+      "age": 25,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_fortaleza": [
+    {
+      "firstName": "Adam",
+      "lastName": "Bareiro",
+      "clubId": "bra_fortaleza",
+      "pos": "ST",
+      "ovr": 65,
+      "age": 29,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Arthur",
+      "lastName": "Barbosa Moura de Oliveira",
+      "clubId": "bra_fortaleza",
+      "pos": "CB",
+      "ovr": 56,
+      "age": 19,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Audenirton",
+      "lastName": "Silva",
+      "clubId": "bra_fortaleza",
+      "pos": "GK",
+      "ovr": 66,
+      "age": 25,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Brenno",
+      "lastName": "Brenno",
+      "clubId": "bra_fortaleza",
+      "pos": "GK",
+      "ovr": 66,
+      "age": 26,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Bruno",
+      "lastName": "Domingos Branco",
+      "clubId": "bra_fortaleza",
+      "pos": "ST",
+      "ovr": 58,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Bruno",
+      "lastName": "Pereira Silva",
+      "clubId": "bra_fortaleza",
+      "pos": "CM",
+      "ovr": 59,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Caio",
+      "lastName": "da Silva Paz",
+      "clubId": "bra_fortaleza",
+      "pos": "ST",
+      "ovr": 63,
+      "age": 18,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Cássio",
+      "lastName": "Penafiel Acosta",
+      "clubId": "bra_fortaleza",
+      "pos": "GK",
+      "ovr": 58,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "César",
+      "lastName": "Braga Rodrigues",
+      "clubId": "bra_fortaleza",
+      "pos": "GK",
+      "ovr": 61,
+      "age": 19,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Dimas",
+      "lastName": "de Oliveira Filho",
+      "clubId": "bra_fortaleza",
+      "pos": "CM",
+      "ovr": 63,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_vasco_da_gama": [
+    {
+      "firstName": "Adson",
+      "lastName": "Adson",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "CAM",
+      "ovr": 67,
+      "age": 25,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Alan",
+      "lastName": "Saldivia",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "CB",
+      "ovr": 63,
+      "age": 23,
+      "country": "URU",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Andrés",
+      "lastName": "Gómez",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "LW",
+      "ovr": 71,
+      "age": 23,
+      "country": "COL",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Benjamín",
+      "lastName": "Garré",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "LW",
+      "ovr": 64,
+      "age": 25,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Brenner",
+      "lastName": "Silva",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "ST",
+      "ovr": 68,
+      "age": 25,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Bruno",
+      "lastName": "Lopes Ferreira",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "ST",
+      "ovr": 63,
+      "age": 18,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Carlos",
+      "lastName": "Cuesta",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "CB",
+      "ovr": 66,
+      "age": 26,
+      "country": "COL",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Cauan",
+      "lastName": "Barros",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "CM",
+      "ovr": 67,
+      "age": 21,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Claudio",
+      "lastName": "Spinelli",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "ST",
+      "ovr": 67,
+      "age": 28,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Cuiabano",
+      "lastName": "Cuiabano",
+      "clubId": "bra_vasco_da_gama",
+      "pos": "LB",
+      "ovr": 62,
+      "age": 22,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_red_bull_bragantino": [
+    {
+      "firstName": "Agustín",
+      "lastName": "Sant'Anna",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "RB",
+      "ovr": 63,
+      "age": 28,
+      "country": "URU",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Alix",
+      "lastName": "Vinicius",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "CB",
+      "ovr": 62,
+      "age": 26,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Bruno",
+      "lastName": "Gonçalves",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "ST",
+      "ovr": 67,
+      "age": 22,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Bruno",
+      "lastName": "Praxedes",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "CAM",
+      "ovr": 68,
+      "age": 23,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Cleiton",
+      "lastName": "Cleiton",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "GK",
+      "ovr": 62,
+      "age": 28,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Da",
+      "lastName": "Silva",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "CB",
+      "ovr": 64,
+      "age": 24,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Eduardo",
+      "lastName": "Santos",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "CB",
+      "ovr": 63,
+      "age": 28,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Eduardo",
+      "lastName": "Sasha",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "ST",
+      "ovr": 66,
+      "age": 33,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Eric",
+      "lastName": "Ramires",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "CM",
+      "ovr": 65,
+      "age": 25,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Fabinho",
+      "lastName": "Fabinho",
+      "clubId": "bra_red_bull_bragantino",
+      "pos": "CM",
+      "ovr": 68,
+      "age": 23,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_santos": [
+    {
+      "firstName": "Adonis",
+      "lastName": "Frías",
+      "clubId": "bra_santos",
+      "pos": "CB",
+      "ovr": 63,
+      "age": 27,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Alexis",
+      "lastName": "Duarte",
+      "clubId": "bra_santos",
+      "pos": "CB",
+      "ovr": 66,
+      "age": 25,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Álvaro",
+      "lastName": "Barreal",
+      "clubId": "bra_santos",
+      "pos": "LW",
+      "ovr": 61,
+      "age": 25,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Benjamín",
+      "lastName": "Rollheiser",
+      "clubId": "bra_santos",
+      "pos": "ST",
+      "ovr": 67,
+      "age": 25,
+      "country": "ARG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Billal",
+      "lastName": "Brahimi",
+      "clubId": "bra_santos",
+      "pos": "ST",
+      "ovr": 62,
+      "age": 25,
+      "country": "ALG",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Christian",
+      "lastName": "Oliva",
+      "clubId": "bra_santos",
+      "pos": "CM",
+      "ovr": 68,
+      "age": 29,
+      "country": "URU",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Diogenes",
+      "lastName": "Diogenes",
+      "clubId": "bra_santos",
+      "pos": "GK",
+      "ovr": 65,
+      "age": 24,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Diógenes",
+      "lastName": "Vinicius da Silva",
+      "clubId": "bra_santos",
+      "pos": "GK",
+      "ovr": 65,
+      "age": 24,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Gabriel",
+      "lastName": "Barbosa",
+      "clubId": "bra_santos",
+      "pos": "CF",
+      "ovr": 62,
+      "age": 29,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Gabriel",
+      "lastName": "Bontempo",
+      "clubId": "bra_santos",
+      "pos": "CM",
+      "ovr": 57,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_ceara": [
+    {
+      "firstName": "Alex",
+      "lastName": "Silva",
+      "clubId": "bra_ceara",
+      "pos": "RB",
+      "ovr": 65,
+      "age": 31,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Aylon",
+      "lastName": "Tavella",
+      "clubId": "bra_ceara",
+      "pos": "ST",
+      "ovr": 63,
+      "age": 33,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Diego",
+      "lastName": "Diego",
+      "clubId": "bra_ceara",
+      "pos": "ST",
+      "ovr": 57,
+      "age": 30,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Éder",
+      "lastName": "Ferreira Graminho",
+      "clubId": "bra_ceara",
+      "pos": "CB",
+      "ovr": 58,
+      "age": 30,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Fernando",
+      "lastName": "Marques Maciel",
+      "clubId": "bra_ceara",
+      "pos": "ST",
+      "ovr": 57,
+      "age": 28,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Fernando",
+      "lastName": "Miguel",
+      "clubId": "bra_ceara",
+      "pos": "GK",
+      "ovr": 57,
+      "age": 40,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Giovanni",
+      "lastName": "Pavani",
+      "clubId": "bra_ceara",
+      "pos": "CM",
+      "ovr": 63,
+      "age": 29,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Gustavo",
+      "lastName": "Prado",
+      "clubId": "bra_ceara",
+      "pos": "RW",
+      "ovr": 57,
+      "age": 20,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Juan",
+      "lastName": "Alano",
+      "clubId": "bra_ceara",
+      "pos": "CM",
+      "ovr": 62,
+      "age": 29,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Júlio",
+      "lastName": "Alves Gonçalves",
+      "clubId": "bra_ceara",
+      "pos": "CB",
+      "ovr": 63,
+      "age": 22,
+      "country": "BRA",
+      "source": "thesportsdb"
+    }
+  ],
+  "bra_sport_recife": [
+    {
+      "firstName": "Alisson",
+      "lastName": "Dias Tavares Cassiano",
+      "clubId": "bra_sport_recife",
+      "pos": "CB",
+      "ovr": 55,
+      "age": 31,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "André",
+      "lastName": "André",
+      "clubId": "bra_sport_recife",
+      "pos": "ST",
+      "ovr": 54,
+      "age": 35,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "André",
+      "lastName": "de Almeida Santos",
+      "clubId": "bra_sport_recife",
+      "pos": "CB",
+      "ovr": 55,
+      "age": 28,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Antônio",
+      "lastName": "Adriano Nascimendo de Sousa",
+      "clubId": "bra_sport_recife",
+      "pos": "GK",
+      "ovr": 61,
+      "age": 22,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Carlos",
+      "lastName": "Alberto",
+      "clubId": "bra_sport_recife",
+      "pos": "RW",
+      "ovr": 57,
+      "age": 23,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Chrystian",
+      "lastName": "Barletta",
+      "clubId": "bra_sport_recife",
+      "pos": "ST",
+      "ovr": 58,
+      "age": 24,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Clayson",
+      "lastName": "Clayson",
+      "clubId": "bra_sport_recife",
+      "pos": "LW",
+      "ovr": 57,
+      "age": 30,
+      "country": "BRA",
+      "source": "thesportsdb"
+    },
+    {
+      "firstName": "Diego",
+      "lastName": "Hernández",
+      "clubId": "bra_sport_recife",
+      "pos": "LW",
+      "ovr": 55,
+      "age": 25,
+      "country": "URU",
+      "source": "thesportsdb"
+    }
   ]
 }

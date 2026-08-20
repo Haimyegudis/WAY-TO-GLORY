@@ -24,6 +24,7 @@ import {
 } from '../src/mentor.js';
 import type { MilestoneId } from '../src/milestones.js';
 import { generateOffers, isTransferWindow } from '../src/transfer.js';
+import { clubBaseOvr } from '../src/generate.js';
 import { indexPack, validatePack } from '../src/data.js';
 import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
 import {
@@ -743,6 +744,27 @@ describe('transfer offers', () => {
       const suitor = state.world.clubs[offer.clubId]!;
       expect(suitor.tier).toBeLessThanOrEqual(club.tier + 1);
     }
+  });
+
+  it('finds somebody for a player with no club at all', () => {
+    /*
+     * A released player used to be measured against a thirty-rated league, which made
+     * every real division look like a jump he was not ready for. Nobody rang, and a
+     * career could end at nineteen with the player still fit and willing.
+     */
+    const { state, index } = startedCareer({ seed: 73, age: 18 });
+    // Two seasons in, so he is a footballer rather than a boy nobody has heard of.
+    for (let i = 0; i < 106; i++) playWeek(state, index);
+    const club = state.world.clubs[state.player.clubId!] ?? Object.values(state.world.clubs)[0]!;
+    state.flags['lastClubLevel'] = clubBaseOvr(club);
+    state.flags['lastLeagueReputation'] = index.competitionById.get(club.competitionId)?.reputation ?? 40;
+    state.flags['lastTier'] = club.tier;
+    state.player.clubId = null;
+    state.contract = null;
+
+    // Four calls a month apart: at least one of them should turn something up.
+    const offers = [0, 1, 2, 3].flatMap((n) => generateOffers({ state, index, rng: new Rng(500 + n), minutesPct: 0 }));
+    expect(offers.length).toBeGreaterThan(0);
   });
 
   it('keeps windows to the weeks a country actually has them', () => {

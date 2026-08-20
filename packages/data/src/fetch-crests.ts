@@ -60,6 +60,11 @@ const SEARCH_ALIASES: Record<string, string> = {
   arg_estudiantes: 'Estudiantes de La Plata',
   arg_newells_old_boys: "Newell's Old Boys",
   usa_la_galaxy: 'LA Galaxy',
+  arg_san_lorenzo: 'San Lorenzo de Almagro',
+  bra_santos: 'Santos FC',
+  bra_ceara: 'Ceara SC',
+  bra_sport_recife: 'Sport Recife',
+  bra_vitoria: 'EC Vitoria',
 };
 
 const COUNTRY: Record<string, string> = {
@@ -203,7 +208,9 @@ async function fromWikipedia(club: { name: string; nameHe?: string }): Promise<F
 
     const scored = images
       .filter((img) => /\.(png|svg|jpg|jpeg)$/i.test(img.title))
-      .filter((img) => !/commons-logo|wiki|icon|flag|edit-|question|padlock|ambox|sound/i.test(img.title))
+      // "wikt" is not "wiki": Wiktionary's own logo walked straight through this filter
+      // and ended up on three clubs' shirts.
+      .filter((img) => !/commons-logo|wik(i|t|imedia|idata)|icon|flag|edit-|question|padlock|ambox|sound/i.test(img.title))
       .map((img) => {
         const name = img.title.replace(/^File:/i, '');
         const badgeWord = /(crest|logo|badge|emblem|sigla|escudo|stemma|wappen|סמל)/i.test(name) ? 1 : 0;
@@ -233,6 +240,9 @@ async function fromWikipedia(club: { name: string; nameHe?: string }): Promise<F
     const source: string | undefined = data.originalimage?.source ?? data.thumbnail?.source;
     if (!source) continue;
     const file = decodeURIComponent(source.split('?')[0]!.split('/').pop() ?? '');
+    // "Wiktionary-logo-en-v2.svg" contains the word logo and is not anybody's crest:
+    // three clubs ended up wearing it before this line existed.
+    if (/(wiktionary|wikipedia|wikimedia|wikidata|commons)/i.test(file)) continue;
     if (!/(logo|crest|badge|emblem|escudo|stemma|wappen)/i.test(file)) continue;
     // Ask for a bigger render than the 330px thumbnail the summary hands back.
     return { url: source.split('?')[0]!.replace(/\/\d+px-/, '/256px-'), source: `wikipedia:${attempt.lang}`, ref: file };

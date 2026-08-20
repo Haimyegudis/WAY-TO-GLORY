@@ -207,8 +207,18 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     internationalCaps: state.nationalTeam.caps,
   });
 
-  const currentLevel = currentClub ? clubBaseOvr(currentClub) : 30;
-  const currentReputation = currentComp?.reputation ?? 30;
+  /*
+   * What the market measures him against.
+   *
+   * A player without a club used to be measured against a thirty-rated league, which is
+   * below every division in the game - so every real league read as a two-rung jump, the
+   * ladder rule refused all of it, and a released player never heard from anybody again.
+   * He is measured against the last league he actually played in.
+   */
+  const lastLevel = Number(state.flags['lastClubLevel'] ?? 0);
+  const lastReputation = Number(state.flags['lastLeagueReputation'] ?? 0);
+  const currentLevel = currentClub ? clubBaseOvr(currentClub) : lastLevel || 30;
+  const currentReputation = currentComp?.reputation ?? (lastReputation || 30);
   const listed = Boolean(state.flags['transferListed']);
   const shortOfMinutes = input.minutesPct < 0.25;
   // A player at Napoli is not offered a place in the Israeli third tier. A club has to
@@ -217,7 +227,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   // Divisions matter more than a strength number here: the bands overlap, so a
   // mid-table second-tier club and a good third-tier club look similar on paper while
   // being nothing alike as a move.
-  const currentTier = currentClub?.tier ?? 3;
+  const currentTier = currentClub?.tier ?? Number(state.flags['lastTier'] ?? 3);
   // What he told his agent to look for. A brief is not a wish list: it changes which
   // clubs ring back. Asking only for the biggest names means fewer calls, not better
   // ones, and saying he will drop a division opens doors that were shut.
@@ -227,8 +237,24 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   const lowerLeague = Boolean(state.flags['openToLowerLeague']);
   const exploring = Boolean(state.flags['exploringMove']);
   const desperate = listed || lowerLeague || input.minutesPct < 0.12;
-  const floor = desperate ? currentLevel - 10 : currentLevel - 2;
-  const competitionFloor = desperate ? currentReputation - 12 : currentReputation - 3;
+  /*
+   * A free agent takes what he can get.
+   *
+   * With a club, the floor is the level he is already at: nobody drops two divisions to
+   * be a squad player somewhere worse. Without one, that floor is exactly what keeps him
+   * unemployed - a boy released by a Championship club was still being shown only
+   * Championship-level clubs, none of which wanted a forty-five rated nineteen year old.
+   * So the floor follows him rather than the club that let him go, and every division is
+   * open. The ladder rule above still measures the jump from the league he last played
+   * in, so signing upwards is no easier than it ever was.
+   */
+  const clubless = !currentClub;
+  const floor = clubless
+    ? Math.min(currentLevel - 10, ovr - 8)
+    : desperate ? currentLevel - 10 : currentLevel - 2;
+  const competitionFloor = clubless
+    ? Math.min(currentReputation - 12, 18)
+    : desperate ? currentReputation - 12 : currentReputation - 3;
 
   const candidates: { club: Club; comp: Competition; interest: number }[] = [];
   for (const club of Object.values(state.world.clubs)) {
@@ -242,8 +268,8 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     if (comp.reputation < competitionFloor) continue;
     // A division below is only on the table for someone who is not playing at all,
     // and two divisions below never is.
-    if (club.tier > currentTier && !desperate) continue;
-    if (club.tier > currentTier + 1) continue;
+    if (club.tier > currentTier && !desperate && !clubless) continue;
+    if (!clubless && club.tier > currentTier + 1) continue;
     const interest = transferInterest({
       club,
       competition: comp,
@@ -255,8 +281,8 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       value,
       agent: state.agent,
       playerCountry: player.birthCountry,
-      currentClubStrength: currentClub?.strength ?? 40,
-      currentLeagueReputation: currentComp?.reputation ?? 30,
+      currentClubStrength: currentClub?.strength ?? (lastLevel || 40),
+      currentLeagueReputation: currentReputation,
       minutesPct: input.minutesPct,
     });
     let weighted = interest;
@@ -273,7 +299,16 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     }
     // Home is home, and the clubs there know exactly who he is.
     if (homecoming && club.country === player.birthCountry) weighted += 18;
-    if (weighted > 42) candidates.push({ club, comp, interest: weighted });
+    /*
+     * How much a club has to want him before it picks up the phone.
+     *
+     * Forty-two is the bar for a player under contract, where signing him costs a fee
+     * and a negotiation. A free agent costs nothing but wages, and a club two divisions
+     * down will take a released nineteen year old on a Tuesday - so the bar for a player
+     * with no club is far lower, which is the difference between a hard year and a
+     * career that quietly ends at nineteen.
+     */
+    if (weighted > (clubless ? 16 : 42)) candidates.push({ club, comp, interest: weighted });
   }
 
   candidates.sort((a, b) => b.interest - a.interest);
@@ -286,7 +321,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   for (const candidate of rng.shuffle(shortlist)) {
     if (chosen.length >= maxOffers) break;
     // Interest is not the same as actually bidding.
-    if (!rng.chance(clamp((candidate.interest - 40) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
+    if (!rng.chance(clamp((candidate.interest - (clubless ? 14 : 40)) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
 
     const clubLevel = clubBaseOvr(candidate.club);
     const role = roleForOvr(ovr, clubLevel, age);
