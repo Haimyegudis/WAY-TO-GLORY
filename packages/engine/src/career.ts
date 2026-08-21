@@ -38,6 +38,7 @@ import {
   isAvailable,
   pickBestLineup,
   resolveMinutes,
+  type MinutesOutcome,
   type SelectionContext,
 } from './selection.js';
 import {
@@ -3401,7 +3402,15 @@ function playUserMatch(
   const minutes = held?.minutes ?? (!pickable
     ? { played: false, started: false, minutes: 0, slot: null }
     : youthMatch
-      ? { played: true, started: true, minutes: 90, slot: player.primaryPos }
+      // A youth coach drops a boy who is playing badly exactly as a first-team manager
+      // does. Handing him ninety minutes whatever he did last Sunday made his own form
+      // the one thing in the game with no consequence attached to it.
+      ? state.flags['formBenchNotified']
+        ? ((): MinutesOutcome => {
+            const on = rng.int(58, 72);
+            return { played: true, started: false, minutes: 90 - on, slot: player.primaryPos, cameOnMinute: on };
+          })()
+        : { played: true, started: true, minutes: 90, slot: player.primaryPos }
       : (() => {
           const resolved = capMinutes(resolveMinutes(rng, player.id, lineup, player), gate, player);
           if (!friendly && state.flags['formBenchNotified'] && resolved.started) {

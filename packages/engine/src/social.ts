@@ -93,16 +93,59 @@ export function evaluateConsequences(rng: Rng, state: CareerState): ConsequenceO
     out.push({ id: 'backInFavour' });
   }
 
-  // Reputation cannot protect a player indefinitely from very poor football. This is
-  // separate from being frozen out after a dispute: he remains in the matchday squad,
-  // but loses the starting shirt until the form line recovers.
-  if (inSquad && state.player.form < 34 && !flags['formBenchNotified']) {
+  /*
+   * Losing the shirt over a bad run.
+   *
+   * This is separate from being frozen out after a dispute: he stays in the squad and
+   * changes matches from the bench. Two things were wrong with it. It only applied to
+   * senior football, so a boy in an academy could play badly for a season and start
+   * every Sunday regardless - and it ended only when the form line reached 48, which a
+   * run of twenty-minute cameos can take half a year to do. It is a few matches now,
+   * and there is a way back out of it that does not depend on chances he is no longer
+   * on the pitch to take.
+   */
+  const hasClub = state.player.clubId !== null;
+  if (hasClub && state.player.form < 34 && !flags['formBenchNotified']) {
     flags['formBenchNotified'] = true;
+    flags['formBenchFromWeek'] = absoluteWeek;
+    flags['formBenchUntilWeek'] = absoluteWeek + rng.int(2, 3);
     out.push({ id: 'benchedForForm' });
   }
-  if (state.player.form >= 48 && flags['formBenchNotified']) {
-    flags['formBenchNotified'] = false;
-    out.push({ id: 'backInForm' });
+  if (flags['formBenchNotified']) {
+    const servedUntil = Number(flags['formBenchUntilWeek'] ?? 0);
+    const droppedAt = Number(flags['formBenchFromWeek'] ?? servedUntil - 3);
+    // What he has done since he was dropped, and only that: the matches that cost him
+    // the shirt are not evidence that he deserves it back.
+    const sinceDropped = state.matchLog
+      .filter((match) => (
+        match.userLine?.played
+        && !match.competitionId.startsWith('friendly')
+        && match.season * 52 + match.week >= droppedAt
+      ))
+      .slice(0, 4)
+      .map((match) => match.userLine!.rating);
+    const best = sinceDropped.length > 0 ? Math.max(...sinceDropped) : 0;
+    const served = absoluteWeek >= servedUntil;
+    /*
+     * Three ways back into the side, because there has to be one.
+     *
+     * The form line recovering is the plain one. Otherwise the spell is served and he
+     * has looked like a footballer again in one of his cameos - and failing all of
+     * that, a manager does not leave a fit senior player on the bench for half a season
+     * over form. He either plays him or the club moves him on, and being moved on is
+     * somebody else's rule.
+     */
+    const played = sinceDropped.length;
+    if (
+      state.player.form >= 48
+      || (served && played > 0 && (state.player.form >= 40 || best >= 6.5))
+      || absoluteWeek >= servedUntil + 3
+    ) {
+      flags['formBenchNotified'] = false;
+      flags['formBenchUntilWeek'] = 0;
+      flags['formBenchFromWeek'] = 0;
+      out.push({ id: 'backInForm' });
+    }
   }
 
   // The club starts looking for a replacement, then lists him.

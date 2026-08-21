@@ -1401,6 +1401,45 @@ describe('summer tournaments', () => {
   });
 });
 
+describe('losing the shirt over a bad run', () => {
+  it('drops a boy in the age group too, and gives it back within a few matches', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    // Get him into the season proper, playing youth football every week.
+    for (let i = 0; i < 10; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    expect(state.player.squadRole).toBe('academy');
+
+    state.player.form = 22;
+    const dropped = evaluateConsequences(new Rng(4), state);
+    expect(dropped.some((entry) => entry.id === 'benchedForForm')).toBe(true);
+    expect(state.flags['formBenchNotified']).toBe(true);
+
+    // The next time he plays, he comes off the bench - the age group used to hand him
+    // ninety minutes whatever he had been doing.
+    let cameOffTheBench = false;
+    let weeksBenched = 0;
+    for (let i = 0; i < 20 && state.flags['formBenchNotified']; i++) {
+      const before = state.matchLog.length;
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      weeksBenched++;
+      for (const match of state.matchLog.slice(0, state.matchLog.length - before)) {
+        if (match.userLine?.played && !match.competitionId.startsWith('friendly') && !match.userLine.started) {
+          cameOffTheBench = true;
+        }
+      }
+    }
+
+    expect(cameOffTheBench, 'he started every match while dropped').toBe(true);
+    // A few matches, not half a season: the spell is served and there is a way out of
+    // it that does not depend on chances he is no longer on the pitch to take.
+    expect(state.flags['formBenchNotified']).toBe(false);
+    expect(weeksBenched).toBeLessThanOrEqual(8);
+  });
+});
+
 describe('clubs that have watched him', () => {
   it('takes a gifted boy into a good academy and turns a modest one down', () => {
     const { state, index } = startedCareer({ seed: 88 });
