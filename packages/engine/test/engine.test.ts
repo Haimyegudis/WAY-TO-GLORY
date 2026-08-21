@@ -41,7 +41,7 @@ import {
   userSquad,
 } from '../src/career.js';
 import { DEFAULT_INPUT, loadPack, playWeek, startedCareer } from './helpers.js';
-import type { Player, Position, TrainingPlan } from '../src/types.js';
+import type { CompetitionSeasonState, Player, Position, TrainingPlan } from '../src/types.js';
 
 const TRAINING: TrainingPlan = { intensity: 'normal', focus: 'balanced', diet: 'normal' };
 
@@ -268,6 +268,34 @@ describe('league', () => {
       const games = fixtures.filter((f) => f.homeClubId === club || f.awayClubId === club);
       expect(games).toHaveLength(8);
     }
+  });
+
+  it('keeps every fixture inside its competition calendar and outside break weeks', () => {
+    const calendar = { firstWeek: 9, lastWeek: 47, breakWeeks: [20, 21, 32] };
+    const fixtures = buildFixtures(new Rng(31), ['a', 'b', 'c', 'd', 'e', 'f'], 2, calendar);
+    for (const fixture of fixtures) {
+      expect(fixture.week).toBeGreaterThanOrEqual(calendar.firstWeek);
+      expect(fixture.week).toBeLessThanOrEqual(calendar.lastWeek);
+      expect(calendar.breakWeeks).not.toContain(fixture.week);
+    }
+  });
+
+  it('applies a head-to-head tie-break before overall goal difference when configured', () => {
+    const state: CompetitionSeasonState = {
+      competitionId: 'test', season: 2026, clubIds: ['a', 'b'], currentRound: 2,
+      table: {
+        a: { clubId: 'a', played: 4, won: 3, drawn: 1, lost: 0, goalsFor: 5, goalsAgainst: 4, points: 10 },
+        b: { clubId: 'b', played: 4, won: 3, drawn: 1, lost: 0, goalsFor: 12, goalsAgainst: 3, points: 10 },
+      },
+      fixtures: [
+        { round: 1, week: 7, homeClubId: 'a', awayClubId: 'b', played: true, result: [1, 0] },
+        { round: 2, week: 8, homeClubId: 'b', awayClubId: 'a', played: true, result: [0, 0] },
+      ],
+      scorers: {},
+      leagueRules: { pointsForWin: 3, pointsForDraw: 1, tieBreakers: ['headToHead', 'goalDifference', 'id'] },
+      finished: false,
+    };
+    expect(sortedTable(state).map((row) => row.clubId)).toEqual(['a', 'b']);
   });
 
   it('keeps the table arithmetic consistent', () => {
@@ -614,7 +642,7 @@ describe('ovr agrees with the headline ratings', () => {
 describe('europe', () => {
   it('runs a full season and crowns three winners', () => {
     const { state, index } = startedCareer({ seed: 21 });
-    for (let i = 0; i < 53; i++) playWeek(state, index);
+    for (let i = 0; i < 59; i++) playWeek(state, index);
 
     const winners = state.world.history.europeanWinners ?? [];
     const tiers = new Set(winners.map((w) => w.tier));
@@ -625,7 +653,7 @@ describe('europe', () => {
 
   it('qualifies clubs from the league table, not at random', () => {
     const { state, index } = startedCareer({ seed: 22 });
-    for (let i = 0; i < 53; i++) playWeek(state, index);
+    for (let i = 0; i < 59; i++) playWeek(state, index);
 
     const entrants: string[] = [];
     for (const competition of Object.values(state.world.europe ?? {})) {
@@ -686,6 +714,42 @@ describe('europe', () => {
     expect(playoff[1]).toBe('club23');
     // And nobody from the bottom twelve is anywhere near it.
     for (const clubId of clubIds.slice(24)) expect(playoff).not.toContain(clubId);
+  });
+});
+
+describe('pre-season camp', () => {
+  it('evaluates a new senior in three friendlies before competitive football', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 19, seed: 6060 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { role: 'rotation' });
+    const trustBefore = state.managerTrust;
+
+    for (let week = 1; week <= 3; week++) playWeek(state, index);
+
+    const camp = state.matchLog.filter((match) => match.competitionId === 'friendly');
+    expect(camp).toHaveLength(3);
+    expect(camp.every((match) => match.userLine?.played)).toBe(true);
+    expect(camp.every((match) => match.importance === 'friendly')).toBe(true);
+    expect(state.managerTrust).not.toBe(trustBefore);
+    expect(Object.values(state.world.competitions).every(
+      (competition) => Object.values(competition.table).every((row) => row.played === 0),
+    )).toBe(true);
+    expect(Object.values(state.world.europe ?? {}).every(
+      (competition) => (competition.qualifying?.ties ?? []).every((tie) => !tie.played),
+    )).toBe(true);
+    expect(state.world.week).toBe(4);
+  });
+
+  it('keeps domestic league fixtures closed until week seven', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 19, seed: 6061 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { role: 'rotation' });
+    const league = state.world.competitions[state.world.clubs[clubId]!.competitionId]!;
+
+    for (let week = 1; week <= 6; week++) playWeek(state, index);
+    expect(league.table[clubId]!.played).toBe(0);
+    playWeek(state, index);
+    expect(league.table[clubId]!.played).toBeGreaterThan(0);
   });
 });
 
@@ -996,6 +1060,46 @@ describe('half time', () => {
     // Different orders produce different second halves; the same seed, the same first.
     expect(forward.halfTimeScore).toEqual(legs.halfTimeScore);
     expect(forward.fatigueFactor).toBeGreaterThan(legs.fatigueFactor);
+  });
+
+  it('keeps score snapshots chronological', () => {
+    const ctx = matchContext();
+    for (let seed = 1; seed <= 300; seed++) {
+      const match = simulateUserMatch(new Rng(seed), ctx);
+      let home = 0;
+      let away = 0;
+      for (const event of match.events) {
+        if (!event.score) continue;
+        expect(event.score[0], `home score went backwards at ${event.minute} with seed ${seed}`).toBeGreaterThanOrEqual(home);
+        expect(event.score[1], `away score went backwards at ${event.minute} with seed ${seed}`).toBeGreaterThanOrEqual(away);
+        home = event.score[0];
+        away = event.score[1];
+      }
+      expect([home, away]).toEqual([match.result.homeGoals, match.result.awayGoals]);
+    }
+  });
+
+  it('never lets the user act after a substitution, dismissal, or injury', () => {
+    const base = matchContext();
+    const involved = new Set(['goal', 'assist', 'miss', 'save', 'tackle', 'chance', 'woodwork', 'freeKick', 'corner']);
+    let forcedExitSeen = false;
+
+    for (let seed = 1; seed <= 800; seed++) {
+      const plannedOff = seed % 2 === 0 ? 35 : 70;
+      const minutes = plannedOff === 35
+        ? { played: true, started: true, minutes: 35, slot: base.user.primaryPos, offMinute: 35 }
+        : { played: true, started: false, minutes: 25, slot: base.user.primaryPos, cameOnMinute: 45, offMinute: 70 };
+      const match = simulateUserMatch(new Rng(seed), { ...base, minutes });
+      const forced = match.events.find((event) => event.type === 'red' || event.type === 'injury');
+      if (forced) forcedExitSeen = true;
+      const exit = Math.min(plannedOff, forced?.minute ?? 90);
+
+      for (const event of match.events) {
+        if (!event.byUser || event.playerId !== base.user.id || !involved.has(event.type)) continue;
+        expect(event.minute, `${event.type} after exit with seed ${seed}`).toBeLessThan(exit);
+      }
+    }
+    expect(forcedExitSeen, 'the sample never exercised a dismissal or injury').toBe(true);
   });
 
   it('stops the week at the interval without writing anything to the world', () => {

@@ -289,24 +289,40 @@ export function updateCondition(
   plan: TrainingPlan,
   playedMinutes: number,
 ): void {
+  applyTrainingCondition(player, plan);
+  applyMatchCondition(player, plan, playedMinutes);
+}
+
+/** Monday-to-Friday load, applied before selection and the weekend fixture. */
+export function applyTrainingCondition(player: Player, plan: TrainingPlan): void {
   const cond = player.condition;
   const recovery = DIET_RECOVERY[plan.diet];
   const stamina = player.attributes.stamina;
-
-  const matchFatigue = (playedMinutes / 90) * (14 - stamina / 12);
   const trainingFatigue = INTENSITY_FATIGUE[plan.intensity];
   const naturalRecovery = (6 + stamina / 14) * recovery;
 
-  cond.fatigue = clamp(cond.fatigue + matchFatigue + trainingFatigue - naturalRecovery, 0, 100);
-
-  const matchSharpness = playedMinutes > 0 ? Math.min(12, playedMinutes / 8) : -3.5;
-  cond.sharpness = clamp(cond.sharpness + matchSharpness + INTENSITY_SHARPNESS[plan.intensity], 0, 100);
+  cond.fatigue = clamp(cond.fatigue + trainingFatigue - naturalRecovery, 0, 100);
+  cond.sharpness = clamp(cond.sharpness + INTENSITY_SHARPNESS[plan.intensity], 0, 100);
 
   const ceiling = INTENSITY_FITNESS_CEILING[plan.intensity] * (0.94 + DIET_FACTOR[plan.diet] * 0.06);
   const targetFitness = Math.min(ceiling, 100 - cond.fatigue * 0.75);
   player.fitness = clamp(player.fitness + (targetFitness - player.fitness) * 0.45, 20, 100);
 
   player.morale = clamp(player.morale + DIET_MORALE[plan.diet], 0, 100);
+}
+
+/** Match load and sharpness, applied after the minutes are known. */
+export function applyMatchCondition(player: Player, plan: TrainingPlan, playedMinutes: number): void {
+  const cond = player.condition;
+  const stamina = player.attributes.stamina;
+  const matchFatigue = (playedMinutes / 90) * (14 - stamina / 12);
+  const matchSharpness = playedMinutes > 0 ? Math.min(12, playedMinutes / 8) : -3.5;
+  cond.fatigue = clamp(cond.fatigue + matchFatigue, 0, 100);
+  cond.sharpness = clamp(cond.sharpness + matchSharpness, 0, 100);
+
+  const ceiling = INTENSITY_FITNESS_CEILING[plan.intensity] * (0.94 + DIET_FACTOR[plan.diet] * 0.06);
+  const targetFitness = Math.min(ceiling, 100 - cond.fatigue * 0.75);
+  player.fitness = clamp(player.fitness + (targetFitness - player.fitness) * 0.25, 20, 100);
 }
 
 /** Form drifts toward recent match ratings and decays toward the mean when idle. */

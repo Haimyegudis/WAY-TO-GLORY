@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLang, useT } from '../i18n/index.js';
+import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName } from '../lib/names.js';
 import { clubName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
@@ -37,7 +37,7 @@ export function AcademyChoice() {
       <div className="app">
       <div className="screen stack" style={{ paddingBottom: 40 }}>
         <header>
-          <p className="eyebrow" dir="ltr">2025 / 26</p>
+          <p className="eyebrow" dir="ltr">{formatSeason(state.world.season)}</p>
           <button className="eyebrow" onClick={reopenCreation}>← {t('academy.changeDetails')}</button>
           <h1 className="title">{t('academy.title')}</h1>
           <p className="muted" style={{ marginBlockStart: 8, fontSize: 13.5 }}>{t('academy.intro')}</p>
@@ -49,7 +49,7 @@ export function AcademyChoice() {
               <div className="row" style={{ gap: 10, minWidth: 0 }}>
                 <Crest club={state.world.clubs[offer.clubId]} size="lg" />
                 <div style={{ minWidth: 0 }}>
-                <h3 className="headline">{clubName(state.world.clubs[offer.clubId], lang)}</h3>
+                <h2 className="headline">{clubName(state.world.clubs[offer.clubId], lang)}</h2>
                 <p className="faint" style={{ fontSize: 12, marginBlockStart: 2 }}>
                   {competition(offer.competitionId)} · {t('academy.tier', { tier: offer.tier })}
                   </p>
@@ -79,7 +79,7 @@ export function AcademyChoice() {
   );
 }
 
-function Line({ label, value, tone }: { label: string; value: number; tone: 'amber' | 'amber' | 'red' | 'blue' | 'green' }) {
+function Line({ label, value, tone }: { label: string; value: number; tone: 'amber' | 'red' | 'blue' | 'green' }) {
   return (
     <div>
       <div className="row-between" style={{ marginBlockEnd: 4 }}>

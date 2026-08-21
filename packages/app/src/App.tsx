@@ -1,27 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useGame, type Screen } from './state/store.js';
 import { useT } from './i18n/index.js';
-import { Menu } from './screens/Menu.js';
 import { ThemeMusic } from './components/ThemeMusic.js';
-import { CreatePlayer } from './screens/CreatePlayer.js';
-import { AcademyChoice } from './screens/AcademyChoice.js';
-import { Hub } from './screens/Hub.js';
-import { MatchCentre } from './screens/MatchCentre.js';
-import { MatchesScreen } from './screens/MatchesScreen.js';
-import { ClubScreen } from './screens/ClubScreen.js';
-import { TrainingScreen } from './screens/TrainingScreen.js';
-import { MarketScreen } from './screens/MarketScreen.js';
-import { CareerScreen } from './screens/CareerScreen.js';
-import { NationalScreen } from './screens/NationalScreen.js';
-import { SocialScreen } from './screens/SocialScreen.js';
-import { SettingsScreen } from './screens/SettingsScreen.js';
-import { DecisionSheet } from './screens/DecisionSheet.js';
-import { MentorScreen } from './screens/MentorScreen.js';
-import { LifeScreen } from './screens/LifeScreen.js';
-import { ResultSheet } from './screens/ResultSheet.js';
-import { NewsPopup } from './screens/NewsPopup.js';
 import { nextFixture, openHalfTime } from './state/selectors.js';
 import { primeWhistles } from './components/whistle.js';
+
+const Menu = lazy(() => import('./screens/Menu.js').then((module) => ({ default: module.Menu })));
+const CreatePlayer = lazy(() => import('./screens/CreatePlayer.js').then((module) => ({ default: module.CreatePlayer })));
+const AcademyChoice = lazy(() => import('./screens/AcademyChoice.js').then((module) => ({ default: module.AcademyChoice })));
+const Hub = lazy(() => import('./screens/Hub.js').then((module) => ({ default: module.Hub })));
+const MatchCentre = lazy(() => import('./screens/MatchCentre.js').then((module) => ({ default: module.MatchCentre })));
+const MatchesScreen = lazy(() => import('./screens/MatchesScreen.js').then((module) => ({ default: module.MatchesScreen })));
+const ClubScreen = lazy(() => import('./screens/ClubScreen.js').then((module) => ({ default: module.ClubScreen })));
+const TrainingScreen = lazy(() => import('./screens/TrainingScreen.js').then((module) => ({ default: module.TrainingScreen })));
+const MarketScreen = lazy(() => import('./screens/MarketScreen.js').then((module) => ({ default: module.MarketScreen })));
+const CareerScreen = lazy(() => import('./screens/CareerScreen.js').then((module) => ({ default: module.CareerScreen })));
+const NationalScreen = lazy(() => import('./screens/NationalScreen.js').then((module) => ({ default: module.NationalScreen })));
+const SocialScreen = lazy(() => import('./screens/SocialScreen.js').then((module) => ({ default: module.SocialScreen })));
+const SettingsScreen = lazy(() => import('./screens/SettingsScreen.js').then((module) => ({ default: module.SettingsScreen })));
+const DecisionSheet = lazy(() => import('./screens/DecisionSheet.js').then((module) => ({ default: module.DecisionSheet })));
+const MentorScreen = lazy(() => import('./screens/MentorScreen.js').then((module) => ({ default: module.MentorScreen })));
+const LifeScreen = lazy(() => import('./screens/LifeScreen.js').then((module) => ({ default: module.LifeScreen })));
+const ResultSheet = lazy(() => import('./screens/ResultSheet.js').then((module) => ({ default: module.ResultSheet })));
+const NewsPopup = lazy(() => import('./screens/NewsPopup.js').then((module) => ({ default: module.NewsPopup })));
 
 /**
  * One stadium photograph carries the whole game; each screen only shifts how far
@@ -46,10 +47,24 @@ export function App() {
   const phase = useGame((s) => s.phase);
   const boot = useGame((s) => s.boot);
   useBackGesture();
+  useDialogAccessibility();
 
   useEffect(() => {
     void boot();
   }, [boot]);
+
+  useEffect(() => {
+    const persistLatest = () => {
+      if (document.visibilityState === 'hidden') void useGame.getState().save();
+    };
+    const pageHide = () => void useGame.getState().save();
+    document.addEventListener('visibilitychange', persistLatest);
+    window.addEventListener('pagehide', pageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', persistLatest);
+      window.removeEventListener('pagehide', pageHide);
+    };
+  }, []);
 
   if (phase === 'loading') {
     return (
@@ -69,9 +84,9 @@ export function App() {
   const music = <ThemeMusic playing={phase === 'menu' || phase === 'create' || phase === 'academy'} />;
   // The toast has to exist before a career does: the back gesture says "again to leave"
   // on the title screen and while a player is being made, and that has to be readable.
-  if (phase === 'menu') return <>{music}<Menu /><Toast /></>;
-  if (phase === 'create') return <>{music}<CreatePlayer /><Toast /></>;
-  if (phase === 'academy') return <>{music}<AcademyChoice /><Toast /></>;
+  if (phase === 'menu') return <>{music}<Suspense fallback={<ScreenLoading />}><Menu /></Suspense><Toast /></>;
+  if (phase === 'create') return <>{music}<Suspense fallback={<ScreenLoading />}><CreatePlayer /></Suspense><Toast /></>;
+  if (phase === 'academy') return <>{music}<Suspense fallback={<ScreenLoading />}><AcademyChoice /></Suspense><Toast /></>;
   return <Game />;
 }
 
@@ -107,30 +122,36 @@ function Game() {
       <ThemeMusic playing={inTheMatch} track="matchday" />
       <ThemeMusic playing={!inTheMatch} track="season" />
       <div className="app">
-        {screen === 'hub' && <Hub />}
-        {screen === 'match' && <MatchCentre />}
-        {screen === 'matches' && <MatchesScreen />}
-        {screen === 'club' && <ClubScreen />}
-        {screen === 'train' && <TrainingScreen />}
-        {screen === 'market' && <MarketScreen />}
-        {screen === 'career' && <CareerScreen />}
-        {screen === 'national' && <NationalScreen />}
-        {screen === 'social' && <SocialScreen />}
-        {screen === 'settings' && <SettingsScreen />}
-        {screen === 'mentor' && <MentorScreen />}
-        {screen === 'life' && <LifeScreen />}
+        <Suspense fallback={<ScreenLoading />}>
+          {screen === 'hub' && <Hub />}
+          {screen === 'match' && <MatchCentre />}
+          {screen === 'matches' && <MatchesScreen />}
+          {screen === 'club' && <ClubScreen />}
+          {screen === 'train' && <TrainingScreen />}
+          {screen === 'market' && <MarketScreen />}
+          {screen === 'career' && <CareerScreen />}
+          {screen === 'national' && <NationalScreen />}
+          {screen === 'social' && <SocialScreen />}
+          {screen === 'settings' && <SettingsScreen />}
+          {screen === 'mentor' && <MentorScreen />}
+          {screen === 'life' && <LifeScreen />}
 
-        {!pending && !result && !state?.retired && !inTheMatch && <ContinueDock />}
-        <Tabs />
-        {result && <ResultSheet result={result} />}
-        {/* News comes up. It is read and dismissed one at a time, behind anything that
-            has actually stopped the week. */}
-        {!result && !pending && !inTheMatch && <NewsPopup />}
-        {!result && pending && <DecisionSheet decision={pending} />}
+          {!pending && !result && !state?.retired && !inTheMatch && <ContinueDock />}
+          <Tabs />
+          {result && <ResultSheet result={result} />}
+          {/* News comes up. It is read and dismissed one at a time, behind anything that
+              has actually stopped the week. */}
+          {!result && !pending && !inTheMatch && <NewsPopup />}
+          {!result && pending && <DecisionSheet decision={pending} />}
+        </Suspense>
         <Toast />
       </div>
     </>
   );
+}
+
+function ScreenLoading() {
+  return <div className="screen" aria-busy="true"><span className="eyebrow">···</span></div>;
 }
 
 /** The stadium behind everything, inside the phone frame, dimmed per screen. */
@@ -462,7 +483,67 @@ function Toast() {
   }, [toast, showToast]);
 
   if (!toast) return null;
-  return <div className="toast">{toast}</div>;
+  return <div className="toast" role="status" aria-live="polite">{toast}</div>;
+}
+
+/** Focus stays inside the top sheet; dismissible backdrops also understand Escape. */
+function useDialogAccessibility(): void {
+  useEffect(() => {
+    let active: HTMLElement | null = null;
+    const previous = new WeakMap<HTMLElement, Element | null>();
+    const focusable = (dialog: HTMLElement) => [...dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )];
+
+    const sync = () => {
+      const dialogs = [...document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]')];
+      const next = dialogs[dialogs.length - 1] ?? null;
+      if (next === active) return;
+      const old = active;
+      active = next;
+      if (next) {
+        previous.set(next, document.activeElement);
+        if (!next.hasAttribute('tabindex')) next.tabIndex = -1;
+        window.requestAnimationFrame(() => (focusable(next)[0] ?? next).focus());
+      } else if (old) {
+        const restore = previous.get(old);
+        if (restore instanceof HTMLElement && restore.isConnected) restore.focus();
+      }
+    };
+
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true });
+    const onKey = (event: KeyboardEvent) => {
+      if (!active) return;
+      if (event.key === 'Escape') {
+        const backdrop = active.closest<HTMLElement>('.sheet-backdrop');
+        backdrop?.click();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusable(active);
+      if (items.length === 0) {
+        event.preventDefault();
+        active.focus();
+        return;
+      }
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    sync();
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
 }
 
 function IconHome() {

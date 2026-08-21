@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   deleteSave as deleteSaveSlot,
+  flushSaves,
   listSaves,
   migrateLegacySave,
   newSaveId,
@@ -54,7 +55,6 @@ import {
   type TickResult,
   type TrainingPlan,
 } from '@fc/engine';
-import packJson from '@fc/data/pack';
 
 /**
  * Where he was, kept outside the save itself.
@@ -228,15 +228,29 @@ interface GameStore {
   save: () => Promise<void>;
 }
 
-const pack = packJson as unknown as DataPack;
+let loadedPack: DataPack | null = null;
+let packPromise: Promise<DataPack> | null = null;
+
+async function loadPackData(): Promise<DataPack> {
+  if (loadedPack) return loadedPack;
+  packPromise ??= import('@fc/data/pack').then((module) => module.default as unknown as DataPack);
+  loadedPack = await packPromise;
+  return loadedPack;
+}
+
+function requirePack(): DataPack {
+  if (!loadedPack) throw new Error('Data pack requested before career setup');
+  return loadedPack;
+}
 
 /**
  * Writes the career into its own slot, along with the summary the title screen lists.
- * Fire and forget: a dropped write costs at most one week of play.
+ * Writes are queued per slot in saves.ts, so a slower old write can never overwrite a
+ * newer action. Callers that are leaving the career can await the returned promise.
  */
-function persistTo(id: string, state: CareerState, onSaved?: (saves: SaveSummary[]) => void): void {
+function persistTo(id: string, state: CareerState, onSaved?: (saves: SaveSummary[]) => void): Promise<void> {
   const club = state.player.clubId ? state.world.clubs[state.player.clubId] : null;
-  void writeSave(id, state, {
+  return writeSave(id, state, {
     playerName: `${state.player.firstName} ${state.player.lastName}`,
     clubName: club?.name ?? '',
     season: state.world.season,
@@ -280,6 +294,7 @@ export const useGame = create<GameStore>((set, get) => ({
     if (last && saves.some((slot) => slot.id === last)) {
       const state = await readSave(last);
       if (state) {
+        const pack = await loadPackData();
         set({
           state,
           index: indexPack(pack),
@@ -324,8 +339,10 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ screen: target, trail: previous ? trail.slice(0, -1) : [] });
   },
 
-  startCreation() {
-    set({ phase: 'create' });
+  async startCreation() {
+    set({ busy: true });
+    await loadPackData();
+    set({ phase: 'create', busy: false });
   },
 
   cancelCreation() {
@@ -333,6 +350,7 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   createPlayer(input) {
+    const pack = requirePack();
     const { state, index } = createCareer(pack, input);
     const offers = getAcademyOffers(state, index);
     // A new career takes a new slot, so it never writes over the last one.
@@ -362,6 +380,7 @@ export const useGame = create<GameStore>((set, get) => ({
     if (!target) return;
     const state = await readSave(target);
     if (!state) return;
+    const pack = await loadPackData();
     rememberSlot(target);
     rememberScreen('hub');
     set({
@@ -383,7 +402,8 @@ export const useGame = create<GameStore>((set, get) => ({
   async leaveCareer() {
     const { state, activeSaveId } = get();
     if (state && activeSaveId) {
-      persistTo(activeSaveId, state, () => {});
+      await persistTo(activeSaveId, state, () => {});
+      await flushSaves();
     }
     forgetSlot();
     const saves = await listSaves();
@@ -527,7 +547,7 @@ export const useGame = create<GameStore>((set, get) => ({
       (decision) => decision.id === decisionId && decision.eventId === 'retirement_choice',
     );
     const rng = Rng.fromState(state.rngState);
-    const result = resolveDecision(rng, state, decisionId, optionId, pack.events);
+    const result = resolveDecision(rng, state, decisionId, optionId, requirePack().events);
     state.rngState = rng.getState();
     if (retiring && optionId === 'retire') engineRetire(state);
     const slot = get().activeSaveId;
@@ -748,7 +768,7 @@ export const useGame = create<GameStore>((set, get) => ({
 }));
 
 export function getPack(): DataPack {
-  return pack;
+  return requirePack();
 }
 
 export function availableActions(state: CareerState) {

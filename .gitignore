@@ -4,3 +4,5 @@ dist/
 .env.local
 *.log
 packages/data/packs/pack.pretty.json
+test-results/
+playwright-report/

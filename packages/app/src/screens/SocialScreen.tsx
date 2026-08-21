@@ -4,7 +4,7 @@ import { availableActions, useGame } from '../state/store.js';
 import { PLAYER_ACTIONS, actionCooldownLeft } from '@fc/engine';
 import { Card, Empty, Meter } from '../components/ui.js';
 
-const CATEGORY_ORDER = ['manager', 'teammates', 'fans', 'board', 'personal'] as const;
+const CATEGORY_ORDER = ['manager', 'teammates', 'fans', 'media', 'board', 'personal'] as const;
 
 /**
  * Where the player works on the people around him. Every option says what it is

@@ -7,7 +7,6 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
       manifest: {
         name: 'הדרך לתהילה',
         short_name: 'הדרך לתהילה',
@@ -29,20 +28,29 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        // The data pack is large but static: cache it so the game opens offline.
+        // Keep the install shell small. The career data and cloud SDK are lazy chunks;
+        // each is cached on first use instead of being downloaded with the title screen.
         globPatterns: ['**/*.{js,css,html,woff2,png,svg,json}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-        // 425 club badges are 30MB of install for a phone, and a career only ever
+        // 605 club badges are far too much install weight for a phone, and a career only
         // shows a handful of them. They are cached the first time they are drawn
         // instead, which keeps the install small and still works offline afterwards.
-        globIgnores: ['**/crests/**', '**/crests.html', '**/audio/**'],
+        globIgnores: [
+          '**/crests/**',
+          '**/crests.html',
+          '**/audio/**',
+          '**/assets/pack-*.js',
+          '**/assets/cloud-*.js',
+        ],
         runtimeCaching: [
           {
-            // The human body: one binary, fetched the first time somebody makes a player
-            // and kept, so the character works with no network like everything else.
-            urlPattern: /\/models\/(human|morphs)\.(bin|json)$/,
+            urlPattern: /\/assets\/(pack|cloud)-.*\.js$/,
             handler: 'CacheFirst',
-            options: { cacheName: 'human', expiration: { maxEntries: 4 } },
+            options: {
+              cacheName: 'career-lazy-data',
+              expiration: { maxEntries: 6, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
           },
           {
             // The soundtrack is cached the first time it is heard, not on install.

@@ -167,6 +167,21 @@ export interface CardRules {
   redSuspension: number;
 }
 
+export type LeagueTieBreaker = 'headToHead' | 'wins' | 'goalDifference' | 'goalsFor' | 'id';
+
+export interface LeagueRules {
+  pointsForWin: number;
+  pointsForDraw: number;
+  tieBreakers: LeagueTieBreaker[];
+}
+
+export interface CompetitionCalendar {
+  firstWeek: number;
+  lastWeek: number;
+  /** Domestic shutdown weeks, if any, inside the playing window. */
+  breakWeeks?: number[];
+}
+
 export interface Competition {
   id: string;
   name: string;
@@ -189,6 +204,8 @@ export interface Competition {
     uclQual?: number; uelQual?: number; ueclQual?: number;
   };
   cards: CardRules;
+  leagueRules?: LeagueRules;
+  calendar?: CompetitionCalendar;
   reputation: number;             // 0-100
   seasonStartMonth: number;       // 1-12
 }
@@ -332,7 +349,7 @@ export interface MatchResult {
 }
 
 export type MatchImportance =
-  | 'normal' | 'derby' | 'rival' | 'titleDecider' | 'relegationSixPointer'
+  | 'normal' | 'friendly' | 'derby' | 'rival' | 'titleDecider' | 'relegationSixPointer'
   | 'cupFinal' | 'cupSemi' | 'europeanNight' | 'debut' | 'firstProMatch'
   | 'vsFormerClub' | 'internationalDebut' | 'finalMatch';
 
@@ -377,6 +394,8 @@ export interface CompetitionSeasonState {
   fixtures: Fixture[];
   currentRound: number;
   scorers: Record<string, number>;     // playerId -> goals
+  /** Copied into the save so an old career keeps the rules it began with. */
+  leagueRules?: LeagueRules;
   /** playerId -> assists, so the charts are not only about who finished. */
   assists?: Record<string, number>;
   /** playerId -> cards picked up in this competition. */
@@ -729,6 +748,10 @@ export interface PendingHalfTime {
   score: [number, number];
   /** How he has played so far, so the dressing room has something to react to. */
   rating: number;
+  /** Locked at kick-off so a half-time relationship change cannot rewrite the first half. */
+  mental?: number;
+  /** Penalty duty as it stood at kick-off. */
+  penaltyTaker?: boolean;
   /** What the manager wants, or null when it is left to the player. */
   demand: import('./halftime.js').HalfTimeInstructionId | null;
   options: import('./halftime.js').HalfTimeInstructionId[];

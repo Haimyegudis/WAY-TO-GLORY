@@ -2,9 +2,9 @@
  * Builds packs/pack.json from the downloaded openfootball files plus the
  * hand-authored leagues, stars and events.
  *
- * Club strength is derived from real 2025/26 results (points per game) mapped onto
- * a band set by the competition's reputation, so the world starts out roughly the
- * shape the real season is.
+ * Club strength is derived from the latest completed upstream season, 2025/26 (points
+ * per game), while a new career begins in the 2026/27 season. Upstream does not yet
+ * publish a 2026/27 set; the source snapshot is kept honest rather than relabelled.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -41,7 +41,36 @@ const rawDir = join(here, '..', 'packs', 'raw');
 const outDir = join(here, '..', 'packs');
 const packsDir = outDir;
 
-const SEASON = 2025;
+const SEASON = 2026;
+
+const SPRING_COUNTRIES = new Set(['NOR', 'SWE', 'USA']);
+const SOUTH_AMERICA = new Set(['ARG', 'BRA']);
+const WINTER_BREAK = new Set(['GER', 'AUT', 'DEN', 'NED', 'BEL', 'SUI', 'POL', 'CZE', 'UKR']);
+const HEAD_TO_HEAD = new Set(['ESP', 'ITA', 'FRA', 'POR', 'GRE', 'TUR']);
+const WINS_FIRST = new Set(['BRA', 'USA']);
+
+function calendarFor(country: string): NonNullable<Competition['calendar']> {
+  if (SPRING_COUNTRIES.has(country)) return { firstWeek: 9, lastWeek: 47 };
+  if (SOUTH_AMERICA.has(country)) return { firstWeek: country === 'ARG' ? 5 : 7, lastWeek: 49 };
+  return {
+    firstWeek: 7,
+    lastWeek: 49,
+    ...(WINTER_BREAK.has(country) ? { breakWeeks: [25, 26] } : {}),
+  };
+}
+
+function tieBreakersFor(country: string): NonNullable<Competition['leagueRules']>['tieBreakers'] {
+  if (HEAD_TO_HEAD.has(country)) return ['headToHead', 'goalDifference', 'goalsFor', 'wins', 'id'];
+  if (WINS_FIRST.has(country)) return ['wins', 'goalDifference', 'goalsFor', 'id'];
+  return ['goalDifference', 'goalsFor', 'wins', 'id'];
+}
+
+function seasonStartMonthFor(country: string): number {
+  if (SPRING_COUNTRIES.has(country)) return 3;
+  if (country === 'ARG') return 1;
+  if (country === 'BRA') return 4;
+  return 8;
+}
 
 interface TeamRecord {
   name: string;
@@ -309,8 +338,14 @@ async function main(): Promise<void> {
           }
         : {}),
       cards: seed.cards,
+      calendar: calendarFor(seed.country),
+      leagueRules: {
+        pointsForWin: 3,
+        pointsForDraw: 1,
+        tieBreakers: tieBreakersFor(seed.country),
+      },
       reputation: seed.reputation,
-      seasonStartMonth: 8,
+      seasonStartMonth: seasonStartMonthFor(seed.country),
     });
   }
 
@@ -370,7 +405,7 @@ async function main(): Promise<void> {
   }
 
   const pack: DataPack = {
-    version: '2025.26.1',
+    version: '2026.27.0',
     season: SEASON,
     countries,
     competitions,

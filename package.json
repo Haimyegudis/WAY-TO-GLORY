@@ -13,6 +13,7 @@
     "data:build": "npm run build -w @fc/data",
     "dev": "npm run dev -w @fc/app",
     "build": "npm run build -w @fc/app",
+    "test:e2e": "npm run test:e2e -w @fc/app",
     "soak": "npm run soak -w @fc/engine"
   },
   "devDependencies": {

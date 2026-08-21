@@ -25,13 +25,19 @@ export interface SaveSummary {
   retired: boolean;
   /** Wall-clock of the last write, for "last played" ordering. */
   updatedAt: number;
+  /** Monotonic per-slot revision; older summaries may not have one. */
+  revision?: number;
 }
+
+const slotQueues = new Map<string, Promise<SaveSummary[]>>();
+let indexQueue: Promise<unknown> = Promise.resolve();
 
 function slotKey(id: string): string {
   return `${SLOT_PREFIX}${id}`;
 }
 
 export async function listSaves(): Promise<SaveSummary[]> {
+  await indexQueue.catch(() => undefined);
   const index = (await idbGet<SaveSummary[]>(INDEX_KEY)) ?? [];
   return [...index].sort((a, b) => b.updatedAt - a.updatedAt);
 }
@@ -40,13 +46,43 @@ async function writeIndex(saves: SaveSummary[]): Promise<void> {
   await idbSet(INDEX_KEY, saves);
 }
 
+function updateIndex(
+  change: (current: SaveSummary[]) => SaveSummary[],
+): Promise<SaveSummary[]> {
+  const task = indexQueue.catch(() => undefined).then(async () => {
+    const current = (await idbGet<SaveSummary[]>(INDEX_KEY)) ?? [];
+    const next = change(current);
+    await writeIndex(next);
+    return [...next].sort((a, b) => b.updatedAt - a.updatedAt);
+  });
+  indexQueue = task;
+  return task;
+}
+
 export async function writeSave(id: string, state: CareerState, summary: Omit<SaveSummary, 'id' | 'updatedAt'>): Promise<SaveSummary[]> {
-  await idbSet(slotKey(id), serialize(state));
-  const index = (await idbGet<SaveSummary[]>(INDEX_KEY)) ?? [];
-  const entry: SaveSummary = { ...summary, id, updatedAt: Date.now() };
-  const next = [entry, ...index.filter((save) => save.id !== id)];
-  await writeIndex(next);
-  return next.sort((a, b) => b.updatedAt - a.updatedAt);
+  // Snapshot synchronously. The live Zustand object keeps mutating while IndexedDB is
+  // asynchronous; serializing later would make an older queued action write newer,
+  // partially unrelated state.
+  const raw = serialize(state);
+  const previous = slotQueues.get(id) ?? Promise.resolve([]);
+  const task = previous.catch(() => []).then(async () => {
+    await idbSet(slotKey(id), raw);
+    return updateIndex((index) => {
+      const held = index.find((save) => save.id === id);
+      const entry: SaveSummary = {
+        ...summary,
+        id,
+        updatedAt: Date.now(),
+        revision: (held?.revision ?? 0) + 1,
+      };
+      return [entry, ...index.filter((save) => save.id !== id)];
+    });
+  });
+  slotQueues.set(id, task);
+  void task.finally(() => {
+    if (slotQueues.get(id) === task) slotQueues.delete(id);
+  });
+  return task;
 }
 
 export async function readSave(id: string): Promise<CareerState | null> {
@@ -60,11 +96,15 @@ export async function readSave(id: string): Promise<CareerState | null> {
 }
 
 export async function deleteSave(id: string): Promise<SaveSummary[]> {
+  await slotQueues.get(id)?.catch(() => undefined);
   await idbDel(slotKey(id));
-  const index = (await idbGet<SaveSummary[]>(INDEX_KEY)) ?? [];
-  const next = index.filter((save) => save.id !== id);
-  await writeIndex(next);
-  return next;
+  return updateIndex((index) => index.filter((save) => save.id !== id));
+}
+
+/** Used by explicit save/leave flows and tests to wait for every scheduled write. */
+export async function flushSaves(): Promise<void> {
+  await Promise.all([...slotQueues.values()].map((queue) => queue.catch(() => [])));
+  await indexQueue.catch(() => undefined);
 }
 
 /**

@@ -65,12 +65,12 @@ export function Hub() {
       <header className="identity">
         <div className="identity-club" style={{ ['--club-color' as string]: clubColor(club) }}>
           {club?.crest && <img className="identity-watermark" src={`/crests/${club.crest}`} alt="" />}
-          <div className="identity-name">
+          <h1 className="identity-name">
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {player.firstName} {player.lastName}
             </span>
             <Crest club={club} size="lg" />
-          </div>
+          </h1>
           <div className="identity-meta">
             <Chip tone="pink">{player.primaryPos}</Chip>
             {player.shirtNumber && <Chip tone="amber"><span className="num">#{player.shirtNumber}</span></Chip>}

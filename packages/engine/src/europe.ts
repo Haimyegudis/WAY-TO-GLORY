@@ -38,7 +38,7 @@ export type EuroKnockoutStage = 'playoff' | 'r16' | 'qf' | 'sf' | 'final';
 export type EuroStage = 'qualifying' | 'group' | EuroKnockoutStage | 'done';
 
 /** Summer weeks, before the domestic season starts. */
-export const QUALIFYING_WEEKS = [1, 2, 3];
+export const QUALIFYING_WEEKS = [4, 5, 6];
 
 export interface EuroGroup {
   letter: string;

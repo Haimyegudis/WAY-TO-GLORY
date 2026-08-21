@@ -340,7 +340,7 @@ export function LiveMatch({
         <p className="live-note live-note-loud">{t('live.leftPitch')}</p>
       )}
 
-      <div className="live-feed" ref={feedRef}>
+      <div className="live-feed" ref={feedRef} aria-live="polite" aria-relevant="additions text">
         {feed.length === 0 && <p className="faint" style={{ fontSize: 13 }}>{t('live.warmup')}</p>}
         {feed.map((event, i) => (
           <div key={`${event.minute}-${i}-${event.detailKey}`} className={`live-row ${toneOf(event)}`}>

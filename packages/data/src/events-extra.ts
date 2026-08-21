@@ -78,6 +78,11 @@ export const EVENTS_EXTRA: CareerEventDef[] = [
     opt('ultras_meeting_request', 'meet', [e('relationship', 10, 'fans'), e('relationship', -3, 'board')], 'risk.medium'),
     opt('ultras_meeting_request', 'decline', [e('relationship', -4, 'fans'), e('relationship', 3, 'board')]),
   ]),
+  ev('supporters_forum', 'media', 18, 52, { ageRange: [19, 36], minMinutesSeasonPct: 0.2 }, [
+    opt('supporters_forum', 'listen', [e('relationship', 9, 'fans'), e('morale', -2), e('attribute', 1, 'leadership')]),
+    opt('supporters_forum', 'promise_effort', [e('relationship', 6, 'fans'), e('form', 3), e('fatigue', 5)]),
+    opt('supporters_forum', 'challenge_them', [e('relationship', -9, 'fans'), e('fame', 4), e('custom', 1, 'incidentWithFans')], 'risk.high'),
+  ]),
   ev('shirt_number_offer', 'club', 16, 80, { ageRange: [18, 34], minOvr: 68 }, [
     opt('shirt_number_offer', 'take_ten', [e('fame', 6), e('relationship', 5, 'fans'), e('morale', 5)], 'risk.medium'),
     opt('shirt_number_offer', 'keep_yours', [e('personality', 2, 'consistency')]),
@@ -103,6 +108,11 @@ export const EVENTS_EXTRA: CareerEventDef[] = [
   ev('training_ground_test', 'manager', 22, 36, { ageRange: [17, 30] }, [
     opt('training_ground_test', 'go_hard', [e('relationship', 6, 'manager'), e('fatigue', 10), e('injuryRisk', 10)], 'risk.medium'),
     opt('training_ground_test', 'measured', [e('relationship', 2, 'manager')]),
+  ]),
+  ev('manager_role_review', 'manager', 20, 48, { ageRange: [18, 34], minMinutesSeasonPct: 0.2 }, [
+    opt('manager_role_review', 'ask_clarity', [e('relationship', 5, 'manager'), e('attribute', 1, 'decisions')]),
+    opt('manager_role_review', 'accept_flexible', [e('relationship', 8, 'manager'), e('personality', 2, 'adaptability'), e('morale', -3)]),
+    opt('manager_role_review', 'challenge_role', [e('relationship', -8, 'manager'), e('morale', 5), e('personality', 1, 'determination')], 'risk.medium'),
   ]),
 
   // ---------------------------------------------------------------- board and money
@@ -141,6 +151,11 @@ export const EVENTS_EXTRA: CareerEventDef[] = [
   ev('viral_training_clip', 'media', 18, 44, { ageRange: [17, 32] }, [
     opt('viral_training_clip', 'enjoy_it', [e('fame', 8), e('relationship', 3, 'fans'), e('relationship', -3, 'manager')]),
     opt('viral_training_clip', 'ask_to_remove', [e('relationship', 4, 'manager'), e('fame', -2)]),
+  ]),
+  ev('press_asks_about_teammate', 'media', 18, 48, { ageRange: [20, 38], minMinutesSeasonPct: 0.25 }, [
+    opt('press_asks_about_teammate', 'praise_him', [e('relationship', 7, 'teammates'), e('relationship', 2, 'media'), e('fame', -1)]),
+    opt('press_asks_about_teammate', 'protect_him', [e('relationship', 9, 'teammates'), e('relationship', 3, 'manager'), e('relationship', -3, 'media')]),
+    opt('press_asks_about_teammate', 'make_it_about_me', [e('fame', 5), e('relationship', -8, 'teammates'), e('relationship', -3, 'fans')], 'risk.medium'),
   ]),
 
   // ---------------------------------------------------------------- body and mind

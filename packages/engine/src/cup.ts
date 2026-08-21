@@ -24,10 +24,17 @@ export interface CupState {
   round: number;
   finished: boolean;
   winner?: string;
+  roundWeeks?: number[];
 }
 
 /** Everyone in the country enters; the bracket is padded with byes to a power of two. */
-export function createCup(rng: Rng, country: string, clubs: Club[], season: number): CupState {
+export function createCup(
+  rng: Rng,
+  country: string,
+  clubs: Club[],
+  season: number,
+  roundWeeks: number[] = CUP_ROUND_WEEKS,
+): CupState {
   const entrants = rng.shuffle(clubs.map((c) => c.id));
   return {
     id: `${country.toLowerCase()}_cup`,
@@ -37,13 +44,15 @@ export function createCup(rng: Rng, country: string, clubs: Club[], season: numb
     alive: entrants,
     round: 0,
     finished: false,
+    roundWeeks,
   };
 }
 
 export function drawRound(rng: Rng, cup: CupState): CupTie[] {
   if (cup.finished || cup.alive.length < 2) return [];
-  const weekIndex = Math.min(cup.round, CUP_ROUND_WEEKS.length - 1);
-  const week = CUP_ROUND_WEEKS[weekIndex]!;
+  const schedule = cup.roundWeeks ?? CUP_ROUND_WEEKS;
+  const weekIndex = Math.min(cup.round, schedule.length - 1);
+  const week = schedule[weekIndex]!;
   const shuffled = rng.shuffle(cup.alive);
   const ties: CupTie[] = [];
 

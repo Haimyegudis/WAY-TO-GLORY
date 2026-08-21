@@ -51,9 +51,10 @@ export function Menu() {
             paddingBottom: 26,
           }}
         >
+          <h1 className="sr-only">{t('app.title')}</h1>
           {artFailed && (
             <header style={{ marginBlockEnd: 'auto', paddingBlockStart: '22vh', textAlign: 'center' }}>
-              <p className="eyebrow" dir="ltr">2025 / 26</p>
+              <p className="eyebrow" dir="ltr">2026 / 27</p>
               <h1
                 style={{
                   fontSize: 44,

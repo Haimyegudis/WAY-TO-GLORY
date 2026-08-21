@@ -165,10 +165,14 @@ export function applyTreatment(rng: Rng, injury: Injury, choice: TreatmentChoice
 }
 
 /** Advance active injuries one week. Returns the injuries that healed. */
-export function tickInjuries(player: Player): Injury[] {
+export function tickInjuries(player: Player, addedThisWeek: ReadonlySet<string> = new Set()): Injury[] {
   const healed: Injury[] = [];
   const still: Injury[] = [];
   for (const injury of player.condition.injuries) {
+    if (addedThisWeek.has(injury.id)) {
+      still.push(injury);
+      continue;
+    }
     injury.weeksRemaining -= 1;
     if (injury.weeksRemaining <= 0) {
       healed.push(injury);

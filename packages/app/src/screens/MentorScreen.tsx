@@ -143,18 +143,23 @@ export function MentorScreen() {
           <p style={{ fontSize: 14.5, lineHeight: 1.7 }}>{t(reply.lineKey)}</p>
 
           {reply.brief && !taken && (
-            <div className="row" style={{ gap: 8, marginBlockStart: 14 }}>
-              <button
-                className="btn btn-primary grow"
-                onClick={() => {
-                  takeAdvice(reply);
-                  setTaken(true);
-                }}
-              >
-                {t('mentor.take')}
-              </button>
-              <button className="btn grow" onClick={() => setReply(null)}>{t('mentor.ignore')}</button>
-            </div>
+            <>
+              <p className="choice-impact choice-impact-neutral" style={{ marginBlockStart: 12 }}>
+                {t(`mentor.brief.${reply.brief}`)}
+              </p>
+              <div className="row" style={{ gap: 8, marginBlockStart: 14 }}>
+                <button
+                  className="btn btn-primary grow"
+                  onClick={() => {
+                    takeAdvice(reply);
+                    setTaken(true);
+                  }}
+                >
+                  {t('mentor.take')}
+                </button>
+                <button className="btn grow" onClick={() => setReply(null)}>{t('mentor.ignore')}</button>
+              </div>
+            </>
           )}
           {taken && <p style={{ fontSize: 13, marginBlockStart: 12, color: 'var(--amber)' }}>{t('mentor.taken')}</p>}
           {!reply.brief && (
@@ -167,7 +172,10 @@ export function MentorScreen() {
         <div className="stack" style={{ gap: 8 }}>
           {topics.map((topic) => (
             <button key={topic} className="option" onClick={() => ask(topic)}>
-              {t(`mentor.ask.${topic}`)}
+              <span style={{ display: 'block', fontWeight: 600 }}>{t(`mentor.ask.${topic}`)}</span>
+              <span className="faint" style={{ display: 'block', fontSize: 11.5, marginBlockStart: 4 }}>
+                {t(`mentor.ask.${topic}.hint`)}
+              </span>
             </button>
           ))}
         </div>

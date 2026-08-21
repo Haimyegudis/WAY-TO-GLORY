@@ -2,14 +2,17 @@ import { Rng, clamp } from './rng.js';
 import type {
   Club,
   Competition,
+  CompetitionCalendar,
   CompetitionSeasonState,
   Fixture,
   LeagueTableRow,
 } from './types.js';
 
 export const WEEKS_PER_SEASON = 52;
-export const FIRST_MATCH_WEEK = 4;
-export const LAST_MATCH_WEEK = 46;
+/** Three camp weeks, then European qualifying, then the domestic calendar. */
+export const PRESEASON_END_WEEK = 3;
+export const FIRST_MATCH_WEEK = 7;
+export const LAST_MATCH_WEEK = 49;
 
 export function emptyRow(clubId: string): LeagueTableRow {
   return { clubId, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
@@ -19,7 +22,12 @@ export function emptyRow(clubId: string): LeagueTableRow {
  * Circle-method round robin. Returns fixtures for `rounds` passes
  * (2 = home and away), with home/away flipped on the second pass.
  */
-export function buildFixtures(rng: Rng, clubIds: string[], rounds: number): Fixture[] {
+export function buildFixtures(
+  rng: Rng,
+  clubIds: string[],
+  rounds: number,
+  calendar: CompetitionCalendar = { firstWeek: FIRST_MATCH_WEEK, lastWeek: LAST_MATCH_WEEK },
+): Fixture[] {
   const teams = rng.shuffle(clubIds);
   const hasBye = teams.length % 2 === 1;
   if (hasBye) teams.push('__BYE__');
@@ -65,17 +73,25 @@ export function buildFixtures(rng: Rng, clubIds: string[], rounds: number): Fixt
     }
   }
 
-  assignWeeks(all);
+  assignWeeks(all, calendar);
   return all;
 }
 
 /** Spread rounds across the playing window; congested seasons get midweek rounds. */
-export function assignWeeks(fixtures: Fixture[]): void {
+export function assignWeeks(
+  fixtures: Fixture[],
+  calendar: CompetitionCalendar = { firstWeek: FIRST_MATCH_WEEK, lastWeek: LAST_MATCH_WEEK },
+): void {
   const totalRounds = fixtures.reduce((max, f) => Math.max(max, f.round), 0);
-  const window = LAST_MATCH_WEEK - FIRST_MATCH_WEEK + 1;
+  const breaks = new Set(calendar.breakWeeks ?? []);
+  const weeks = Array.from(
+    { length: calendar.lastWeek - calendar.firstWeek + 1 },
+    (_, index) => calendar.firstWeek + index,
+  ).filter((week) => !breaks.has(week));
   for (const f of fixtures) {
     const idx = f.round - 1;
-    f.week = FIRST_MATCH_WEEK + Math.min(window - 1, Math.floor((idx * window) / totalRounds));
+    const weekIndex = Math.min(weeks.length - 1, Math.floor((idx * weeks.length) / Math.max(1, totalRounds)));
+    f.week = weeks[weekIndex] ?? calendar.firstWeek;
   }
 }
 
@@ -92,9 +108,10 @@ export function initCompetitionSeason(
     season,
     clubIds: clubIds.slice(),
     table,
-    fixtures: buildFixtures(rng, clubIds, competition.rounds),
+    fixtures: buildFixtures(rng, clubIds, competition.rounds, competition.calendar),
     currentRound: 0,
     scorers: {},
+    leagueRules: competition.leagueRules,
     finished: false,
   };
 }
@@ -120,28 +137,66 @@ export function applyResult(
   if (homeGoals > awayGoals) {
     home.won++;
     away.lost++;
-    home.points += 3;
+    home.points += state.leagueRules?.pointsForWin ?? 3;
   } else if (homeGoals < awayGoals) {
     away.won++;
     home.lost++;
-    away.points += 3;
+    away.points += state.leagueRules?.pointsForWin ?? 3;
   } else {
     home.drawn++;
     away.drawn++;
-    home.points++;
-    away.points++;
+    home.points += state.leagueRules?.pointsForDraw ?? 1;
+    away.points += state.leagueRules?.pointsForDraw ?? 1;
   }
 }
 
 export function sortedTable(state: CompetitionSeasonState): LeagueTableRow[] {
   return Object.values(state.table).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
-    const gdA = a.goalsFor - a.goalsAgainst;
-    const gdB = b.goalsFor - b.goalsAgainst;
-    if (gdB !== gdA) return gdB - gdA;
-    if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+    const breakers = state.leagueRules?.tieBreakers
+      ?? ['goalDifference', 'goalsFor', 'wins', 'id'];
+    for (const breaker of breakers) {
+      if (breaker === 'headToHead') {
+        const h2h = headToHead(state, a.clubId, b.clubId);
+        if (h2h !== 0) return h2h;
+      } else if (breaker === 'wins' && b.won !== a.won) {
+        return b.won - a.won;
+      } else if (breaker === 'goalDifference') {
+        const gdA = a.goalsFor - a.goalsAgainst;
+        const gdB = b.goalsFor - b.goalsAgainst;
+        if (gdB !== gdA) return gdB - gdA;
+      } else if (breaker === 'goalsFor' && b.goalsFor !== a.goalsFor) {
+        return b.goalsFor - a.goalsFor;
+      } else if (breaker === 'id') {
+        return a.clubId.localeCompare(b.clubId);
+      }
+    }
     return a.clubId.localeCompare(b.clubId);
   });
+}
+
+/** Pairwise league record, points first and aggregate goal difference second. */
+function headToHead(state: CompetitionSeasonState, a: string, b: string): number {
+  let pointsA = 0;
+  let pointsB = 0;
+  let goalsA = 0;
+  let goalsB = 0;
+  for (const fixture of state.fixtures) {
+    if (!fixture.played || !fixture.result) continue;
+    const direct = fixture.homeClubId === a && fixture.awayClubId === b;
+    const reverse = fixture.homeClubId === b && fixture.awayClubId === a;
+    if (!direct && !reverse) continue;
+    const [home, away] = fixture.result;
+    const aGoals = direct ? home : away;
+    const bGoals = direct ? away : home;
+    goalsA += aGoals;
+    goalsB += bGoals;
+    if (aGoals > bGoals) pointsA += 3;
+    else if (aGoals < bGoals) pointsB += 3;
+    else { pointsA++; pointsB++; }
+  }
+  if (pointsA !== pointsB) return pointsB - pointsA;
+  return (goalsB - goalsA);
 }
 
 export function positionOf(state: CompetitionSeasonState, clubId: string): number {

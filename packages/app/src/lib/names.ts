@@ -46,7 +46,7 @@ export function competitionLabel(
   const league = pack.competitions.find((c) => c.id === id);
   if (league) return competitionName(league, lang);
 
-  if (id === 'ucl' || id === 'uel' || id === 'uecl') return t(`competition.${id}`);
+  if (id === 'ucl' || id === 'uel' || id === 'uecl' || id === 'friendly') return t(`competition.${id}`);
 
   // The youth league carries the name of the division it shadows.
   if (id.endsWith('.youth')) {

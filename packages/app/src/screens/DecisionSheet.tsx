@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ContractAsk, PendingDecision, TransferOffer } from '@fc/engine';
+import type { ContractAsk, EventEffect, PendingDecision, TransferOffer } from '@fc/engine';
 import { CONTRACT_ASKS, expectedMinutesFor } from '@fc/engine';
 import { formatMoney, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName } from '../lib/names.js';
@@ -69,10 +69,90 @@ export function DecisionOptions({ decision, onAnswered }: { decision: PendingDec
               {t(option.riskKey)}
             </span>
           )}
+          <EffectPreview effects={option.effects} hasOutcomes={Boolean(option.outcomes?.length)} />
         </button>
       ))}
     </div>
   );
+}
+
+/**
+ * The choice is written like dialogue, but the player should not have to reverse-engineer
+ * dialogue to know what is at stake. These chips are deliberately directional rather
+ * than numeric: they expose every system the option touches without turning a human
+ * conversation into a spreadsheet or revealing a hidden probability.
+ */
+function EffectPreview({ effects, hasOutcomes }: { effects: EventEffect[]; hasOutcomes: boolean }) {
+  const t = useT();
+  const seen = new Set<string>();
+  const rows = effects.flatMap((effect) => {
+    const preview = previewEffect(effect, t);
+    if (!preview || seen.has(preview.text)) return [];
+    seen.add(preview.text);
+    return [preview];
+  });
+
+  if (rows.length === 0 && !hasOutcomes) {
+    return (
+      <span className="row wrap" style={{ display: 'flex', gap: 5, marginBlockStart: 8 }}>
+        <span className="choice-impact choice-impact-neutral">{t('impact.noImmediate')}</span>
+      </span>
+    );
+  }
+  return (
+    <span className="row wrap" style={{ display: 'flex', gap: 5, marginBlockStart: 8 }}>
+      {rows.map((row) => (
+        <span
+          key={row.text}
+          className={`choice-impact choice-impact-${row.tone}`}
+        >
+          {row.text}
+        </span>
+      ))}
+      {hasOutcomes && <span className="choice-impact choice-impact-risk">{t('impact.uncertain')}</span>}
+    </span>
+  );
+}
+
+function previewEffect(
+  effect: EventEffect,
+  t: (key: string, args?: Record<string, string | number>) => string,
+): { text: string; tone: 'good' | 'bad' | 'neutral' } | null {
+  const value = effect.value ?? 0;
+  const chance = effect.chance !== undefined || effect.kind === 'injuryRisk';
+  const direction = value > 0 ? 'up' : value < 0 ? 'down' : 'changes';
+  let key: string;
+  let higherIsGood = true;
+
+  switch (effect.kind) {
+    case 'morale': key = 'change.morale'; break;
+    case 'managerTrust': key = 'change.manager'; break;
+    case 'relationship': key = `change.${effect.key ?? 'manager'}`; break;
+    case 'form': key = 'change.form'; break;
+    case 'fitness': key = 'change.fitness'; break;
+    case 'fatigue': key = 'change.fatigue'; higherIsGood = false; break;
+    case 'reputation': key = 'change.reputation'; break;
+    case 'fame': key = 'change.fame'; break;
+    case 'money': key = 'change.money'; break;
+    case 'agentRelationship': key = 'change.agent'; break;
+    case 'potential': key = 'change.potential'; break;
+    case 'attribute': key = `attr.${effect.key ?? ''}`; break;
+    case 'personality': key = `personality.${effect.key ?? ''}`; break;
+    case 'injuryRisk':
+      return { text: t('impact.injuryRisk'), tone: 'bad' };
+    case 'squadRole':
+      return { text: t('impact.squadRole'), tone: 'neutral' };
+    case 'learnPosition':
+      return { text: t('impact.newPosition'), tone: 'good' };
+    case 'transferRequest':
+      return { text: t('impact.transferRequest'), tone: 'neutral' };
+    case 'custom':
+      return { text: t(`impact.custom.${effect.key ?? 'career'}`), tone: 'neutral' };
+  }
+
+  const positive = direction === 'changes' ? null : (direction === 'up') === higherIsGood;
+  const text = t(chance ? 'impact.mayChange' : `impact.${direction}`, { stat: t(key) });
+  return { text, tone: positive === null ? 'neutral' : positive ? 'good' : 'bad' };
 }
 
 function EventSheet({ decision }: { decision: PendingDecision }) {

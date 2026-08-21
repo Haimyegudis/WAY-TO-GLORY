@@ -155,13 +155,19 @@ export type PlayerActionId =
   | 'teamDinner'
   | 'extraTrainingWithTeammates'
   | 'apologiseTeammates'
+  | 'askCaptainAdvice'
   | 'meetBoard'
   | 'praiseClubInMedia'
+  | 'frontClubCommunityDay'
+  | 'visitSupportersClub'
+  | 'giveExclusiveInterview'
+  | 'defendTeamPublicly'
+  | 'answerCritics'
   | 'quietWeek';
 
 export interface PlayerActionDef {
   id: PlayerActionId;
-  category: 'manager' | 'fans' | 'teammates' | 'board' | 'personal';
+  category: 'manager' | 'fans' | 'teammates' | 'board' | 'media' | 'personal';
   cost: number;                    // how much of the weekly social budget it uses
   riskKey?: 'risk.low' | 'risk.medium' | 'risk.high';
   /** Only offered when this returns true. */
@@ -190,8 +196,14 @@ const ACTION_COOLDOWN_WEEKS: Partial<Record<PlayerActionId, number>> = {
   teamDinner: 12,
   extraTrainingWithTeammates: 8,
   apologiseTeammates: 12,
+  askCaptainAdvice: 8,
   meetBoard: 24,
   praiseClubInMedia: 10,
+  frontClubCommunityDay: 12,
+  visitSupportersClub: 10,
+  giveExclusiveInterview: 12,
+  defendTeamPublicly: 10,
+  answerCritics: 14,
   quietWeek: 4,
 };
 
@@ -399,6 +411,13 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
       hasClub(s) && (Boolean(s.flags['dressingRoomFallout']) || (sentOffRecently(s) && s.relationships.teammates < 55)),
   },
   {
+    id: 'askCaptainAdvice',
+    category: 'teammates',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && inSeason(s),
+  },
+  {
     id: 'meetBoard',
     category: 'board',
     cost: 2,
@@ -417,6 +436,42 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
     cost: 1,
     riskKey: 'risk.low',
     available: (s) => hasClub(s) && !s.retired && s.relationships.board < 75,
+  },
+  {
+    id: 'frontClubCommunityDay',
+    category: 'board',
+    cost: 2,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && inSeason(s),
+  },
+  {
+    id: 'visitSupportersClub',
+    category: 'fans',
+    cost: 2,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && inSeason(s),
+  },
+  {
+    id: 'giveExclusiveInterview',
+    category: 'media',
+    cost: 1,
+    riskKey: 'risk.medium',
+    available: (s) => hasClub(s) && !s.retired && inSeason(s) && s.player.reputation >= 22,
+  },
+  {
+    id: 'defendTeamPublicly',
+    category: 'media',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && badWeek(s),
+  },
+  {
+    id: 'answerCritics',
+    category: 'media',
+    cost: 1,
+    riskKey: 'risk.high',
+    available: (s) =>
+      hasClub(s) && !s.retired && inSeason(s) && (s.relationships.media < 45 || (recentRating(s) ?? 7) < 6.25),
   },
   { id: 'quietWeek', category: 'personal', cost: 1, riskKey: 'risk.low', available: () => true },
 ];
@@ -623,6 +678,16 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
       narrativeKey = accepted ? `action.${id}.good` : `action.${id}.bad`;
       break;
     }
+    case 'askCaptainAdvice': {
+      adjustRelationship(state, 'teammates', swing(6), changes);
+      adjustRelationship(state, 'manager', swing(1.5), changes);
+      const focus = rng.pick(['decisions', 'positioning', 'leadership'] as const);
+      const before = player.attributes[focus];
+      player.attributes[focus] = clamp(before + rng.range(0.35, 0.9), 1, 99);
+      track(changes, `change.attr.${focus}`, before, player.attributes[focus]);
+      narrativeKey = `action.${id}.good`;
+      break;
+    }
     case 'meetBoard': {
       const persuaded = rng.chance(clamp(0.35 + (player.reputation - 45) / 140, 0.1, 0.8));
       adjustRelationship(state, 'board', persuaded ? swing(9) : -swing(4), changes);
@@ -646,6 +711,61 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
         break;
       }
       narrativeKey = `action.${id}.good`;
+      break;
+    }
+    case 'frontClubCommunityDay': {
+      adjustRelationship(state, 'board', swing(5), changes);
+      adjustRelationship(state, 'fans', swing(7), changes);
+      player.fame = clamp(player.fame + 1.5, 0, 100);
+      player.condition.fatigue = clamp(player.condition.fatigue + 4, 0, 100);
+      narrativeKey = `action.${id}.good`;
+      break;
+    }
+    case 'visitSupportersClub': {
+      adjustRelationship(state, 'fans', swing(9), changes);
+      adjustRelationship(state, 'board', swing(2), changes);
+      player.morale = clamp(player.morale + 3, 0, 100);
+      player.condition.fatigue = clamp(player.condition.fatigue + 3, 0, 100);
+      narrativeKey = `action.${id}.good`;
+      break;
+    }
+    case 'giveExclusiveInterview': {
+      adjustRelationship(state, 'media', swing(8), changes);
+      adjustRelationship(state, 'fans', swing(3), changes);
+      player.fame = clamp(player.fame + 3, 0, 100);
+      player.condition.fatigue = clamp(player.condition.fatigue + 2, 0, 100);
+      // A long profile can sound like self-promotion to the people sharing the shirt.
+      if (rng.chance(clamp(0.38 - player.personality.professionalism / 300, 0.12, 0.42))) {
+        adjustRelationship(state, 'teammates', -swing(5), changes);
+        narrativeKey = `action.${id}.selfish`;
+        break;
+      }
+      narrativeKey = `action.${id}.good`;
+      break;
+    }
+    case 'defendTeamPublicly': {
+      adjustRelationship(state, 'teammates', swing(8), changes);
+      adjustRelationship(state, 'manager', swing(3), changes);
+      adjustRelationship(state, 'fans', swing(3), changes);
+      // Refusing to give the press a scapegoat protects the room and costs access.
+      adjustRelationship(state, 'media', -swing(2), changes);
+      narrativeKey = `action.${id}.good`;
+      break;
+    }
+    case 'answerCritics': {
+      const nerve = player.attributes.composure + player.personality.pressureHandling + player.reputation;
+      const landed = rng.chance(clamp(0.18 + nerve / 360, 0.22, 0.78));
+      if (landed) {
+        adjustRelationship(state, 'media', swing(10), changes);
+        adjustRelationship(state, 'fans', swing(5), changes);
+        player.morale = clamp(player.morale + 5, 0, 100);
+        narrativeKey = `action.${id}.good`;
+      } else {
+        adjustRelationship(state, 'media', -swing(9), changes);
+        adjustRelationship(state, 'manager', -swing(5), changes);
+        player.morale = clamp(player.morale - 4, 0, 100);
+        narrativeKey = `action.${id}.bad`;
+      }
       break;
     }
     case 'quietWeek': {

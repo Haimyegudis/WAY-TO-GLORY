@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { applyDocumentLang, useLang } from './i18n/index.js';
 import { useGame } from './state/store.js';
 import './styles/global.css';
@@ -15,6 +16,6 @@ if (import.meta.env.DEV) {
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary><App /></ErrorBoundary>
   </React.StrictMode>,
 );
