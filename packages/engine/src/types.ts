@@ -622,6 +622,12 @@ export interface TransferOffer {
   competitionId: string;
   /** The player is leaving academy football for this club's first team. */
   seniorPathway?: boolean;
+  /**
+   * Which side of the club is signing him. An academy player can be offered a better
+   * academy or a senior squad, and the two are nothing alike: only first-team football
+   * justifies dropping to a weaker club, so the offer has to say which it is.
+   */
+  joinAs?: 'academy' | 'senior';
   /** Terms won at the table, and how many times he has been back to it. */
   signingBonus?: number;
   releaseClause?: number | null;

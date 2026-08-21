@@ -1,6 +1,7 @@
 import { Rng, clamp, logistic } from './rng.js';
 import { overall } from './positions.js';
 import { clubBaseOvr } from './generate.js';
+import { SENIOR_MIN_AGE } from './selection.js';
 import { expectedWage, marketValue } from './value.js';
 import type { PackIndex } from './data.js';
 import type {
@@ -153,6 +154,45 @@ export function transferInterest(input: InterestInput): number {
   return clamp(raw, 0, 100);
 }
 
+/**
+ * What a good academy sees in a boy.
+ *
+ * A first-team scout asks whether he can play for the club now, and for a fifteen year
+ * old the answer is always no - which is why the senior model returns nothing for
+ * Barcelona looking at a boy in Israel, and why he never heard from a better academy in
+ * his life. An academy is not buying a player, it is buying a ceiling: how high he
+ * projects against the boys they already have, how visible he has made himself, and how
+ * many years of development are left in him. Distance still counts, because a family
+ * does not move countries for a maybe.
+ */
+function academyInterest(input: {
+  club: Club;
+  potential: number;
+  age: number;
+  form: number;
+  reputation: number;
+  minutesPct: number;
+  agent: Agent | null;
+  playerCountry: string;
+}): number {
+  // The standard of prospect that academy already has on its books.
+  const bar = 52 + input.club.academy * 0.35;
+  const promise = input.potential - bar;
+  if (promise < -6) return 0;
+
+  // Potential is hidden. They can only act on the boy they have actually watched.
+  const seen = clamp(0.3 + input.minutesPct * 0.55 + input.reputation / 150, 0.3, 1);
+  // Years left to develop him. Past nineteen an academy is not the point any more.
+  const window = input.age <= 15 ? 1.15
+    : input.age <= 17 ? 1
+    : input.age === 18 ? 0.72
+    : input.age === 19 ? 0.45
+    : 0.15;
+  const abroad = input.club.country !== input.playerCountry ? -9 : 0;
+  const raw = (46 + promise * 2.6) * seen * window + abroad + (input.form - 50) * 0.15;
+  return clamp(raw * agentReach(input.agent, input.club, input.playerCountry), 0, 100);
+}
+
 function roleForOvr(ovr: number, clubLevel: number, age: number): SquadRole {
   const gap = ovr - clubLevel;
   // Age describes patience, not the team. A sixteen-year-old who is already above a
@@ -181,6 +221,18 @@ const ROLE_MINUTES: Record<SquadRole, number> = {
   key: 0.86,
   star: 0.9,
 };
+
+/**
+ * How much better another club's academy is than the one he is in.
+ *
+ * Two things decide it: the coaching, and the standard of the boys he trains against
+ * every day. A negative number is a step down, and a step down is not a youth move -
+ * it is a senior offer or it is nothing.
+ */
+function academyStep(club: Club, current: Club | undefined): number {
+  if (!current) return 0;
+  return (club.academy - current.academy) * 0.6 + (clubBaseOvr(club) - clubBaseOvr(current)) * 0.4;
+}
 
 export function expectedMinutesFor(role: SquadRole): number {
   return ROLE_MINUTES[role];
@@ -270,7 +322,13 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     : academyPlayer ? currentReputation - 24
     : desperate ? currentReputation - 12 : currentReputation - 3;
 
-  const candidates: { club: Club; comp: Competition; interest: number; role: SquadRole }[] = [];
+  const candidates: {
+    club: Club;
+    comp: Competition;
+    interest: number;
+    role: SquadRole;
+    joinAs?: 'academy' | 'senior';
+  }[] = [];
   for (const club of Object.values(state.world.clubs)) {
     if (club.id === player.clubId) continue;
     const comp = index.competitionById.get(club.competitionId);
@@ -284,7 +342,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     // club is not recruited into a weaker project; a substitute or excluded player can
     // trade status for a genuine place in the side.
     if (
-      regularStarter && currentClub && (
+      regularStarter && currentClub && !academyPlayer && (
         club.tier > currentTier
         || comp.reputation < currentReputation - 2
         || clubBaseOvr(club) < currentLevel - 2
@@ -293,17 +351,46 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     // A division below is only on the table for someone who is not playing at all,
     // and two divisions below never is.
     const offeredRole = roleForOvr(ovr, clubBaseOvr(club), age);
+    let joinAs: 'academy' | 'senior' | undefined;
     if (academyPlayer) {
-      // A move out of a good academy is only progress if it is into an actual senior
-      // rotation. Lower divisions are allowed because first-team minutes are the point;
-      // another weak prospect role is not.
-      if (expectedMinutesFor(offeredRole) < expectedMinutesFor('rotation')) continue;
-      if (club.tier > currentTier + 2) continue;
+      /*
+       * A boy in an academy is offered one of two entirely different things, and the
+       * offer has to know which.
+       *
+       * A better academy is progress in itself: a stronger club, a stronger age group,
+       * better coaching. A weaker club is only ever worth it for first-team football,
+       * and first-team football he is actually old enough to play - which is why a
+       * fifteen year old at a good club now hears nothing from the third division,
+       * where before he was offered a "rotation" place he could not legally take.
+       */
+      const betterAcademy = academyStep(club, currentClub) >= (regularStarter ? 4 : 0)
+        && club.tier <= currentTier
+        && comp.reputation >= currentReputation - 2;
+      if (betterAcademy) {
+        joinAs = 'academy';
+      } else {
+        // Not a better academy, so this is a senior offer or it is nothing.
+        if (age < SENIOR_MIN_AGE) continue;
+        if (expectedMinutesFor(offeredRole) < expectedMinutesFor('rotation')) continue;
+        if (club.tier > currentTier + 2) continue;
+        joinAs = 'senior';
+      }
     } else {
       if (club.tier > currentTier && !desperate && !clubless) continue;
       if (!clubless && club.tier > currentTier + 1) continue;
     }
-    const interest = transferInterest({
+    const interest = joinAs === 'academy'
+      ? academyInterest({
+        club,
+        potential: player.potential,
+        age,
+        form: player.form,
+        reputation: player.reputation,
+        minutesPct: playingShare,
+        agent: state.agent,
+        playerCountry: player.birthCountry,
+      })
+      : transferInterest({
       club,
       competition: comp,
       ovr,
@@ -341,7 +428,18 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
      * with no club is far lower, which is the difference between a hard year and a
      * career that quietly ends at nineteen.
      */
-    if (weighted > (clubless ? 16 : 42)) candidates.push({ club, comp, interest: weighted, role: offeredRole });
+    // A better academy signs a boy on his potential, not on whether he would walk into
+    // a first team he is years away from, so the bar it has to clear is its own.
+    const bar = joinAs === 'academy' ? 30 : clubless ? 16 : 42;
+    if (weighted > bar) {
+      candidates.push({
+        club,
+        comp,
+        interest: weighted,
+        role: joinAs === 'academy' ? 'academy' : offeredRole,
+        ...(joinAs ? { joinAs } : {}),
+      });
+    }
   }
 
   candidates.sort((a, b) => b.interest - a.interest);
@@ -354,23 +452,34 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   for (const candidate of rng.shuffle(shortlist)) {
     if (chosen.length >= maxOffers) break;
     // Interest is not the same as actually bidding.
-    if (!rng.chance(clamp((candidate.interest - (clubless ? 14 : 40)) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
+    const floorForChance = candidate.joinAs === 'academy' ? 28 : clubless ? 14 : 40;
+    if (!rng.chance(clamp((candidate.interest - floorForChance) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
 
     const clubLevel = clubBaseOvr(candidate.club);
     const role = candidate.role;
-    const isLoan =
-      Boolean(state.flags['wantsLoan']) || (age <= 21 && ovr < clubLevel - 4 && rng.chance(0.35));
+    // A boy joining another academy is not loaned out on his first day.
+    const isLoan = candidate.joinAs !== 'academy'
+      && (Boolean(state.flags['wantsLoan']) || (age <= 21 && ovr < clubLevel - 4 && rng.chance(0.35)));
 
+    const joiningAcademy = candidate.joinAs === 'academy';
     const feeMultiplier = clamp(rng.range(0.75, 1.55) * (1 + (candidate.interest - 60) / 200), 0.5, 2.2);
-    const fee = isLoan ? 0 : Math.round((value * feeMultiplier) / 50_000) * 50_000;
-    const wage = expectedWage(player, ovr, candidate.club.finances, candidate.comp, age);
+    // An academy signs a boy for training compensation, not a transfer fee, and pays
+    // him a scholar's wage rather than a first-team one.
+    const fee = isLoan ? 0
+      : joiningAcademy ? Math.round((value * 0.22) / 10_000) * 10_000
+      : Math.round((value * feeMultiplier) / 50_000) * 50_000;
+    const wage = joiningAcademy
+      ? Math.round(clamp(150 + candidate.club.finances * 12 + candidate.club.reputation * 6, 150, 2_500))
+      : expectedWage(player, ovr, candidate.club.finances, candidate.comp, age);
 
     chosen.push({
       id: `offer_${season}_${state.world.week}_${candidate.club.id}`,
       clubId: candidate.club.id,
       fee,
       salaryPerWeek: Math.round(wage * rng.range(0.9, 1.25)),
-      years: isLoan ? 1 : age < 21 ? rng.int(3, 5) : age < 30 ? rng.int(3, 4) : rng.int(1, 2),
+      years: isLoan ? 1
+        : joiningAcademy ? rng.int(2, 3)
+        : age < 21 ? rng.int(3, 5) : age < 30 ? rng.int(3, 4) : rng.int(1, 2),
       squadRole: isLoan ? 'starter' : role,
       expectedMinutesPct: expectedMinutesFor(isLoan ? 'starter' : role),
       isLoan,
@@ -378,7 +487,10 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       week: state.world.week,
       interestLevel: Math.round(candidate.interest),
       competitionId: candidate.club.competitionId,
-      ...(academyPlayer ? { seniorPathway: true } : {}),
+      ...(candidate.joinAs ? { joinAs: candidate.joinAs } : {}),
+      // The old flag, kept because saves and screens read it: it means exactly what it
+      // says now, which is that he is leaving academy football behind.
+      ...(academyPlayer && candidate.joinAs !== 'academy' ? { seniorPathway: true } : {}),
     });
   }
 
@@ -471,7 +583,8 @@ export function generateLoanOffers(input: {
       week: state.world.week,
       interestLevel: Math.round(clamp(candidate.fit, 40, 99)),
       competitionId: candidate.club.competitionId,
-      ...(player.squadRole === 'academy' ? { seniorPathway: true } : {}),
+      // A loan is first-team football somewhere else, so for a boy it is a senior move.
+      ...(player.squadRole === 'academy' ? { seniorPathway: true, joinAs: 'senior' as const } : {}),
     });
   }
   return offers;

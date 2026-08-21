@@ -67,8 +67,20 @@ export function MarketScreen() {
                       <p className="headline">{clubName(target, lang)}</p>
                       <p className="faint" style={{ fontSize: 11.5 }}>{competition(offer.competitionId)}</p>
                     </div>
-                    {offer.isLoan ? <Chip tone="blue">{t('market.loan')}</Chip> : <Chip tone="amber">{t(`role.${offer.squadRole}`)}</Chip>}
+                    <span className="row" style={{ gap: 6 }}>
+                      {offer.joinAs === 'academy'
+                        ? <Chip tone="green">{t('market.academySide')}</Chip>
+                        : (offer.joinAs === 'senior' || offer.seniorPathway)
+                          ? <Chip tone="blue">{t('market.seniorFirstTeam')}</Chip>
+                          : null}
+                      {offer.isLoan ? <Chip tone="blue">{t('market.loan')}</Chip> : <Chip tone="amber">{t(`role.${offer.squadRole}`)}</Chip>}
+                    </span>
                   </div>
+                  {offer.joinAs && (
+                    <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>
+                      {t(offer.joinAs === 'academy' ? 'market.joinsAcademy' : 'market.joinsSenior')}
+                    </p>
+                  )}
 
                   <div className="grid-2" style={{ marginBlock: 10, gap: 8 }}>
                     <KeyVal label={t('market.fee')} value={offer.isLoan ? '—' : formatMoney(offer.fee, lang)} />

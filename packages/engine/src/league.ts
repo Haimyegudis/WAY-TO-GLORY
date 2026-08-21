@@ -135,24 +135,34 @@ export function ensureLeagueSplit(
   rng: Rng,
   state: CompetitionSeasonState,
   competition: Competition,
+  currentWeek = 0,
 ): boolean {
   const rules = competition.split;
   if (!rules || state.splitGroups) return false;
   const regular = state.fixtures.filter((fixture) => (fixture.phase ?? 'regular') === 'regular');
-  // An in-progress save from the old format has no phase markers and may still have
-  // regular fixtures scheduled through week 49. Finish that season under its original
-  // calendar; every newly created season uses the split. This avoids replaying an
-  // entire post-season at once when an old save is upgraded late in the year.
-  if (regular.some((fixture) => fixture.phase === undefined)) return false;
   if (regular.length === 0 || regular.some((fixture) => !fixture.played)) return false;
+  /*
+   * A season saved before the league had a post-season carries no phase markers, and its
+   * regular rounds were spread over the whole calendar rather than stopping in week 34.
+   * That season used to be left to finish as a twenty-six game league, which is a league
+   * ending in the wrong place - so it is upgraded where it stands instead: the rounds
+   * already played become the regular season, and the playoff starts next week rather
+   * than in a week that has been and gone.
+   */
+  for (const fixture of regular) {
+    if (fixture.phase === undefined) fixture.phase = 'regular';
+  }
 
   const table = sortedTable(state);
   const upper = table.slice(0, rules.upperTeams).map((row) => row.clubId);
   const lower = table.slice(rules.upperTeams).map((row) => row.clubId);
   state.splitGroups = { upper, lower };
 
-  const firstWeek = rules.regularLastWeek + 1;
-  const lastWeek = competition.calendar?.lastWeek ?? LAST_MATCH_WEEK;
+  const firstWeek = Math.max(rules.regularLastWeek + 1, currentWeek + 1);
+  const lastWeek = Math.max(
+    firstWeek + 1,
+    Math.min(competition.calendar?.lastWeek ?? LAST_MATCH_WEEK, WEEKS_PER_SEASON - 1),
+  );
   const regularRoundCount = regular.reduce((max, fixture) => Math.max(max, fixture.round), 0);
   const append = (clubIds: string[], rounds: number, phase: 'championship' | 'relegation') => {
     for (const fixture of buildFixtures(rng, clubIds, rounds, { firstWeek, lastWeek })) {

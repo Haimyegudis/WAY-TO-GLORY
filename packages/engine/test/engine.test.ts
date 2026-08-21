@@ -41,6 +41,7 @@ import {
   doPlayerAction,
   getAcademyOffers,
   joinClub,
+  acceptOffer,
   mentalFactor,
   setTraining,
   userSquad,
@@ -468,6 +469,37 @@ describe('league', () => {
     const firstLower = state.splitGroups!.lower[0]!;
     state.table[firstLower]!.points = 999;
     expect(sortedTable(state).slice(0, 6).every((row) => upper.has(row.clubId))).toBe(true);
+  });
+
+  it('gives a season saved before the playoff its playoff, from the week he is in', () => {
+    const pack = loadPack();
+    const competition = pack.competitions.find((entry) => entry.id === 'il.1')!;
+    const clubIds = pack.clubs.filter((club) => club.competitionId === competition.id).map((club) => club.id);
+    const state = initCompetitionSeason(new Rng(91), competition, clubIds, 2026);
+
+    // A save from before the split: no phase markers, rounds spread over the whole
+    // calendar, and every one of them already played.
+    for (const fixture of state.fixtures) {
+      delete fixture.phase;
+      fixture.played = true;
+      fixture.result = [1, 1];
+      applyResult(state, fixture.homeClubId, fixture.awayClubId, 1, 1);
+    }
+
+    const currentWeek = 42;
+    expect(ensureLeagueSplit(new Rng(92), state, competition, currentWeek)).toBe(true);
+    expect(state.splitGroups?.upper).toHaveLength(6);
+    expect(state.splitGroups?.lower).toHaveLength(8);
+
+    const playoff = state.fixtures.filter((fixture) => fixture.phase && fixture.phase !== 'regular');
+    expect(playoff).toHaveLength(6 * 5 + 8 * 7 / 2);
+    // Nothing is scheduled into a week that has already been played.
+    for (const fixture of playoff) {
+      expect(fixture.week).toBeGreaterThan(currentWeek);
+      expect(fixture.week).toBeLessThan(52);
+    }
+    // The rounds he did play are the regular season now, not an unlabelled remnant.
+    expect(state.fixtures.filter((fixture) => fixture.phase === 'regular')).toHaveLength(14 * 13);
   });
 
   it('runs Liga Leumit as 30 regular matches followed by two groups of eight', () => {
@@ -1357,7 +1389,7 @@ describe('transfer offers', () => {
     }
   });
 
-  it('does not offer a weaker club to a regular academy starter', () => {
+  it('offers a regular academy starter a better academy, or first-team football, and nothing else', () => {
     const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 17, seed: 774 });
     joinClub(state, index, 'isr_maccabi_tel_aviv', { asAcademy: true });
     const current = state.world.clubs[state.player.clubId!]!;
@@ -1375,15 +1407,67 @@ describe('transfer offers', () => {
     const offers = Array.from({ length: 12 }, (_, seed) => generateOffers({
       state, index, rng: new Rng(900 + seed), minutesPct: 0,
     })).flat();
+    expect(offers.length).toBeGreaterThan(0);
     for (const offer of offers) {
       const suitor = state.world.clubs[offer.clubId]!;
       const competition = index.competitionById.get(suitor.competitionId)!;
-      expect(suitor.tier).toBeLessThanOrEqual(current.tier);
-      expect(competition.reputation).toBeGreaterThanOrEqual(currentCompetition.reputation - 2);
-      expect(clubBaseOvr(suitor)).toBeGreaterThanOrEqual(clubBaseOvr(current) - 2);
-      expect(offer.seniorPathway).toBe(true);
-      expect(offer.expectedMinutesPct).toBeGreaterThanOrEqual(0.45);
+      expect(offer.joinAs).toBeDefined();
+      if (offer.joinAs === 'academy') {
+        // Another academy is only worth leaving a good one for if it is better.
+        expect(suitor.tier).toBeLessThanOrEqual(current.tier);
+        expect(competition.reputation).toBeGreaterThanOrEqual(currentCompetition.reputation - 2);
+        expect(
+          suitor.academy > current.academy || clubBaseOvr(suitor) > clubBaseOvr(current),
+          `${suitor.name} is not a better academy than ${current.name}`,
+        ).toBe(true);
+        expect(offer.squadRole).toBe('academy');
+      } else {
+        // The only other thing worth his while is a first-team place he can actually
+        // take: minutes, in a senior squad, at an age he is allowed to play.
+        expect(offer.joinAs).toBe('senior');
+        expect(offer.seniorPathway).toBe(true);
+        expect(offer.expectedMinutesPct).toBeGreaterThanOrEqual(0.45);
+      }
     }
+  });
+
+  it('never offers a fifteen-year-old a senior squad', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 15, seed: 776 });
+    joinClub(state, index, 'isr_maccabi_tel_aviv', { asAcademy: true });
+    state.player.reputation = 55;
+    state.player.potential = 92;
+
+    const offers = Array.from({ length: 12 }, (_, seed) => generateOffers({
+      state, index, rng: new Rng(1200 + seed), minutesPct: 0,
+    })).flat();
+    for (const offer of offers) {
+      expect(offer.joinAs, `${offer.clubId} offered a senior place to a boy of fifteen`).toBe('academy');
+    }
+  });
+
+  it('signs an academy offer into the academy, with a youth division to play in', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 777 });
+    joinClub(state, index, 'isr_hapoel_hadera', { asAcademy: true });
+    state.player.potential = 92;
+    state.player.reputation = 55;
+
+    const offer = Array.from({ length: 16 }, (_, seed) => generateOffers({
+      state, index, rng: new Rng(1300 + seed), minutesPct: 0,
+    })).flat().find((entry) => entry.joinAs === 'academy');
+    expect(offer).toBeDefined();
+
+    state.transferOffers = [offer!];
+    expect(acceptOffer(state, index, offer!.id)).toBe(true);
+
+    expect(state.player.clubId).toBe(offer!.clubId);
+    expect(state.player.squadRole).toBe('academy');
+    expect(state.contract?.squadRole).toBe('academy');
+    // He has not been called up to anybody's first team by signing a scholarship.
+    expect(state.flags['calledUpToSeniors']).not.toBe(true);
+    // And there is an age group for him to actually play in at the new club.
+    const division = userYouthCompetitionId(state);
+    expect(division).toBeTruthy();
+    expect(state.world.youth?.squads[offer!.clubId]?.length ?? 0).toBeGreaterThan(0);
   });
 
   it('keeps real match simulation after a seventeen-year-old moves into a senior starting role', () => {

@@ -701,8 +701,21 @@ export function joinClub(
     existing.competitionId = comp?.id ?? null;
   }
   state.flags['lastTransferWeek'] = season * 52 + state.world.week;
-  // Joining a club as a boy puts him straight into its youth side.
-  if (isAcademyPlayer(state) && !state.world.youth) initYouth(state, index, rng);
+  /*
+   * Joining a club as a boy puts him straight into its youth side - that club's youth
+   * side, in that club's country.
+   *
+   * Only building the pyramid when there was none left a boy who moved abroad, or into
+   * another division, in an age group that did not contain his new club: no youth
+   * fixtures, no youth minutes, and a market that then read him as a boy who never
+   * plays. The division he has landed in is stocked instead, and a move to another
+   * country rebuilds the pyramid around him.
+   */
+  if (isAcademyPlayer(state)) {
+    const division = userYouthCompetitionId(state);
+    if (!state.world.youth || !division) initYouth(state, index, rng);
+    else stockYouthDivision(rng, state, index, division);
+  }
   // Two clubs a season is the cap, the way registration rules work in real football.
   const movedIn = Number(state.flags['movesSeason'] ?? -1) === season
     ? Number(state.flags['movesThisSeason'] ?? 0)
@@ -1171,7 +1184,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // other match rather than appearing only when Saturday is simulated.
   for (const competitionState of Object.values(state.world.competitions)) {
     const competition = index.competitionById.get(competitionState.competitionId);
-    if (competition) ensureLeagueSplit(rng, competitionState, competition);
+    if (competition) ensureLeagueSplit(rng, competitionState, competition, week);
   }
 
   // 0a. The week before a big one starts on the Monday.
@@ -5455,10 +5468,21 @@ export function acceptOffer(state: CareerState, index: PackIndex, offerId: strin
   // The club he is leaving, remembered by name: the fixture list will bring it back.
   if (previousClubId) state.flags['previousClubId'] = previousClubId;
 
+  /*
+   * Which door he walks in through.
+   *
+   * A boy can be signed by another club's academy or by its first team, and the two are
+   * different careers. Signing him into an academy as a "rotation player" put a
+   * fifteen year old in a senior squad he could not legally play in; the offer says
+   * which side of the club wants him and the move follows it.
+   */
+  const joiningAcademy = offer.joinAs === 'academy';
+
   joinClub(state, index, offer.clubId, {
     salary: offer.salaryPerWeek,
     years: offer.years,
-    role: offer.squadRole,
+    role: joiningAcademy ? 'academy' : offer.squadRole,
+    ...(joiningAcademy ? { asAcademy: true } : {}),
     ...(offer.signingBonus ? { signingBonus: offer.signingBonus } : {}),
     ...(offer.releaseClause ? { releaseClause: offer.releaseClause } : {}),
     ...(offer.isLoan ? { isLoan: true, parentClubId: previousClubId ?? undefined } : {}),
