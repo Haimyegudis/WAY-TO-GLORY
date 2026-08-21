@@ -23,6 +23,8 @@ export interface EventContext {
   absoluteWeek: number;
   seasonWeek: number;
   minutesPct: number;
+  /** Competitive matches behind him, youth football included. */
+  careerApps: number;
   squadRole: SquadRole;
   ovr: number;
   morale: number;
@@ -48,6 +50,7 @@ export function isEligible(def: CareerEventDef, ctx: EventContext, state: Career
   if (t.seasonWeekRange && (ctx.seasonWeek < t.seasonWeekRange[0] || ctx.seasonWeek > t.seasonWeekRange[1])) return false;
   if (t.minMinutesSeasonPct !== undefined && ctx.minutesPct < t.minMinutesSeasonPct) return false;
   if (t.maxMinutesSeasonPct !== undefined && ctx.minutesPct > t.maxMinutesSeasonPct) return false;
+  if (t.minCareerApps !== undefined && ctx.careerApps < t.minCareerApps) return false;
   if (t.squadRoleIn && !t.squadRoleIn.includes(ctx.squadRole)) return false;
   if (t.minOvr !== undefined && ctx.ovr < t.minOvr) return false;
   if (t.maxOvr !== undefined && ctx.ovr > t.maxOvr) return false;

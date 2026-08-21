@@ -1211,7 +1211,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
    * ahead of him, and the week does not start until he has answered: nothing has been
    * written to the world yet, so it simply runs again once he has.
    */
-  if (club && weekImportance !== 'normal') {
+  if (club && weekImportance !== 'normal' && scheduledMatch && availableForFixture(state, scheduledMatch)) {
     const occasion = occasionMilestone(weekImportance);
     if (occasion && raiseMilestone(state, occasion, {
       force: true,
@@ -1707,6 +1707,23 @@ function driftMorale(state: CareerState): void {
   player.morale = clamp(player.morale + (target - player.morale) * 0.14, 0, 100);
 }
 
+/**
+ * Competitive matches behind him, the age group included and the friendlies left out.
+ *
+ * A boy in his first pre-season has none of them, which is the point: nobody flies a
+ * player abroad for a trial on the strength of three camp friendlies he has not played
+ * yet.
+ */
+function careerApps(state: CareerState): number {
+  const past = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0);
+  const thisSeason = state.matchLog.filter((match) => (
+    match.season === state.world.season
+    && match.userLine?.played
+    && !match.competitionId.startsWith('friendly')
+  )).length;
+  return past + thisSeason;
+}
+
 function buildEventContext(state: CareerState, index: PackIndex): EventContext {
   const club = userClub(state);
   const player = state.player;
@@ -1715,6 +1732,7 @@ function buildEventContext(state: CareerState, index: PackIndex): EventContext {
     absoluteWeek: state.world.season * 52 + state.world.week,
     seasonWeek: state.world.week,
     minutesPct: minutesPct(state),
+    careerApps: careerApps(state),
     squadRole: player.squadRole,
     ovr: overall(player.attributes, player.primaryPos, player.secondaryPos),
     morale: player.morale,
@@ -2379,6 +2397,18 @@ function raisePostMatchEvent(
 }
 
 /** One contextual dilemma at most, attached to the real fixture and answered first. */
+/**
+ * Whether this fixture is his to play in.
+ *
+ * The build-up is for a player who will be involved. A man with six weeks of a
+ * hamstring left is not asked what the derby means to him: he is not in the squad, and
+ * being asked anyway made the microphone meaningless.
+ */
+function availableForFixture(state: CareerState, match: ScheduledUserMatch): boolean {
+  if (!isAvailable(state.player, match.competitionId)) return false;
+  return !isFrozenOut(state);
+}
+
 function raisePreMatchEvent(
   state: CareerState,
   index: PackIndex,
@@ -2398,7 +2428,11 @@ function raisePreMatchEvent(
   );
   const ids: string[] = [];
   if (match.importance === 'cupFinal' && injuryWeeks > 0 && injuryWeeks <= 3) {
+    // The one question worth asking a man who is hurt: whether he goes through with it.
     ids.push('play_final_injured');
+  } else if (!availableForFixture(state, match)) {
+    // Everything else in here assumes he is playing on Saturday.
+    return false;
   } else {
     if (match.importance === 'derby' || match.importance === 'rival') ids.push('derby_week_pressure');
     if (match.source === 'europe') ids.push('champions_league_night');

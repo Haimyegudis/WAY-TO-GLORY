@@ -5,6 +5,7 @@ import { createEuroCompetition, qualifiersFromLeaguePhase } from '../src/europe.
 import { playTournament, tournamentFor } from '../src/tournament.js';
 import { ageFactor, developWeek, headroom, updateCondition } from '../src/development.js';
 import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
+import { isEligible } from '../src/events.js';
 import { buildAttributes, generatePlayer } from '../src/generate.js';
 import { CAMEO_MINUTES, eligibleForSenior, pickLineup, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, ensureLeagueSplit, sortedTable, initCompetitionSeason } from '../src/league.js';
@@ -1398,6 +1399,66 @@ describe('summer tournaments', () => {
     const appearance = result.matches.find((match) => match.userPlayed)!;
     expect(appearance.userMinutes).toBeGreaterThan(0);
     expect(appearance.userAssists).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('who the build-up is for', () => {
+  it('leaves an injured player out of the questions as well as the squad', () => {
+    const { state, index } = startedCareer({ seed: 97 });
+    for (let i = 0; i < 8; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+
+    // Six weeks of a hamstring: he is not in anybody's squad for a while.
+    state.player.condition.injuries.push({
+      id: 'inj_buildup', type: 'hamstring', severity: 'serious',
+      weeksOut: 6, weeksRemaining: 6, season: state.world.season,
+    });
+
+    let asked = 0;
+    for (let i = 0; i < 5 && state.player.condition.injuries.length > 0; i++) {
+      playWeek(state, index);
+      asked += state.pendingDecisions.filter((decision) => (
+        decision.eventId === 'milestone:derby'
+        || decision.eventId === 'milestone:bigMatch'
+        || decision.eventId === 'opponent_targets_you'
+        || decision.eventId === 'penalty_in_last_minute'
+        || decision.eventId === 'derby_week_pressure'
+      )).length;
+      state.pendingDecisions = [];
+    }
+
+    expect(asked, 'the press asked a man who could not play what the match meant').toBe(0);
+  });
+
+  it('does not invite a boy abroad before he has played a competitive match', () => {
+    const pack = loadPack();
+    const trial = pack.events.find((event) => event.id === 'academy_trial_abroad')!;
+    const { state } = startedCareer({ seed: 98 });
+    const index = indexPack(pack);
+
+    const ctx = {
+      age: 16,
+      absoluteWeek: state.world.season * 52 + 2,
+      seasonWeek: 2,
+      minutesPct: 0,
+      careerApps: 0,
+      squadRole: 'academy' as const,
+      ovr: 55,
+      morale: 60,
+      managerTrust: 55,
+      hasAgent: false,
+      injured: false,
+      tier: 1,
+      contractYearsLeft: 3,
+    };
+
+    // In his first camp, with nothing behind him, nobody is flying him anywhere.
+    expect(isEligible(trial, ctx, state)).toBe(false);
+    // A season of football later, they can.
+    expect(isEligible(trial, { ...ctx, careerApps: 20 }, state)).toBe(true);
+    expect(index.competitionById.size).toBeGreaterThan(0);
   });
 });
 

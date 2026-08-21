@@ -574,6 +574,8 @@ export interface EventTrigger {
   seasonWeekRange?: [number, number];
   minMinutesSeasonPct?: number;
   maxMinutesSeasonPct?: number;
+  /** Competitive matches behind him, youth football included. Friendlies do not count. */
+  minCareerApps?: number;
   squadRoleIn?: SquadRole[];
   minOvr?: number;
   maxOvr?: number;
