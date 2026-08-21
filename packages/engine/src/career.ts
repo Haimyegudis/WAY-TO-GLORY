@@ -848,6 +848,17 @@ function nationalMatchResult(
   };
 }
 
+/** The two friendlies in a camp week: one midweek, one at the weekend. */
+export const CAMP_SLOTS = ['a', 'b'] as const;
+export type CampSlot = (typeof CAMP_SLOTS)[number];
+
+/** Where a camp fixture is played. The camp ends away at the strongest side of the six. */
+export function campFixtureAtHome(week: number, slot: CampSlot): boolean {
+  if (week === 2 && slot === 'a') return false;
+  if (week === PRESEASON_END_WEEK && slot === 'b') return false;
+  return true;
+}
+
 /**
  * Put the camp on the calendar when it opens, rather than inventing an opponent at
  * kickoff. That makes every friendly visible in advance and stable across save/reload.
@@ -863,27 +874,42 @@ function scheduleTrainingCamp(state: CareerState, rng: Rng, club: Club): void {
   }
   const level = clubRating(club);
   const chosen = new Set<string>();
+  /*
+   * Who a camp can plausibly call.
+   *
+   * The last week used to look for a stronger side anywhere in the world, which put an
+   * under-16 team from Tel Aviv on the same pitch as Nottingham Forest and Milan. A
+   * summer tour abroad is a big club's privilege and a senior squad's business; a youth
+   * camp is played against clubs down the road.
+   */
+  const touring = !isAcademyPlayer(state) && club.reputation >= 70;
 
   for (let week = 1; week <= PRESEASON_END_WEEK; week++) {
-    const key = `campOpponent:${season}:${week}`;
-    const existing = String(state.flags[key] ?? '');
-    if (state.world.clubs[existing]) {
-      chosen.add(existing);
-      continue;
+    for (const slot of CAMP_SLOTS) {
+      const key = `campOpponent:${season}:${week}:${slot}`;
+      // A camp booked under the old one-match-a-week calendar keeps the opponent it
+      // already had; only the second fixture of the week is new.
+      const legacy = slot === 'a' ? String(state.flags[`campOpponent:${season}:${week}`] ?? '') : '';
+      const existing = String(state.flags[key] ?? legacy);
+      if (state.world.clubs[existing]) {
+        state.flags[key] = existing;
+        chosen.add(existing);
+        continue;
+      }
+      const preferred = Object.values(state.world.clubs).filter((candidate) => {
+        if (candidate.id === club.id || chosen.has(candidate.id)) return false;
+        const gap = clubRating(candidate) - level;
+        if (week === 1) return candidate.country === club.country && gap >= -22 && gap <= -5;
+        if (week === 2) return candidate.country === club.country && Math.abs(gap) <= 10;
+        return (touring || candidate.country === club.country) && gap >= -3 && gap <= 16;
+      });
+      const fallback = Object.values(state.world.clubs).filter(
+        (candidate) => candidate.id !== club.id && !chosen.has(candidate.id),
+      );
+      const opponent = rng.pick(preferred.length > 0 ? preferred : fallback);
+      state.flags[key] = opponent.id;
+      chosen.add(opponent.id);
     }
-    const preferred = Object.values(state.world.clubs).filter((candidate) => {
-      if (candidate.id === club.id || chosen.has(candidate.id)) return false;
-      const gap = clubRating(candidate) - level;
-      if (week === 1) return candidate.country === club.country && gap >= -22 && gap <= -5;
-      if (week === 2) return candidate.country === club.country && Math.abs(gap) <= 10;
-      return gap >= -3 && gap <= 16;
-    });
-    const fallback = Object.values(state.world.clubs).filter(
-      (candidate) => candidate.id !== club.id && !chosen.has(candidate.id),
-    );
-    const opponent = rng.pick(preferred.length > 0 ? preferred : fallback);
-    state.flags[key] = opponent.id;
-    chosen.add(opponent.id);
   }
 
   updateCampAssessment(state);
@@ -1229,6 +1255,27 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     stopped = 'match';
     log.push(`match ${userMatch.homeClubId} ${userMatch.homeGoals}-${userMatch.awayGoals} ${userMatch.awayClubId}`);
   }
+
+  /*
+   * Camp plays twice a week, and both matches are his to watch.
+   *
+   * The week pauses on the whistle of the midweek friendly rather than playing the
+   * weekend one behind it. Nothing past this point has run, so continuing simply walks
+   * the same week again: training is already marked resolved, the first friendly is
+   * marked played, and the second one kicks off. The minutes of both reach development
+   * through `campMinutes`, which is read once the week is allowed to finish.
+   */
+  if (userMatch && week <= PRESEASON_END_WEEK && nextCampSlot(state) !== null) {
+    commitRng(state, rng);
+    return { state, stopped: 'match', log };
+  }
+  if (week <= PRESEASON_END_WEEK) {
+    const minutesKey = `campMinutes:${season}:${week}`;
+    if (state.flags[minutesKey] !== undefined) {
+      playedThisWeek = Number(state.flags[minutesKey]);
+      delete state.flags[minutesKey];
+    }
+  }
   for (const injury of player.condition.injuries) {
     if (!injuriesBeforeMatch.has(injury.id)) injuriesAddedThisWeek.add(injury.id);
   }
@@ -1493,6 +1540,17 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   } else if (state.pendingDecisions.some((d) => d.blocking !== false)) {
     stopped = 'decision';
   }
+
+  /*
+   * A match he was on the pitch for is the week.
+   *
+   * A story raised after the football used to take the week's stopping point away from
+   * it, so the app never opened the match centre and the score turned up later in the
+   * results list - which is what a pre-season camp, where stories are thick on the
+   * ground, looked like from the outside. The question is not lost: it stays in
+   * `pendingDecisions` and is put to him the moment he leaves the match.
+   */
+  if (userMatch?.userLine?.played) stopped = 'match';
 
   // A selected international fixture is a real match day, not a background message.
   // Preserve it as the week's stopping point even if a later story was also generated;
@@ -2451,6 +2509,14 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
   return resumed ?? euroResult ?? userResult ?? cupResult ?? youthResult;
 }
 
+/** The camp fixture this week that has not been played yet, if there is one left. */
+export function nextCampSlot(state: CareerState, week = state.world.week): CampSlot | null {
+  for (const slot of CAMP_SLOTS) {
+    if (!state.flags[`campPlayed:${state.world.season}:${week}:${slot}`]) return slot;
+  }
+  return null;
+}
+
 function simulatePreseasonFriendly(
   state: CareerState,
   index: PackIndex,
@@ -2460,12 +2526,14 @@ function simulatePreseasonFriendly(
   if (!club) return null;
   const week = state.world.week;
   scheduleTrainingCamp(state, rng, club);
-  const opponentId = String(state.flags[`campOpponent:${state.world.season}:${week}`] ?? '');
+  const slot = nextCampSlot(state);
+  if (!slot) return null;
+  const opponentId = String(state.flags[`campOpponent:${state.world.season}:${week}:${slot}`] ?? '');
   const opponent = state.world.clubs[opponentId];
   if (!opponent) return null;
   const academyCamp = isAcademyPlayer(state);
   const age = state.world.season - state.player.birthYear;
-  const userAtHome = week !== 3;
+  const userAtHome = campFixtureAtHome(week, slot);
   const result = playUserMatch(
     state,
     index,
@@ -2479,7 +2547,12 @@ function simulatePreseasonFriendly(
     // with the first team.
     academyCamp ? youthClubRating(opponent, age) : undefined,
   );
+  state.flags[`campPlayed:${state.world.season}:${week}:${slot}`] = true;
   state.flags[`friendlyPlayed:${state.world.season}:${week}`] = true;
+  // The week's development runs once, after the second friendly, so the minutes of the
+  // first one have to survive the pause in between.
+  const minutesKey = `campMinutes:${state.world.season}:${week}`;
+  state.flags[minutesKey] = Number(state.flags[minutesKey] ?? 0) + (result.userLine?.minutes ?? 0);
   return result;
 }
 
@@ -3513,21 +3586,45 @@ function applyFriendlyToPlayer(
     state.flags[appsKey] = Number(state.flags[appsKey] ?? 0) + 1;
     state.flags[ratingKey] = Number(state.flags[ratingKey] ?? 0) + line.rating;
     updateCampAssessment(state);
-    const recommendedFocus = String(
-      state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced',
-    ) as TrainingPlan['focus'];
-    pushInbox(state, 'manager', `inbox.trainingCampFeedback.${state.world.week}`, {
-      rating: line.rating.toFixed(1),
-      strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
-      weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
-      focus: `train.focus.${recommendedFocus}`,
-    }, undefined, { type: 'setTrainingFocus', focus: recommendedFocus });
 
     if (injuryRolled) {
       const injury = rollInjury(rng, player, state.world.season, 1.05);
       player.condition.injuries.push(injury);
       pushInbox(state, 'medical', 'inbox.injuredMatch', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
     }
+  }
+
+  /*
+   * The coach's review, once a week.
+   *
+   * A camp week holds two friendlies, and the review is written as one conversation
+   * about the week - so it waits for the second of them. The flag for this match has
+   * not been written yet, which is what makes the slot being played the one `nextCampSlot`
+   * still reports.
+   */
+  const lastOfWeek = nextCampSlot(state) === CAMP_SLOTS[CAMP_SLOTS.length - 1];
+  if (!lastOfWeek) return;
+
+  const weekRatings = state.matchLog
+    .filter((match) => (
+      match.season === state.world.season
+      && match.week === state.world.week
+      && match.competitionId.startsWith('friendly')
+      && match.userLine?.played
+    ))
+    .map((match) => match.userLine!.rating);
+  if (line.played) weekRatings.push(line.rating);
+  if (weekRatings.length > 0) {
+    const weekRating = weekRatings.reduce((sum, rating) => sum + rating, 0) / weekRatings.length;
+    const recommendedFocus = String(
+      state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced',
+    ) as TrainingPlan['focus'];
+    pushInbox(state, 'manager', `inbox.trainingCampFeedback.${state.world.week}`, {
+      rating: weekRating.toFixed(1),
+      strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
+      weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
+      focus: `train.focus.${recommendedFocus}`,
+    }, undefined, { type: 'setTrainingFocus', focus: recommendedFocus });
   }
 
   if (state.world.week === PRESEASON_END_WEEK) {

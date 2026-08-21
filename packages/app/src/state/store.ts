@@ -185,6 +185,8 @@ interface GameStore {
   /** Save, close this career and go back to the front screen. */
   leaveCareer: () => Promise<void>;
   goto: (screen: Screen) => void;
+  /** Open one particular match report, rather than whichever was played last. */
+  openMatch: (matchId: string) => void;
   /** One step back: the screen before this one, or his own screen. */
   back: () => void;
   setBackHandler: (handler: (() => boolean) | null) => void;
@@ -348,6 +350,13 @@ export const useGame = create<GameStore>((set, get) => ({
     // Where he was is worth keeping, but not twenty of them, and not the same screen
     // twice in a row.
     set({ screen, trail: from === screen ? get().trail : [...get().trail, from].slice(-10) });
+  },
+
+  openMatch(matchId) {
+    // A match opened from a list is read, not watched: the live playback belongs to the
+    // whistle it was played on.
+    set({ focusMatchId: matchId, liveMatchId: null, liveFromMinute: 0 });
+    get().goto('match');
   },
 
   setBackHandler(handler) {

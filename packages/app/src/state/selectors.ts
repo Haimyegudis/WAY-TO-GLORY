@@ -1,12 +1,16 @@
 import {
+  CAMP_SLOTS,
+  campFixtureAtHome,
   overall,
   ratingAt,
   sortedTable,
+  type CampSlot,
   type CareerState,
   type Club,
   type Competition,
   type CompetitionSeasonState,
   type Fixture,
+  type MatchResult,
   type PackIndex,
   type Player,
 } from '@fc/engine';
@@ -36,6 +40,55 @@ export interface UpcomingFixture {
   competitionId: string;
 }
 
+export interface CampFixture {
+  week: number;
+  slot: CampSlot;
+  opponent: Club | null;
+  home: boolean;
+  /** The match, once it has been played, so the report can be opened from the list. */
+  match: MatchResult | null;
+}
+
+/** The camp weeks, or nothing at all outside them. */
+const CAMP_WEEKS = [1, 2, 3];
+
+export function inTrainingCamp(state: CareerState): boolean {
+  return Boolean(state.flags[`trainingCamp:${state.world.season}`])
+    && CAMP_WEEKS.includes(state.world.week);
+}
+
+/**
+ * The whole camp, in order, played and unplayed alike. The schedule is written into the
+ * flags the moment camp opens, so every friendly is visible before it is kicked off.
+ */
+export function campSchedule(state: CareerState): CampFixture[] {
+  const mine = myClub(state);
+  if (!mine || !state.flags[`trainingCamp:${state.world.season}`]) return [];
+  const played = state.matchLog.filter(
+    (match) => match.season === state.world.season && match.competitionId.startsWith('friendly'),
+  );
+
+  const fixtures: CampFixture[] = [];
+  for (const week of CAMP_WEEKS) {
+    for (const slot of CAMP_SLOTS) {
+      const opponentId = String(state.flags[`campOpponent:${state.world.season}:${week}:${slot}`] ?? '');
+      if (!opponentId) continue;
+      const home = campFixtureAtHome(week, slot);
+      fixtures.push({
+        week,
+        slot,
+        opponent: club(state, opponentId),
+        home,
+        match: played.find(
+          (match) => match.week === week
+            && (match.homeClubId === opponentId || match.awayClubId === opponentId),
+        ) ?? null,
+      });
+    }
+  }
+  return fixtures;
+}
+
 /** The next league fixture our club has, from this week on. */
 export function nextFixture(state: CareerState): UpcomingFixture | null {
   const c = myClub(state);
@@ -43,25 +96,22 @@ export function nextFixture(state: CareerState): UpcomingFixture | null {
 
   // Friendlies do not belong to a league table, but the camp schedule is fixed by the
   // engine and the player must be able to see each one before pressing kickoff.
-  if (
-    state.world.week >= 1
-    && state.world.week <= 3
-    && state.flags[`trainingCamp:${state.world.season}`]
-  ) {
-    const opponentId = String(state.flags[`campOpponent:${state.world.season}:${state.world.week}`] ?? '');
-    const opponent = club(state, opponentId);
-    if (opponent) {
-      const home = state.world.week !== 3;
+  if (inTrainingCamp(state)) {
+    // Two friendlies a week, so it is the next unplayed one that is ahead of him.
+    const next = campSchedule(state).find(
+      (entry) => !entry.match && entry.week >= state.world.week && entry.opponent,
+    );
+    if (next?.opponent) {
       return {
         fixture: {
-          round: state.world.week,
-          week: state.world.week,
-          homeClubId: home ? c.id : opponent.id,
-          awayClubId: home ? opponent.id : c.id,
+          round: next.week,
+          week: next.week,
+          homeClubId: next.home ? c.id : next.opponent.id,
+          awayClubId: next.home ? next.opponent.id : c.id,
           played: false,
         },
-        opponent,
-        home,
+        opponent: next.opponent,
+        home: next.home,
         competitionId: 'friendly',
       };
     }

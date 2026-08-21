@@ -30,6 +30,10 @@ test('creates a career through the real UI with no automated accessibility viola
   // An academy career opens inside camp, with its youth friendly visible before the
   // player advances. This is the match the coach uses to evaluate him.
   await expect(page.getByText('Pre-season friendly')).toBeVisible();
+  // Camp is six friendlies, two a week, and all of them are on the card before a ball
+  // is kicked - not a counter that only fills in afterwards.
+  await expect(page.getByText('Training camp assessment')).toBeVisible();
+  await expect(page.getByText('To come')).toHaveCount(6);
   await expectAccessible(page);
 
   // Settling a blocking approach must consume its notification. Otherwise the player
@@ -307,6 +311,49 @@ test('applies a coach camp assignment and opens the selected training focus', as
   await expect(page.getByRole('heading', { name: 'Training' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Physical' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('Coach assignment')).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('opens a played camp friendly from the camp card', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('Camp');
+  await page.getByLabel('Last name').fill('Report');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  // The first friendly of the camp, played. The card has to show its score in place of
+  // "to come" and open that match's report when it is pressed.
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    const player = state.player;
+    const homeClubId = player.clubId as string;
+    const awayClubId = state.flags[`campOpponent:${state.world.season}:1:a`] as string;
+    const match = {
+      id: 'e2e_camp_first', season: state.world.season, week: 1,
+      competitionId: 'friendly.youth', homeClubId, awayClubId,
+      homeGoals: 3, awayGoals: 1, detailLevel: 1, importance: 'friendly',
+      userLine: {
+        played: true, started: true, minutes: 90, position: player.primaryPos,
+        goals: 2, assists: 0, shots: 3, keyPasses: 1, tackles: 0, saves: 0,
+        yellow: 0, red: 0, rating: 8.1, motm: true,
+      },
+      events: [],
+    };
+    state.matchLog = [match, ...state.matchLog];
+    game.setState({ state, pendingNews: [], screen: 'hub' });
+  });
+
+  await expect(page.getByText('To come')).toHaveCount(5);
+  await expect(page.getByText('3–1')).toBeVisible();
+  await page.getByRole('button', { name: /3–1/ }).click();
+  await expect(page.getByText('Pre-season friendly').first()).toBeVisible();
+  await expect(page.getByText('Man of the match')).toBeVisible();
   await expectAccessible(page);
 });
 

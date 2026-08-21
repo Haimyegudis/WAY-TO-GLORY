@@ -158,9 +158,10 @@ export function MatchCentre() {
               : <span className="crest crest-lg crest-fallback">{homeLabel.slice(0, 2)}</span>}
             <span>{homeLabel}</span>
           </div>
-          <div className="score">
+          {/* The scoreline is what the report is about, so it is the page's heading. */}
+          <h1 className="score">
             {match.homeGoals}–{match.awayGoals}
-          </div>
+          </h1>
           <div className="side away">
             {away
               ? <Crest club={away} size="lg" />

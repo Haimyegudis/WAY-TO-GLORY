@@ -583,6 +583,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .scoreline .side.away { flex-direction: row-reverse; }
 .scoreline .side span { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .score {
+  margin: 0;
   font-size: 30px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -1006,6 +1007,13 @@ select:focus-visible,
   background: none; border: 0; padding: 2px 0; text-align: start; color: inherit; font: inherit; cursor: pointer;
 }
 .inbox-row:hover .inbox-title { color: var(--gold); }
+
+/* A camp fixture already played opens its report; one still to come is only read. */
+.camp-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; padding: 0; text-align: start; color: inherit; font: inherit; cursor: pointer;
+}
+.camp-row:disabled { cursor: default; opacity: 0.72; }
 .inbox-from { display: block; font-size: 10.5px; color: var(--muted); letter-spacing: 0.04em; }
 .inbox-title { display: block; font-size: 13.5px; line-height: 1.35; }
 .inbox-title.unread { font-weight: 700; }

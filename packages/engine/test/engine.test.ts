@@ -889,19 +889,26 @@ describe('europe', () => {
 });
 
 describe('pre-season camp', () => {
-  it('shows an academy signing all three youth-team camp friendlies', () => {
+  it('shows an academy signing all six youth-team camp friendlies', () => {
     const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 6059 });
     const clubId = getAcademyOffers(state, index)[0]!.clubId;
     joinClub(state, index, clubId, { asAcademy: true });
 
     expect(state.flags[`trainingCamp:${state.world.season}`]).toBe(true);
+    const opponents = new Set<string>();
     for (let week = 1; week <= 3; week++) {
-      expect(state.flags[`campOpponent:${state.world.season}:${week}`]).toBeTruthy();
+      for (const slot of ['a', 'b']) {
+        const opponent = String(state.flags[`campOpponent:${state.world.season}:${week}:${slot}`] ?? '');
+        expect(opponent).toBeTruthy();
+        opponents.add(opponent);
+      }
       playWeek(state, index);
     }
 
+    // Six different sides: a camp does not play the same club twice in a fortnight.
+    expect(opponents.size).toBe(6);
     const camp = state.matchLog.filter((match) => match.competitionId === 'friendly.youth');
-    expect(camp).toHaveLength(3);
+    expect(camp).toHaveLength(6);
     expect(camp.every((match) => match.userLine?.played)).toBe(true);
     expect(state.flags[`campVerdict:${state.world.season}`]).toBeTruthy();
     const feedback = state.inbox.find((message) => message.titleKey === 'inbox.trainingCampFeedback.1');
@@ -909,6 +916,46 @@ describe('pre-season camp', () => {
       type: 'setTrainingFocus',
       focus: state.flags[`campRecommendedFocus:${state.world.season}`],
     });
+  });
+
+  it('reviews the camp once a week and delivers one verdict', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 6061 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+
+    for (let week = 1; week <= 3; week++) playWeek(state, index);
+
+    for (const week of [1, 2, 3]) {
+      const reviews = state.inbox.filter(
+        (message) => message.titleKey === `inbox.trainingCampFeedback.${week}`,
+      );
+      expect(reviews).toHaveLength(1);
+    }
+    expect(state.inbox.filter((message) => message.titleKey === 'inbox.trainingCampReport')).toHaveLength(1);
+  });
+
+  it('stops the week on a match he played even when a story is waiting', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 6062 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+
+    // Camp weeks are event-heavy, so at least one of them holds both a friendly he
+    // played and a story raised after it. The match is what the week stops for; the
+    // story waits behind the final whistle.
+    let sawBoth = false;
+    for (let attempt = 0; attempt < 30 && !sawBoth; attempt++) {
+      const before = state.matchLog.length;
+      const result = playWeek(state, index);
+      const played = state.matchLog.length > before && state.matchLog[0]?.userLine?.played;
+      const queued = state.pendingDecisions.some((decision) => decision.blocking !== false);
+      if (played && queued) {
+        sawBoth = true;
+        expect(result.stopped).toBe('match');
+      }
+      state.pendingDecisions = [];
+    }
+
+    expect(sawBoth).toBe(true);
   });
 
   it('does not call a competitive youth appearance a senior debut', () => {
@@ -936,7 +983,7 @@ describe('pre-season camp', () => {
     expect(state.flags['calledUpToSeniors']).not.toBe(true);
   });
 
-  it('evaluates a new senior in three friendlies before competitive football', () => {
+  it('evaluates a new senior in six friendlies before competitive football', () => {
     const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 19, seed: 6060 });
     const clubId = getAcademyOffers(state, index)[0]!.clubId;
     joinClub(state, index, clubId, { role: 'rotation' });
@@ -945,7 +992,11 @@ describe('pre-season camp', () => {
     for (let week = 1; week <= 3; week++) playWeek(state, index);
 
     const camp = state.matchLog.filter((match) => match.competitionId === 'friendly');
-    expect(camp).toHaveLength(3);
+    expect(camp).toHaveLength(6);
+    // Two a week: a midweek match and a weekend one, in each of the three camp weeks.
+    for (const week of [1, 2, 3]) {
+      expect(camp.filter((match) => match.week === week)).toHaveLength(2);
+    }
     expect(camp.every((match) => match.userLine !== undefined)).toBe(true);
     // A fit player gets an audition; an actual camp injury is still allowed to rule
     // him out rather than being silently ignored for the sake of the schedule.
@@ -1844,8 +1895,14 @@ describe('half time', () => {
     const { state, index } = startedCareer({ seed: 909 });
     let injuredWeeks = 0;
     for (let i = 0; i < 52 * 5 && !state.retired; i++) {
-      const carrying = state.player.condition.injuries.length > 0
-        || state.player.condition.suspensions.some((ban) => ban.matchesRemaining > 0);
+      const injured = state.player.condition.injuries.length > 0;
+      // A ban belongs to the competition it was served in: a league suspension does not
+      // keep him out of the age group on Sunday morning.
+      const banned = new Set(
+        state.player.condition.suspensions
+          .filter((ban) => ban.matchesRemaining > 0)
+          .map((ban) => ban.competitionId),
+      );
       const before = state.matchLog.length;
       const result = advanceWeek(state, index);
       state.pendingDecisions = [];
@@ -1853,9 +1910,10 @@ describe('half time', () => {
         const held = state.pendingHalfTime;
         resumeHalfTime(state, index, held.demand ?? held.options[0]!);
       }
-      if (!carrying) continue;
+      if (!injured && banned.size === 0) continue;
       injuredWeeks++;
       for (const match of state.matchLog.slice(0, state.matchLog.length - before)) {
+        if (!injured && !banned.has(match.competitionId)) continue;
         expect(
           match.userLine?.played,
           `played ${match.competitionId} while unavailable`,

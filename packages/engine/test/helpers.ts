@@ -46,10 +46,19 @@ export function startedCareer(overrides: Partial<CreateCareerInput> = {}, academ
  * `advanceWeek` would spend half its ticks standing in a dressing room.
  */
 export function playWeek(state: CareerState, index: PackIndex): TickResult {
+  const startedAt = state.world.season * 52 + state.world.week;
   let result = advanceWeek(state, index);
-  if (result.stopped === 'halfTime' && state.pendingHalfTime) {
-    const held = state.pendingHalfTime;
-    result = resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+  // A week can pause inside itself more than once: at the interval of a match, and
+  // again in camp, where the midweek friendly is watched before the weekend one is
+  // played. The week is over when the clock has actually moved.
+  for (let guard = 0; guard < 8; guard++) {
+    if (result.stopped === 'halfTime' && state.pendingHalfTime) {
+      const held = state.pendingHalfTime;
+      result = resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+      continue;
+    }
+    if (state.retired || state.world.season * 52 + state.world.week !== startedAt) break;
+    result = advanceWeek(state, index);
   }
   return result;
 }

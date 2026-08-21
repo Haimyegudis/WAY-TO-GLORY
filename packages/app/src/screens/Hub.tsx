@@ -9,8 +9,8 @@ import {
 } from '@fc/engine';
 import { formatMoney, formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
-import { myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
-import { clubColor, clubName, localiseArgs } from '../lib/club.js';
+import { campSchedule, inTrainingCamp, myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
+import { clubColor, clubName, clubShortName, localiseArgs } from '../lib/club.js';
 import { competitionName, countryName } from '../lib/names.js';
 import { seasonGoalStanding } from '@fc/engine';
 import { Card, Chip, ClubLine, Crest, Gauge, Meter, RatingBadge, Stat } from '../components/ui.js';
@@ -21,6 +21,7 @@ export function Hub() {
   const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
   const goto = useGame((s) => s.goto);
+  const openMatch = useGame((s) => s.openMatch);
   const markInboxRead = useGame((s) => s.markInboxRead);
   const openMessage = useGame((s) => s.openMessage);
   const applyInboxAction = useGame((s) => s.applyInboxAction);
@@ -67,7 +68,9 @@ export function Hub() {
   const ovrTone = ovr >= 82 ? 'ovr-tile-elite' : ovr >= 70 ? 'ovr-tile-high' : '';
   const goal = state.seasonGoal?.season === state.world.season ? state.seasonGoal : null;
   const standing = seasonGoalStanding(state);
-  const inCamp = Boolean(state.flags[`trainingCamp:${state.world.season}`]) && state.world.week <= 3;
+  const inCamp = inTrainingCamp(state);
+  const camp = inCamp ? campSchedule(state) : [];
+  const campPlayed = camp.filter((entry) => entry.match);
   const campMatches = state.matchLog.filter(
     (match) => match.season === state.world.season && match.competitionId.startsWith('friendly') && match.userLine?.played,
   );
@@ -188,8 +191,58 @@ export function Hub() {
           <p className="muted" style={{ fontSize: 12.5, marginBlockEnd: 10 }}>
             {t('camp.phase', { week: state.world.week })}
           </p>
+          {camp.length > 0 && (
+            <ul className="list" style={{ marginBlockEnd: 12 }}>
+              {camp.map((entry) => {
+                const match = entry.match;
+                const line = match?.userLine;
+                const mine = club?.id;
+                const isHome = match ? match.homeClubId === mine : entry.home;
+                const forGoals = match ? (isHome ? match.homeGoals : match.awayGoals) : null;
+                const againstGoals = match ? (isHome ? match.awayGoals : match.homeGoals) : null;
+                return (
+                  <li key={`${entry.week}${entry.slot}`} className="list-item">
+                    <button
+                      className="camp-row"
+                      disabled={!match}
+                      onClick={() => match && openMatch(match.id)}
+                    >
+                      <Crest club={entry.opponent} size="sm" />
+                      <span className="grow" style={{ minWidth: 0 }}>
+                        <span className="row-between">
+                          <span style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {entry.opponent ? clubShortName(entry.opponent, lang) : '—'}
+                          </span>
+                          <span className="num" style={{ fontSize: 14 }}>
+                            {match ? `${forGoals}–${againstGoals}` : '—'}
+                          </span>
+                        </span>
+                        <span className="row-between" style={{ marginBlockStart: 3 }}>
+                          <span className="faint" style={{ fontSize: 11 }}>
+                            {t('camp.slot', { week: entry.week, when: t(`camp.when.${entry.slot}`) })}
+                            {' · '}
+                            {entry.home ? t('match.home') : t('match.away')}
+                          </span>
+                          <span className="faint" style={{ fontSize: 11 }}>
+                            {line?.played
+                              ? <><span className="num">{line.minutes}</span>′</>
+                              : match
+                                ? t(`match.reason.${line?.reasonNotPlayed ?? 'notSelected'}`)
+                                : t('camp.toCome')}
+                          </span>
+                        </span>
+                      </span>
+                      {line?.played
+                        ? <RatingBadge rating={line.rating} />
+                        : <span className="faint" style={{ fontSize: 11 }}>—</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
           <div className="statrow">
-            <Stat label={t('camp.friendlies')} value={`${campMatches.length}/3`} />
+            <Stat label={t('camp.friendlies')} value={`${campPlayed.length}/${camp.length || 6}`} />
             <Stat label={t('match.rating')} value={campAverage > 0 ? campAverage.toFixed(2) : '—'} />
             <Stat label={t('rel.manager')} value={Math.round(state.managerTrust)} />
             <Stat label={t('camp.development')} value={`${ovr - campStartOvr >= 0 ? '+' : ''}${(ovr - campStartOvr).toFixed(1)}`} />
