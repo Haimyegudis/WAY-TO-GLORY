@@ -154,13 +154,13 @@ export function ensureLeagueSplit(
   const firstWeek = rules.regularLastWeek + 1;
   const lastWeek = competition.calendar?.lastWeek ?? LAST_MATCH_WEEK;
   const regularRoundCount = regular.reduce((max, fixture) => Math.max(max, fixture.round), 0);
-  const append = (clubIds: string[], phase: 'championship' | 'relegation') => {
-    for (const fixture of buildFixtures(rng, clubIds, rules.groupRounds, { firstWeek, lastWeek })) {
+  const append = (clubIds: string[], rounds: number, phase: 'championship' | 'relegation') => {
+    for (const fixture of buildFixtures(rng, clubIds, rounds, { firstWeek, lastWeek })) {
       state.fixtures.push({ ...fixture, round: fixture.round + regularRoundCount, phase });
     }
   };
-  append(upper, 'championship');
-  append(lower, 'relegation');
+  append(upper, rules.upperRounds, 'championship');
+  append(lower, rules.lowerRounds, 'relegation');
   return true;
 }
 

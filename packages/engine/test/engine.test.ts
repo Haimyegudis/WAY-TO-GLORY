@@ -335,13 +335,13 @@ describe('league', () => {
     expect(goalsFor).toBe(goalsAgainst);
   });
 
-  it('runs Ligat HaAl as 26 regular matches followed by two split-group rounds', () => {
+  it('runs Ligat HaAl as 26 regular matches, a double top playoff and a single bottom playoff', () => {
     const pack = loadPack();
     const competition = pack.competitions.find((entry) => entry.id === 'il.1')!;
     const clubIds = pack.clubs.filter((club) => club.competitionId === competition.id).map((club) => club.id);
     const state = initCompetitionSeason(new Rng(71), competition, clubIds, 2026);
 
-    expect(competition.split).toEqual({ regularRounds: 2, regularLastWeek: 34, upperTeams: 6, groupRounds: 2 });
+    expect(competition.split).toEqual({ regularRounds: 2, regularLastWeek: 34, upperTeams: 6, upperRounds: 2, lowerRounds: 1 });
     expect(state.fixtures).toHaveLength(14 * 13);
     expect(Math.max(...state.fixtures.map((fixture) => fixture.week))).toBeLessThanOrEqual(34);
 
@@ -357,7 +357,8 @@ describe('league', () => {
     const upper = new Set(state.splitGroups!.upper);
     const lower = new Set(state.splitGroups!.lower);
     const playoff = state.fixtures.filter((fixture) => fixture.phase !== 'regular');
-    expect(playoff).toHaveLength(6 * 5 + 8 * 7);
+    // Top six meet twice more (5 rounds x 2), the lower eight meet once (7 rounds).
+    expect(playoff).toHaveLength(6 * 5 + 8 * 7 / 2);
     expect(playoff.every((fixture) => (
       upper.has(fixture.homeClubId) && upper.has(fixture.awayClubId)
     ) || (
@@ -372,13 +373,36 @@ describe('league', () => {
     for (const clubId of lower) {
       expect(state.fixtures.filter((fixture) => (
         fixture.homeClubId === clubId || fixture.awayClubId === clubId
-      ))).toHaveLength(40);
+      ))).toHaveLength(33);
     }
 
     // Group membership remains the primary ordering rule after the split.
     const firstLower = state.splitGroups!.lower[0]!;
     state.table[firstLower]!.points = 999;
     expect(sortedTable(state).slice(0, 6).every((row) => upper.has(row.clubId))).toBe(true);
+  });
+
+  it('runs Liga Leumit as 30 regular matches followed by two groups of eight', () => {
+    const pack = loadPack();
+    const competition = pack.competitions.find((entry) => entry.id === 'il.2')!;
+    const clubIds = pack.clubs.filter((club) => club.competitionId === competition.id).map((club) => club.id);
+    const state = initCompetitionSeason(new Rng(81), competition, clubIds, 2026);
+
+    expect(clubIds).toHaveLength(16);
+    expect(state.fixtures).toHaveLength(16 * 15);
+    for (const fixture of state.fixtures) {
+      fixture.played = true;
+      fixture.result = [0, 0];
+      applyResult(state, fixture.homeClubId, fixture.awayClubId, 0, 0);
+    }
+    expect(ensureLeagueSplit(new Rng(82), state, competition)).toBe(true);
+    expect(state.splitGroups?.upper).toHaveLength(8);
+    expect(state.splitGroups?.lower).toHaveLength(8);
+    for (const clubId of clubIds) {
+      expect(state.fixtures.filter((fixture) => (
+        fixture.homeClubId === clubId || fixture.awayClubId === clubId
+      ))).toHaveLength(37);
+    }
   });
 });
 

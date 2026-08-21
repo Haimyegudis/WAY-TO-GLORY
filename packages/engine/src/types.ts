@@ -186,7 +186,10 @@ export interface LeagueSplitRules {
   regularRounds: number;
   regularLastWeek: number;
   upperTeams: number;
-  groupRounds: number;
+  /** Passes the championship group plays among itself after the split. */
+  upperRounds: number;
+  /** Passes the relegation group plays. Israel's lower eight meet once, not twice. */
+  lowerRounds: number;
 }
 
 export interface Competition {

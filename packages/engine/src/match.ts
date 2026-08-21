@@ -271,7 +271,7 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     // again once he has been told - or has decided - what the second half looks like.
     return {
       result: buildResult(ctx, half, setup, ctx.importance),
-      events: half.events.slice().sort((a, b) => a.minute - b.minute),
+      events: timeline(half.events, userHome),
       line,
       injuryRolled: false,
       halfTimeScore,
@@ -324,11 +324,36 @@ function buildResult(
     importance,
     ...(ctx.instruction ? { instruction: ctx.instruction } : {}),
     userLine: half.line,
-    events: half.events.slice().sort((a, b) => a.minute - b.minute),
+    events: timeline(half.events, setup.userHome),
   };
 }
 
 /** Forty-five minutes resolved in chronological order. */
+/**
+ * The event list in clock order, with the running score recomputed along it.
+ *
+ * Events are produced in resolution order, not clock order: a penalty won at 43' is
+ * resolved before a chance at 43', yet its outcome lands at 44'. A snapshot taken as
+ * each goal is scored therefore runs backwards once the list is sorted by minute, and
+ * the live scoreboard flickers back to a score that had already been beaten. The
+ * running total is rebuilt after sorting, so every snapshot matches the timeline the
+ * player actually sees.
+ */
+function timeline(events: MatchEvent[], userHome: boolean): MatchEvent[] {
+  let userGoals = 0;
+  let oppGoals = 0;
+  return events
+    .slice()
+    .sort((a, b) => a.minute - b.minute)
+    .map((event) => {
+      if (!event.score) return event;
+      if (event.type === 'goal' || (event.type === 'penaltyScored' && event.forUserTeam)) userGoals++;
+      else oppGoals++;
+      const score: [number, number] = userHome ? [userGoals, oppGoals] : [oppGoals, userGoals];
+      return { ...event, score };
+    });
+}
+
 function playHalf(
   rng: Rng,
   ctx: UserMatchContext,
