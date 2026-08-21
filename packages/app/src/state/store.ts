@@ -40,6 +40,7 @@ import {
   type MentorTopic,
   type ContractAsk,
   type NegotiationOutcome,
+  type PendingDecision,
   retire as engineRetire,
   serialize,
   setTraining as engineSetTraining,
@@ -153,6 +154,8 @@ interface GameStore {
   lastTick: TickResult['stopped'] | null;
   /** Shown in a sheet right after a choice, so the player sees what it did. */
   result: DecisionResult | null;
+  /** The conversation whose answer produced `result`; keeps impact in the same sheet. */
+  resultDecision: PendingDecision | null;
   /**
    * The match the match screen is about: the one he was taken into, plays back, and
    * then reads the report of. A week can hold a youth match and a cup tie, and without
@@ -296,6 +299,7 @@ export const useGame = create<GameStore>((set, get) => ({
   toast: null,
   lastTick: null,
   result: null,
+  resultDecision: null,
   focusMatchId: null,
   pendingNews: [],
   liveMatchId: null,
@@ -433,6 +437,7 @@ export const useGame = create<GameStore>((set, get) => ({
       phase: 'menu',
       screen: 'hub',
       result: null,
+      resultDecision: null,
       lastTick: null,
       liveMatchId: null,
       openMessageId: null,
@@ -533,20 +538,25 @@ export const useGame = create<GameStore>((set, get) => ({
   decide(decisionId, optionId) {
     const { state, index, pendingNews } = get();
     if (!state || !index) return;
+    const answeredDecision = state.pendingDecisions.find((decision) => decision.id === decisionId) ?? null;
     const newsAfterDecision = () => settleDecisionNews(state, pendingNews, decisionId);
 
     // A question from the press is not a scripted event: the answer is a trade applied
     // straight to his attributes, and any claim in it is settled the next time he plays.
     if (decisionId.startsWith('milestone_')) {
-      if (!engineAnswerMedia(state, index, decisionId, optionId)) return;
+      const mediaResult = engineAnswerMedia(state, index, decisionId, optionId);
+      if (!mediaResult) return;
       const mediaSlot = get().activeSaveId;
       if (mediaSlot) persistTo(mediaSlot, state, (saves) => set({ saves }));
-      // Answering closes the message it arrived in, whichever sheet he answered from:
-      // what changed is the next thing he should be looking at, not the question again.
-      // The decision sheet already showed the real directional impact beside every
-      // answer. Opening a second modal to summarize that answer makes one interview
-      // feel like two separate interactions.
-      set({ state: { ...state }, result: null, openMessageId: null, pendingNews: newsAfterDecision() });
+      // The question becomes its own impact phase. App keeps the same conversation
+      // sheet mounted, so the exact numbers are visible without a second popup.
+      set({
+        state: { ...state },
+        result: mediaResult,
+        resultDecision: answeredDecision,
+        openMessageId: null,
+        pendingNews: newsAfterDecision(),
+      });
       return;
     }
     // The old player asking him something is not a scripted event either: it moves the
@@ -558,7 +568,13 @@ export const useGame = create<GameStore>((set, get) => ({
       if (goalResult) {
         const slot = get().activeSaveId;
         if (slot) persistTo(slot, state, (saves) => set({ saves }));
-        set({ state: { ...state }, pendingNews: newsAfterDecision() });
+        set({
+          state: { ...state },
+          result: goalResult,
+          resultDecision: answeredDecision,
+          openMessageId: null,
+          pendingNews: newsAfterDecision(),
+        });
         return;
       }
     }
@@ -567,7 +583,13 @@ export const useGame = create<GameStore>((set, get) => ({
       const mentorResult = engineAnswerMentor(state, decisionId, optionId);
       const mentorSlot = get().activeSaveId;
       if (mentorSlot) persistTo(mentorSlot, state, (saves) => set({ saves }));
-      set({ state: { ...state }, result: mentorResult, openMessageId: null, pendingNews: newsAfterDecision() });
+      set({
+        state: { ...state },
+        result: mentorResult,
+        resultDecision: mentorResult ? answeredDecision : null,
+        openMessageId: null,
+        pendingNews: newsAfterDecision(),
+      });
       return;
     }
     // Hanging them up is his own decision, so it is answered here rather than by the
@@ -581,7 +603,13 @@ export const useGame = create<GameStore>((set, get) => ({
     if (retiring && optionId === 'retire') engineRetire(state);
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
-    set({ state: { ...state }, result, openMessageId: null, pendingNews: newsAfterDecision() });
+    set({
+      state: { ...state },
+      result,
+      resultDecision: result ? answeredDecision : null,
+      openMessageId: null,
+      pendingNews: newsAfterDecision(),
+    });
   },
 
   chooseMentor(mentorId) {
@@ -625,21 +653,23 @@ export const useGame = create<GameStore>((set, get) => ({
   answerOffer(decisionId, offerId) {
     const { state, index, pendingNews } = get();
     if (!state || !index) return;
+    const answeredDecision = state.pendingDecisions.find((decision) => decision.id === decisionId) ?? null;
     const result = engineAnswerOffer(state, index, decisionId, offerId);
     const remainingNews = settleDecisionNews(state, pendingNews, decisionId);
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
-    set({ state: { ...state }, result, pendingNews: remainingNews });
+    set({ state: { ...state }, result, resultDecision: result ? answeredDecision : null, pendingNews: remainingNews });
   },
 
   answerAgent(decisionId, agentId) {
     const { state, pendingNews } = get();
     if (!state) return;
+    const answeredDecision = state.pendingDecisions.find((decision) => decision.id === decisionId) ?? null;
     const result = engineAnswerAgent(state, decisionId, agentId);
     const remainingNews = settleDecisionNews(state, pendingNews, decisionId);
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
-    set({ state: { ...state }, result, pendingNews: remainingNews });
+    set({ state: { ...state }, result, resultDecision: result ? answeredDecision : null, pendingNews: remainingNews });
   },
 
   runAction(id) {
@@ -648,11 +678,11 @@ export const useGame = create<GameStore>((set, get) => ({
     const result = doPlayerAction(state, id);
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
-    set({ state: { ...state }, result });
+    set({ state: { ...state }, result, resultDecision: null });
   },
 
   clearResult() {
-    set({ result: null });
+    set({ result: null, resultDecision: null });
   },
 
   acceptOffer(offerId) {
@@ -732,7 +762,13 @@ export const useGame = create<GameStore>((set, get) => ({
     const { state } = get();
     const settled = state?.lastResult ?? null;
     if (state) state.lastResult = null;
-    set({ liveMatchId: null, liveFromMinute: 0, result: settled, ...(state ? { state: { ...state } } : {}) });
+    set({
+      liveMatchId: null,
+      liveFromMinute: 0,
+      result: settled,
+      resultDecision: null,
+      ...(state ? { state: { ...state } } : {}),
+    });
   },
 
   openMessage(id) {

@@ -429,7 +429,7 @@ export function Hub() {
             </p>
             {openedQuestion ? (
               <div style={{ marginBlockStart: 16 }}>
-                <DecisionOptions decision={openedQuestion} onAnswered={() => openMessage(null)} />
+                <DecisionOptions decision={openedQuestion} />
               </div>
             ) : openedMessage.action ? (
               <div className="stack" style={{ marginBlockStart: 16, gap: 8 }}>

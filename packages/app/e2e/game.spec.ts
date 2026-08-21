@@ -92,17 +92,38 @@ test('creates a career through the real UI with no automated accessibility viola
       id: messageId, season: state.world.season, week: state.world.week,
       category: 'media', titleKey: 'milestone.debut', read: false, decisionId,
     });
-    game.setState({ state, result: null, pendingNews: [messageId] });
-    game.getState().decide(decisionId, 'humble');
+    game.setState({ state, result: null, resultDecision: null, pendingNews: [messageId] });
   });
+
+  const interview = page.getByRole('dialog', {
+    name: 'A reporter catches you in the tunnel after your first one. "What is going through your head?"',
+  });
+  await expect(interview).toBeVisible();
+  await interview.locator('.option').first().click();
+  // The question remains the dialog identity while its answer buttons become the exact
+  // before/after impact. There is one interaction, not a hidden result or a new generic
+  // summary popup.
+  await expect(interview).toBeVisible();
+  await expect(interview.getByText('What that did')).toBeVisible();
+  await expect(interview.getByRole('listitem').filter({ hasText: 'Manager trust' })).toContainText('+5');
+  await expect(interview.getByRole('button', { name: 'Got it' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
   await expect.poll(() => page.evaluate(() => {
     const game = (window as unknown as { fc: { game: { getState: () => Record<string, any> } } }).fc.game.getState();
     return {
-      secondModal: game.result !== null,
+      impactVisible: game.result !== null,
+      sameInteraction: game.resultDecision?.id,
       pending: game.state.pendingDecisions.some((decision: Record<string, any>) => decision.id === 'milestone_e2e_single_window'),
       queued: game.pendingNews.includes('msg_e2e_media'),
     };
-  })).toEqual({ secondModal: false, pending: false, queued: false });
+  })).toEqual({
+    impactVisible: true,
+    sameInteraction: 'milestone_e2e_single_window',
+    pending: false,
+    queued: false,
+  });
+  await expectAccessible(page);
+  await interview.getByRole('button', { name: 'Got it' }).click();
 
   await page.evaluate(async () => {
     const debug = window as unknown as { fc: { game: { getState: () => { save: () => Promise<void> } } } };

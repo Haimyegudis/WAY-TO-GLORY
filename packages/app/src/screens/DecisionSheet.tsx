@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ContractAsk, EventEffect, PendingDecision, TransferOffer } from '@fc/engine';
+import type { ContractAsk, DecisionResult, EventEffect, PendingDecision, TransferOffer } from '@fc/engine';
 import { CONTRACT_ASKS, expectedMinutesFor } from '@fc/engine';
 import { formatMoney, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName } from '../lib/names.js';
@@ -8,16 +8,17 @@ import { clubName } from '../lib/club.js';
 import { toHebrew } from '../lib/transliterate.js';
 import { Chip, Crest } from '../components/ui.js';
 import { clubColor } from '../lib/club.js';
+import { DecisionResultContent } from './ResultSheet.js';
 
 /**
  * Everything that needs an answer arrives here: a dressing-room moment, a club
  * that wants to sign him, an agent who wants to represent him. Risk is described,
  * never quantified.
  */
-export function DecisionSheet({ decision }: { decision: PendingDecision }) {
-  if (decision.kind === 'transfer') return <OfferSheet decision={decision} />;
-  if (decision.kind === 'agent') return <AgentSheet decision={decision} />;
-  return <EventSheet decision={decision} />;
+export function DecisionSheet({ decision, result }: { decision: PendingDecision; result?: DecisionResult | null }) {
+  if (!result && decision.kind === 'transfer') return <OfferSheet decision={decision} />;
+  if (!result && decision.kind === 'agent') return <AgentSheet decision={decision} />;
+  return <EventSheet decision={decision} result={result} />;
 }
 
 function SheetShell({ category, title, children }: { category: string; title: string; children: React.ReactNode }) {
@@ -37,13 +38,14 @@ function SheetShell({ category, title, children }: { category: string; title: st
  * The answers themselves. The same buttons serve the sheet that stops his week and the
  * message he opens in his own time, because it is the same question either way.
  */
-export function DecisionOptions({ decision, onAnswered }: { decision: PendingDecision; onAnswered?: () => void }) {
+export function DecisionOptions({ decision }: { decision: PendingDecision }) {
   const t = useT();
   const lang = useLang((s) => s.lang);
   const decide = useGame((s) => s.decide);
   const answer = (optionId: string) => {
-    // Answering from a message closes the message, so what changed is what he sees next.
-    onAnswered?.();
+    // The store settles the linked message and keeps this interaction alive in its
+    // consequence phase. Calling the popup's generic dismiss action here could skip
+    // the next queued message after the linked one has already been removed.
     decide(decision.id, optionId);
   };
 
@@ -155,12 +157,12 @@ function previewEffect(
   return { text, tone: positive === null ? 'neutral' : positive ? 'good' : 'bad' };
 }
 
-function EventSheet({ decision }: { decision: PendingDecision }) {
+function EventSheet({ decision, result }: { decision: PendingDecision; result?: DecisionResult | null }) {
   const t = useT();
 
   return (
     <SheetShell category={t(`category.${decision.category}`)} title={t(decision.textKey, decision.textArgs)}>
-      <DecisionOptions decision={decision} />
+      {result ? <DecisionResultContent result={result} /> : <DecisionOptions decision={decision} />}
     </SheetShell>
   );
 }

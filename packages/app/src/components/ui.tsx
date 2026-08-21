@@ -192,7 +192,9 @@ export function ChangeList({ changes }: { changes: AppliedChange[] }) {
   return (
     <ul className="list">
       {changes.map((change, i) => {
-        const color = change.tone === 'good' ? 'var(--green)' : change.tone === 'bad' ? 'var(--red)' : 'var(--muted)';
+        // These numbers sit on a dark nested card and must remain legible while the
+        // conversation sheet is animating, not only after it reaches full opacity.
+        const color = change.tone === 'good' ? '#56df8e' : change.tone === 'bad' ? '#ff8992' : 'var(--muted)';
         const sign = change.delta > 0 ? '+' : '';
         const hidden = change.before === 0 && change.after === 0;
         return (
@@ -203,7 +205,7 @@ export function ChangeList({ changes }: { changes: AppliedChange[] }) {
             ) : (
               <>
                 <span className="num" style={{ color, fontSize: 13.5 }}>{sign}{change.delta}</span>
-                <span className="faint num" style={{ fontSize: 11.5, minWidth: 56, textAlign: 'end' }}>
+                <span className="num" style={{ color: 'var(--muted)', fontSize: 11.5, minWidth: 56, textAlign: 'end' }}>
                   {change.before}→{change.after}
                 </span>
               </>

@@ -94,6 +94,7 @@ function Game() {
   const screen = useGame((s) => s.screen);
   const state = useGame((s) => s.state);
   const result = useGame((s) => s.result);
+  const resultDecision = useGame((s) => s.resultDecision);
   const liveMatchId = useGame((s) => s.liveMatchId);
   // While a match is being watched, nothing else may advance the week from under it.
   // Which match that is comes from the id being followed, not from whichever match the
@@ -138,7 +139,9 @@ function Game() {
 
           {!pending && !result && !state?.retired && !inTheMatch && <ContinueDock />}
           <Tabs />
-          {result && <ResultSheet result={result} />}
+          {result && resultDecision
+            ? <DecisionSheet decision={resultDecision} result={result} />
+            : result && <ResultSheet result={result} />}
           {/* News comes up. It is read and dismissed one at a time, behind anything that
               has actually stopped the week. */}
           {!result && !pending && !inTheMatch && <NewsPopup />}

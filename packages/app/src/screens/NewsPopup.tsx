@@ -76,7 +76,7 @@ export function NewsPopup() {
         )}
         {question ? (
           <div style={{ marginBlockStart: 16 }}>
-            <DecisionOptions decision={question} onAnswered={() => dismiss()} />
+            <DecisionOptions decision={question} />
           </div>
         ) : message.action ? (
           <div className="stack" style={{ marginBlockStart: 16, gap: 8 }}>
