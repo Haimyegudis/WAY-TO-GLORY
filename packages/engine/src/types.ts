@@ -370,6 +370,8 @@ export interface MatchResult {
 
 export type MatchImportance =
   | 'normal' | 'friendly' | 'derby' | 'rival' | 'titleDecider' | 'relegationSixPointer'
+  /** One of the sides at the top of the table, whoever he happens to be. */
+  | 'topSide'
   | 'cupFinal' | 'cupSemi' | 'europeanNight' | 'debut' | 'firstProMatch'
   | 'vsFormerClub' | 'internationalDebut' | 'finalMatch';
 

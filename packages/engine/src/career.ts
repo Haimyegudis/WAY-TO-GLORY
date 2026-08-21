@@ -2442,7 +2442,7 @@ function announceBigMatch(state: CareerState, match: ScheduledUserMatch | null):
   return match.importance;
 }
 
-function matchImportanceFor(
+export function matchImportanceFor(
   state: CareerState,
   index: PackIndex,
   competitionId: string,
@@ -2465,15 +2465,34 @@ function matchImportanceFor(
   if (club.rivals?.includes(opponentId)) {
     return club.city && opponent.city && club.city === opponent.city ? 'derby' : 'rival';
   }
+  // Two clubs from the same town is a derby whether or not anybody wrote it down. The
+  // rivalry list only covers the famous fixtures, so without this a player at a smaller
+  // club could go a whole career without one.
+  if (club.city && opponent.city && club.city === opponent.city) return 'derby';
 
-  const compState = state.world.competitions[competitionId];
-  if (compState && state.world.week >= 30) {
+  /*
+   * Where the two of them stand.
+   *
+   * His own league might be an age group, whose table lives in the youth world rather
+   * than among the senior competitions - so a boy in an academy used to face the best
+   * side in his division with nobody mentioning it. And a table says something long
+   * before the run-in: once a third of the season has been played the top of it is the
+   * top of it, so facing one of those sides is an occasion in itself, not only when he
+   * is up there with them.
+   */
+  const compState = state.world.competitions[competitionId]
+    ?? state.world.youth?.competitions[competitionId];
+  if (compState) {
     const rows = sortedTable(compState);
-    const mine = rows.findIndex((row) => row.clubId === club.id);
-    const theirs = rows.findIndex((row) => row.clubId === opponentId);
-    if (mine >= 0 && theirs >= 0) {
-      if (mine < 3 && theirs < 3) return 'titleDecider';
-      if (mine >= rows.length - 4 && theirs >= rows.length - 4) return 'relegationSixPointer';
+    const roundsIn = Math.max(0, ...Object.values(compState.table).map((row) => row.played));
+    if (roundsIn >= 6) {
+      const mine = rows.findIndex((row) => row.clubId === club.id);
+      const theirs = rows.findIndex((row) => row.clubId === opponentId);
+      if (mine >= 0 && theirs >= 0) {
+        if (mine < 3 && theirs < 3) return 'titleDecider';
+        if (mine >= rows.length - 4 && theirs >= rows.length - 4) return 'relegationSixPointer';
+        if (theirs < 3) return 'topSide';
+      }
     }
   }
 
@@ -2490,6 +2509,7 @@ export function importanceWeight(importance: MatchImportance): number {
     case 'cupSemi': return 1.3;
     case 'rival': return 1.25;
     case 'relegationSixPointer': return 1.25;
+    case 'topSide': return 1.2;
     case 'firstProMatch': return 1.2;
     case 'debut': return 1.2;
     default: return 1;
@@ -2887,9 +2907,15 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
         const rating = opponentSquad.length >= 8
           ? teamRatingFromSquad(opponentSquad)
           : youthClubRating(opponent, age);
+        // A youth derby is a derby. The occasion was being worked out for the build-up
+        // and then thrown away at kick-off, so the match itself was played as if every
+        // Sunday were the same Sunday.
+        const importance = matchImportanceFor(
+          state, index, competitionId, fixture.homeClubId, fixture.awayClubId,
+        );
         const result = playUserMatch(
           state, index, rng,
-          fixture.homeClubId, fixture.awayClubId, competitionId, 'normal',
+          fixture.homeClubId, fixture.awayClubId, competitionId, importance,
           rating,
         );
         fixture.played = true;

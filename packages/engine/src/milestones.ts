@@ -713,6 +713,8 @@ export function occasionMilestone(importance: MatchImportance): MilestoneId | nu
     case 'cupFinal':
     case 'cupSemi':
     case 'titleDecider':
+    case 'topSide':
+    case 'relegationSixPointer':
     case 'europeanNight':
       return 'bigMatch';
     default:

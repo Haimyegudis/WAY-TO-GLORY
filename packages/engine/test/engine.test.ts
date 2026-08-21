@@ -42,6 +42,7 @@ import {
   getAcademyOffers,
   joinClub,
   acceptOffer,
+  matchImportanceFor,
   mentalFactor,
   setTraining,
   userSquad,
@@ -1397,6 +1398,68 @@ describe('summer tournaments', () => {
     const appearance = result.matches.find((match) => match.userPlayed)!;
     expect(appearance.userMinutes).toBeGreaterThan(0);
     expect(appearance.userAssists).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('the occasion of a fixture', () => {
+  it('calls two clubs from the same town a derby, listed rivalry or not', () => {
+    const { state, index } = startedCareer({ seed: 61 });
+    const club = state.world.clubs[state.player.clubId!]!;
+    club.city = 'Testville';
+    club.rivals = [];
+    const neighbour = Object.values(state.world.clubs).find((entry) => entry.id !== club.id)!;
+    neighbour.city = 'Testville';
+    const stranger = Object.values(state.world.clubs).find(
+      (entry) => entry.id !== club.id && entry.id !== neighbour.id,
+    )!;
+    stranger.city = 'Elsewhere';
+
+    expect(matchImportanceFor(state, index, club.competitionId, club.id, neighbour.id)).toBe('derby');
+    expect(matchImportanceFor(state, index, club.competitionId, club.id, stranger.id)).not.toBe('derby');
+  });
+
+  it('reads the table of the league he is actually in, age group included', () => {
+    const { state, index } = startedCareer({ seed: 62 });
+    const club = state.world.clubs[state.player.clubId!]!;
+    club.city = 'Nowhere';
+    club.rivals = [];
+    const division = userYouthCompetitionId(state)!;
+    const comp = state.world.youth!.competitions[division]!;
+
+    // A fixture against the best side in his own age group, a third of the way in.
+    const others = Object.keys(comp.table).filter((id) => id !== club.id);
+    const leader = others[0]!;
+    // He is mid-table; they are top. Three clubs sit between them so this is not a
+    // title decider, it is a boy facing the best side in his division.
+    const chasers = others.slice(1, 4);
+    for (const [clubId, row] of Object.entries(comp.table)) {
+      row.played = 10;
+      row.points = clubId === leader ? 30
+        : chasers.includes(clubId) ? 24
+        : clubId === club.id ? 12
+        : 8;
+      const other = state.world.clubs[clubId];
+      if (other && other.id !== club.id) other.city = `City ${clubId}`;
+    }
+
+    expect(matchImportanceFor(state, index, division, club.id, leader)).toBe('topSide');
+  });
+
+  it('puts a microphone in front of him before the big ones', () => {
+    const { state, index } = startedCareer({ seed: 63 });
+    let asked = 0;
+    let bigFixtures = 0;
+    for (let i = 0; i < 52 && !state.retired; i++) {
+      playWeek(state, index);
+      for (const decision of state.pendingDecisions) {
+        if (decision.eventId === 'milestone:bigMatch' || decision.eventId === 'milestone:derby') asked++;
+      }
+      state.pendingDecisions = [];
+      const last = state.matchLog[0];
+      if (last && last.importance !== 'normal' && last.importance !== 'friendly') bigFixtures++;
+    }
+    expect(bigFixtures).toBeGreaterThan(0);
+    expect(asked).toBeGreaterThan(0);
   });
 });
 
