@@ -145,6 +145,7 @@ import { generateAgentOffers } from './agents.js';
 import {
   generateLoanOffers,
   generateOffers,
+  offerFromWatchingClub,
   isTransferWindow,
   isWindowApproaching,
   windowIdFor,
@@ -1224,6 +1225,18 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // Fixture-bound dilemmas are not random stories to discover after the whistle. They
   // are tied to the actual match on the calendar and block the week until answered.
   if (club && scheduledMatch && raisePreMatchEvent(state, index, rng, scheduledMatch)) {
+    commitRng(state, rng);
+    return { state, stopped: 'decision', log };
+  }
+
+  /*
+   * 0a3. The club that watched him comes back with an answer.
+   *
+   * Flying out for a trial, or playing in front of a stand full of scouts, used to end
+   * there: no letter, no phone call, nothing. Whoever looked at him now makes his mind
+   * up in his own time and says so either way - a contract on the table, or a no.
+   */
+  if (club && resolveWatchingVerdict(state, index, rng)) {
     commitRng(state, rng);
     return { state, stopped: 'decision', log };
   }
@@ -5362,6 +5375,53 @@ function expireDecisions(state: CareerState): void {
 }
 
 /** Put clubs on the table as a decision the player has to answer. */
+/**
+ * The verdict of the club that has been looking at him.
+ *
+ * Returns true when it has put something in front of him that stops the week. A no is
+ * not nothing - it goes in his mail, with the club's name on it, because being turned
+ * down by a club he flew out to see is part of the career.
+ */
+function resolveWatchingVerdict(state: CareerState, index: PackIndex, rng: Rng): boolean {
+  const clubId = String(state.flags['watchingClubId'] ?? '');
+  const due = Number(state.flags['watchingVerdictWeek'] ?? 0);
+  if (!clubId || due === 0) return false;
+  if (state.world.season * 52 + state.world.week < due) return false;
+
+  const club = state.world.clubs[clubId];
+  const wasTrial = Boolean(state.flags['watchingWasTrial']);
+  const impression = Number(state.flags['watchingImpression'] ?? 0);
+  state.flags['watchingClubId'] = '';
+  state.flags['watchingVerdictWeek'] = 0;
+  state.flags['watchingImpression'] = 0;
+  state.flags['watchingWasTrial'] = false;
+  if (!club) return false;
+
+  // A verdict cannot land on top of a move he is already being asked about.
+  if (state.pendingDecisions.some((decision) => decision.kind === 'transfer')) return false;
+
+  const share = isAcademyPlayer(state) ? youthMinutesPct(state) : minutesPct(state);
+  const offer = offerFromWatchingClub({ state, index, rng, club, minutesPct: share, impression });
+  if (!offer) {
+    pushInbox(state, 'transfer', wasTrial ? 'inbox.trialRejected' : 'inbox.scoutingNothing', {
+      club: club.name,
+    });
+    return false;
+  }
+
+  state.transferOffers = [offer];
+  pushInbox(
+    state,
+    'transfer',
+    offer.isLoan ? 'inbox.watchedLoanOffer'
+      : offer.joinAs === 'academy' ? 'inbox.watchedAcademyOffer'
+      : 'inbox.watchedOffer',
+    { club: club.name },
+  );
+  openOfferDecision(state, state.transferOffers);
+  return true;
+}
+
 function openOfferDecision(state: CareerState, offers: TransferOffer[]): void {
   const absoluteWeek = state.world.season * 52 + state.world.week;
   const anyLoan = offers.some((o) => o.isLoan);

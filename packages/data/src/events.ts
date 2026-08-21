@@ -68,7 +68,7 @@ export const EVENTS: CareerEventDef[] = [
     ]),
   ]),
   ev('academy_trial_abroad', 'agent', 22, 52, { ageRange: [15, 18] }, [
-    opt('academy_trial_abroad', 'go', [e('reputation', 4), e('fame', 2), e('personality', 3, 'adaptability'), e('fatigue', 12)], 'risk.medium'),
+    opt('academy_trial_abroad', 'go', [e('reputation', 4), e('fame', 2), e('personality', 3, 'adaptability'), e('fatigue', 12), e('custom', 1, 'trialAbroad')], 'risk.medium'),
     opt('academy_trial_abroad', 'stay', [e('managerTrust', 5)]),
   ]),
   ev('first_team_training_callup', 'club', 30, 40, { ageRange: [16, 20], minOvr: 45 }, [
@@ -183,8 +183,10 @@ export const EVENTS: CareerEventDef[] = [
     opt('release_clause_insert', 'skip', [e('managerTrust', 3)]),
   ]),
   ev('bigger_club_scouting', 'transfer', 24, 30, { ageRange: [17, 30], minMinutesSeasonPct: 0.4, minOvr: 60 }, [
-    opt('bigger_club_scouting', 'impress', [e('form', 6), e('fatigue', 8), e('reputation', 3)]),
-    opt('bigger_club_scouting', 'ignore', [e('personality', 2, 'consistency')]),
+    // Whichever way he plays it, they file a report and act on it. Trying to force it
+    // is worth a little more in the stand and a little less in his legs.
+    opt('bigger_club_scouting', 'impress', [e('form', 6), e('fatigue', 8), e('reputation', 3), e('custom', 1, 'scoutedByBiggerClub')]),
+    opt('bigger_club_scouting', 'ignore', [e('personality', 2, 'consistency'), e('custom', 1, 'scoutedByBiggerClub')]),
   ]),
   ev('former_club_return', 'transfer', 10, 80, { ageRange: [28, 38] }, [
     opt('former_club_return', 'consider', [e('morale', 6), e('custom', 1, 'wantsHomecoming')]),

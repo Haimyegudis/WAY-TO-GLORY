@@ -497,6 +497,131 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   return chosen;
 }
 
+/**
+ * The verdict of a club that has actually watched him: a trial he flew out for, or a
+ * stand full of their scouts on Saturday.
+ *
+ * The rest of the market is a scan of everybody who might move for him. This is one
+ * named club making its mind up, so it answers either way - an offer, or nothing, which
+ * is still an answer and is told to him as one.
+ */
+export function offerFromWatchingClub(input: {
+  state: CareerState;
+  index: PackIndex;
+  rng: Rng;
+  club: Club;
+  minutesPct: number;
+  /** How well the look at him went, -1 to 1. */
+  impression: number;
+}): TransferOffer | null {
+  const { state, index, rng, club } = input;
+  const player = state.player;
+  const season = state.world.season;
+  const age = season - player.birthYear;
+  const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
+  const comp = index.competitionById.get(club.competitionId);
+  if (!comp || club.id === player.clubId) return null;
+
+  const currentClub = player.clubId ? state.world.clubs[player.clubId] : undefined;
+  const currentComp = currentClub ? index.competitionById.get(currentClub.competitionId) : undefined;
+  const academyPlayer = player.squadRole === 'academy';
+  const value = marketValue(player, {
+    season,
+    leagueReputation: currentComp?.reputation ?? 40,
+    contract: state.contract,
+    internationalCaps: state.nationalTeam.caps,
+  });
+
+  /*
+   * A boy is signed by the academy unless he is old enough, and good enough, for the
+   * first team.
+   *
+   * "A boy" is not only somebody whose squad role still says academy: a sixteen year
+   * old promoted to future prospect after a good camp is exactly the player a club
+   * abroad takes into its youth setup. Judging him as a senior signing instead meant a
+   * club flew him out, watched him for a week, and then decided he was not ready for a
+   * first team he was two years away from - so nobody ever signed anybody.
+   */
+  const developmentRole = academyPlayer
+    || player.squadRole === 'futureProspect'
+    || player.squadRole === 'prospect';
+  const joinAs: 'academy' | 'senior' =
+    age < SENIOR_MIN_AGE || (developmentRole && age <= 19 && academyStep(club, currentClub) >= 0)
+      ? 'academy'
+      : 'senior';
+
+  const interest = joinAs === 'academy'
+    ? academyInterest({
+      club,
+      potential: player.potential,
+      age,
+      form: player.form,
+      reputation: player.reputation,
+      minutesPct: input.minutesPct,
+      agent: state.agent,
+      playerCountry: player.birthCountry,
+    })
+    : transferInterest({
+      club,
+      competition: comp,
+      ovr,
+      potential: player.potential,
+      age,
+      form: player.form,
+      reputation: player.reputation,
+      value,
+      agent: state.agent,
+      playerCountry: player.birthCountry,
+      currentClubStrength: currentClub?.strength ?? 40,
+      currentLeagueReputation: currentComp?.reputation ?? 40,
+      minutesPct: input.minutesPct,
+    });
+
+  /*
+   * They have seen him with their own eyes.
+   *
+   * Both interest models discount a club by how likely it is to have heard of him at
+   * all - which for a boy with no agent and a club abroad is a factor of five, and is
+   * why a club could fly him out for a week and then decide he was not worth a contract
+   * it had already paid to look at. That discount has been spent: this club is in the
+   * room. What remains is the judgement itself, and the week he actually had.
+   */
+  const reach = agentReach(state.agent, club, player.birthCountry);
+  const weighted = interest / clamp(reach, 0.15, 1.35) + input.impression * 14;
+  // What it takes to be signed, which is not a fixed number: an academy with a name has
+  // a hundred boys like him already and a modest one has room.
+  const bar = joinAs === 'academy' ? 34 + club.academy * 0.28 : 30 + clubBaseOvr(club) * 0.25;
+  if (weighted < bar) return null;
+
+  const clubLevel = clubBaseOvr(club);
+  const role = joinAs === 'academy' ? 'academy' : roleForOvr(ovr, clubLevel, age);
+  // Too good to leave in his own reserves, not yet ready for theirs: they take him for
+  // a season and send him somewhere he will play.
+  const isLoan = joinAs === 'senior' && age <= 21 && ovr < clubLevel - 5;
+  const fee = isLoan ? 0
+    : joinAs === 'academy' ? Math.round((value * 0.22) / 10_000) * 10_000
+    : Math.round((value * clamp(rng.range(0.8, 1.5), 0.5, 2.2)) / 50_000) * 50_000;
+
+  return {
+    id: `watched_${season}_${state.world.week}_${club.id}`,
+    clubId: club.id,
+    fee,
+    salaryPerWeek: joinAs === 'academy'
+      ? Math.round(clamp(150 + club.finances * 12 + club.reputation * 6, 150, 2_500))
+      : Math.round(expectedWage(player, ovr, club.finances, comp, age) * rng.range(0.9, 1.2)),
+    years: joinAs === 'academy' ? rng.int(2, 3) : isLoan ? 1 : rng.int(2, 4),
+    squadRole: isLoan ? 'starter' : role,
+    expectedMinutesPct: expectedMinutesFor(isLoan ? 'starter' : role),
+    isLoan,
+    season,
+    week: state.world.week,
+    interestLevel: Math.round(clamp(weighted, 0, 100)),
+    competitionId: club.competitionId,
+    joinAs,
+    ...(academyPlayer && joinAs !== 'academy' ? { seniorPathway: true } : {}),
+  };
+}
+
 /** Whether the current club wants to keep the player when the contract runs down. */
 export function renewalIntent(
   rng: Rng,

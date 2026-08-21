@@ -24,7 +24,7 @@ import {
   talkToMentor,
 } from '../src/mentor.js';
 import type { MilestoneId } from '../src/milestones.js';
-import { generateOffers, isTransferWindow } from '../src/transfer.js';
+import { generateOffers, isTransferWindow, offerFromWatchingClub } from '../src/transfer.js';
 import { clubBaseOvr } from '../src/generate.js';
 import { indexPack, validatePack } from '../src/data.js';
 import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
@@ -1398,6 +1398,70 @@ describe('summer tournaments', () => {
     const appearance = result.matches.find((match) => match.userPlayed)!;
     expect(appearance.userMinutes).toBeGreaterThan(0);
     expect(appearance.userAssists).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('clubs that have watched him', () => {
+  it('takes a gifted boy into a good academy and turns a modest one down', () => {
+    const { state, index } = startedCareer({ seed: 88 });
+    const elite = Object.values(state.world.clubs)
+      .filter((club) => club.country !== state.player.birthCountry)
+      .sort((a, b) => (b.academy ?? 0) - (a.academy ?? 0))[0]!;
+
+    state.player.potential = 94;
+    state.player.reputation = 55;
+    const forGifted = offerFromWatchingClub({
+      state, index, rng: new Rng(3), club: elite, minutesPct: 0.8, impression: 0.5,
+    });
+    expect(forGifted).not.toBeNull();
+    expect(forGifted!.joinAs).toBe('academy');
+    expect(forGifted!.clubId).toBe(elite.id);
+
+    // The same week, watched by the same people, from a boy who is not that player.
+    state.player.potential = 62;
+    state.player.reputation = 30;
+    expect(offerFromWatchingClub({
+      state, index, rng: new Rng(3), club: elite, minutesPct: 0.8, impression: -0.4,
+    })).toBeNull();
+  });
+
+  it('answers a trial either way instead of leaving him waiting', () => {
+    for (const [potential, expectOffer] of [[94, true], [55, false]] as const) {
+      const { state, index } = startedCareer({ seed: 89 });
+      state.world.week = 20;
+      state.player.potential = potential;
+      state.player.reputation = potential > 80 ? 55 : 25;
+
+      // A club abroad with a real but not untouchable academy - the kind that actually
+      // flies a boy out for a week.
+      const abroad = Object.values(state.world.clubs)
+        .filter((club) => club.country !== state.player.birthCountry
+          && club.reputation >= 48
+          && (club.academy ?? 0) >= 50 && (club.academy ?? 0) <= 66)
+        .sort((a, b) => a.id.localeCompare(b.id))[0]!;
+      expect(abroad, 'no plausible club abroad in the pack').toBeTruthy();
+      state.flags['watchingClubId'] = abroad.id;
+      state.flags['watchingVerdictWeek'] = state.world.season * 52 + state.world.week;
+      state.flags['watchingImpression'] = expectOffer ? 0.6 : -0.5;
+      state.flags['watchingWasTrial'] = true;
+
+      const inboxBefore = state.inbox.length;
+      playWeek(state, index);
+
+      if (expectOffer) {
+        expect(state.transferOffers.length, 'nobody offered him anything').toBeGreaterThan(0);
+        expect(state.transferOffers[0]!.clubId).toBe(abroad.id);
+        expect(state.pendingDecisions.some((decision) => decision.kind === 'transfer')).toBe(true);
+      } else {
+        // A no is still an answer, and it arrives with their name on it.
+        const answered = state.inbox
+          .slice(0, state.inbox.length - inboxBefore)
+          .some((message) => message.titleKey === 'inbox.trialRejected' && message.args?.club === abroad.name);
+        expect(answered, 'he was left waiting').toBe(true);
+      }
+      // Either way the club stops watching: no verdict is delivered twice.
+      expect(state.flags['watchingClubId']).toBe('');
+    }
   });
 });
 

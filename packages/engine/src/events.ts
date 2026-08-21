@@ -8,6 +8,7 @@ import type {
   AttributeKey,
   CareerEventDef,
   CareerState,
+  Club,
   DecisionResult,
   EventEffect,
   PersonalityKey,
@@ -283,6 +284,26 @@ export function applyEffects(
   return { changes, injuryTriggered };
 }
 
+/**
+ * Who was in the stand, or who paid for the flight.
+ *
+ * A trial abroad is a club in another country that can plausibly develop him; scouts in
+ * the stand come from a club above his own at home. Neither is the club he is at.
+ */
+function watchingClub(rng: Rng, state: CareerState, abroad: boolean): Club | null {
+  const player = state.player;
+  const current = player.clubId ? state.world.clubs[player.clubId] : undefined;
+  const candidates = Object.values(state.world.clubs).filter((club) => {
+    if (club.id === player.clubId) return false;
+    if (abroad) return club.country !== player.birthCountry && club.reputation >= 48;
+    return club.country === (current?.country ?? player.birthCountry)
+      && club.reputation > (current?.reputation ?? 40) + 4;
+  });
+  if (candidates.length === 0) return null;
+  // The bigger the name, the less likely it is them - but never impossible.
+  return rng.weighted(candidates, (club) => 1 + Math.max(0, 88 - club.reputation) / 10);
+}
+
 /** How long a rushed injury keeps threatening to go again. */
 const AGGRAVATION_WEEKS = 6;
 
@@ -325,6 +346,35 @@ function applyChoiceConsequence(rng: Rng, state: CareerState, key: string, chang
       // Selection reads the absolute week and still respects suspensions.
       state.flags[key] = state.world.season * 52 + state.world.week;
       return;
+    /*
+     * Somebody is watching, and somebody has to come back with an answer.
+     *
+     * A trial abroad and a stand full of scouts used to be worth a few points of
+     * reputation and nothing else: he flew out, and no club ever rang. The club that
+     * looked at him is picked here and remembered, along with the week it will make up
+     * its mind and how well the look actually went.
+     */
+    case 'trialAbroad':
+    case 'scoutedByBiggerClub': {
+      const abroad = key === 'trialAbroad';
+      const club = watchingClub(rng, state, abroad);
+      state.flags['watchingClubId'] = club?.id ?? '';
+      if (!club) return;
+      // A trial is a week of his life and takes longer to answer; scouts report back
+      // to their own club by the end of the month.
+      state.flags['watchingVerdictWeek'] = state.world.season * 52 + state.world.week + rng.int(abroad ? 2 : 3, abroad ? 4 : 6);
+      state.flags['watchingImpression'] = clamp(
+        (player.form - 55) / 45 + (player.condition.sharpness - 55) / 120 + rng.range(-0.35, 0.35),
+        -1,
+        1,
+      );
+      state.flags['watchingWasTrial'] = abroad;
+      changes.push({
+        key: abroad ? 'change.trialArranged' : 'change.scoutsWatching',
+        delta: 1, before: 0, after: 0, tone: 'neutral',
+      });
+      return;
+    }
     case 'treatmentSurgery':
       applyTreatmentChoice(rng, state, 'surgery', changes);
       return;
