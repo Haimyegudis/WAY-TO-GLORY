@@ -30,12 +30,14 @@ import { indexPack, validatePack } from '../src/data.js';
 import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
 import {
   SCHEMA_VERSION,
+  applyLiveInstruction,
   advanceWeek,
   answerMedia,
   createCareer,
   grudgeClubId,
   resumeHalfTime,
   currentOvr,
+  doPlayerAction,
   getAcademyOffers,
   joinClub,
   mentalFactor,
@@ -617,6 +619,17 @@ describe('training and state feed performance', () => {
     expect(ids).not.toContain('apologiseFans');
     expect(ids).not.toContain('thankFans');
 
+    // An average relationship after an ordinary defeat is not a fallout. The player
+    // should never be invited to apologise for a disagreement that did not happen.
+    state.relationships.manager = 53;
+    state.managerTrust = 53;
+    state.lastMatch = {
+      id: 'ordinary_loss', season: state.world.season, week: state.world.week,
+      competitionId: 'test', homeClubId: state.player.clubId!, awayClubId: 'opponent',
+      homeGoals: 0, awayGoals: 1, detailLevel: 1,
+    };
+    expect(availableActions(state).map((a) => a.id)).not.toContain('apologiseManager');
+
     // A low number on its own is a mood, not a reason: apologising to a dressing room
     // that has not fallen out with you is the sort of thing that made the screen read
     // like a list of buttons rather than a week in a life.
@@ -626,6 +639,16 @@ describe('training and state feed performance', () => {
     // Something actually happening is what puts it on the table.
     state.flags['dressingRoomFallout'] = true;
     expect(availableActions(state).map((a) => a.id)).toContain('apologiseTeammates');
+  });
+
+  it('returns a people interaction immediately without saving it for after the next match', () => {
+    const { state } = startedCareer();
+    state.lastResult = null;
+    const result = doPlayerAction(state, 'askManagerFeedback');
+
+    expect(result).not.toBeNull();
+    expect(result!.changes.length + result!.consequences.length).toBeGreaterThan(0);
+    expect(state.lastResult).toBeNull();
   });
 
   it('benches sustained poor form and restores selection after recovery', () => {
@@ -1418,6 +1441,22 @@ describe('half time', () => {
     expect(held.firstHalfEvents.every((e) => e.minute <= 45)).toBe(true);
     expect(held.options.length).toBeGreaterThan(1);
 
+    // A manager demand can be prepended even when it is outside the player's normal
+    // menu (for example asking a goalkeeper to push up while chasing a game). A live
+    // self-instruction must use one of the position-valid options.
+    const instruction = held.options[held.options.length - 1]!;
+    const instructionMinute = Math.max(12, held.minutes.cameOnMinute ?? 0);
+    const eventsBeforeInstruction = held.firstHalfEvents.length;
+    const ratingBeforeInstruction = held.rating;
+    expect(instructionMinute).toBeLessThan(44);
+    expect(applyLiveInstruction(state, held.matchId, instructionMinute, instruction)).toBe(true);
+    expect(held.liveInstructions).toEqual([{ minute: instructionMinute, instruction }]);
+    expect(held.firstHalfEvents).toHaveLength(eventsBeforeInstruction + 1);
+    expect(held.firstHalfEvents.some(
+      (event) => event.detailKey === `match.live.instruction.${instruction}`,
+    )).toBe(true);
+    expect(held.rating).not.toBe(ratingBeforeInstruction);
+
     const watched = held.firstHalfEvents.map((e) => [e.minute, e.type, e.detailKey ?? '']);
     const resumed = resumeHalfTime(state, index, held.options[0]!);
 
@@ -1428,6 +1467,10 @@ describe('half time', () => {
       state.lastMatch!.events!.filter((e) => e.minute <= 45).map((e) => [e.minute, e.type, e.detailKey ?? '']),
       'the half he watched changed under him',
     ).toEqual(watched);
+    expect(state.lastMatch!.instructionChanges).toEqual([{ minute: instructionMinute, instruction }]);
+    expect(state.lastMatch!.events!.some(
+      (event) => event.detailKey === `match.live.instruction.${instruction}`,
+    )).toBe(true);
   });
 
   it('gives orders to a boy and leaves a trusted senior to decide', () => {

@@ -273,16 +273,36 @@ test('applies a coach camp assignment and opens the selected training focus', as
     state.flags[`campRecommendedFocus:${state.world.season}`] = 'physical';
     state.inbox.unshift({
       id: messageId, season: state.world.season, week: state.world.week,
-      category: 'manager', titleKey: 'inbox.trainingCampFeedback.1', read: false,
+      category: 'manager', titleKey: 'inbox.trainingCampFeedback.1', read: true,
       args: {
         rating: '7.2', strength: 'skill.technique', weakness: 'skill.physical',
         focus: 'train.focus.physical',
       },
       action: { type: 'setTrainingFocus', focus: 'physical' },
     });
-    game.setState({ state, pendingNews: [messageId] });
+    const player = state.player;
+    const homeClubId = player.clubId as string;
+    const awayClubId = Object.keys(state.world.clubs).find((id) => id !== homeClubId) as string;
+    const match = {
+      id: 'e2e_camp_report', season: state.world.season, week: state.world.week,
+      competitionId: 'friendly.youth', homeClubId, awayClubId,
+      homeGoals: 1, awayGoals: 0, detailLevel: 1, importance: 'friendly',
+      userLine: {
+        played: true, started: true, minutes: 90, position: player.primaryPos,
+        goals: 1, assists: 0, shots: 2, keyPasses: 1, tackles: 0, saves: 0,
+        yellow: 0, red: 0, rating: 7.2, motm: false,
+      },
+      events: [],
+    };
+    state.lastMatch = match;
+    state.matchLog = [match, ...state.matchLog];
+    game.setState({
+      state, pendingNews: [], screen: 'match', focusMatchId: match.id,
+      liveMatchId: null, liveFromMinute: 0,
+    });
   });
 
+  await expect(page.getByText('The coach reviews your first audition:', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Apply plan and open training' }).click();
   await expect(page.getByRole('heading', { name: 'Training' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Physical' })).toHaveAttribute('aria-pressed', 'true');
@@ -338,4 +358,112 @@ test('shows a penalty announcement on the pitch before the kick', async ({ page 
       && overlay.left >= pitch.left - 1 && overlay.right <= pitch.right + 1;
   })).toBe(true);
   await expect(incident).toBeVisible();
+});
+
+test('shows one named card animation and applies live player instructions', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('Live');
+  await page.getByLabel('Last name').fill('Player');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    const player = state.player;
+    const homeClubId = player.clubId as string;
+    const awayClubId = Object.keys(state.world.clubs).find((id) => id !== homeClubId) as string;
+    const match = {
+      id: 'e2e_live_instruction', season: state.world.season, week: state.world.week,
+      competitionId: 'friendly', homeClubId, awayClubId, homeGoals: 0, awayGoals: 0,
+      detailLevel: 1, importance: 'friendly',
+      userLine: {
+        played: true, started: true, minutes: 90, position: 'ST',
+        goals: 0, assists: 0, shots: 0, keyPasses: 0, tackles: 0, saves: 0,
+        yellow: 1, red: 0, rating: 6.5, motm: false,
+      },
+      events: [{
+        minute: 0, type: 'yellow', playerId: player.id, byUser: true,
+        forUserTeam: true, detailKey: 'match.event.yellow',
+      }],
+    };
+    state.lastMatch = match;
+    state.matchLog = [match, ...state.matchLog];
+    game.setState({
+      state, screen: 'match', focusMatchId: match.id, liveMatchId: match.id, liveFromMinute: 0,
+    });
+  });
+
+  await page.getByRole('button', { name: 'Pause' }).click();
+  const card = page.locator('.incident-splash');
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText('YELLOW CARD');
+  await expect(card).toContainText('Live Player');
+  await expect(page.locator('.live-row').filter({ hasText: 'Booked.' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Instructions' }).click();
+  await page.getByRole('button', { name: 'Shoot from distance' }).click();
+  await expect.poll(() => page.evaluate(() => {
+    const game = (window as unknown as { fc: { game: { getState: () => Record<string, any> } } }).fc.game.getState();
+    const match = game.state.matchLog.find((entry: Record<string, any>) => entry.id === 'e2e_live_instruction');
+    return {
+      shots: match.userLine.shots,
+      instruction: match.instructionChanges?.[0]?.instruction,
+      response: match.events.some((event: Record<string, any>) =>
+        event.detailKey === 'match.live.instruction.shootFromDistance'),
+    };
+  })).toEqual({ shots: 1, instruction: 'shootFromDistance', response: true });
+  await expect(page.getByText('Active instruction')).toBeVisible();
+  await expect(page.getByText('Shoot from distance', { exact: true })).toBeVisible();
+});
+
+test('shows the player’s real first-half statistics in the dressing room', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('Half');
+  await page.getByLabel('Last name').fill('Time');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    const player = state.player;
+    const homeClubId = player.clubId as string;
+    const awayClubId = Object.keys(state.world.clubs).find((id) => id !== homeClubId) as string;
+    state.pendingHalfTime = {
+      matchId: 'e2e_half_stats', competitionId: 'friendly.youth', homeClubId, awayClubId,
+      importance: 'friendly', matchSeed: 77, lineup: {},
+      minutes: { played: true, started: true, minutes: 90, slot: 'ST' },
+      score: [2, 0], rating: 7.4, demand: null,
+      options: ['shootFromDistance', 'passMore'],
+      firstHalfEvents: [
+        { minute: 4, type: 'goal', byUser: false, detailKey: 'match.event.teamGoal', score: [1, 0] },
+        { minute: 4, type: 'assist', playerId: player.id, byUser: true, detailKey: 'match.event.assist' },
+        { minute: 10, type: 'goal', playerId: player.id, byUser: true, detailKey: 'match.event.userGoal', score: [2, 0] },
+        { minute: 16, type: 'save', playerId: player.id, byUser: true, detailKey: 'match.event.userSaved' },
+        { minute: 22, type: 'blockedShot', playerId: player.id, byUser: true, detailKey: 'match.event.userBlocked' },
+        { minute: 28, type: 'keyPass', playerId: player.id, byUser: true, detailKey: 'match.event.userKeyPass' },
+        { minute: 34, type: 'tackle', playerId: player.id, byUser: true, detailKey: 'match.event.userTackle' },
+        { minute: 39, type: 'yellow', playerId: player.id, byUser: true, detailKey: 'match.event.yellow' },
+      ],
+    };
+    game.setState({ state, screen: 'match', focusMatchId: null, liveMatchId: null, liveFromMinute: 0 });
+  });
+
+  await page.getByRole('button', { name: 'Skip to the end' }).click();
+  await page.getByRole('button', { name: 'To the dressing room' }).click();
+  const stats = page.getByLabel('Your first-half stats');
+  await expect(stats).toBeVisible();
+  await expect(stats.locator('.stat-value')).toHaveText(['1', '1', '3', '1', '1', '0', '1/0']);
+  await expectAccessible(page);
 });

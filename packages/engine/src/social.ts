@@ -372,14 +372,12 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
     category: 'manager',
     cost: 1,
     riskKey: 'risk.low',
-    // You apologise for something that happened: a row, a red card, a bad afternoon that
-    // is still in the air. A low relationship on its own is not an apology, it is a mood,
-    // and offering one out of nowhere is how a player looks strange rather than sorry.
+    // You apologise for something that happened: an unresolved row or your own red
+    // card. A defeat and an ordinary trust score are football, not a personal conflict.
     available: (s) =>
       hasClub(s) &&
       (Boolean(s.flags['incidentWithManager']) ||
-        sentOffRecently(s) ||
-        (badWeek(s) && s.relationships.manager < 60)),
+        sentOffRecently(s)),
   },
   {
     id: 'acceptBenchRole',

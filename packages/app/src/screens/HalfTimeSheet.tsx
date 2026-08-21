@@ -4,7 +4,7 @@ import { useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
 import { clubShortName } from '../lib/club.js';
-import { Crest } from '../components/ui.js';
+import { Crest, Stat } from '../components/ui.js';
 import { competitionLabel } from '../lib/names.js';
 
 /**
@@ -26,6 +26,24 @@ export function HalfTimeSheet({ half }: { half: PendingHalfTime }) {
   const away = club(state, half.awayClubId);
   const demand = half.demand;
   const choosing = demand === null || defying;
+  const mine = half.firstHalfEvents.filter((event) => event.playerId === state.player.id);
+  const stat = (types: string[]) => mine.filter((event) => types.includes(event.type)).length;
+  const shots = mine.filter((event) =>
+    ['goal', 'miss', 'blockedShot', 'woodwork', 'penaltyScored', 'penaltyMissed'].includes(event.type)
+      || (event.type === 'save' && event.detailKey === 'match.event.userSaved'),
+  ).length;
+  const firstHalfStats = {
+    goals: stat(['goal', 'penaltyScored']),
+    assists: stat(['assist']),
+    shots,
+    keyPasses: stat(['keyPass']),
+    tackles: stat(['tackle']),
+    saves: mine.filter(
+      (event) => event.type === 'save' && event.detailKey === 'match.event.userSave',
+    ).length,
+    yellow: stat(['yellow']) + mine.filter((event) => event.detailKey === 'match.event.secondYellow').length,
+    red: stat(['red']),
+  };
 
   return (
     <div className="sheet-backdrop">
@@ -53,6 +71,23 @@ export function HalfTimeSheet({ half }: { half: PendingHalfTime }) {
         <p className="faint" style={{ fontSize: 13, marginBlockEnd: 12 }}>
           {t('halfTime.yourHalf', { rating: half.rating.toFixed(1) })}
         </p>
+
+        <div
+          className="card half-time-stat-card"
+          style={{ padding: 10, marginBlockEnd: 12 }}
+          aria-label={t('halfTime.stats')}
+        >
+          <p className="eyebrow" style={{ marginBlockEnd: 7 }}>{t('halfTime.stats')}</p>
+          <div className="statrow half-time-stats">
+            <Stat label={t('match.goals')} value={firstHalfStats.goals} />
+            <Stat label={t('match.assists')} value={firstHalfStats.assists} />
+            <Stat label={t('match.shots')} value={firstHalfStats.shots} />
+            <Stat label={t('match.keyPasses')} value={firstHalfStats.keyPasses} />
+            <Stat label={t('match.tackles')} value={firstHalfStats.tackles} />
+            <Stat label={t('match.saves')} value={firstHalfStats.saves} />
+            <Stat label={t('match.cards')} value={<span dir="ltr">{firstHalfStats.yellow}/{firstHalfStats.red}</span>} />
+          </div>
+        </div>
 
         {demand !== null && !defying && (
           <>

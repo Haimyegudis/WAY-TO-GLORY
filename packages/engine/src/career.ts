@@ -1,6 +1,7 @@
 import { Rng, clamp, hashString, randomSeed } from './rng.js';
 import { FORMATIONS, overall, positionGroup, ratingAt, skillProfile } from './positions.js';
 import {
+  halfTimeEffect,
   halfTimeFrequency,
   instructionsFor,
   managerDemand,
@@ -1821,7 +1822,6 @@ export function answerMedia(
     }
   }
 
-  state.lastResult = result;
   return result;
 }
 
@@ -3106,10 +3106,20 @@ function playUserMatch(
     ...baseCtx,
     ...(held?.chosen ? { instruction: held.chosen } : {}),
   });
-  const instructionFatigue = outcome.fatigueFactor;
+  let instructionFatigue = outcome.fatigueFactor;
   if (held) state.pendingHalfTime = undefined;
 
   const result = outcome.result;
+  // Instructions given while the first half was being watched are replayed into the
+  // final simulation before career totals consume it. The same deterministic helper
+  // produces the same action minute, line contribution and rating change.
+  for (const change of held?.liveInstructions ?? []) {
+    const applied = writeLiveInstruction(state, result, change.minute, change.instruction, 44);
+    if (applied) {
+      instructionFatigue += applied.fatigueDelta / 12;
+    }
+  }
+  if (held?.chosen) result.instruction = held.chosen;
   if (!pickable) {
     result.userLine!.reasonNotPlayed = suspension
       ? 'suspended'
@@ -3331,6 +3341,185 @@ function applyFriendlyToPlayer(
       rating: average.toFixed(1),
     });
   }
+}
+
+type LiveInstructionAction = {
+  type: MatchEvent['type'];
+  stat?: 'shots' | 'keyPasses' | 'tackles';
+  rating: number;
+  ambient?: boolean;
+};
+
+/** The concrete action the next phase of play should show for each instruction. */
+function liveInstructionAction(id: HalfTimeInstructionId): LiveInstructionAction {
+  switch (id) {
+    case 'shootFromDistance': return { type: 'miss', stat: 'shots', rating: -0.05 };
+    case 'playAlone': return { type: 'miss', stat: 'shots', rating: -0.08 };
+    case 'pushForward': return { type: 'miss', stat: 'shots', rating: -0.03 };
+    case 'takeThemOn': return { type: 'keyPass', stat: 'keyPasses', rating: 0.1 };
+    case 'createForOthers':
+    case 'passMore': return { type: 'keyPass', stat: 'keyPasses', rating: 0.12 };
+    case 'holdShape':
+    case 'defendMore': return { type: 'tackle', stat: 'tackles', rating: 0.12 };
+    case 'pressHigher':
+    case 'chaseEverything': return { type: 'tackle', stat: 'tackles', rating: 0.14 };
+    case 'saveLegs': return { type: 'chance', rating: 0.02, ambient: true };
+  }
+}
+
+/**
+ * Write one visible, measurable response to an instruction into a match.
+ *
+ * The main simulation already contains the ordinary football. This adds the action the
+ * player deliberately changed: another long shot, an extra progressive pass, or an
+ * extra defensive contest. It changes his real line and rating, not just the caption.
+ */
+function writeLiveInstruction(
+  state: CareerState,
+  match: MatchResult,
+  minute: number,
+  instructionId: HalfTimeInstructionId,
+  maxMinute = 89,
+): { ratingDelta: number; fatigueDelta: number } | null {
+  const line = match.userLine;
+  if (!line?.played || !line.position) return null;
+  const entered = line.cameOnMinute ?? 0;
+  const left = Math.min(line.offMinute ?? 90, maxMinute + 1);
+  if (minute < entered || minute >= left - 1) return null;
+  if (!instructionsFor(positionGroup(line.position)).includes(instructionId)) return null;
+
+  const changes = match.instructionChanges ?? (match.instructionChanges = []);
+  const previous = changes[changes.length - 1];
+  if (previous && (minute - previous.minute < 5 || previous.instruction === instructionId)) return null;
+
+  const available = Math.max(1, left - minute - 1);
+  const offset = 1 + (hashString(`${match.id}:${minute}:${instructionId}:${changes.length}`) % Math.min(8, available));
+  const eventMinute = Math.min(left - 1, minute + offset);
+  const action = liveInstructionAction(instructionId);
+  const before = line.rating;
+  if (action.stat) line[action.stat] += 1;
+  line.rating = clamp(Math.round((line.rating + action.rating) * 100) / 100, 3, 10);
+  match.events ??= [];
+  match.events.push({
+    minute: eventMinute,
+    type: action.type,
+    playerId: state.player.id,
+    byUser: true,
+    forUserTeam: true,
+    detailKey: `match.live.instruction.${instructionId}`,
+    ...(action.ambient ? { ambient: true } : {}),
+  });
+  match.events.sort((a, b) => a.minute - b.minute);
+  changes.push({ minute, instruction: instructionId });
+  match.instruction = instructionId;
+
+  const remainingShare = clamp((left - minute) / 90, 0, 1);
+  const fatigueDelta = (halfTimeEffect(instructionId).fatigue - 1) * remainingShare * 10;
+  return { ratingDelta: line.rating - before, fatigueDelta };
+}
+
+/**
+ * Give the player an instruction while the live clock is running.
+ *
+ * A first-half match is still pending, so the action is carried into the final result.
+ * A completed simulation is corrected in place together with every career total that
+ * already consumed its rating. Either path has real statistical and physical impact.
+ */
+export function applyLiveInstruction(
+  state: CareerState,
+  matchId: string,
+  minute: number,
+  instructionId: HalfTimeInstructionId,
+): boolean {
+  const at = clamp(Math.floor(minute), 0, 89);
+  const held = state.pendingHalfTime?.matchId === matchId ? state.pendingHalfTime : null;
+  if (held) {
+    const preview: MatchResult = {
+      id: held.matchId,
+      season: state.world.season,
+      week: state.world.week,
+      competitionId: held.competitionId,
+      homeClubId: held.homeClubId,
+      awayClubId: held.awayClubId,
+      homeGoals: held.score[0],
+      awayGoals: held.score[1],
+      detailLevel: 1,
+      importance: held.importance,
+      userLine: {
+        played: true,
+        started: held.minutes.started,
+        minutes: Math.min(45, held.minutes.minutes),
+        position: held.minutes.slot,
+        goals: 0,
+        assists: 0,
+        shots: 0,
+        keyPasses: 0,
+        tackles: 0,
+        saves: 0,
+        yellow: 0,
+        red: 0,
+        rating: held.rating,
+        motm: false,
+        ...(held.minutes.cameOnMinute !== undefined ? { cameOnMinute: held.minutes.cameOnMinute } : {}),
+      },
+      events: held.firstHalfEvents,
+      instructionChanges: held.liveInstructions ?? [],
+    };
+    const applied = writeLiveInstruction(state, preview, at, instructionId, 44);
+    if (!applied) return false;
+    held.firstHalfEvents = preview.events ?? held.firstHalfEvents;
+    held.rating = preview.userLine?.rating ?? held.rating;
+    held.liveInstructions = preview.instructionChanges ?? [];
+    return true;
+  }
+
+  const match = state.matchLog.find((entry) => entry.id === matchId);
+  if (!match) return false;
+  const applied = writeLiveInstruction(state, match, at, instructionId);
+  if (!applied || !match.userLine) return false;
+
+  const player = state.player;
+  const weight = clamp(match.userLine.minutes / 90, 0.2, 1);
+  player.condition.fatigue = clamp(player.condition.fatigue + applied.fatigueDelta, 0, 100);
+  if (match.competitionId.startsWith('friendly')) {
+    const ratingKey = `campRatingSum:${state.world.season}`;
+    state.flags[ratingKey] = Number(state.flags[ratingKey] ?? 0) + applied.ratingDelta;
+    state.managerTrust = clamp(state.managerTrust + applied.ratingDelta * 3 * weight, 0, 100);
+    player.morale = clamp(player.morale + applied.ratingDelta * 0.9, 0, 100);
+    updateCampAssessment(state);
+    // The coach's camp review is written when the simulation finishes, before the
+    // player watches and changes his instructions. Keep that review synced with what
+    // he actually did on the pitch.
+    const feedback = state.inbox.find(
+      (message) => message.week === match.week
+        && message.season === match.season
+        && message.titleKey === `inbox.trainingCampFeedback.${match.week}`,
+    );
+    if (feedback) {
+      const recommendedFocus = String(
+        state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced',
+      ) as TrainingPlan['focus'];
+      feedback.args = {
+        ...feedback.args,
+        rating: match.userLine.rating.toFixed(1),
+        strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
+        weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
+        focus: `train.focus.${recommendedFocus}`,
+      };
+      feedback.action = { type: 'setTrainingFocus', focus: recommendedFocus };
+    }
+  } else {
+    const stats = state.world.seasonStats[player.id];
+    if (stats) stats.ratingSum += applied.ratingDelta;
+    if (match.competitionId.endsWith('.youth') && state.world.youth?.form) {
+      state.world.youth.form.ratingSum += applied.ratingDelta;
+    }
+    state.managerTrust = clamp(state.managerTrust + applied.ratingDelta * 1.1 * weight, 0, 100);
+    player.morale = clamp(player.morale + applied.ratingDelta * 1.6, 0, 100);
+  }
+  state.relationships.manager = state.managerTrust;
+  if (state.lastMatch?.id === match.id) state.lastMatch = match;
+  return true;
 }
 
 function applyMatchToPlayer(
@@ -4739,7 +4928,6 @@ export function answerOffer(
       consequences: [],
       narrativeKey: offer.isLoan ? 'decision.loanApproach.joined' : 'decision.transferApproach.joined',
     };
-    state.lastResult = result;
     if (club) pushNews(state, 'news.joinedClub', { club: club.name }, 'high');
     return result;
   }
@@ -4756,7 +4944,6 @@ export function answerOffer(
   }
   const consequences = evaluateConsequences(rng, state);
   const result: DecisionResult = { changes, consequences, narrativeKey: 'decision.transferApproach.stayed' };
-  state.lastResult = result;
   commitRng(state, rng);
   return result;
 }
@@ -4787,7 +4974,6 @@ export function answerAgent(state: CareerState, decisionId: string, agentId: str
     consequences: [],
     narrativeKey: agentId ? 'decision.agentApproach.signed' : 'decision.agentApproach.declined',
   };
-  state.lastResult = result;
   return result;
 }
 
@@ -4797,7 +4983,6 @@ export function doPlayerAction(state: CareerState, id: PlayerActionId): Decision
   const result = performAction(rng, state, id);
   commitRng(state, rng);
   if (result.changes.length === 0 && result.consequences.length === 0) return null;
-  state.lastResult = result;
   for (const consequence of result.consequences) {
     pushInbox(state, 'manager', `consequence.${consequence.id}`, consequence.args);
   }
@@ -5015,7 +5200,6 @@ export function answerMentor(state: CareerState, decisionId: string, optionId: s
   }
 
   const result: DecisionResult = { changes, consequences: [] };
-  state.lastResult = result;
   return result;
 }
 

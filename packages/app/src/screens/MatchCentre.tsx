@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CareerState, MatchResult, PendingHalfTime } from '@fc/engine';
 import { formatSeason, useLang, useT } from '../i18n/index.js';
-import { clubShortName } from '../lib/club.js';
+import { clubShortName, localiseArgs } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, openHalfTime, recentMatches } from '../state/selectors.js';
 import { competitionLabel, findPlayer, playerName } from '../lib/names.js';
@@ -48,6 +48,10 @@ function firstHalfAsMatch(state: CareerState, half: PendingHalfTime): MatchResul
       ...(half.minutes.cameOnMinute !== undefined ? { cameOnMinute: half.minutes.cameOnMinute } : {}),
     },
     events: half.firstHalfEvents,
+    instructionChanges: half.liveInstructions ?? [],
+    ...(half.liveInstructions?.length
+      ? { instruction: half.liveInstructions[half.liveInstructions.length - 1]!.instruction }
+      : {}),
   };
 }
 
@@ -64,6 +68,7 @@ export function MatchCentre() {
     (focusMatchId ? state.matchLog.find((entry) => entry.id === focusMatchId) : null) ?? state.lastMatch;
   const half = openHalfTime(state);
   const liveFrom = useGame((s) => s.liveFromMinute);
+  const applyInboxAction = useGame((s) => s.applyInboxAction);
   // Which match he has already walked off the pitch for. This is held per match rather
   // than as a plain flag: the screen never unmounts between games, and a flag left
   // standing from the last team talk sent the next match straight to the dressing room
@@ -104,6 +109,15 @@ export function MatchCentre() {
   const home = club(state, match.homeClubId);
   const away = club(state, match.awayClubId);
   const line = match.userLine;
+  const campFeedback = match.competitionId.startsWith('friendly')
+    ? state.inbox.find(
+      (message) => message.week === match.week
+        && message.season === match.season
+        && message.category === 'manager'
+        && message.titleKey === `inbox.trainingCampFeedback.${match.week}`
+        && message.action?.type === 'setTrainingFocus',
+    )
+    : undefined;
   // A match report is a highlights reel, not a log: keep every decisive moment but
   // only a couple of the near misses, otherwise the timeline reads like a stuck record.
   const allEvents = match.events ?? [];
@@ -123,8 +137,8 @@ export function MatchCentre() {
   });
 
   return (
-    <div className="screen stack">
-      <div className="row-between">
+    <div className="screen stack match-report">
+      <div className="match-report-meta">
         <span className="eyebrow">{competitionLabel(match.competitionId, getPack(), lang, t)}</span>
         <span className="eyebrow">
           {formatSeason(match.season)} · {t('hub.week', { week: match.week })}
@@ -155,7 +169,7 @@ export function MatchCentre() {
       {line?.played ? (
         <>
           <Card title={t('match.rating')}>
-            <div className="row-between" style={{ marginBlockEnd: 12 }}>
+            <div className="match-player-summary" style={{ marginBlockEnd: 12 }}>
               <div className="row" style={{ gap: 8 }}>
                 <span className="chip">{line.position}</span>
                 <span className="num">{line.minutes}′</span>
@@ -182,18 +196,42 @@ export function MatchCentre() {
             </div>
           </Card>
 
+          {campFeedback && (
+            <Card title={t('train.coachPlan')} className="camp-report-feedback">
+              <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+                {t(campFeedback.titleKey, localiseArgs(campFeedback.args, getPack().clubs, lang))}
+              </p>
+              <button
+                className="btn btn-primary btn-block"
+                style={{ marginBlockStart: 12 }}
+                onClick={() => applyInboxAction(campFeedback.id)}
+              >
+                {t('inbox.action.applyTraining')}
+              </button>
+            </Card>
+          )}
+
           {match.instruction && (
             <Card title={t('live.activeInstruction')}>
               <p style={{ fontWeight: 700 }}>{t(`halfTime.instruction.${match.instruction}`)}</p>
               <p className="faint" style={{ fontSize: 12.5, marginBlockStart: 5 }}>
                 {t(`halfTime.instruction.${match.instruction}.hint`)}
               </p>
+              {(match.instructionChanges?.length ?? 0) > 0 && (
+                <div className="match-instruction-history">
+                  {match.instructionChanges!.map((change) => (
+                    <span className="chip" key={`${change.minute}-${change.instruction}`}>
+                      <span className="num">{change.minute}′</span> · {t(`halfTime.instruction.${change.instruction}`)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </Card>
           )}
 
           {events.length > 0 && (
             <Card title="90′">
-              <div className="timeline">
+              <div className="timeline match-report-timeline">
                 {events.map((event, i) => {
                   const good = event.type === 'goal' || event.type === 'assist' || event.type === 'save' || event.type === 'tackle';
                   const bad = event.type === 'concede' || event.type === 'yellow' || event.type === 'red' || event.type === 'miss';

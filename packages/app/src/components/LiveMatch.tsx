@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { instructionsFor, positionGroup, type HalfTimeInstructionId } from '@fc/engine';
 import type { MatchEvent, MatchResult, Player } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { competitionLabel } from '../lib/names.js';
@@ -81,6 +82,7 @@ export function LiveMatch({
   const t = useT();
   const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
+  const applyLiveInstruction = useGame((s) => s.applyLiveInstruction);
   const home = club(state, match.homeClubId);
   const away = club(state, match.awayClubId);
   // Which competition this is. A Sunday morning in the youth league and a Saturday in
@@ -96,6 +98,7 @@ export function LiveMatch({
   const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [leftPitch, setLeftPitch] = useState(false);
+  const [instructionOpen, setInstructionOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
   const events = useMemo(
@@ -140,14 +143,16 @@ export function LiveMatch({
   // Once he is off the pitch there is nothing left to watch, so the rest is run out
   // quickly rather than making him sit through someone else's game.
   useEffect(() => {
-    const off = shown.find((e) => e.type === 'sub-off' || e.type === 'red');
+    const off = shown.find(
+      (e) => e.playerId === state.player.id && (e.type === 'sub-off' || e.type === 'red' || e.type === 'injury'),
+    );
     if (off && !leftPitch) {
       setLeftPitch(true);
       // Fast, but not so fast that the rest of the match is a blur: at six times the
       // clock simply vanished and it read as the game skipping to the end on its own.
       setSpeed(4);
     }
-  }, [shown, leftPitch]);
+  }, [shown, leftPitch, state.player.id]);
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -261,7 +266,29 @@ export function LiveMatch({
   const liveHome = done ? match.homeGoals : lastScore?.[0] ?? carried?.[0] ?? 0;
   const liveAway = done ? match.awayGoals : lastScore?.[1] ?? carried?.[1] ?? 0;
 
-  const feed = [...shown].reverse();
+  // Cards, injuries and penalty awards already receive one named pitch overlay. Keeping
+  // the same incident as an animated feed row immediately afterwards made it look like
+  // the referee showed the card twice.
+  const feed = [...shown]
+    .filter((event) => !['yellow', 'red', 'injury', 'penaltyAwarded'].includes(event.type))
+    .reverse();
+  const position = match.userLine?.position;
+  const availableInstructions = position ? instructionsFor(positionGroup(position)) : [];
+  const enteredAt = match.userLine?.cameOnMinute ?? 0;
+  const leavesAt = match.userLine?.offMinute ?? 90;
+  const canInstruct = Boolean(
+    !done && !leftPitch && match.userLine?.played && position && minute >= enteredAt && minute < leavesAt - 1,
+  );
+  const liveChange = [...(match.instructionChanges ?? [])].reverse().find((change) => change.minute <= minute);
+  const activeInstruction = liveChange?.instruction ?? (minute >= 46 ? match.instruction : undefined);
+  const chooseInstruction = (instructionId: HalfTimeInstructionId) => {
+    if (!canInstruct) return;
+    const applied = applyLiveInstruction(match.id, minute, instructionId);
+    if (applied) {
+      setInstructionOpen(false);
+      setPaused(false);
+    }
+  };
 
   return (
     <div className="live">
@@ -359,29 +386,62 @@ export function LiveMatch({
       {/* Match controls belong to the live stage, not after an ever-growing commentary
           archive. Keeping them here means half-time and full-time always have an
           immediately visible next action. */}
-      <div className="live-controls">
-        {done ? (
-          <button className="btn btn-primary grow" onClick={onFinish}>
-            {to < 90 ? t('live.toTheDressingRoom') : t('live.report')}
-          </button>
-        ) : (
-          <>
-            <button className="btn" onClick={() => setPaused((p) => !p)}>
-              {paused ? t('live.resume') : t('live.pause')}
-            </button>
-            <button className="btn" aria-pressed={speed > 1} onClick={() => setSpeed((s) => (s >= 4 ? 1 : s * 2))}>
-              ×{speed}
-            </button>
-            <button className="btn btn-primary grow" onClick={() => setMinute(to)}>{t('live.skip')}</button>
-          </>
+      <div className="live-control-stack">
+        {instructionOpen && canInstruct && (
+          <div className="live-instruction-picker" role="group" aria-label={t('live.instructions')}>
+            <p className="eyebrow">{t('live.instructionsHint')}</p>
+            <div className="live-instruction-grid">
+              {availableInstructions.map((id) => (
+                <button
+                  key={id}
+                  className="btn"
+                  aria-pressed={activeInstruction === id}
+                  onClick={() => chooseInstruction(id)}
+                >
+                  {t(`halfTime.instruction.${id}`)}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
+        <div className="live-controls">
+          {done ? (
+            <button className="btn btn-primary grow" onClick={onFinish}>
+              {to < 90 ? t('live.toTheDressingRoom') : t('live.report')}
+            </button>
+          ) : (
+            <>
+              <button
+                className="btn"
+                disabled={!canInstruct}
+                aria-expanded={instructionOpen}
+                onClick={() => {
+                  setInstructionOpen((open) => {
+                    const next = !open;
+                    setPaused(next);
+                    return next;
+                  });
+                }}
+              >
+                {t('live.instructions')}
+              </button>
+              <button className="btn" onClick={() => setPaused((p) => !p)}>
+                {paused ? t('live.resume') : t('live.pause')}
+              </button>
+              <button className="btn" aria-pressed={speed > 1} onClick={() => setSpeed((s) => (s >= 4 ? 1 : s * 2))}>
+                ×{speed}
+              </button>
+              <button className="btn btn-primary grow" onClick={() => setMinute(to)}>{t('live.skip')}</button>
+            </>
+          )}
+        </div>
       </div>
 
-      {match.instruction && entry >= 45 && (
+      {activeInstruction && (
         <div className="live-instruction" role="status">
           <span className="eyebrow">{t('live.activeInstruction')}</span>
-          <b>{t(`halfTime.instruction.${match.instruction}`)}</b>
-          <span className="faint">{t(`halfTime.instruction.${match.instruction}.hint`)}</span>
+          <b>{t(`halfTime.instruction.${activeInstruction}`)}</b>
+          <span className="faint">{t(`halfTime.instruction.${activeInstruction}.hint`)}</span>
         </div>
       )}
 

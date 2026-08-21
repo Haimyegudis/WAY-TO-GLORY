@@ -12,6 +12,7 @@ import {
 import {
   acceptOffer as engineAcceptOffer,
   actionsAvailableNow,
+  applyLiveInstruction as engineApplyLiveInstruction,
   advanceWeek,
   answerAgent as engineAnswerAgent,
   answerOffer as engineAnswerOffer,
@@ -220,6 +221,8 @@ interface GameStore {
   endLive: () => void;
   /** Answer the dressing room and play the second half out. */
   chooseHalfTime: (instructionId: HalfTimeInstructionId) => void;
+  /** Change the player's job while the live clock is running. */
+  applyLiveInstruction: (matchId: string, minute: number, instructionId: HalfTimeInstructionId) => boolean;
   /** How often the dressing room stops his match. */
   setHalfTimeTalks: (frequency: HalfTimeFrequency) => void;
   /** Put his name on somebody's poster, or send them all away. */
@@ -533,6 +536,17 @@ export const useGame = create<GameStore>((set, get) => ({
       // He has already watched the first half; the playback picks up at the whistle.
       liveFromMinute: 45,
     });
+  },
+
+  applyLiveInstruction(matchId, minute, instructionId) {
+    const { state } = get();
+    if (!state) return false;
+    const applied = engineApplyLiveInstruction(state, matchId, minute, instructionId);
+    if (!applied) return false;
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
+    return true;
   },
 
   decide(decisionId, optionId) {

@@ -343,6 +343,8 @@ export interface MatchResult {
   instruction?:
     | 'pushForward' | 'holdShape' | 'createForOthers' | 'takeThemOn' | 'saveLegs' | 'chaseEverything'
     | 'shootFromDistance' | 'playAlone' | 'passMore' | 'defendMore' | 'pressHigher';
+  /** Instructions issued while the clock was running, in chronological order. */
+  instructionChanges?: LiveInstructionChange[];
   /** Only present for detail level 1 (matches the user was involved in). */
   userLine?: UserMatchLine;
   /**
@@ -626,6 +628,11 @@ export interface InboxMessage {
   };
 }
 
+export interface LiveInstructionChange {
+  minute: number;
+  instruction: import('./halftime.js').HalfTimeInstructionId;
+}
+
 export interface NewsItem {
   season: number;
   week: number;
@@ -773,4 +780,6 @@ export interface PendingHalfTime {
   /** Filled in when he answers, and read by the resumed simulation. */
   chosen?: import('./halftime.js').HalfTimeInstructionId;
   obeyed?: boolean;
+  /** Player instructions issued while watching the first half. */
+  liveInstructions?: LiveInstructionChange[];
 }

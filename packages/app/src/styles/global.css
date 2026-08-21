@@ -355,6 +355,11 @@ button.eyebrow {
 }
 .stat-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 12px; color: var(--faint); margin-block-start: 1px; }
+.half-time-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 8px; }
+.half-time-stats > div:nth-child(5)::before { display: none; }
+.half-time-stats .stat-value { font-size: 18px; }
+.half-time-stats .stat-label { font-size: 10.5px; color: var(--muted); }
+.half-time-stat-card > .eyebrow { color: var(--muted); }
 
 .meter { height: 5px; background: var(--surface-3); border-radius: var(--pill); overflow: hidden; }
 .meter > i { display: block; height: 100%; border-radius: var(--pill); background: var(--green); transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -630,6 +635,43 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tl-bad::before { background: var(--red); }
 .tl-amber::before { background: var(--amber); }
 
+/* Explicit report tracks keep Hebrew and English content balanced instead of letting
+   the absolute-positioned timeline pull the whole card toward one edge. */
+.match-report { width: 100%; }
+.match-report > .card { width: 100%; }
+.match-report-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.match-report-meta > :last-child { text-align: end; }
+.match-player-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.match-report-timeline { padding-inline: 0; }
+.match-report-timeline::before { display: none; }
+.match-report-timeline .tl-item {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 9px;
+  border-block-end: 1px solid var(--line);
+}
+.match-report-timeline .tl-item:last-child { border-block-end: 0; }
+.match-report-timeline .tl-item::before { display: none; }
+.match-report-timeline .tl-minute {
+  position: static;
+  width: auto;
+  text-align: start;
+}
+.match-report-timeline .tl-item > p { min-width: 0; text-align: start; }
+.match-report-timeline .tl-item > .num:last-child { direction: ltr; text-align: end; }
+.match-instruction-history { display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 10px; }
+
 /* ---------------------------------------------------------------- sheets */
 
 .sheet-backdrop {
@@ -855,11 +897,16 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .live-warn { border-color: rgba(214, 158, 46, 0.3); }
 .live-whistle { background: transparent; border-style: dashed; }
 .live-whistle > p { color: var(--muted); }
-.live-controls {
+.live-control-stack {
   position: sticky;
   inset-block-end: calc(var(--tab-height) + var(--safe-bottom) + 8px);
   z-index: 75;
+  display: grid;
+  gap: 6px;
+}
+.live-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px;
   margin-inline: -4px;
@@ -868,6 +915,23 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   box-shadow: 0 0 0 1px var(--line), 0 12px 30px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
 }
+.live-controls .btn { padding-inline: 13px; }
+.live-instruction-picker {
+  padding: 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  background: rgba(6, 12, 25, 0.98);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+.live-instruction-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-block-start: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.live-instruction-grid .btn { min-width: 0; white-space: normal; line-height: 1.25; }
 @keyframes liveIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 
 /* A scoreline reads home-then-away, so it stays left-to-right even in Hebrew:
