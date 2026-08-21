@@ -38,6 +38,13 @@ export function Hub() {
   const pack = getPack();
   const competition = club ? pack.competitions.find((c) => c.id === club.competitionId) ?? null : null;
   const ovr = currentOvr(state);
+  const seasonStartOvr = Number(state.flags['seasonStartOvr'] ?? ovr);
+  const ovrProgress = ovr - Math.round(seasonStartOvr);
+  const currentSkills = skillProfile(player.attributes, player.primaryPos);
+  const startingSkills = new Map(
+    skillProfile(state.seasonStartAttributes ?? player.attributes, player.primaryPos)
+      .map((skill) => [skill.key, skill.value]),
+  );
   const age = state.world.season - player.birthYear;
   const fixture = nextFixture(state);
   const season = seasonLineAtClub(state);
@@ -53,7 +60,7 @@ export function Hub() {
   const standing = seasonGoalStanding(state);
   const inCamp = Boolean(state.flags[`trainingCamp:${state.world.season}`]) && state.world.week <= 3;
   const campMatches = state.matchLog.filter(
-    (match) => match.season === state.world.season && match.competitionId === 'friendly' && match.userLine?.played,
+    (match) => match.season === state.world.season && match.competitionId.startsWith('friendly') && match.userLine?.played,
   );
   const campAverage = campMatches.length > 0
     ? campMatches.reduce((sum, match) => sum + (match.userLine?.rating ?? 0), 0) / campMatches.length
@@ -117,6 +124,9 @@ export function Hub() {
         <div className={`ovr-tile ${ovrTone}`}>
           <small>OVR</small>
           <b>{ovr}</b>
+          <span className={`season-progress ${ovrProgress > 0 ? 'up' : ovrProgress < 0 ? 'down' : ''}`}>
+            {ovrProgress > 0 ? '+' : ''}{ovrProgress} {t('progress.thisSeason')}
+          </span>
         </div>
       </header>
 
@@ -250,18 +260,25 @@ export function Hub() {
 
       <Card title={t('hub.skills')}>
         <div className="grid-3" style={{ gap: 10 }}>
-          {skillProfile(player.attributes, player.primaryPos).map((skill) => (
-            <div key={skill.key}>
+          {currentSkills.map((skill) => {
+            const delta = skill.value - (startingSkills.get(skill.key) ?? skill.value);
+            return <div key={skill.key}>
               <div className="row-between" style={{ marginBlockEnd: 4 }}>
                 <span style={{ fontSize: 12 }}>{t(`skill.${skill.key}`)}</span>
-                <span className="num" style={{ fontSize: 12.5, color: skillColor(skill.value) }}>{skill.value}</span>
+                <span className="row" style={{ gap: 4 }}>
+                  <span className="num" style={{ fontSize: 12.5, color: skillColor(skill.value) }}>{skill.value}</span>
+                  <span className={`skill-progress ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}`} title={t('progress.sinceSeasonStart')}>
+                    {delta > 0 ? '+' : ''}{delta}
+                  </span>
+                </span>
               </div>
               <div className="meter" style={{ height: 4 }}>
                 <i style={{ width: `${skill.value}%`, background: skillColor(skill.value) }} />
               </div>
             </div>
-          ))}
+          })}
         </div>
+        <p className="faint" style={{ fontSize: 10.5, marginBlockStart: 9 }}>{t('progress.legend')}</p>
       </Card>
 
       <Card title={t('hub.condition')}>

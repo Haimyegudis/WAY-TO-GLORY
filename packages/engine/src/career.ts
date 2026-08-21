@@ -241,6 +241,7 @@ export function createCareer(pack: DataPack, input: CreateCareerInput): { state:
     createdAt: new Date(0).toISOString(),
     savedAt: new Date(0).toISOString(),
     player,
+    seasonStartAttributes: { ...player.attributes },
     contract: null,
     agent: null,
     agentOffers: [],
@@ -314,7 +315,7 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   initEurope(state, rng);
   rollYouthSeason(state, index, rng);
   const club = userClub(state);
-  if (club && !isAcademyPlayer(state)) {
+  if (club) {
     state.flags[`trainingCamp:${season}`] = true;
     scheduleTrainingCamp(state, rng, club);
     pushInbox(state, 'manager', 'inbox.trainingCampBegins', { club: club.name });
@@ -685,7 +686,7 @@ export function joinClub(
 
   pushNews(state, 'news.joinedClub', { club: club.name }, 'medium');
   if (age <= 17) pushInbox(state, 'club', 'inbox.welcomeAcademy', { club: club.name });
-  if (!isAcademyPlayer(state) && state.world.week <= PRESEASON_END_WEEK) {
+  if (state.world.week <= PRESEASON_END_WEEK) {
     state.flags[`trainingCamp:${season}`] = true;
     state.flags[`campStartOvr:${season}`] = overall(
       state.player.attributes,
@@ -1260,7 +1261,12 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   raiseMentorPrompt(state, rng);
 
   // 7b. The press, on the weeks the press cares.
-  if (club) askTheMedia(state, index, weekImportance);
+  if (club) {
+    // Match-specific press reactions belong only to a match the player actually played.
+    // The senior side's occasion must never be presented as an academy player's story.
+    const playedImportance = userMatch?.userLine?.played ? (userMatch.importance ?? 'normal') : 'normal';
+    askTheMedia(state, index, playedImportance);
+  }
 
   // A post-match conversation is only raised when the match log proves its premise.
   // It stays in the inbox so the player still sees the match report first.
@@ -1686,6 +1692,11 @@ function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | nul
     return 'punditCriticism';
   }
 
+  // The remaining stories describe the senior club's table, contract spotlight and
+  // upcoming senior opposition. They are not questions for a player still in academy
+  // football; his own goals, form, cards and injuries above remain valid media moments.
+  if (isAcademyPlayer(state)) return null;
+
   // The run-in, from the wrong end of the table.
   if (club && state.world.week >= 26) {
     const compState = state.world.competitions[club.competitionId];
@@ -1718,7 +1729,7 @@ function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | nul
 /** The importance of the fixture he is about to play, if there is one this week. */
 function upcomingImportance(state: CareerState, index: PackIndex): MatchImportance {
   const club = userClub(state);
-  if (!club) return 'normal';
+  if (!club || isAcademyPlayer(state)) return 'normal';
   const compState = state.world.competitions[club.competitionId];
   const fixture = compState?.fixtures.find(
     (f) => !f.played && f.week >= state.world.week && (f.homeClubId === club.id || f.awayClubId === club.id),
@@ -1851,7 +1862,9 @@ interface ScheduledUserMatch {
  */
 function scheduledUserMatchThisWeek(state: CareerState, index: PackIndex): ScheduledUserMatch | null {
   const club = userClub(state);
-  if (!club || state.world.week <= PRESEASON_END_WEEK) return null;
+  // Academy players have their own youth calendar. A senior derby or European night is
+  // club news, not their pre-match press conference.
+  if (!club || isAcademyPlayer(state) || state.world.week <= PRESEASON_END_WEEK) return null;
   const week = state.world.week;
   const matches: ScheduledUserMatch[] = [];
 
@@ -2166,12 +2179,14 @@ function simulatePreseasonFriendly(
   rng: Rng,
   club: Club | null,
 ): MatchResult | null {
-  if (!club || isAcademyPlayer(state)) return null;
+  if (!club) return null;
   const week = state.world.week;
   scheduleTrainingCamp(state, rng, club);
   const opponentId = String(state.flags[`campOpponent:${state.world.season}:${week}`] ?? '');
   const opponent = state.world.clubs[opponentId];
   if (!opponent) return null;
+  const academyCamp = isAcademyPlayer(state);
+  const age = state.world.season - state.player.birthYear;
   const userAtHome = week !== 3;
   const result = playUserMatch(
     state,
@@ -2181,7 +2196,14 @@ function simulatePreseasonFriendly(
     userAtHome ? opponent.id : club.id,
     'friendly',
     'friendly',
+    // Academy signings play the same visible camp schedule with the youth team. The
+    // rating tells playUserMatch to use youth squads, while senior signings continue
+    // with the first team.
+    academyCamp ? youthClubRating(opponent, age) : undefined,
   );
+  // Keep friendlies on the friendly simulation path while identifying the level in
+  // history. Consumers can now distinguish an academy appearance from a senior one.
+  if (academyCamp) result.competitionId = 'friendly.youth';
   state.flags[`friendlyPlayed:${state.world.season}:${week}`] = true;
   return result;
 }
@@ -3215,16 +3237,29 @@ function applyFriendlyToPlayer(
     const apps = Number(state.flags[appsKey] ?? 0);
     const average = apps > 0 ? Number(state.flags[ratingKey] ?? 0) / apps : 0;
     const oldRole = state.player.squadRole;
+    const academy = oldRole === 'academy';
+    const age = state.world.season - state.player.birthYear;
+    const academyPromotion = academy && age >= 16 && average >= 7.15 && state.managerTrust >= 48;
     const oldIndex = SQUAD_ROLE_ORDER.indexOf(oldRole);
-    const direction = average >= 7.15 && state.managerTrust >= 48
-      ? 1
-      : average < 6.15 || state.managerTrust < 36
-        ? -1
-        : 0;
+    const direction = academy
+      ? academyPromotion ? 1 : average < 6.15 || state.managerTrust < 36 ? -1 : 0
+      : average >= 7.15 && state.managerTrust >= 48
+        ? 1
+        : average < 6.15 || state.managerTrust < 36
+          ? -1
+          : 0;
     const nextIndex = clamp(oldIndex + direction, 0, SQUAD_ROLE_ORDER.length - 1);
-    const nextRole = SQUAD_ROLE_ORDER[nextIndex] ?? oldRole;
+    const nextRole: SquadRole = academy
+      ? academyPromotion ? 'futureProspect' : 'academy'
+      : SQUAD_ROLE_ORDER[nextIndex] ?? oldRole;
     state.player.squadRole = nextRole;
     if (state.contract) state.contract.squadRole = nextRole;
+    if (academyPromotion && state.player.clubId) {
+      state.flags['calledUpToSeniors'] = true;
+      const seniorList = state.world.squads[state.player.clubId]
+        ?? (state.world.squads[state.player.clubId] = []);
+      if (!seniorList.includes(state.player.id)) seniorList.push(state.player.id);
+    }
     state.flags[`campVerdict:${state.world.season}`] = nextRole;
     pushInbox(state, 'manager', 'inbox.trainingCampReport', {
       apps,
@@ -3234,7 +3269,9 @@ function applyFriendlyToPlayer(
       weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
       focus: `train.focus.${String(state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced')}`,
     });
-    const verdict = direction > 0 ? 'promoted' : direction < 0 ? 'demoted' : 'confirmed';
+    const verdict = academy
+      ? academyPromotion ? 'academyPromoted' : direction < 0 ? 'academyDevelopment' : 'academyConfirmed'
+      : direction > 0 ? 'promoted' : direction < 0 ? 'demoted' : 'confirmed';
     pushInbox(state, 'manager', `inbox.trainingCampVerdict.${verdict}`, {
       rating: average.toFixed(1),
     });
@@ -3609,6 +3646,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   askWhatTheSeasonIsFor(state, index);
   state.world.seasonStats[player.id] = emptySeasonStats(state.world.season, player.clubId, userClub(state)?.competitionId ?? null);
   state.flags['seasonStartOvr'] = overall(player.attributes, player.primaryPos, player.secondaryPos);
+  state.seasonStartAttributes = { ...player.attributes };
 
   checkRetirement(state, rng);
 }

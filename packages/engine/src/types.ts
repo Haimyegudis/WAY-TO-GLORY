@@ -670,6 +670,8 @@ export interface CareerState {
   createdAt: string;
   savedAt: string;
   player: Player;
+  /** Attribute snapshot from week one, used to show honest in-season development. */
+  seasonStartAttributes?: Attributes;
   contract: Contract | null;
   agent: Agent | null;
   agentOffers: Agent[];

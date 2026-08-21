@@ -8,7 +8,7 @@ import {
   type MentorReply,
   type MentorTopic,
 } from '@fc/engine';
-import { useLang, useT } from '../i18n/index.js';
+import { hasTranslation, useLang, useT } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 import { countryName as localisedCountry } from '../lib/names.js';
 import { getPack } from '../state/store.js';
@@ -39,6 +39,15 @@ export function MentorScreen() {
   const mentor = held ? mentorById(held.id) : undefined;
   const age = state.world.season - state.player.birthYear;
   const topics: MentorTopic[] = mentorTopics(state, age);
+  const questionKey = (topic: MentorTopic) => {
+    // Different wording on later meetings prevents a contextual system from looking
+    // like a static FAQ. The career clock and conversation count make it stable across
+    // save/reload, while the topic hash stops every button changing in lockstep.
+    const hash = [...topic].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+    const variant = (state.world.season * 52 + state.world.week + (held?.talks ?? 0) + hash) % 3;
+    const candidate = variant === 0 ? `mentor.ask.${topic}` : `mentor.ask.${topic}.v${variant + 1}`;
+    return hasTranslation(lang, candidate) ? candidate : `mentor.ask.${topic}`;
+  };
   const name = (mentor: { name: string; nameHe: string }) => (lang === 'he' ? mentor.nameHe : mentor.name);
   // The clubs they are remembered with are in the pack, so they read in Hebrew too.
   const clubLabel = (raw: string) => {
@@ -172,7 +181,7 @@ export function MentorScreen() {
         <div className="stack" style={{ gap: 8 }}>
           {topics.map((topic) => (
             <button key={topic} className="option" onClick={() => ask(topic)}>
-              <span style={{ display: 'block', fontWeight: 600 }}>{t(`mentor.ask.${topic}`)}</span>
+              <span style={{ display: 'block', fontWeight: 600 }}>{t(questionKey(topic))}</span>
               <span className="faint" style={{ display: 'block', fontSize: 11.5, marginBlockStart: 4 }}>
                 {t(`mentor.ask.${topic}.hint`)}
               </span>

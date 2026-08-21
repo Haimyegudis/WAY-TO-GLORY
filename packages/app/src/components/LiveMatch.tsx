@@ -34,17 +34,19 @@ function variantKey(key: string, minute: number): string {
 function squadOf(
   state: { world: { squads: Record<string, string[]>; players: Record<string, Player>; youth?: { squads: Record<string, string[]>; players: Record<string, Player> } } },
   clubId: string,
+  youthFirst = false,
 ): Player[] {
   const senior = (state.world.squads[clubId] ?? []).flatMap((id) => {
     const found = state.world.players[id];
     return found ? [found] : [];
   });
-  if (senior.length > 0) return senior;
   const youth = state.world.youth;
-  return (youth?.squads[clubId] ?? []).flatMap((id) => {
+  const academy = (youth?.squads[clubId] ?? []).flatMap((id) => {
     const found = youth?.players[id];
     return found ? [found] : [];
   });
+  if (youthFirst && academy.length > 0) return academy;
+  return senior.length > 0 ? senior : academy;
 }
 
 function toneOf(event: MatchEvent): string {
@@ -83,6 +85,7 @@ export function LiveMatch({
   // Which competition this is. A Sunday morning in the youth league and a Saturday in
   // the first division look identical on a scoreboard, and they are not the same match.
   const competition = competitionLabel(match.competitionId, getPack(), lang, t);
+  const youthMatch = match.competitionId.endsWith('.youth');
 
   // Coming off the bench, there is nothing to watch before you are on: the first hour
   // is already history, so it is shown as a summary and the clock starts where you do.
@@ -270,8 +273,8 @@ export function LiveMatch({
           away={away}
           event={onPitch}
           userIsHome={state.player.clubId === match.homeClubId}
-          homeSquad={squadOf(state, match.homeClubId)}
-          awaySquad={squadOf(state, match.awayClubId)}
+          homeSquad={squadOf(state, match.homeClubId, youthMatch)}
+          awaySquad={squadOf(state, match.awayClubId, youthMatch)}
           {...(state.player.shirtNumber !== undefined ? { userNumber: state.player.shirtNumber } : {})}
           replayLabel={t('live.replay')}
         />
@@ -319,6 +322,27 @@ export function LiveMatch({
         )}
       </div>
 
+      {/* Match controls belong to the live stage, not after an ever-growing commentary
+          archive. Keeping them here means half-time and full-time always have an
+          immediately visible next action. */}
+      <div className="live-controls">
+        {done ? (
+          <button className="btn btn-primary grow" onClick={onFinish}>
+            {to < 90 ? t('live.toTheDressingRoom') : t('live.report')}
+          </button>
+        ) : (
+          <>
+            <button className="btn" onClick={() => setPaused((p) => !p)}>
+              {paused ? t('live.resume') : t('live.pause')}
+            </button>
+            <button className="btn" aria-pressed={speed > 1} onClick={() => setSpeed((s) => (s >= 4 ? 1 : s * 2))}>
+              ×{speed}
+            </button>
+            <button className="btn btn-primary grow" onClick={() => setMinute(to)}>{t('live.skip')}</button>
+          </>
+        )}
+      </div>
+
       {before.length > 0 && (
         <div className="live-before">
           {/* Two different things read the same box: a substitute has missed the first
@@ -360,23 +384,6 @@ export function LiveMatch({
         ))}
       </div>
 
-      <div className="live-controls">
-        {done ? (
-          <button className="btn btn-primary grow" onClick={onFinish}>
-            {to < 90 ? t('live.toTheDressingRoom') : t('live.report')}
-          </button>
-        ) : (
-          <>
-            <button className="btn" onClick={() => setPaused((p) => !p)}>
-              {paused ? t('live.resume') : t('live.pause')}
-            </button>
-            <button className="btn" aria-pressed={speed > 1} onClick={() => setSpeed((s) => (s >= 4 ? 1 : s * 2))}>
-              ×{speed}
-            </button>
-            <button className="btn btn-primary grow" onClick={() => setMinute(to)}>{t('live.skip')}</button>
-          </>
-        )}
-      </div>
     </div>
   );
 }

@@ -50,7 +50,13 @@ export type MentorTopic =
   | 'pressure'
   | 'money'
   | 'firstTeam'
-  | 'regret';
+  | 'regret'
+  | 'form'
+  | 'coach'
+  | 'training'
+  | 'selection'
+  | 'nationalTeam'
+  | 'matchPrep';
 
 export interface MentorState {
   id: string;
@@ -84,19 +90,21 @@ export interface MentorReply {
  * in a career, and a list that never changes is a list nobody reads twice.
  */
 export function mentorTopics(state: CareerState, age: number): MentorTopic[] {
-  const relevant: MentorTopic[] = [];
+  const relevant: MentorTopic[] = ['advice', 'path', 'support', 'club', 'form', 'training', 'matchPrep'];
   const inAcademy = state.player.squadRole === 'academy' || Boolean(state.world.youth);
-  if (inAcademy) relevant.push('firstTeam');
-  relevant.push('club');
+  if (inAcademy) relevant.push('firstTeam', 'selection');
+  if (!inAcademy && (state.managerTrust < 62 || state.player.form < 52)) relevant.push('selection');
+  if (state.managerTrust < 70) relevant.push('coach');
   if (age >= 17 && age <= 30) relevant.push('abroad');
   if (age >= 26 || state.player.condition.injuryHistory.length >= 2) relevant.push('body');
   if (state.player.fame >= 20 || state.relationships.media < 45) relevant.push('pressure');
   if (state.contract) relevant.push('money');
+  if (age <= 24 || state.player.reputation >= 55) relevant.push('nationalTeam');
   if ((state.mentor?.talks ?? 0) >= 4) relevant.push('regret');
 
   // A conversation offers a small changing set, not the same permanent help menu.
-  // Advice is always useful; the other questions rotate deterministically with the
-  // career week so save/reload cannot reroll them.
+  // The most urgent subject is guaranteed; everything else rotates. Advice, path and
+  // emotional support remain in the pool, but no longer occupy three permanent slots.
   const priority: MentorTopic = inAcademy
     ? 'firstTeam'
     : age >= 26 || state.player.condition.injuryHistory.length >= 2
@@ -104,12 +112,12 @@ export function mentorTopics(state: CareerState, age: number): MentorTopic[] {
       : state.player.fame >= 20 || state.relationships.media < 45
         ? 'pressure'
         : 'club';
-  const remaining = relevant.filter((topic) => topic !== priority);
+  const remaining = [...new Set(relevant)].filter((topic) => topic !== priority);
   const absolute = state.world.season * 52 + state.world.week + (state.mentor?.talks ?? 0);
   const rotated = remaining.length === 0
     ? []
     : remaining.map((_, index) => remaining[(index + absolute) % remaining.length]!);
-  return ['advice', 'path', priority, ...rotated.slice(0, 1), 'support'];
+  return [priority, ...rotated.slice(0, 4)];
 }
 
 /** How long he waits between calls. A mentor who is always available is not a mentor. */
@@ -254,9 +262,22 @@ export function talkToMentor(
   // him, which is the part a career page cannot give him.
   if (topic !== 'advice') {
     applyTopicEffect(topic, player, held.bond);
+    const contextualLine = topic === 'form'
+      ? `mentor.answer.form.${player.form >= 60 ? 'good' : 'poor'}`
+      : topic === 'coach'
+        ? `mentor.answer.coach.${state.managerTrust >= 50 ? 'open' : 'strained'}`
+        : topic === 'training'
+          ? `mentor.answer.training.${player.condition.fatigue >= 70 ? 'heavy' : 'balanced'}`
+          : topic === 'selection'
+            ? `mentor.answer.selection.${minutesShare >= 0.45 ? 'playing' : 'waiting'}`
+            : topic === 'nationalTeam'
+              ? `mentor.answer.nationalTeam.${player.reputation >= 58 ? 'close' : 'building'}`
+              : topic === 'matchPrep'
+                ? `mentor.answer.matchPrep.${player.form >= 55 ? 'confident' : 'simple'}`
+                : null;
     return {
       topic, mentorId: mentor.id, voice: mentor.voice, situation: read,
-      lineKey: `mentor.answer.${topic}.${mentor.voice}`, brief: null, bond: held.bond,
+      lineKey: contextualLine ?? `mentor.answer.${topic}.${mentor.voice}`, brief: null, bond: held.bond,
     };
   }
 
@@ -347,6 +368,27 @@ function applyTopicEffect(topic: MentorTopic, player: CareerState['player'], bon
       // The one conversation that costs nothing and changes how he sees the whole thing.
       player.personality.consistency = clamp(player.personality.consistency + weight * 0.8, 1, 99);
       player.morale = clamp(player.morale + 4, 0, 100);
+      break;
+    case 'form':
+      player.personality.consistency = clamp(player.personality.consistency + weight, 1, 99);
+      player.attributes.composure = clamp(player.attributes.composure + weight * 0.5, 1, 99);
+      break;
+    case 'coach':
+      player.personality.adaptability = clamp(player.personality.adaptability + weight, 1, 99);
+      break;
+    case 'training':
+      player.personality.professionalism = clamp(player.personality.professionalism + weight, 1, 99);
+      player.attributes.stamina = clamp(player.attributes.stamina + weight * 0.4, 1, 99);
+      break;
+    case 'selection':
+      player.personality.determination = clamp(player.personality.determination + weight, 1, 99);
+      break;
+    case 'nationalTeam':
+      player.personality.ambition = clamp(player.personality.ambition + weight, 1, 99);
+      break;
+    case 'matchPrep':
+      player.attributes.decisions = clamp(player.attributes.decisions + weight * 0.7, 1, 99);
+      player.attributes.concentration = clamp(player.attributes.concentration + weight * 0.5, 1, 99);
       break;
     default:
       break;

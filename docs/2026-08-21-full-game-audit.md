@@ -16,7 +16,7 @@ The strongest parts are career progression, breadth of scenarios, deterministic 
 | Architecture and determinism | 8.5/10 | Clear engine/data/app split; reproducible simulation; strong domain coverage. |
 | Player development | 8/10 | Age, potential, minutes, coaching, facilities, intensity, diet, morale, fitness and personality have real effects. |
 | Module connectivity | 8/10 | Most visible choices reach selection, development, match output or career state. |
-| Scenarios and correspondence | 9/10 | 142 events, expanded rotating mentor prompts and contextual pre/post-match conversations; answers expose and apply real consequences. |
+| Scenarios and correspondence | 9/10 | 142 events, 16 rotating mentor subjects, three question phrasings per subject and contextual pre/post-match conversations; answers expose and apply real consequences. |
 | Match gameplay | 8/10 | Chronological chances, set pieces, saves, blocks, woodwork, key passes, substitutions, real exits and numerical advantage are integrated and regression-tested. |
 | World and competition realism | 7.5/10 | 2026/27 career calendar with competition profiles; source-strength snapshot is honestly retained as 2025/26. |
 | UI/UX | 8.5/10 | Strong mobile/RTL identity, accessible dialogs/live regions, clearer consequences and browser-tested core flow. |
@@ -50,6 +50,21 @@ This pass closes the largest part of that gap:
 - the live match now derives more of its feed from actual chances and state changes instead of cosmetic commentary.
 
 The next retention layer should be a weekly objectives board: two or three coach/player tasks chosen from current evidence, an opponent report, a visible position-competition ladder, and multi-week story arcs that remember promises. Those additions would create more actions without turning the game into repetitive button maintenance.
+
+### What the competitor research says is still missing
+
+| Retention mechanism | Strongest reference | Current position | What WAY TO GLORY should add |
+|---|---|---|---|
+| A decision every game-week | FM Mobile / New Star Soccer | Some weeks still resolve mainly as simulation and inbox reading. | A small weekly plan: coach objective, personal objective and one optional off-pitch action. |
+| Explain selection before it happens | Football Manager | The status card explains the broad outlook, but the rival for the shirt is invisible. | A position ladder naming the players ahead/behind, with the exact selection factors and recent movement. |
+| Prepare for a specific opponent | Football Manager | Match instructions exist at half time; preparation before kickoff is thin. | Opponent report, likely threat, role-specific task and one pre-match tactical choice. |
+| Remember promises and relationships | Football Manager / EA Career | Choices change attributes and relationships, but most conversations conclude immediately. | Multi-week arcs: promised minutes, public claims, coach targets and mentor advice remembered and settled later. |
+| Make form actionable | FM Mobile | Form now affects the bench, senior training and national interest, with corrective actions available. | Show a match-by-match form graph and tell the player which actions drove each change. |
+| Make development legible | FM Mobile / EA Career | OVR, skills and attributes now show change from the first week of the season. | Add monthly staff reports and a projected trajectory if the current plan continues. |
+| Deepen match identity | Football Manager | Events are causal and chronological, but teams lack persistent tactical personality. | Team styles, opponent adjustments, referee/weather effects and AI substitutions. |
+| Build a living football world | Football Manager | Competitions and histories simulate, but AI transfers are not a traceable global market. | Persistent AI careers, transfer histories, squad needs and changing club strategies. |
+
+The product should not copy Football Manager's breadth. Its opportunity is to make the footballer's week clearer and more personal than a manager game: every report should end with something the player can do, every conversation should remember why it happened, and every match should settle something established before kickoff.
 
 ## Remediation completed
 
@@ -125,7 +140,7 @@ Production build before remediation:
 - PWA precache: 2,771.10 KiB;
 - Vite reports chunks over 500 kB.
 
-All screens are route-lazy, the data pack is loaded only when a career needs it, and cloud code is isolated. The current production build has a 500.30 kB main chunk (151.98 kB gzip) and a 1,067.69 KiB precache; the 1,596.90 kB data pack and cloud chunk are loaded on demand rather than included in the install precache. The latest soak completed 1,249 weeks and 390 matches without a crash.
+All screens are route-lazy, the data pack is loaded only when a career needs it, and cloud code is isolated. The current production build has a 517.85 kB main chunk (157.07 kB gzip) and a 1,088.69 KiB precache; the 1,596.90 kB data pack and cloud chunk are loaded on demand rather than included in the install precache. The latest soak completed 1,560 weeks and 454 matches without a crash.
 
 ### Save durability — resolved
 
@@ -178,7 +193,9 @@ This audit included implementation, not only recommendations:
 - added a dedicated media category to relationship actions;
 - mentor topics now explain their gameplay effect before asking, and career-changing advice shows the exact agent brief it will set;
 - mentor answer effects are now visible in the same impact system as other decisions;
-- mentor topics rotate with age, role, body, pressure and career state; ten contextual prompts now have four distinct answers each;
+- mentor topics rotate with age, role, form, coach trust, training load, selection, national-team prospects, body, pressure and career state; 16 subjects each have three question phrasings, while ten mentor-initiated prompts have four distinct answers each;
+- academy players are no longer asked about senior derbies, finals or European matches they did not play, and post-match importance is derived only from the player's actual appearance;
+- answering a media question no longer opens a redundant second summary modal, and blocking interactions consume their linked popup so their premise cannot appear after the decision;
 - all new Hebrew dialogue is written directly to a male player in standard masculine grammar, with English kept in exact key parity;
 - rebuilt the content pack from 139 to 142 career events.
 
@@ -186,12 +203,12 @@ The changes preserve English parity, while the requested editorial rewrite is fo
 
 ## Verification performed
 
-- `npm test`: 115/115 engine tests passed.
-- `npm run test:e2e`: 2/2 Playwright journeys passed, including axe checks and IndexedDB save/reload.
-- `npm run build`: TypeScript and production PWA build passed; precache 1,024.23 KiB.
+- `npm test`: 119/119 engine tests passed.
+- `npm run test:e2e`: 3/3 Playwright journeys passed, including axe checks, IndexedDB save/reload, academy camp visibility, decision/popup chronology, goal/replay placement and visible match controls.
+- `npm run build`: TypeScript and production PWA build passed; precache 1,088.69 KiB.
 - data pack build: 142 events across 28 countries, 39 competitions and 608 clubs.
-- translation parity: 2,090 Hebrew keys and 2,090 English keys.
-- long simulation soak: 1,249 weeks, 19 seasons, 390 matches, no crash.
+- translation parity: 2,168 Hebrew keys and 2,168 English keys, with no missing or duplicate keys.
+- long simulation soak: 1,560 weeks, 23 seasons, 454 matches, 625 decisions and 16 injuries, no crash.
 - `npm audit`: 0 known dependency vulnerabilities after upgrading Vitest to 4.1.11.
 - `git diff --check`: no whitespace errors.
 

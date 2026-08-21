@@ -44,8 +44,7 @@ export function nextFixture(state: CareerState): UpcomingFixture | null {
   // Friendlies do not belong to a league table, but the camp schedule is fixed by the
   // engine and the player must be able to see each one before pressing kickoff.
   if (
-    state.player.squadRole !== 'academy'
-    && state.world.week >= 1
+    state.world.week >= 1
     && state.world.week <= 3
     && state.flags[`trainingCamp:${state.world.season}`]
   ) {

@@ -16,6 +16,7 @@ import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/milestones.js';
 import {
   MENTORS,
+  MENTOR_COOLDOWN_WEEKS,
   MENTOR_PROMPTS,
   mentorPromptById,
   mentorReachesOut,
@@ -127,6 +128,16 @@ describe('ratings', () => {
 });
 
 describe('development', () => {
+  it('keeps an immutable week-one attribute baseline for season progress', () => {
+    const { state } = startedCareer({ seed: 6001 });
+    const opening = state.player.attributes.finishing;
+    expect(state.seasonStartAttributes?.finishing).toBe(opening);
+
+    state.player.attributes.finishing += 2;
+
+    expect(state.seasonStartAttributes?.finishing).toBe(opening);
+  });
+
   const makePlayer = (age: number, potential: number, ovrTarget: number): Player => {
     const pack = loadPack();
     const index = indexPack(pack);
@@ -759,6 +770,23 @@ describe('europe', () => {
 });
 
 describe('pre-season camp', () => {
+  it('shows an academy signing all three youth-team camp friendlies', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 6059 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+
+    expect(state.flags[`trainingCamp:${state.world.season}`]).toBe(true);
+    for (let week = 1; week <= 3; week++) {
+      expect(state.flags[`campOpponent:${state.world.season}:${week}`]).toBeTruthy();
+      playWeek(state, index);
+    }
+
+    const camp = state.matchLog.filter((match) => match.competitionId === 'friendly.youth');
+    expect(camp).toHaveLength(3);
+    expect(camp.every((match) => match.userLine?.played)).toBe(true);
+    expect(state.flags[`campVerdict:${state.world.season}`]).toBeTruthy();
+  });
+
   it('evaluates a new senior in three friendlies before competitive football', () => {
     const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 19, seed: 6060 });
     const clubId = getAcademyOffers(state, index)[0]!.clubId;
@@ -859,6 +887,34 @@ describe('pre-match chronology', () => {
     expect(fixture.played).toBe(false);
     expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:bigMatch')).toBe(true);
     expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.europeanNight')).toBe(true);
+  });
+
+  it('does not ask an academy player about the senior side big match', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 8103 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+    state.pendingDecisions = [];
+    state.inbox = [];
+    state.world.week = 44;
+    const club = state.world.clubs[clubId]!;
+    const opponent = Object.values(state.world.clubs).find(
+      (candidate) => candidate.country === club.country && candidate.id !== clubId,
+    )!;
+    state.world.cups = {
+      academy_irrelevant_cup: {
+        id: 'academy_irrelevant_cup', country: club.country, season: state.world.season,
+        ties: [{
+          round: 1, week: state.world.week, homeClubId: clubId,
+          awayClubId: opponent.id, played: false,
+        }],
+        alive: [], round: 1, finished: false,
+      },
+    };
+
+    advanceWeek(state, index);
+
+    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:bigMatch')).toBe(false);
+    expect(state.inbox.some((message) => message.titleKey.startsWith('inbox.buildUp.'))).toBe(false);
   });
 });
 
@@ -1823,6 +1879,24 @@ describe('the old player', () => {
     expect(older).toContain('body');
     expect(older).not.toContain('firstTeam');
     expect(older.length).toBeGreaterThan(3);
+  });
+
+  it('offers a different contextual question set at the next conversation', () => {
+    const { state } = startedCareer({ seed: 79 });
+    state.mentor = { id: MENTORS[0]!.id, bond: 50, lastTalkWeek: -99, talks: 2, followed: 0 };
+    state.managerTrust = 35;
+    state.player.form = 42;
+
+    const first = mentorTopics(state, 19);
+    state.world.week += MENTOR_COOLDOWN_WEEKS;
+    state.mentor.talks += 1;
+    const second = mentorTopics(state, 19);
+
+    expect(first).toHaveLength(5);
+    expect(second).toHaveLength(5);
+    expect(new Set(first).size).toBe(5);
+    expect(second).not.toEqual(first);
+    expect(first.some((topic) => ['form', 'coach', 'selection', 'training'].includes(topic))).toBe(true);
   });
 
   it('answers every topic it offers', () => {

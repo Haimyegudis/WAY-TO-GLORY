@@ -277,10 +277,17 @@ function AttrList({ keys }: { keys: readonly AttributeKey[] }) {
     <div>
       {keys.map((key) => {
         const value = Math.round(state.player.attributes[key]);
+        const start = Math.round(state.seasonStartAttributes?.[key] ?? state.player.attributes[key]);
+        const delta = value - start;
         return (
           <div key={key} className="attr-row">
             <span style={{ fontSize: 13 }}>{t(`attr.${key}`)}</span>
-            <span className="num">{value}</span>
+            <span className="row" style={{ gap: 5 }}>
+              <span className="num">{value}</span>
+              <span className={`skill-progress ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}`} title={t('progress.sinceSeasonStart')}>
+                {delta > 0 ? '+' : ''}{delta}
+              </span>
+            </span>
             <Meter value={value} tone={value >= 75 ? 'amber' : value >= 55 ? 'blue' : 'amber'} />
           </div>
         );
