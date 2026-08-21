@@ -7,7 +7,7 @@ import { ageFactor, developWeek, headroom, updateCondition } from '../src/develo
 import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
 import { buildAttributes, generatePlayer } from '../src/generate.js';
 import { CAMEO_MINUTES, eligibleForSenior, pickLineup, selectionScore } from '../src/selection.js';
-import { applyResult, buildFixtures, sortedTable, initCompetitionSeason } from '../src/league.js';
+import { applyResult, buildFixtures, ensureLeagueSplit, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
 import { YOUTH_MAX_AGE, countryLeagues, userYouthCompetition, userYouthCompetitionId, youthCompetitionId } from '../src/youth.js';
 import { YOUTH_SQUAD_SIZE, generateYouthSquad, youthSquad } from '../src/youth-squads.js';
@@ -33,6 +33,7 @@ import {
   applyLiveInstruction,
   advanceWeek,
   answerMedia,
+  answerOffer,
   createCareer,
   grudgeClubId,
   resumeHalfTime,
@@ -44,7 +45,7 @@ import {
   userSquad,
 } from '../src/career.js';
 import { DEFAULT_INPUT, loadPack, playWeek, startedCareer } from './helpers.js';
-import type { CompetitionSeasonState, Player, Position, TrainingPlan } from '../src/types.js';
+import type { CompetitionSeasonState, MatchResult, Player, Position, TrainingPlan, TransferOffer } from '../src/types.js';
 
 const TRAINING: TrainingPlan = { intensity: 'normal', focus: 'balanced', diet: 'normal' };
 
@@ -332,6 +333,52 @@ describe('league', () => {
     const goalsFor = table.reduce((s, r) => s + r.goalsFor, 0);
     const goalsAgainst = table.reduce((s, r) => s + r.goalsAgainst, 0);
     expect(goalsFor).toBe(goalsAgainst);
+  });
+
+  it('runs Ligat HaAl as 26 regular matches followed by two split-group rounds', () => {
+    const pack = loadPack();
+    const competition = pack.competitions.find((entry) => entry.id === 'il.1')!;
+    const clubIds = pack.clubs.filter((club) => club.competitionId === competition.id).map((club) => club.id);
+    const state = initCompetitionSeason(new Rng(71), competition, clubIds, 2026);
+
+    expect(competition.split).toEqual({ regularRounds: 2, regularLastWeek: 34, upperTeams: 6, groupRounds: 2 });
+    expect(state.fixtures).toHaveLength(14 * 13);
+    expect(Math.max(...state.fixtures.map((fixture) => fixture.week))).toBeLessThanOrEqual(34);
+
+    for (const fixture of state.fixtures) {
+      fixture.played = true;
+      fixture.result = [1, 0];
+      applyResult(state, fixture.homeClubId, fixture.awayClubId, 1, 0);
+    }
+    expect(ensureLeagueSplit(new Rng(72), state, competition)).toBe(true);
+    expect(state.splitGroups?.upper).toHaveLength(6);
+    expect(state.splitGroups?.lower).toHaveLength(8);
+
+    const upper = new Set(state.splitGroups!.upper);
+    const lower = new Set(state.splitGroups!.lower);
+    const playoff = state.fixtures.filter((fixture) => fixture.phase !== 'regular');
+    expect(playoff).toHaveLength(6 * 5 + 8 * 7);
+    expect(playoff.every((fixture) => (
+      upper.has(fixture.homeClubId) && upper.has(fixture.awayClubId)
+    ) || (
+      lower.has(fixture.homeClubId) && lower.has(fixture.awayClubId)
+    ))).toBe(true);
+
+    for (const clubId of upper) {
+      expect(state.fixtures.filter((fixture) => (
+        fixture.homeClubId === clubId || fixture.awayClubId === clubId
+      ))).toHaveLength(36);
+    }
+    for (const clubId of lower) {
+      expect(state.fixtures.filter((fixture) => (
+        fixture.homeClubId === clubId || fixture.awayClubId === clubId
+      ))).toHaveLength(40);
+    }
+
+    // Group membership remains the primary ordering rule after the split.
+    const firstLower = state.splitGroups!.lower[0]!;
+    state.table[firstLower]!.points = 999;
+    expect(sortedTable(state).slice(0, 6).every((row) => upper.has(row.clubId))).toBe(true);
   });
 });
 
@@ -840,6 +887,31 @@ describe('pre-season camp', () => {
     });
   });
 
+  it('does not call a competitive youth appearance a senior debut', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 6064 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+
+    let youthAppearance: MatchResult | undefined;
+    for (let attempt = 0; attempt < 16 && !youthAppearance; attempt++) {
+      state.pendingDecisions = [];
+      playWeek(state, index);
+      youthAppearance = state.matchLog.find(
+        (match) => match.competitionId.endsWith('.youth')
+          && !match.competitionId.startsWith('friendly')
+          && match.userLine?.played,
+      );
+    }
+
+    expect(youthAppearance).toBeDefined();
+    expect(youthAppearance!.importance).not.toBe('firstProMatch');
+    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:debut')).toBe(false);
+    expect(state.achievements.some(
+      (achievement) => achievement.id === 'firstProMatch' || achievement.id === 'debut',
+    )).toBe(false);
+    expect(state.flags['calledUpToSeniors']).not.toBe(true);
+  });
+
   it('evaluates a new senior in three friendlies before competitive football', () => {
     const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 19, seed: 6060 });
     const clubId = getAcademyOffers(state, index)[0]!.clubId;
@@ -914,13 +986,19 @@ describe('pre-match chronology', () => {
     expect(result.stopped).toBe('decision');
     expect(state.world.week).toBe(beforeWeek);
     expect(tie.played).toBe(false);
-    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:bigMatch')).toBe(true);
-    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.cupFinal')).toBe(true);
+    const interview = state.pendingDecisions.find((decision) => decision.eventId === 'milestone:bigMatch');
+    expect(interview).toBeDefined();
+    expect(state.inbox.some((message) => message.decisionId === interview!.id)).toBe(true);
+    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.cupFinal')).toBe(false);
   });
 
   it('asks about a European night before the European fixture is played', () => {
     const { state, index, clubId } = seniorCareer(8102);
     state.world.week = 19;
+    state.world.cups = {};
+    for (const competition of Object.values(state.world.competitions)) {
+      for (const scheduled of competition.fixtures) scheduled.played = true;
+    }
     const club = state.world.clubs[clubId]!;
     const opponent = Object.values(state.world.clubs).find((candidate) => candidate.id !== clubId)!;
     const fixture = {
@@ -938,8 +1016,10 @@ describe('pre-match chronology', () => {
     expect(result.stopped).toBe('decision');
     expect(state.world.week).toBe(beforeWeek);
     expect(fixture.played).toBe(false);
-    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:bigMatch')).toBe(true);
-    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.europeanNight')).toBe(true);
+    const interview = state.pendingDecisions.find((decision) => decision.eventId === 'milestone:bigMatch');
+    expect(interview).toBeDefined();
+    expect(state.inbox.some((message) => message.decisionId === interview!.id)).toBe(true);
+    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.europeanNight')).toBe(false);
   });
 
   it('does not ask an academy player about the senior side big match', () => {
@@ -994,8 +1074,19 @@ describe('pre-match chronology', () => {
     const result = advanceWeek(state, index);
     expect(result.stopped).toBe('decision');
     expect(derby.played).toBe(false);
-    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.youth.derby')).toBe(true);
-    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:derby')).toBe(true);
+    const interview = state.pendingDecisions.find((decision) => decision.eventId === 'milestone:derby');
+    expect(interview).toBeDefined();
+    expect(state.inbox.some((message) => message.decisionId === interview!.id)).toBe(true);
+    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.youth.derby')).toBe(false);
+    const copySuffix = interview!.textKey.endsWith('.v2')
+      ? '.v2'
+      : interview!.textKey.endsWith('.v3') ? '.v3' : '';
+    expect(interview!.options.every((option) => option.labelKey.endsWith(copySuffix))).toBe(true);
+    expect(new Set(interview!.options.map((option) => (
+      copySuffix ? option.labelKey.replace(copySuffix, '') : option.labelKey
+    )))).toEqual(new Set([
+      'milestone.derby.respect', 'milestone.derby.fire', 'milestone.derby.deflect',
+    ]));
   });
 });
 
@@ -1030,6 +1121,9 @@ describe('summer tournaments', () => {
     expect(result.matches.length).toBeGreaterThanOrEqual(3);
     expect(result.caps).toBeGreaterThan(0);
     expect(result.goals).toBeGreaterThanOrEqual(0);
+    const appearance = result.matches.find((match) => match.userPlayed)!;
+    expect(appearance.userMinutes).toBeGreaterThan(0);
+    expect(appearance.userAssists).toBeGreaterThanOrEqual(0);
   });
 });
 
@@ -1054,6 +1148,69 @@ describe('transfer offers', () => {
       const suitor = state.world.clubs[offer.clubId]!;
       expect(suitor.tier).toBeLessThanOrEqual(club.tier + 1);
     }
+  });
+
+  it('does not offer a weaker club to a regular academy starter', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 17, seed: 774 });
+    joinClub(state, index, 'isr_maccabi_tel_aviv', { asAcademy: true });
+    const current = state.world.clubs[state.player.clubId!]!;
+    const currentCompetition = index.competitionById.get(current.competitionId)!;
+    const youthCompetition = Object.values(state.world.youth!.competitions).find(
+      (competition) => competition.table[current.id],
+    )!;
+    youthCompetition.table[current.id]!.played = 12;
+    state.world.youth!.form.minutes = 12 * 80;
+    state.player.reputation = 55;
+    for (const key of Object.keys(state.player.attributes) as (keyof typeof state.player.attributes)[]) {
+      state.player.attributes[key] = Math.max(state.player.attributes[key], 64);
+    }
+
+    const offers = Array.from({ length: 12 }, (_, seed) => generateOffers({
+      state, index, rng: new Rng(900 + seed), minutesPct: 0,
+    })).flat();
+    for (const offer of offers) {
+      const suitor = state.world.clubs[offer.clubId]!;
+      const competition = index.competitionById.get(suitor.competitionId)!;
+      expect(suitor.tier).toBeLessThanOrEqual(current.tier);
+      expect(competition.reputation).toBeGreaterThanOrEqual(currentCompetition.reputation - 2);
+      expect(clubBaseOvr(suitor)).toBeGreaterThanOrEqual(clubBaseOvr(current) - 2);
+      expect(offer.seniorPathway).toBe(true);
+      expect(offer.expectedMinutesPct).toBeGreaterThanOrEqual(0.45);
+    }
+  });
+
+  it('keeps real match simulation after a seventeen-year-old moves into a senior starting role', () => {
+    const { state, index } = startedCareer({ seed: 775, age: 17 });
+    const oldClub = state.player.clubId!;
+    const oldCompetition = state.world.clubs[oldClub]!.competitionId;
+    const target = Object.values(state.world.clubs).find(
+      (club) => club.id !== oldClub && club.competitionId === oldCompetition,
+    )!;
+    state.world.week = 7;
+    for (const key of Object.keys(state.player.attributes) as (keyof typeof state.player.attributes)[]) {
+      state.player.attributes[key] = Math.max(state.player.attributes[key], 78);
+    }
+    state.player.form = 82;
+    state.player.fitness = 90;
+    joinClub(state, index, target.id, { role: 'starter' });
+    state.pendingDecisions = [];
+
+    for (let week = 0; week < 16; week++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+
+    const seniorMatches = state.matchLog.filter((match) => (
+      match.userClubId === target.id
+      && !match.competitionId.endsWith('.youth')
+      && match.userLine?.played
+    ));
+    expect(seniorMatches.length).toBeGreaterThan(0);
+    expect(seniorMatches.every((match) => (match.userLine?.rating ?? 0) > 0)).toBe(true);
+    expect(seniorMatches.some((match) => (
+      match.homeGoals + match.awayGoals > 0
+      || (match.events?.some((event) => ['chance', 'miss', 'save', 'corner', 'freeKick'].includes(event.type)) ?? false)
+    ))).toBe(true);
   });
 
   it('finds somebody for a player with no club at all', () => {
@@ -1091,7 +1248,7 @@ describe('transfer offers', () => {
 
 describe('the press', () => {
   /** Puts a question on the table the way `raiseMilestone` does, without a whole season. */
-  function askHim(state: ReturnType<typeof startedCareer>['state'], id: 'debut' | 'derby') {
+  function askHim(state: ReturnType<typeof startedCareer>['state'], id: 'debut' | 'derby' | 'transferRumour') {
     const question = milestoneById(id)!;
     const decision = {
       id: `milestone_${id}_1_1`,
@@ -1139,6 +1296,95 @@ describe('the press', () => {
     const { state, index } = startedCareer();
     const decision = askHim(state, 'derby');
     expect(answerMedia(state, index, decision.id, 'nothing-he-said')).toBeNull();
+  });
+
+  it('puts a transfer rumour before the formal offer and removes stale rumours after signing', () => {
+    const { state, index } = startedCareer({ seed: 817 });
+    state.pendingDecisions = [];
+    const target = Object.values(state.world.clubs).find((club) => club.id !== state.player.clubId)!;
+    const offer: TransferOffer = {
+      id: 'chronological_offer', clubId: target.id, fee: 500_000, salaryPerWeek: 4_000,
+      years: 3, squadRole: 'rotation', expectedMinutesPct: 0.45, isLoan: false,
+      season: state.world.season, week: state.world.week, interestLevel: 70,
+      competitionId: target.competitionId,
+    };
+    state.transferOffers = [offer];
+    const rumour = askHim(state, 'transferRumour');
+
+    answerMedia(state, index, rumour.id, rumour.options[0]!.id);
+    const formal = state.pendingDecisions.find((decision) => decision.kind === 'transfer');
+    expect(formal).toBeDefined();
+    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:transferRumour')).toBe(false);
+
+    // An upgraded save may already contain both. Signing invalidates the old premise.
+    const stale = askHim(state, 'transferRumour');
+    state.inbox.push({
+      id: 'stale_rumour_message', season: state.world.season, week: state.world.week,
+      category: 'media', titleKey: stale.textKey, read: false, decisionId: stale.id,
+    });
+    expect(answerOffer(state, index, formal!.id, offer.id)).not.toBeNull();
+    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:transferRumour')).toBe(false);
+    expect(state.inbox.some((message) => message.id === 'stale_rumour_message')).toBe(false);
+  });
+
+  it('asks once for one red-card incident, even while it remains the last match', () => {
+    const { state, index } = startedCareer({ seed: 818 });
+    for (const competition of Object.values(state.world.competitions)) competition.fixtures = [];
+    for (const competition of Object.values(state.world.youth?.competitions ?? {})) competition.fixtures = [];
+    state.world.cups = {};
+    state.world.europe = {};
+    state.world.week = 10;
+    state.pendingDecisions = [];
+
+    const redMatch: MatchResult = {
+      id: 'one_red_incident', season: state.world.season, week: 10,
+      competitionId: 'test.youth', homeClubId: state.player.clubId!, awayClubId: 'opponent',
+      homeGoals: 0, awayGoals: 1, detailLevel: 1,
+      userLine: {
+        played: true, started: true, minutes: 61, position: state.player.primaryPos,
+        goals: 0, assists: 0, shots: 1, keyPasses: 0, tackles: 1, saves: 0,
+        yellow: 0, red: 1, rating: 4.8, motm: false, offMinute: 61,
+      },
+    };
+    state.lastMatch = redMatch;
+    state.matchLog = [redMatch];
+
+    advanceWeek(state, index);
+    const first = state.pendingDecisions.find((decision) => decision.eventId === 'milestone:sentOff');
+    expect(first).toBeDefined();
+    answerMedia(state, index, first!.id, first!.options[0]!.id);
+    state.pendingDecisions = [];
+
+    advanceWeek(state, index);
+    expect(state.pendingDecisions.filter((decision) => decision.eventId === 'milestone:sentOff')).toHaveLength(0);
+    expect(state.inbox.filter((message) => message.titleKey.startsWith('milestone.sentOff'))).toHaveLength(1);
+    expect(state.flags['asked:sentOff:match:one_red_incident']).toBe(true);
+  });
+
+  it('honours the old match-week marker when loading a career that already answered', () => {
+    const { state, index } = startedCareer({ seed: 819 });
+    for (const competition of Object.values(state.world.competitions)) competition.fixtures = [];
+    for (const competition of Object.values(state.world.youth?.competitions ?? {})) competition.fixtures = [];
+    state.world.cups = {};
+    state.world.europe = {};
+    state.world.week = 12;
+    state.pendingDecisions = [];
+    state.lastMatch = {
+      id: 'legacy_red_incident', season: state.world.season, week: 11,
+      competitionId: 'test.youth', homeClubId: state.player.clubId!, awayClubId: 'opponent',
+      homeGoals: 0, awayGoals: 0, detailLevel: 1,
+      userLine: {
+        played: true, started: true, minutes: 70, position: state.player.primaryPos,
+        goals: 0, assists: 0, shots: 0, keyPasses: 0, tackles: 0, saves: 0,
+        yellow: 2, red: 1, rating: 4.5, motm: false, offMinute: 70,
+      },
+    };
+    state.matchLog = [state.lastMatch];
+    state.flags[`asked:sentOff:${state.world.season}:11`] = true;
+
+    advanceWeek(state, index);
+    expect(state.pendingDecisions.filter((decision) => decision.eventId === 'milestone:sentOff')).toHaveLength(0);
+    expect(state.flags['asked:sentOff:match:legacy_red_incident']).toBe(true);
   });
 
   it('has a question written for every moment it can raise', () => {
@@ -1509,6 +1755,34 @@ describe('half time', () => {
     expect(checked, 'no interval ever came up').toBeGreaterThan(0);
   });
 
+  it('applies national-team instructions without rewriting club trust or club totals', () => {
+    const { state } = startedCareer({ seed: 8182, age: 19 });
+    const stats = state.world.seasonStats[state.player.id]!;
+    const ratingSumBefore = stats.ratingSum;
+    const trustBefore = state.managerTrust;
+    const relationshipBefore = state.relationships.manager;
+    const match: MatchResult = {
+      id: 'national-live-test', season: state.world.season, week: state.world.week,
+      competitionId: 'national.qualifier', homeClubId: 'ISR', awayClubId: 'ENG',
+      homeGoals: 1, awayGoals: 1, detailLevel: 1, userClubId: 'ISR',
+      userLine: {
+        played: true, started: true, minutes: 90, position: state.player.primaryPos,
+        goals: 0, assists: 0, shots: 1, keyPasses: 1, tackles: 0, saves: 0,
+        yellow: 0, red: 0, rating: 6.6, motm: false,
+      },
+      events: [],
+    };
+    state.matchLog.unshift(match);
+    state.lastMatch = match;
+
+    expect(applyLiveInstruction(state, match.id, 24, 'passMore')).toBe(true);
+    expect(match.instructionChanges).toEqual([{ minute: 24, instruction: 'passMore' }]);
+    expect(match.userLine!.keyPasses).toBeGreaterThan(1);
+    expect(stats.ratingSum).toBe(ratingSumBefore);
+    expect(state.managerTrust).toBe(trustBefore);
+    expect(state.relationships.manager).toBe(relationshipBefore);
+  });
+
   it('grows a career at a believable pace', () => {
     // The shape is the point: a boy does not go from thirty-five to seventy in one youth
     // season, and by twenty he is not finished. This pins both ends so a later change to
@@ -1654,6 +1928,9 @@ describe('half time', () => {
     expect(instructionsFor('MID')).toContain('passMore');
     expect(instructionsFor('DEF')).toContain('defendMore');
     expect(instructionsFor('DEF')).toContain('pressHigher');
+
+    const demands = Array.from({ length: 50 }, (_, seed) => managerDemand(new Rng(seed + 1), -1, 6.8, 'GK'));
+    expect(demands.every((demand) => demand === 'holdShape' || demand === 'passMore')).toBe(true);
   });
 });
 
@@ -1881,6 +2158,18 @@ describe('the age gate', () => {
     expect(gate.maxMinutes).toBeLessThanOrEqual(CAMEO_MINUTES);
   });
 
+  it('registers a young player signed for the senior rotation instead of treating him as an academy trial', () => {
+    const gate = eligibleForSenior(boy(17, 58, 78), 2026, {
+      calledUp: false, clubOvr: 62, managerTrust: 46, seniorRole: 'rotation',
+    });
+    expect(gate).toEqual({ allowed: true, maxMinutes: 90 });
+
+    const prospect = eligibleForSenior(boy(17, 58, 78), 2026, {
+      calledUp: false, clubOvr: 70, managerTrust: 44, seniorRole: 'futureProspect',
+    });
+    expect(prospect).toEqual({ allowed: true, maxMinutes: CAMEO_MINUTES });
+  });
+
   it('keeps an ordinary sixteen year old in the academy', () => {
     const ordinary = eligibleForSenior(boy(16, 45, 70), 2026, {
       calledUp: true, clubOvr: 70, managerTrust: 70,
@@ -1933,11 +2222,12 @@ describe('the age gate', () => {
       playWeek(state, index);
       state.pendingDecisions = [];
       for (const match of state.matchLog) {
-        if (match.competitionId.endsWith('.youth')) continue;
+        if (match.competitionId.endsWith('.youth') || match.competitionId.startsWith('national.')
+          || match.competitionId === 'friendly.national') continue;
         const line = match.userLine;
         if (!line?.played) continue;
         const ageThen = match.season - state.player.birthYear;
-        if (ageThen >= 18) continue;
+        if (ageThen !== 16) continue;
         expect(line.minutes, `a ${ageThen} year old played ${line.minutes} minutes`).toBeLessThanOrEqual(CAMEO_MINUTES);
         expect(line.started).toBe(false);
       }
@@ -1953,6 +2243,54 @@ describe('the national youth sides', () => {
     });
     return { index, player, nt: initNationalTeam(player) };
   }
+
+  it('turns a real call-up window into the live national match of the week', () => {
+    let calledUp: ReturnType<typeof startedCareer>['state'] | null = null;
+    let stopped: ReturnType<typeof advanceWeek>['stopped'] | null = null;
+    for (let seed = 8300; seed < 8340 && !calledUp; seed++) {
+      const { state, index } = startedCareer({ seed, age: 19 });
+      const clubId = state.player.clubId!;
+      state.world.week = 8;
+      joinClub(state, index, clubId, { role: 'starter' });
+      for (const competition of Object.values(state.world.competitions)) competition.fixtures = [];
+      for (const competition of Object.values(state.world.youth?.competitions ?? {})) competition.fixtures = [];
+      state.world.cups = {};
+      state.world.europe = {};
+      state.pendingDecisions = [];
+      state.player.condition.injuries = [];
+      state.player.form = 90;
+      state.player.fitness = 95;
+      state.player.condition.sharpness = 95;
+      state.nationalTeam.interest.ISR = 100;
+      for (const key of Object.keys(state.player.attributes) as (keyof typeof state.player.attributes)[]) {
+        state.player.attributes[key] = Math.max(state.player.attributes[key], 82);
+      }
+
+      const result = advanceWeek(state, index);
+      if (state.flags['nationalMatchId']) {
+        calledUp = state;
+        stopped = result.stopped;
+      }
+    }
+
+    expect(calledUp, 'no high-interest player was selected across the sample').not.toBeNull();
+    expect(stopped).toBe('match');
+    const match = calledUp!.lastMatch!;
+    expect(match.id).toBe(calledUp!.flags['nationalMatchId']);
+    expect(match.competitionId).toBe('friendly.national');
+    expect(match.userClubId).toBe('ISR');
+    expect(match.homeClubId).toBe('ISR');
+    expect(match.events?.length).toBeGreaterThan(4);
+    let home = 0;
+    let away = 0;
+    for (const event of match.events ?? []) {
+      if (!event.score) continue;
+      expect(event.score[0]).toBeGreaterThanOrEqual(home);
+      expect(event.score[1]).toBeGreaterThanOrEqual(away);
+      [home, away] = event.score;
+    }
+    expect([home, away]).toEqual([match.homeGoals, match.awayGoals]);
+  });
 
   /** A season of a coach watching: interest moves gradually, not in one week. */
   function watchAllSeason(index: ReturnType<typeof indexPack>, player: ReturnType<typeof generatePlayer>,

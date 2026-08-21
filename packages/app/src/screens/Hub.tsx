@@ -11,7 +11,7 @@ import { formatMoney, formatSeason, hasTranslation, useLang, useT } from '../i18
 import { getPack, useGame } from '../state/store.js';
 import { myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, localiseArgs } from '../lib/club.js';
-import { competitionName } from '../lib/names.js';
+import { competitionName, countryName } from '../lib/names.js';
 import { seasonGoalStanding } from '@fc/engine';
 import { Card, Chip, ClubLine, Crest, Gauge, Meter, RatingBadge, Stat } from '../components/ui.js';
 import { DecisionOptions } from './DecisionSheet.js';
@@ -55,6 +55,14 @@ export function Hub() {
   const suspended = player.condition.suspensions.length > 0;
   const listed = Boolean(state.flags['transferListed']);
   const frozen = (state.world.season * 52 + state.world.week) < Number(state.flags['benchedUntilWeek'] ?? 0);
+  const lastHomeClub = state.lastMatch ? state.world.clubs[state.lastMatch.homeClubId] : undefined;
+  const lastAwayClub = state.lastMatch ? state.world.clubs[state.lastMatch.awayClubId] : undefined;
+  const lastHomeCountry = state.lastMatch
+    ? pack.countries.find((country) => country.code === state.lastMatch?.homeClubId)
+    : undefined;
+  const lastAwayCountry = state.lastMatch
+    ? pack.countries.find((country) => country.code === state.lastMatch?.awayClubId)
+    : undefined;
 
   const ovrTone = ovr >= 82 ? 'ovr-tile-elite' : ovr >= 70 ? 'ovr-tile-high' : '';
   const goal = state.seasonGoal?.season === state.world.season ? state.seasonGoal : null;
@@ -348,13 +356,17 @@ export function Hub() {
         >
           <div className="row-between score-row">
             <span className="grow" style={{ fontSize: 13.5, minWidth: 0 }}>
-              <ClubLine club={state.world.clubs[state.lastMatch.homeClubId]} size="sm" />
+              {lastHomeClub
+                ? <ClubLine club={lastHomeClub} size="sm" />
+                : <span className="row"><span className="crest crest-sm crest-fallback">{countryName(lastHomeCountry, lang).slice(0, 2)}</span>{countryName(lastHomeCountry, lang)}</span>}
             </span>
             <span className="num" style={{ fontSize: 17 }}>
               {state.lastMatch.homeGoals}–{state.lastMatch.awayGoals}
             </span>
             <span className="grow" style={{ fontSize: 13.5, minWidth: 0, display: 'flex', justifyContent: 'flex-end' }}>
-              <ClubLine club={state.world.clubs[state.lastMatch.awayClubId]} size="sm" />
+              {lastAwayClub
+                ? <ClubLine club={lastAwayClub} size="sm" />
+                : <span className="row"><span className="crest crest-sm crest-fallback">{countryName(lastAwayCountry, lang).slice(0, 2)}</span>{countryName(lastAwayCountry, lang)}</span>}
             </span>
           </div>
           {state.lastMatch.userLine?.played && (

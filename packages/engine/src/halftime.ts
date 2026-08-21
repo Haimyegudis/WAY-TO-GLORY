@@ -156,7 +156,8 @@ export function managerDemand(
 ): HalfTimeInstructionId {
   if (userRating < 6.2) return rng.chance(0.6) ? 'chaseEverything' : 'holdShape';
   if (scoreDiff <= -1) {
-    if (group === 'DEF' || group === 'GK') return rng.chance(0.5) ? 'holdShape' : 'pushForward';
+    if (group === 'GK') return rng.chance(0.5) ? 'holdShape' : 'passMore';
+    if (group === 'DEF') return rng.chance(0.5) ? 'holdShape' : 'pushForward';
     return rng.chance(0.45) ? 'pushForward' : rng.chance(0.5) ? 'takeThemOn' : 'pressHigher';
   }
   if (scoreDiff >= 1) {

@@ -155,7 +155,11 @@ export function transferInterest(input: InterestInput): number {
 
 function roleForOvr(ovr: number, clubLevel: number, age: number): SquadRole {
   const gap = ovr - clubLevel;
-  if (age <= 18) return gap > 0 ? 'prospect' : 'futureProspect';
+  // Age describes patience, not the team. A sixteen-year-old who is already above a
+  // club's first-team level is offered first-team football, not mislabeled as another
+  // academy prospect. Only a player still well short of that level gets a development role.
+  if (age <= 18 && gap < -7) return 'futureProspect';
+  if (age <= 20 && gap < -4) return 'prospect';
   if (gap >= 8) return 'star';
   if (gap >= 4) return 'key';
   if (gap >= 1) return 'important';
@@ -199,6 +203,14 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   const ovr = overall(player.attributes, player.primaryPos, player.secondaryPos);
   const currentClub = player.clubId ? state.world.clubs[player.clubId] : undefined;
   const currentComp = currentClub ? index.competitionById.get(currentClub.competitionId) : undefined;
+  const academyPlayer = player.squadRole === 'academy';
+  const youthCompetition = academyPlayer && currentClub
+    ? Object.values(state.world.youth?.competitions ?? {}).find((competition) => competition.table[currentClub.id])
+    : undefined;
+  const youthClubMatches = currentClub ? youthCompetition?.table[currentClub.id]?.played ?? 0 : 0;
+  const playingShare = academyPlayer && youthClubMatches > 0
+    ? clamp((state.world.youth?.form.minutes ?? 0) / (youthClubMatches * 90), 0, 1)
+    : input.minutesPct;
 
   const value = marketValue(player, {
     season,
@@ -220,7 +232,6 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   const currentLevel = currentClub ? clubBaseOvr(currentClub) : lastLevel || 30;
   const currentReputation = currentComp?.reputation ?? (lastReputation || 30);
   const listed = Boolean(state.flags['transferListed']);
-  const shortOfMinutes = input.minutesPct < 0.25;
   // A player at Napoli is not offered a place in the Israeli third tier. A club has to
   // be a step forward, or at least a sideways move that gets him playing - unless he
   // has been told he can leave, in which case he takes what he can get.
@@ -236,7 +247,8 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   const homecoming = Boolean(state.flags['wantsHomecoming']);
   const lowerLeague = Boolean(state.flags['openToLowerLeague']);
   const exploring = Boolean(state.flags['exploringMove']);
-  const desperate = listed || lowerLeague || input.minutesPct < 0.12;
+  const desperate = listed || lowerLeague || playingShare < 0.12;
+  const regularStarter = playingShare >= 0.55;
   /*
    * A free agent takes what he can get.
    *
@@ -251,12 +263,14 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   const clubless = !currentClub;
   const floor = clubless
     ? Math.min(currentLevel - 10, ovr - 8)
+    : academyPlayer ? Math.min(currentLevel - 12, ovr - 7)
     : desperate ? currentLevel - 10 : currentLevel - 2;
   const competitionFloor = clubless
     ? Math.min(currentReputation - 12, 18)
+    : academyPlayer ? currentReputation - 24
     : desperate ? currentReputation - 12 : currentReputation - 3;
 
-  const candidates: { club: Club; comp: Competition; interest: number }[] = [];
+  const candidates: { club: Club; comp: Competition; interest: number; role: SquadRole }[] = [];
   for (const club of Object.values(state.world.clubs)) {
     if (club.id === player.clubId) continue;
     const comp = index.competitionById.get(club.competitionId);
@@ -266,10 +280,29 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     // no business bidding for him.
     if (clubBaseOvr(club) < floor) continue;
     if (comp.reputation < competitionFloor) continue;
+    // Minutes are the only honest reason to step down. A regular starter at a stronger
+    // club is not recruited into a weaker project; a substitute or excluded player can
+    // trade status for a genuine place in the side.
+    if (
+      regularStarter && currentClub && (
+        club.tier > currentTier
+        || comp.reputation < currentReputation - 2
+        || clubBaseOvr(club) < currentLevel - 2
+      )
+    ) continue;
     // A division below is only on the table for someone who is not playing at all,
     // and two divisions below never is.
-    if (club.tier > currentTier && !desperate && !clubless) continue;
-    if (!clubless && club.tier > currentTier + 1) continue;
+    const offeredRole = roleForOvr(ovr, clubBaseOvr(club), age);
+    if (academyPlayer) {
+      // A move out of a good academy is only progress if it is into an actual senior
+      // rotation. Lower divisions are allowed because first-team minutes are the point;
+      // another weak prospect role is not.
+      if (expectedMinutesFor(offeredRole) < expectedMinutesFor('rotation')) continue;
+      if (club.tier > currentTier + 2) continue;
+    } else {
+      if (club.tier > currentTier && !desperate && !clubless) continue;
+      if (!clubless && club.tier > currentTier + 1) continue;
+    }
     const interest = transferInterest({
       club,
       competition: comp,
@@ -283,7 +316,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       playerCountry: player.birthCountry,
       currentClubStrength: currentClub?.strength ?? (lastLevel || 40),
       currentLeagueReputation: currentReputation,
-      minutesPct: input.minutesPct,
+      minutesPct: playingShare,
     });
     let weighted = interest;
     // Aiming high: only clubs that are a real step up are worth his agent's time.
@@ -308,7 +341,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
      * with no club is far lower, which is the difference between a hard year and a
      * career that quietly ends at nineteen.
      */
-    if (weighted > (clubless ? 16 : 42)) candidates.push({ club, comp, interest: weighted });
+    if (weighted > (clubless ? 16 : 42)) candidates.push({ club, comp, interest: weighted, role: offeredRole });
   }
 
   candidates.sort((a, b) => b.interest - a.interest);
@@ -324,7 +357,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     if (!rng.chance(clamp((candidate.interest - (clubless ? 14 : 40)) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
 
     const clubLevel = clubBaseOvr(candidate.club);
-    const role = roleForOvr(ovr, clubLevel, age);
+    const role = candidate.role;
     const isLoan =
       Boolean(state.flags['wantsLoan']) || (age <= 21 && ovr < clubLevel - 4 && rng.chance(0.35));
 
@@ -345,6 +378,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       week: state.world.week,
       interestLevel: Math.round(candidate.interest),
       competitionId: candidate.club.competitionId,
+      ...(academyPlayer ? { seniorPathway: true } : {}),
     });
   }
 
@@ -437,6 +471,7 @@ export function generateLoanOffers(input: {
       week: state.world.week,
       interestLevel: Math.round(clamp(candidate.fit, 40, 99)),
       competitionId: candidate.club.competitionId,
+      ...(player.squadRole === 'academy' ? { seniorPathway: true } : {}),
     });
   }
   return offers;

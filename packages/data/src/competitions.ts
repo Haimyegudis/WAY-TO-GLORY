@@ -8,6 +8,7 @@ export interface CompetitionSeed {
   tier: number;
   reputation: number;
   rounds: number;
+  split?: { regularRounds: number; regularLastWeek: number; upperTeams: number; groupRounds: number };
   promotionAuto?: number;
   promotionTo?: string;
   relegationAuto?: number;
@@ -84,7 +85,7 @@ export const COMPETITIONS: CompetitionSeed[] = [
   { id: 'de.3', name: '3. Liga', nameHe: 'ליגה 3', country: 'GER', tier: 3, reputation: 50, rounds: 2, promotionAuto: 2, promotionTo: 'de.2', relegationAuto: 0, cards: LOWER_CARDS },
 
   // Israel
-  { id: 'il.1', name: 'Ligat HaAl', nameHe: 'ליגת העל', country: 'ISR', tier: 1, reputation: 54, rounds: 2, relegationAuto: 2, relegationTo: 'il.2', uclQual: 1, uelQual: 1, ueclQual: 2, cards: ISRAEL_CARDS, manual: true },
+  { id: 'il.1', name: 'Ligat HaAl', nameHe: 'ליגת העל', country: 'ISR', tier: 1, reputation: 54, rounds: 2, split: { regularRounds: 2, regularLastWeek: 34, upperTeams: 6, groupRounds: 2 }, relegationAuto: 2, relegationTo: 'il.2', uclQual: 1, uelQual: 1, ueclQual: 2, cards: ISRAEL_CARDS, manual: true },
   { id: 'il.2', name: 'Liga Leumit', nameHe: 'ליגה לאומית', country: 'ISR', tier: 2, reputation: 40, rounds: 2, promotionAuto: 2, promotionTo: 'il.1', relegationAuto: 2, relegationTo: 'il.3', cards: ISRAEL_CARDS, manual: true },
   { id: 'il.3', name: 'Liga Alef', nameHe: "ליגה א'", country: 'ISR', tier: 3, reputation: 30, rounds: 2, promotionAuto: 2, promotionTo: 'il.2', relegationAuto: 0, cards: ISRAEL_CARDS, manual: true },
 

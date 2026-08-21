@@ -1,6 +1,6 @@
 import { Rng, clamp } from './rng.js';
 import { FORMATIONS, ratingAt, tacticalFit } from './positions.js';
-import type { Player, Position } from './types.js';
+import type { Player, Position, SquadRole } from './types.js';
 
 export interface SelectionContext {
   formation: string;
@@ -39,6 +39,8 @@ export interface SeniorGateContext {
   /** The level the club's senior squad plays at, on the OVR scale. */
   clubOvr: number;
   managerTrust: number;
+  /** A contracted first-team role is registration, not an academy trial. */
+  seniorRole?: SquadRole;
 }
 
 export interface SeniorGate {
@@ -59,6 +61,11 @@ export function eligibleForSenior(player: Player, season: number, ctx: SeniorGat
   const age = season - player.birthYear;
   if (age >= SENIOR_FREE_AGE) return { allowed: true, maxMinutes: 90 };
   if (age < SENIOR_MIN_AGE) return { allowed: false, maxMinutes: 0 };
+
+  if (ctx.seniorRole && ctx.seniorRole !== 'academy') {
+    const developmentRole = ctx.seniorRole === 'futureProspect' || ctx.seniorRole === 'prospect';
+    return { allowed: true, maxMinutes: developmentRole ? CAMEO_MINUTES : 90 };
+  }
 
   const ovr = ratingAt(player.attributes, player.primaryPos);
   const exceptional =

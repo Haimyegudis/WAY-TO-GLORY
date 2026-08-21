@@ -108,12 +108,60 @@ export function initCompetitionSeason(
     season,
     clubIds: clubIds.slice(),
     table,
-    fixtures: buildFixtures(rng, clubIds, competition.rounds, competition.calendar),
+    fixtures: buildFixtures(
+      rng,
+      clubIds,
+      competition.split?.regularRounds ?? competition.rounds,
+      competition.split
+        ? {
+            ...(competition.calendar ?? { firstWeek: FIRST_MATCH_WEEK, lastWeek: LAST_MATCH_WEEK }),
+            lastWeek: competition.split.regularLastWeek,
+          }
+        : competition.calendar,
+    ).map((fixture) => ({ ...fixture, phase: 'regular' as const })),
     currentRound: 0,
     scorers: {},
     leagueRules: competition.leagueRules,
     finished: false,
   };
+}
+
+/**
+ * Build a post-season only when the regular table is final. Points carry forward, but
+ * group membership is locked: seventh cannot overtake sixth by collecting more points
+ * against the lower half after the split.
+ */
+export function ensureLeagueSplit(
+  rng: Rng,
+  state: CompetitionSeasonState,
+  competition: Competition,
+): boolean {
+  const rules = competition.split;
+  if (!rules || state.splitGroups) return false;
+  const regular = state.fixtures.filter((fixture) => (fixture.phase ?? 'regular') === 'regular');
+  // An in-progress save from the old format has no phase markers and may still have
+  // regular fixtures scheduled through week 49. Finish that season under its original
+  // calendar; every newly created season uses the split. This avoids replaying an
+  // entire post-season at once when an old save is upgraded late in the year.
+  if (regular.some((fixture) => fixture.phase === undefined)) return false;
+  if (regular.length === 0 || regular.some((fixture) => !fixture.played)) return false;
+
+  const table = sortedTable(state);
+  const upper = table.slice(0, rules.upperTeams).map((row) => row.clubId);
+  const lower = table.slice(rules.upperTeams).map((row) => row.clubId);
+  state.splitGroups = { upper, lower };
+
+  const firstWeek = rules.regularLastWeek + 1;
+  const lastWeek = competition.calendar?.lastWeek ?? LAST_MATCH_WEEK;
+  const regularRoundCount = regular.reduce((max, fixture) => Math.max(max, fixture.round), 0);
+  const append = (clubIds: string[], phase: 'championship' | 'relegation') => {
+    for (const fixture of buildFixtures(rng, clubIds, rules.groupRounds, { firstWeek, lastWeek })) {
+      state.fixtures.push({ ...fixture, round: fixture.round + regularRoundCount, phase });
+    }
+  };
+  append(upper, 'championship');
+  append(lower, 'relegation');
+  return true;
 }
 
 export function applyResult(
@@ -151,7 +199,7 @@ export function applyResult(
 }
 
 export function sortedTable(state: CompetitionSeasonState): LeagueTableRow[] {
-  return Object.values(state.table).sort((a, b) => {
+  const sortRows = (rows: LeagueTableRow[]) => rows.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     const breakers = state.leagueRules?.tieBreakers
       ?? ['goalDifference', 'goalsFor', 'wins', 'id'];
@@ -173,6 +221,13 @@ export function sortedTable(state: CompetitionSeasonState): LeagueTableRow[] {
     }
     return a.clubId.localeCompare(b.clubId);
   });
+  if (state.splitGroups) {
+    return [
+      ...sortRows(state.splitGroups.upper.map((id) => state.table[id]!)),
+      ...sortRows(state.splitGroups.lower.map((id) => state.table[id]!)),
+    ];
+  }
+  return sortRows(Object.values(state.table));
 }
 
 /** Pairwise league record, points first and aggregate goal difference second. */

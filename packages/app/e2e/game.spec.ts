@@ -467,3 +467,129 @@ test('shows the player’s real first-half statistics in the dressing room', asy
   await expect(stats.locator('.stat-value')).toHaveText(['1', '1', '3', '1', '1', '0', '1/0']);
   await expectAccessible(page);
 });
+
+test('separates friendlies and exposes only official competitions the player appeared in', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('Stats');
+  await page.getByLabel('Last name').fill('Filter');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    const clubId = state.player.clubId as string;
+    const opponents = Object.keys(state.world.clubs).filter((id) => id !== clubId);
+    const line = (goals: number, assists: number, rating: number) => ({
+      played: true, started: true, minutes: 90, position: state.player.primaryPos,
+      goals, assists, shots: goals + 2, keyPasses: assists + 1, tackles: 1, saves: 0,
+      yellow: 0, red: 0, rating, motm: rating >= 8.5,
+    });
+    const base = { season: state.world.season, detailLevel: 1 };
+    state.matchLog = [
+      {
+        ...base, id: 'stats_national', week: 13, competitionId: 'national.qualifier',
+        homeClubId: 'ISR', awayClubId: 'ENG', homeGoals: 2, awayGoals: 1,
+        userClubId: 'ISR', userLine: line(1, 0, 8.2),
+      },
+      {
+        ...base, id: 'stats_cup', week: 12, competitionId: `${clubId.slice(0, 3)}_cup`,
+        homeClubId: clubId, awayClubId: opponents[0], homeGoals: 1, awayGoals: 0,
+        userClubId: clubId, userLine: line(0, 1, 7.4),
+      },
+      {
+        ...base, id: 'stats_league', week: 11,
+        competitionId: state.world.clubs[clubId].competitionId,
+        homeClubId: clubId, awayClubId: opponents[1], homeGoals: 3, awayGoals: 1,
+        userClubId: clubId, userLine: line(2, 0, 8.8),
+      },
+      {
+        ...base, id: 'stats_friendly', week: 5, competitionId: 'friendly',
+        homeClubId: clubId, awayClubId: opponents[2], homeGoals: 0, awayGoals: 0,
+        userClubId: clubId, userLine: line(0, 0, 6.5),
+      },
+    ];
+    game.setState({ state, screen: 'matches' });
+  });
+
+  await expect(page.getByRole('button', { name: 'Official matches' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Friendlies' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'League', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cup', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'National team', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Europe', exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'National team', exact: true }).click();
+  await expect(page.getByText('England', { exact: true })).toBeVisible();
+  await expect(page.getByText('International qualifier')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Friendlies' }).click();
+  await expect(page.getByRole('button', { name: 'National team', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Pre-season friendly')).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('opens a national call-up match live with country names and player instructions', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('National');
+  await page.getByLabel('Last name').fill('Player');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    const player = state.player;
+    const match = {
+      id: 'e2e_national_live', season: state.world.season, week: 13,
+      competitionId: 'national.qualifier', homeClubId: 'ISR', awayClubId: 'ENG',
+      homeGoals: 1, awayGoals: 0, detailLevel: 1, userClubId: 'ISR', importance: 'normal',
+      userLine: {
+        played: true, started: true, minutes: 90, position: 'CAM',
+        goals: 0, assists: 1, shots: 1, keyPasses: 2, tackles: 1, saves: 0,
+        yellow: 0, red: 0, rating: 7.4, motm: false,
+      },
+      events: [
+        { minute: 0, type: 'kickOff', byUser: false, ambient: true, detailKey: 'match.live.kickOff' },
+        { minute: 55, type: 'goal', byUser: false, forUserTeam: true, detailKey: 'match.event.teamGoal', score: [1, 0] },
+        { minute: 90, type: 'fullTime', byUser: false, ambient: true, detailKey: 'match.live.fullTime' },
+      ],
+    };
+    state.flags.e2eNationalTrust = state.managerTrust;
+    state.lastMatch = match;
+    state.matchLog = [match, ...state.matchLog];
+    game.setState({
+      state, screen: 'match', focusMatchId: match.id, liveMatchId: match.id, liveFromMinute: 0,
+    });
+  });
+
+  const board = page.locator('.live-board');
+  await expect(board.getByText('Israel', { exact: true })).toBeVisible();
+  await expect(board.getByText('England', { exact: true })).toBeVisible();
+  await expect(page.getByText('International qualifier', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Pause' }).click();
+  await page.getByRole('button', { name: 'Instructions' }).click();
+  await page.getByRole('button', { name: 'Pass more' }).click();
+
+  await expect.poll(() => page.evaluate(() => {
+    const state = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any> } };
+    }).fc.game.getState().state;
+    const match = state.matchLog.find((entry: Record<string, any>) => entry.id === 'e2e_national_live');
+    return {
+      instruction: match.instructionChanges?.[0]?.instruction,
+      trustUnchanged: state.managerTrust === state.flags.e2eNationalTrust,
+    };
+  })).toEqual({ instruction: 'passMore', trustUnchanged: true });
+  await expectAccessible(page);
+});

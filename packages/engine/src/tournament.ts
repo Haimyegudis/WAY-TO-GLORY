@@ -22,7 +22,10 @@ export interface TournamentMatch {
   goalsAgainst: number;
   played: boolean;
   userPlayed: boolean;
+  /** Retained so the player's competition-by-competition history stays accurate. */
+  userMinutes?: number;
   userGoals: number;
+  userAssists?: number;
   userRating: number;
 }
 
@@ -113,7 +116,9 @@ export function playTournament(
       goalsAgainst,
       played: true,
       userPlayed: starts,
+      userMinutes: outcome?.minutes ?? 0,
       userGoals: outcome?.goals ?? 0,
+      userAssists: outcome?.assists ?? 0,
       userRating: outcome?.rating ?? 0,
     };
     if (starts) {

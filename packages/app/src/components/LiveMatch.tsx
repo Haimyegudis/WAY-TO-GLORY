@@ -10,7 +10,7 @@ import { Crest } from './ui.js';
 import { Pitch2D } from './Pitch2D.js';
 import { FootballIcon } from './Football.js';
 import { blowWhistle } from './whistle.js';
-import { findPlayer, playerName } from '../lib/names.js';
+import { countryName, findPlayer, playerName } from '../lib/names.js';
 
 /** Beats worth stopping on: the clock hangs for a moment so they land. */
 const DECISIVE = new Set<MatchEvent['type']>([
@@ -83,11 +83,18 @@ export function LiveMatch({
   const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
   const applyLiveInstruction = useGame((s) => s.applyLiveInstruction);
+  const pack = getPack();
   const home = club(state, match.homeClubId);
   const away = club(state, match.awayClubId);
+  const homeCountry = pack.countries.find((country) => country.code === match.homeClubId);
+  const awayCountry = pack.countries.find((country) => country.code === match.awayClubId);
+  const homeLabel = clubShortName(home, lang) || countryName(homeCountry, lang) || match.homeClubId;
+  const awayLabel = clubShortName(away, lang) || countryName(awayCountry, lang) || match.awayClubId;
+  const international = Boolean(homeCountry && awayCountry);
+  const userIsHome = (match.userClubId ?? state.player.clubId) === match.homeClubId;
   // Which competition this is. A Sunday morning in the youth league and a Saturday in
   // the first division look identical on a scoreboard, and they are not the same match.
-  const competition = competitionLabel(match.competitionId, getPack(), lang, t);
+  const competition = competitionLabel(match.competitionId, pack, lang, t);
   const youthMatch = match.competitionId.endsWith('.youth');
 
   // Coming off the bench, there is nothing to watch before you are on: the first hour
@@ -292,21 +299,25 @@ export function LiveMatch({
 
   return (
     <div className="live">
-      <p className="eyebrow" style={{ textAlign: 'center', marginBlockEnd: 6, color: 'var(--amber)' }}>
+      <h1 className="eyebrow" style={{ textAlign: 'center', marginBlockEnd: 6, color: 'var(--amber)' }}>
         {competition}
-      </p>
+      </h1>
       <div className="live-board">
         <div className="live-side">
-          <Crest club={home} size="lg" />
-          <span>{clubShortName(home, lang) || match.homeClubId}</span>
+          {home
+            ? <Crest club={home} size="lg" />
+            : <span className="crest crest-lg crest-fallback">{homeLabel.slice(0, 2)}</span>}
+          <span>{homeLabel}</span>
         </div>
         <div className="live-score">
           <span className="num">{liveHome}–{liveAway}</span>
           <span className="live-clock num">{done ? `${to}′` : `${minute}′`}</span>
         </div>
         <div className="live-side">
-          <Crest club={away} size="lg" />
-          <span>{clubShortName(away, lang) || match.awayClubId}</span>
+          {away
+            ? <Crest club={away} size="lg" />
+            : <span className="crest crest-lg crest-fallback">{awayLabel.slice(0, 2)}</span>}
+          <span>{awayLabel}</span>
         </div>
       </div>
 
@@ -317,10 +328,12 @@ export function LiveMatch({
           home={home}
           away={away}
           event={onPitch}
-          userIsHome={state.player.clubId === match.homeClubId}
+          userIsHome={userIsHome}
           homeSquad={squadOf(state, match.homeClubId, youthMatch)}
           awaySquad={squadOf(state, match.awayClubId, youthMatch)}
-          {...(state.player.shirtNumber !== undefined ? { userNumber: state.player.shirtNumber } : {})}
+          {...(state.player.shirtNumber !== undefined || international
+            ? { userNumber: state.player.shirtNumber ?? (state.player.primaryPos === 'GK' ? 1 : 10) }
+            : {})}
           replayLabel={t('live.replay')}
         />
         {done && whistled && (
@@ -367,11 +380,15 @@ export function LiveMatch({
           <div className={`goal-card ${goalMoment.ours ? '' : 'goal-card-against'}`} role="status">
             <span className="goal-word">{t('live.goal')}</span>
             <span className="goal-line">
-              <Crest club={home} size="sm" />
+              {home
+                ? <Crest club={home} size="sm" />
+                : <span className="crest crest-sm crest-fallback">{homeLabel.slice(0, 2)}</span>}
               <b className="num">{goalMoment.score ? goalMoment.score[0] : liveHome}</b>
               <span className="goal-dash">–</span>
               <b className="num">{goalMoment.score ? goalMoment.score[1] : liveAway}</b>
-              <Crest club={away} size="sm" />
+              {away
+                ? <Crest club={away} size="sm" />
+                : <span className="crest crest-sm crest-fallback">{awayLabel.slice(0, 2)}</span>}
             </span>
             {goalMoment.scorer && (
               <span className="goal-scorer">

@@ -53,6 +53,7 @@ import {
   WEEKS_PER_SEASON,
   applyResult,
   driftClubStrength,
+  ensureLeagueSplit,
   initCompetitionSeason,
   positionOf,
   resolveSeasonEnd,
@@ -158,6 +159,7 @@ import {
   simulateInternationalMatch,
   updateNationalInterest,
   type CallUpContext,
+  type InternationalMatchOutcome,
 } from './national.js';
 import { isEligible, isStoryEvent, pickEvent, toPendingDecision, type EventContext } from './events.js';
 import {
@@ -382,7 +384,14 @@ function playQualifiers(state: CareerState, index: PackIndex, rng: Rng, calledUp
 
     const country = index.countryByCode.get(campaign.countryCode);
     if (calledUp && country) {
-      const outcome = simulateInternationalMatch(rng, state.player, 'senior', country.reputation);
+      const simulated = simulateInternationalMatch(rng, state.player, 'senior', country.reputation);
+      // A player's goals cannot exceed his team's goals. The fixture result is settled
+      // first because it also belongs to the qualifying table, so trim the personal line
+      // rather than silently changing a result that has already awarded points.
+      const teamGoals = fixture.homeCountry === campaign.countryCode
+        ? fixture.result[0]
+        : fixture.result[1];
+      const outcome = { ...simulated, goals: Math.min(simulated.goals, teamGoals) };
       fixture.userPlayed = outcome.played;
       fixture.userGoals = outcome.goals;
       fixture.userRating = outcome.rating;
@@ -395,6 +404,20 @@ function playQualifiers(state: CareerState, index: PackIndex, rng: Rng, calledUp
         state.player.fame = clamp(state.player.fame + 1 + outcome.goals * 1.2, 0, 100);
         state.player.condition.fatigue = clamp(state.player.condition.fatigue + outcome.minutes / 9, 0, 100);
       }
+      // Being selected is enough for the match to appear. If he remains unused, the
+      // match centre shows the national fixture and the bench reason, just as it does
+      // for a club match; if he plays, it opens the full live view with instructions.
+      recordNationalAppearance(state, nationalMatchResult(
+        state,
+        rng,
+        `national.qualifier.${campaign.season}.${fixture.week}.${fixture.homeCountry}.${fixture.awayCountry}`,
+        'national.qualifier',
+        fixture.homeCountry,
+        fixture.awayCountry,
+        fixture.result,
+        campaign.countryCode,
+        outcome,
+      ));
     }
 
     const opponent =
@@ -632,6 +655,7 @@ export function joinClub(
 
   state.player.clubId = clubId;
   state.player.squadRole = opts.role ?? (opts.asAcademy ? 'academy' : 'rotation');
+  if (state.player.squadRole !== 'academy') state.flags['calledUpToSeniors'] = true;
 
   const season = state.world.season;
   const age = season - state.player.birthYear;
@@ -699,6 +723,129 @@ export function joinClub(
     scheduleTrainingCamp(state, rng, club);
     pushInbox(state, 'manager', 'inbox.trainingCampBegins', { club: club.name });
   }
+}
+
+/**
+ * An international selection belongs in the player's history and can become the match
+ * the app opens this week, but it must never touch a domestic table or club totals.
+ * Deterministic ids make the write idempotent if a saved end-of-week routine is resumed.
+ */
+function recordNationalAppearance(state: CareerState, result: MatchResult): MatchResult {
+  const existing = state.matchLog.find((match) => match.id === result.id);
+  if (existing) return existing;
+  state.matchLog.unshift(result);
+  if (state.matchLog.length > 140) state.matchLog.length = 140;
+  state.flags['nationalMatchThisWeek'] = state.world.season * WEEKS_PER_SEASON + state.world.week;
+  state.flags['nationalMatchId'] = result.id;
+  return result;
+}
+
+function nationalMatchResult(
+  state: CareerState,
+  rng: Rng,
+  id: string,
+  competitionId: string,
+  homeCountry: string,
+  awayCountry: string,
+  score: [number, number],
+  userCountry: string,
+  outcome: InternationalMatchOutcome,
+): MatchResult {
+  const started = outcome.minutes > 45;
+  const attacking = positionGroup(state.player.primaryPos) === 'ATT';
+  const line: UserMatchLine = {
+    played: outcome.played,
+    started,
+    minutes: outcome.minutes,
+    position: outcome.played ? state.player.primaryPos : null,
+    goals: outcome.goals,
+    assists: outcome.assists,
+    shots: outcome.played
+      ? Math.max(outcome.goals, rng.int(attacking ? 1 : 0, attacking ? 5 : 2))
+      : 0,
+    keyPasses: outcome.played ? rng.int(0, 3) + outcome.assists : 0,
+    tackles: outcome.played
+      ? rng.int(0, positionGroup(state.player.primaryPos) === 'DEF' ? 5 : 3)
+      : 0,
+    saves: outcome.played && state.player.primaryPos === 'GK' ? rng.int(1, 7) : 0,
+    yellow: outcome.played && rng.chance(0.12) ? 1 : 0,
+    red: 0,
+    rating: outcome.rating,
+    motm: outcome.rating >= 8.5,
+    ...(outcome.played && !started ? { cameOnMinute: 90 - outcome.minutes } : {}),
+    ...(!outcome.played ? { reasonNotPlayed: 'notSelected' as const } : {}),
+  };
+  const userHome = homeCountry === userCountry;
+  const userGoals = userHome ? score[0] : score[1];
+  const opponentGoals = userHome ? score[1] : score[0];
+  const events: MatchEvent[] = [
+    { minute: 0, type: 'kickOff', byUser: false, ambient: true, detailKey: 'match.live.kickOff' },
+    { minute: 45, type: 'halfTime', byUser: false, ambient: true, detailKey: 'match.live.halfTime' },
+  ];
+  for (let goal = 0; goal < userGoals; goal++) {
+    const minute = Math.min(88, 12 + goal * 19 + rng.int(0, 10));
+    const byPlayer = outcome.played && goal < outcome.goals;
+    events.push({
+      minute,
+      type: 'goal',
+      ...(byPlayer ? { playerId: state.player.id } : {}),
+      byUser: byPlayer,
+      forUserTeam: true,
+      detailKey: byPlayer ? 'match.event.userGoal' : 'match.event.teamGoal',
+    });
+  }
+  for (let goal = 0; goal < opponentGoals; goal++) {
+    const minute = Math.min(89, 18 + goal * 22 + rng.int(0, 9));
+    events.push({
+      minute, type: 'concede', byUser: false, forUserTeam: false,
+      detailKey: 'match.event.conceded',
+    });
+  }
+  if (outcome.played && outcome.assists > 0) {
+    events.push({
+      minute: Math.min(86, 26 + rng.int(0, 30)), type: 'assist', playerId: state.player.id,
+      byUser: true, forUserTeam: true, detailKey: 'match.event.assist',
+    });
+  }
+  if (line.yellow > 0) {
+    events.push({
+      minute: rng.int(20, 78), type: 'yellow', playerId: state.player.id,
+      byUser: true, forUserTeam: true, detailKey: 'match.event.yellow',
+    });
+  }
+  events.push(
+    { minute: 21, type: 'corner', byUser: false, forUserTeam: true, ambient: true, detailKey: 'match.live.corner' },
+    { minute: 67, type: 'freeKick', byUser: false, forUserTeam: false, ambient: true, detailKey: 'match.live.freeKickOpp' },
+    { minute: 90, type: 'fullTime', byUser: false, ambient: true, detailKey: 'match.live.fullTime' },
+  );
+  events.sort((a, b) => a.minute - b.minute);
+  // Score snapshots are assigned only after both teams' goals are in chronological
+  // order. Assigning each side separately produced impossible broadcasts such as 2-0
+  // becoming 1-1 a minute later.
+  let runningHome = 0;
+  let runningAway = 0;
+  for (const event of events) {
+    if (event.type !== 'goal' && event.type !== 'concede') continue;
+    const forHome = event.forUserTeam === userHome;
+    if (forHome) runningHome++;
+    else runningAway++;
+    event.score = [runningHome, runningAway];
+  }
+  return {
+    id,
+    season: state.world.season,
+    week: state.world.week,
+    competitionId,
+    homeClubId: homeCountry,
+    awayClubId: awayCountry,
+    homeGoals: score[0],
+    awayGoals: score[1],
+    detailLevel: 1,
+    userClubId: userCountry,
+    importance: 'normal',
+    userLine: line,
+    events,
+  };
 }
 
 /**
@@ -967,6 +1114,14 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   let playedThisWeek = 0;
   const injuriesAddedThisWeek = new Set<string>();
 
+  // A split is created on Monday after the final regular-season round. Doing it before
+  // fixture discovery means the first playoff match gets the same real build-up as any
+  // other match rather than appearing only when Saturday is simulated.
+  for (const competitionState of Object.values(state.world.competitions)) {
+    const competition = index.competitionById.get(competitionState.competitionId);
+    if (competition) ensureLeagueSplit(rng, competitionState, competition);
+  }
+
   // 0a. The week before a big one starts on the Monday.
   const scheduledMatch = scheduledUserMatchThisWeek(state, index);
   const weekImportance = announceBigMatch(state, scheduledMatch);
@@ -983,7 +1138,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     const occasion = occasionMilestone(weekImportance);
     if (occasion && raiseMilestone(state, occasion, {
       force: true,
-      key: `asked:${occasion}:${weekImportance}:${state.world.season}`,
+      key: `asked:${occasion}:fixture:${scheduledMatch?.key ?? `${state.world.season}:${state.world.week}`}`,
       args: scheduledMatch ? { opponent: scheduledMatch.opponentName } : undefined,
     })) {
       commitRng(state, rng);
@@ -1166,11 +1321,30 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // form therefore change the number the player sees as they change.
   const nationalCtx = club ? nationalContextFor(state, index, club) : null;
   if (nationalCtx) updateNationalInterest(nationalCtx);
+  let nationalMatchThisWeek: MatchResult | null = null;
   if (INTERNATIONAL_WEEKS.includes(week)) {
-    if (club && nationalCtx) handleInternationalWeek(state, index, rng, nationalCtx);
+    const qualifierDue = Boolean(state.campaign?.fixtures.some((fixture) => (
+      !fixture.played
+      && fixture.week === week
+      && (fixture.homeCountry === state.campaign?.countryCode || fixture.awayCountry === state.campaign?.countryCode)
+    )));
+    const seniorCallUp = club && nationalCtx
+      ? handleInternationalWeek(state, index, rng, nationalCtx, qualifierDue)
+      : false;
     // Qualifiers run whether or not he is in the squad: his country plays either way,
     // and a table he is not in is still the table that decides his summer.
-    playQualifiers(state, index, rng, state.nationalTeam.level === 'senior' && Boolean(club));
+    playQualifiers(state, index, rng, seniorCallUp);
+    const nationalMatchId = String(state.flags['nationalMatchId'] ?? '');
+    if (Number(state.flags['nationalMatchThisWeek'] ?? -1) === absoluteWeek) {
+      nationalMatchThisWeek = state.matchLog.find((match) => match.id === nationalMatchId) ?? null;
+      if (nationalMatchThisWeek) {
+        state.lastMatch = nationalMatchThisWeek;
+        stopped = 'match';
+        log.push(
+          `national ${nationalMatchThisWeek.homeClubId} ${nationalMatchThisWeek.homeGoals}-${nationalMatchThisWeek.awayGoals} ${nationalMatchThisWeek.awayClubId}`,
+        );
+      }
+    }
   }
 
   // 6. Transfer window activity. A player who just moved is not on the market again
@@ -1194,7 +1368,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     state.transferOffers.length === 0 &&
     rng.chance(offerChance)
   ) {
-    const share = minutesPct(state);
+    const share = isAcademyPlayer(state) ? youthMinutesPct(state) : minutesPct(state);
     // A young player who cannot get on the pitch is offered a loan instead of a move.
     const loans = generateLoanOffers({ state, index, rng, minutesPct: share });
     const offers = loans.length > 0 && rng.chance(state.flags['wantsLoan'] ? 0.95 : 0.7)
@@ -1203,7 +1377,15 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     if (offers.length > 0) {
       state.flags['offerWindow'] = windowId;
       state.transferOffers = offers;
-      openOfferDecision(state, offers);
+      // The public story precedes the formal approach. Previously both decisions were
+      // queued together, the offer sheet won, and the player could sign before being
+      // asked about a "rumour" that was already true.
+      const rumourRaised = raiseMilestone(state, 'transferRumour', {
+        force: true,
+        key: `asked:transferRumour:window:${windowId}`,
+        args: { club: state.world.clubs[offers[0]!.clubId]?.name ?? '' },
+      });
+      if (!rumourRaised) openOfferDecision(state, offers);
       pushNews(state, 'news.transferInterest', { club: state.world.clubs[offers[0]!.clubId]?.name ?? '' }, 'medium');
     }
   }
@@ -1310,6 +1492,14 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
   } else if (state.pendingDecisions.some((d) => d.blocking !== false)) {
     stopped = 'decision';
+  }
+
+  // A selected international fixture is a real match day, not a background message.
+  // Preserve it as the week's stopping point even if a later story was also generated;
+  // the decision remains queued and the match centre opens first.
+  if (nationalMatchThisWeek) {
+    state.lastMatch = nationalMatchThisWeek;
+    stopped = 'match';
   }
 
   // 9. The people around him react to the week just played.
@@ -1482,6 +1672,10 @@ function raiseMilestone(
   const decisionId = `milestone_${id}_${state.world.season}_${state.world.week}`;
   const copyVariant = milestoneCopyVariant(state, id);
   const copySuffix = copyVariant === 1 ? '' : `.v${copyVariant}`;
+  // Derby questions change with the context, so their answers change with them too.
+  // Reusing one stock phrase under three different questions produced literal,
+  // irrelevant replies even when the underlying attitude/effects were correct.
+  const answerCopySuffix = id === 'derby' ? copySuffix : '';
   const answers = question.answers.map((answer, index, all) => all[(index + copyVariant - 1) % all.length]!);
   state.pendingDecisions.push({
     id: decisionId,
@@ -1492,7 +1686,7 @@ function raiseMilestone(
     textArgs: { club: club?.name ?? '', ...(opts.args ?? {}) },
     options: answers.map((answer) => ({
       id: answer.id,
-      labelKey: `milestone.${id}.${answer.id}`,
+      labelKey: `milestone.${id}.${answer.id}${answerCopySuffix}`,
       // What it will cost him, said before he says it. He is allowed to be reckless;
       // he is not allowed to be reckless by accident.
       riskKey: `milestone.${id}.${answer.id}.${answer.risk}`,
@@ -1761,7 +1955,9 @@ function upcomingImportance(state: CareerState, index: PackIndex): MatchImportan
 function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImportance): void {
   const weeksAtNewClub =
     state.world.season * 52 + state.world.week - Number(state.flags['lastTransferWeek'] ?? -999);
-  const rumoured = state.transferOffers.length > 0 || Boolean(state.flags['transferRequested']);
+  const concreteOfferOpen = state.pendingDecisions.some((decision) => decision.kind === 'transfer');
+  const rumoured = !concreteOfferOpen
+    && (state.transferOffers.length > 0 || Boolean(state.flags['transferRequested']));
   // Fixture occasions are raised before training and kick-off. This end-of-week pass is
   // exclusively for reactions to what actually happened and background career news.
   void importance;
@@ -1776,11 +1972,22 @@ function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImpo
   const momentId = mediaMomentFor(state, index);
   if (momentId) {
     const demanded = MUST_ANSWER.has(momentId);
-    raiseMilestone(state, momentId, {
+    let occurrenceKey: string | undefined;
+    if (momentId === 'sentOff' && state.lastMatch) {
+      const incident = state.lastMatch;
+      occurrenceKey = `asked:sentOff:match:${incident.id}`;
+      // Saves created before incident-based keys used the week in which the interview
+      // appeared. The first interview normally happened in the match week, so honour
+      // that marker and do not make an existing career answer the same red once more
+      // after upgrading.
+      const legacyKey = `asked:sentOff:${incident.season}:${incident.week}`;
+      if (state.flags[legacyKey]) state.flags[occurrenceKey] = true;
+    }
+    const raised = raiseMilestone(state, momentId, {
       force: demanded,
-      ...(momentId === 'sentOff' ? { key: `asked:sentOff:${state.world.season}:${state.world.week}` } : {}),
+      ...(occurrenceKey ? { key: occurrenceKey } : {}),
     });
-    return;
+    if (raised) return;
   }
   const fallbackId = milestoneFor(importance, { weeksAtNewClub, rumoured });
   if (fallbackId) raiseMilestone(state, fallbackId);
@@ -1806,6 +2013,17 @@ export function answerMedia(
 
   state.pendingDecisions.splice(at, 1);
   const result = applyMilestoneAnswer(state, answer);
+
+  // Once he has answered the rumour, the concrete terms can be presented. This keeps
+  // the two interactions in chronological order without making the player advance an
+  // otherwise empty extra week.
+  if (
+    id === 'transferRumour'
+    && state.transferOffers.length > 0
+    && !state.pendingDecisions.some((pending) => pending.kind === 'transfer')
+  ) {
+    openOfferDecision(state, state.transferOffers);
+  }
 
   // Naming somebody costs nothing at the microphone. It costs later.
   if (answer.grudge) {
@@ -2097,9 +2315,15 @@ function announceBigMatch(state: CareerState, match: ScheduledUserMatch | null):
   state.flags['lastBigMatch'] = announced;
 
   const level = match.source === 'youth' ? 'youth.' : '';
-  pushInbox(state, match.source === 'youth' ? 'manager' : 'club', `inbox.buildUp.${level}${match.importance}`, {
-    opponent: match.opponentName,
-  });
+  // When an interview follows, that interaction already delivers the build-up. A
+  // second inbox card had no decision id, so it waited behind the interaction and could
+  // surface after the match as if the fixture were still ahead. Keep inbox-only build-up
+  // for occasions that have no conversation of their own.
+  if (!occasionMilestone(match.importance)) {
+    pushInbox(state, match.source === 'youth' ? 'manager' : 'club', `inbox.buildUp.${level}${match.importance}`, {
+      opponent: match.opponentName,
+    });
+  }
   pushNews(state, `news.buildUp.${level}${match.importance}`, {
     club: club.name,
     opponent: match.opponentName,
@@ -2984,6 +3208,7 @@ function playUserMatch(
       calledUp: Boolean(state.flags['calledUpToSeniors']),
       clubOvr: clubBaseOvr(club),
       managerTrust: state.managerTrust,
+      seniorRole: player.squadRole,
     });
   const pickable = available && gate.allowed;
 
@@ -3140,12 +3365,19 @@ function playUserMatch(
 
   // The debut is decided after the fact: it is the first match he actually got on the
   // pitch for, not every match the club played while he watched from outside.
-  const appsBefore = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
-    + (state.world.seasonStats[player.id]?.apps ?? 0);
-  if (!friendly && result.userLine?.played && appsBefore === 0) {
+  const seniorDebutAlreadyMade = state.achievements.some(
+    (achievement) => achievement.id === 'firstProMatch',
+  ) || state.matchLog.some(
+    (match) => match.userLine?.played
+      && !match.competitionId.startsWith('friendly')
+      && !match.competitionId.startsWith('national.')
+      && !match.competitionId.endsWith('.youth'),
+  );
+  if (!friendly && !youthMatch && result.userLine?.played && !seniorDebutAlreadyMade) {
     result.importance = 'firstProMatch';
     pushNews(state, 'news.debut', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'high');
     unlock(state, 'firstProMatch', { club: club.name });
+    unlock(state, 'debut', { club: club.name });
     raiseMilestone(state, 'debut', { force: true });
   }
 
@@ -3481,7 +3713,15 @@ export function applyLiveInstruction(
   const player = state.player;
   const weight = clamp(match.userLine.minutes / 90, 0.2, 1);
   player.condition.fatigue = clamp(player.condition.fatigue + applied.fatigueDelta, 0, 100);
-  if (match.competitionId.startsWith('friendly')) {
+  const nationalMatch = match.competitionId.startsWith('national.')
+    || match.competitionId === 'friendly.national';
+  if (nationalMatch) {
+    // International form belongs to the player and his country. It must not rewrite
+    // the club season's rating total or imply that his club manager watched a national
+    // coach's instruction as a test of loyalty.
+    player.reputation = clamp(player.reputation + applied.ratingDelta * 0.45 * weight, 0, 100);
+    player.morale = clamp(player.morale + applied.ratingDelta * 1.4, 0, 100);
+  } else if (match.competitionId.startsWith('friendly')) {
     const ratingKey = `campRatingSum:${state.world.season}`;
     state.flags[ratingKey] = Number(state.flags[ratingKey] ?? 0) + applied.ratingDelta;
     state.managerTrust = clamp(state.managerTrust + applied.ratingDelta * 3 * weight, 0, 100);
@@ -3517,7 +3757,7 @@ export function applyLiveInstruction(
     state.managerTrust = clamp(state.managerTrust + applied.ratingDelta * 1.1 * weight, 0, 100);
     player.morale = clamp(player.morale + applied.ratingDelta * 1.6, 0, 100);
   }
-  state.relationships.manager = state.managerTrust;
+  if (!nationalMatch) state.relationships.manager = state.managerTrust;
   if (state.lastMatch?.id === match.id) state.lastMatch = match;
   return true;
 }
@@ -3572,7 +3812,6 @@ function applyMatchToPlayer(
       raiseMilestone(state, 'firstGoal');
     }
     if (line.goals >= 3) unlock(state, 'hatTrick');
-    if (stats.apps === 1) unlock(state, 'debut');
 
     // Cards and suspensions, using the competition's own rules.
     const competition = index.competitionById.get(competitionId);
@@ -3681,16 +3920,17 @@ function handleInternationalWeek(
   index: PackIndex,
   rng: Rng,
   nationalCtx: CallUpContext,
-): void {
+  qualifierDue = false,
+): boolean {
   const player = state.player;
   const season = state.world.season;
-  if (isInjured(player)) return;
+  if (isInjured(player)) return false;
 
   const callUp = rollCallUp(rng, nationalCtx);
-  if (!callUp) return;
+  if (!callUp) return false;
 
   const country = index.countryByCode.get(callUp.countryCode);
-  if (!country) return;
+  if (!country) return false;
 
   const nt = state.nationalTeam;
   nt.level = callUp.level;
@@ -3704,11 +3944,21 @@ function handleInternationalWeek(
     raiseMilestone(state, 'nationalCallUp', { force: true });
   }
 
+  // A senior qualifying week uses this selection for the qualifier below; it must not
+  // also invent one or two friendlies and count three caps in one week. A youth call-up
+  // still has its own age-group fixture while the senior side plays its qualifier.
+  if (qualifierDue && callUp.isSenior) return true;
+
+  const opponents = index.pack.countries.filter((candidate) => (
+    candidate.code !== country.code
+    && candidate.confederation === country.confederation
+    && Math.abs(candidate.reputation - country.reputation) <= 18
+  ));
+  const fallback = index.pack.countries.filter((candidate) => candidate.code !== country.code);
   const matches = rng.int(1, 2);
   for (let i = 0; i < matches; i++) {
     const outcome = simulateInternationalMatch(rng, player, callUp.level, country.reputation);
-    if (!outcome.played) continue;
-    if (!callUp.isSenior) {
+    if (outcome.played && !callUp.isSenior) {
       nt.youthCaps = (nt.youthCaps ?? 0) + 1;
       nt.youthGoals = (nt.youthGoals ?? 0) + outcome.goals;
       if (nt.youthCaps === 1) {
@@ -3719,7 +3969,7 @@ function handleInternationalWeek(
         }, 'medium');
       }
     }
-    if (callUp.isSenior) {
+    if (outcome.played && callUp.isSenior) {
       nt.caps++;
       nt.goals += outcome.goals;
       if (!nt.capturedBySenior) {
@@ -3730,10 +3980,31 @@ function handleInternationalWeek(
       if (nt.caps === 50) unlock(state, 'caps50');
       if (nt.caps === 100) unlock(state, 'caps100');
     }
-    player.reputation = clamp(player.reputation + 0.6 + outcome.goals * 0.8, 0, 100);
-    player.fame = clamp(player.fame + 0.8 + outcome.goals * 1.1, 0, 100);
-    player.condition.fatigue = clamp(player.condition.fatigue + outcome.minutes / 9, 0, 100);
+    if (outcome.played) {
+      player.reputation = clamp(player.reputation + 0.6 + outcome.goals * 0.8, 0, 100);
+      player.fame = clamp(player.fame + 0.8 + outcome.goals * 1.1, 0, 100);
+      player.condition.fatigue = clamp(player.condition.fatigue + outcome.minutes / 9, 0, 100);
+    }
+
+    const opponent = rng.pick(opponents.length > 0 ? opponents : fallback);
+    const quick = simulateQuickResult(rng, {
+      homeRating: country.reputation,
+      awayRating: opponent.reputation,
+    });
+    const score: [number, number] = [Math.max(quick[0], outcome.goals), quick[1]];
+    recordNationalAppearance(state, nationalMatchResult(
+      state,
+      rng,
+      `friendly.national.${season}.${state.world.week}.${callUp.level}.${i}.${country.code}.${opponent.code}`,
+      'friendly.national',
+      country.code,
+      opponent.code,
+      score,
+      country.code,
+      outcome,
+    ));
   }
+  return callUp.isSenior;
 }
 
 /** Season rollover: tables settle, contracts run out, everyone gets a year older. */
@@ -4207,6 +4478,39 @@ function playSummerTournament(state: CareerState, index: PackIndex, rng: Rng): v
   const result = playTournament(rng, id, player, country.code, country.reputation, season, minutesPct(state), index);
   state.tournaments = state.tournaments ?? [];
   state.tournaments.push(result);
+
+  result.matches.forEach((match, matchIndex) => {
+    if (!match.userPlayed) return;
+    recordNationalAppearance(state, {
+      id: `national.${id}.${season}.${match.stage}.${matchIndex}`,
+      season,
+      week: 52 + matchIndex,
+      competitionId: `national.${id}`,
+      homeClubId: country.code,
+      awayClubId: match.opponent,
+      homeGoals: match.goalsFor,
+      awayGoals: match.goalsAgainst,
+      detailLevel: 1,
+      userClubId: country.code,
+      importance: match.stage === 'final' ? 'cupFinal' : 'normal',
+      userLine: {
+        played: true,
+        started: (match.userMinutes ?? 90) > 45,
+        minutes: match.userMinutes ?? 90,
+        position: player.primaryPos,
+        goals: match.userGoals,
+        assists: match.userAssists ?? 0,
+        shots: 0,
+        keyPasses: 0,
+        tackles: 0,
+        saves: 0,
+        yellow: 0,
+        red: 0,
+        rating: match.userRating,
+        motm: match.userRating >= 8.5,
+      },
+    });
+  });
 
   nt.caps += result.caps;
   nt.goals += result.goals;
@@ -4921,6 +5225,15 @@ export function answerOffer(
     if (!offer) return null;
     const club = state.world.clubs[offer.clubId];
     state.pendingDecisions.splice(at, 1);
+    // Migration guard for careers saved under the old ordering: after a signature no
+    // unanswered rumour about that move remains valid.
+    const staleRumours = new Set(
+      state.pendingDecisions
+        .filter((pending) => pending.eventId === 'milestone:transferRumour')
+        .map((pending) => pending.id),
+    );
+    state.pendingDecisions = state.pendingDecisions.filter((pending) => !staleRumours.has(pending.id));
+    state.inbox = state.inbox.filter((message) => !message.decisionId || !staleRumours.has(message.decisionId));
     acceptOffer(state, index, offer.id);
     changes.push({ key: 'change.newClub', delta: 1, before: 0, after: 0, tone: 'good' });
     const result: DecisionResult = {

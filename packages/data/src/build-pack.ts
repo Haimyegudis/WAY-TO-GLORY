@@ -323,6 +323,7 @@ async function main(): Promise<void> {
       type: 'league',
       teams,
       rounds: seed.rounds,
+      ...(seed.split ? { split: seed.split } : {}),
       ...(seed.promotionAuto ? { promotion: { auto: seed.promotionAuto, ...(seed.promotionTo ? { to: seed.promotionTo } : {}) } } : {}),
       ...(seed.relegationAuto ? { relegation: { auto: seed.relegationAuto, ...(seed.relegationTo ? { to: seed.relegationTo } : {}) } } : {}),
       ...(seed.ucl || seed.uel || seed.uecl || seed.uclQual || seed.uelQual || seed.ueclQual

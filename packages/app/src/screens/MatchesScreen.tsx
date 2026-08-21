@@ -1,11 +1,26 @@
 import { useState } from 'react';
 import type { MatchResult } from '@fc/engine';
 import { formatSeason, useLang, useT } from '../i18n/index.js';
-import { competitionLabel, competitionName } from '../lib/names.js';
+import { competitionLabel, competitionName, countryName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { clubShortName } from '../lib/club.js';
 import { Card, Crest, Empty, RatingBadge, ResultDot, Stat } from '../components/ui.js';
 import { RoundScreen } from './RoundScreen.js';
+
+type MatchKind = 'official' | 'friendly';
+type OfficialCategory = 'all' | 'league' | 'cup' | 'europe' | 'national';
+
+function matchKind(match: MatchResult): MatchKind {
+  return match.competitionId.startsWith('friendly') ? 'friendly' : 'official';
+}
+
+function officialCategory(match: MatchResult): Exclude<OfficialCategory, 'all'> {
+  const id = match.competitionId.toLowerCase();
+  if (id === 'ucl' || id === 'uel' || id === 'uecl' || id.startsWith('europe.')) return 'europe';
+  if (id.endsWith('_cup') || id.startsWith('cup.')) return 'cup';
+  if (id.startsWith('national.') || id.startsWith('international.') || id.startsWith('qualifier.')) return 'national';
+  return 'league';
+}
 
 /**
  * Every match of the season: the result, and what he did in it. This is the page a
@@ -22,6 +37,8 @@ export function MatchesScreen() {
   const [season, setSeason] = useState(seasons[0] ?? state.world.season);
   // Two questions live on this page: how am I doing, and what happened last weekend.
   const [view, setView] = useState<'mine' | 'round'>('mine');
+  const [kind, setKind] = useState<MatchKind>('official');
+  const [official, setOfficial] = useState<OfficialCategory>('all');
 
   /*
    * Sunday morning and Saturday afternoon are two different careers, and adding them up
@@ -35,8 +52,26 @@ export function MatchesScreen() {
   const hasSenior = seasonMatches.some((m) => !isYouth(m.competitionId));
   const [side, setSide] = useState<'all' | 'senior' | 'youth'>('all');
 
-  const matches = seasonMatches
-    .filter((m) => (side === 'all' ? true : side === 'youth' ? isYouth(m.competitionId) : !isYouth(m.competitionId)))
+  const sideMatches = seasonMatches.filter(
+    (match) => (side === 'all' ? true : side === 'youth' ? isYouth(match.competitionId) : !isYouth(match.competitionId)),
+  );
+  const hasOfficial = sideMatches.some((match) => match.userLine?.played && matchKind(match) === 'official');
+  const hasFriendlies = sideMatches.some((match) => match.userLine?.played && matchKind(match) === 'friendly');
+  const shownKind: MatchKind = kind === 'official' && !hasOfficial && hasFriendlies
+    ? 'friendly'
+    : kind === 'friendly' && !hasFriendlies && hasOfficial ? 'official' : kind;
+  const availableOfficial = (['league', 'cup', 'europe', 'national'] as const).filter((category) =>
+    sideMatches.some(
+      (match) => match.userLine?.played && matchKind(match) === 'official' && officialCategory(match) === category,
+    ),
+  );
+  const shownOfficial: OfficialCategory = official !== 'all' && !availableOfficial.includes(official)
+    ? 'all'
+    : official;
+
+  const matches = sideMatches
+    .filter((match) => matchKind(match) === shownKind)
+    .filter((match) => shownKind === 'friendly' || shownOfficial === 'all' || officialCategory(match) === shownOfficial)
     .slice()
     .sort((a, b) => b.week - a.week);
 
@@ -48,8 +83,9 @@ export function MatchesScreen() {
       acc.goals += line.goals;
       acc.assists += line.assists;
       acc.rating += line.rating;
-      acc.conceded += concededBy(state.player.clubId, m);
-      if (concededBy(state.player.clubId, m) === 0 && line.minutes >= 60) acc.cleanSheets++;
+      const teamId = m.userClubId ?? state.player.clubId;
+      acc.conceded += concededBy(teamId, m);
+      if (concededBy(teamId, m) === 0 && line.minutes >= 60) acc.cleanSheets++;
       return acc;
     },
     { minutes: 0, goals: 0, assists: 0, rating: 0, conceded: 0, cleanSheets: 0 },
@@ -107,6 +143,35 @@ export function MatchesScreen() {
         </div>
       )}
 
+      {hasOfficial && hasFriendlies && (
+        <div className="seg" aria-label={t('matches.matchType')}>
+          <button aria-pressed={shownKind === 'official'} onClick={() => setKind('official')}>
+            {t('matches.official')}
+          </button>
+          <button aria-pressed={shownKind === 'friendly'} onClick={() => setKind('friendly')}>
+            {t('matches.friendlies')}
+          </button>
+        </div>
+      )}
+
+      {shownKind === 'official' && availableOfficial.length > 1 && (
+        <div className="row wrap competition-filters" role="group" aria-label={t('matches.officialCompetition')}>
+          <button className="chip" aria-pressed={shownOfficial === 'all'} onClick={() => setOfficial('all')}>
+            {t('matches.officialAll')}
+          </button>
+          {availableOfficial.map((category) => (
+            <button
+              className="chip"
+              key={category}
+              aria-pressed={shownOfficial === category}
+              onClick={() => setOfficial(category)}
+            >
+              {t(`matches.filter.${category}`)}
+            </button>
+          ))}
+        </div>
+      )}
+
       <Card>
         <div className="statrow">
           <Stat label={t('career.apps')} value={played.length} />
@@ -128,9 +193,14 @@ export function MatchesScreen() {
         <Card title={t('matches.list')}>
           <ul className="list">
             {matches.map((match) => {
-              const mine = state.player.clubId;
+              const mine = match.userClubId ?? state.player.clubId;
               const isHome = match.homeClubId === mine;
-              const opponent = state.world.clubs[isHome ? match.awayClubId : match.homeClubId];
+              const opponentId = isHome ? match.awayClubId : match.homeClubId;
+              const opponent = state.world.clubs[opponentId];
+              const opponentCountry = pack.countries.find((country) => country.code === opponentId);
+              const opponentLabel = opponent
+                ? clubShortName(opponent, lang)
+                : countryName(opponentCountry, lang) || opponentId;
               const forGoals = isHome ? match.homeGoals : match.awayGoals;
               const againstGoals = isHome ? match.awayGoals : match.homeGoals;
               const outcome = forGoals > againstGoals ? 'W' : forGoals === againstGoals ? 'D' : 'L';
@@ -139,11 +209,13 @@ export function MatchesScreen() {
               return (
                 <li key={match.id} className="list-item" style={{ alignItems: 'flex-start' }}>
                   <ResultDot result={outcome} />
-                  <Crest club={opponent} />
+                  {opponent
+                    ? <Crest club={opponent} />
+                    : <span className="crest crest-fallback">{opponentLabel.slice(0, 2)}</span>}
                   <div className="grow" style={{ minWidth: 0 }}>
                     <div className="row-between">
                       <span style={{ fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {clubShortName(opponent, lang)}
+                        {opponentLabel}
                       </span>
                       <span className="num" style={{ fontSize: 14 }}>{forGoals}–{againstGoals}</span>
                     </div>

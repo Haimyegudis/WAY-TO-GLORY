@@ -182,6 +182,13 @@ export interface CompetitionCalendar {
   breakWeeks?: number[];
 }
 
+export interface LeagueSplitRules {
+  regularRounds: number;
+  regularLastWeek: number;
+  upperTeams: number;
+  groupRounds: number;
+}
+
 export interface Competition {
   id: string;
   name: string;
@@ -192,6 +199,8 @@ export interface Competition {
   teams: number;
   rounds: number;                 // 1 = single round robin, 2 = home and away
   groups?: number;                // for split third tiers
+  /** Divide the table after the regular season, with points carried forward. */
+  split?: LeagueSplitRules;
   promotion?: { auto: number; playoff?: number; to?: string };
   relegation?: { auto: number; playoff?: number; to?: string };
   /**
@@ -412,6 +421,8 @@ export interface CompetitionSeasonState {
   champion?: string;
   promoted?: string[];
   relegated?: string[];
+  /** Membership is locked when a league divides into championship and relegation groups. */
+  splitGroups?: { upper: string[]; lower: string[] };
 }
 
 export interface Fixture {
@@ -420,6 +431,7 @@ export interface Fixture {
   homeClubId: string;
   awayClubId: string;
   played: boolean;
+  phase?: 'regular' | 'championship' | 'relegation';
   result?: [number, number];
   /**
    * Who scored them, for the divisions we model player by player. A round of results
@@ -605,6 +617,8 @@ export interface TransferOffer {
   week: number;
   interestLevel: number;
   competitionId: string;
+  /** The player is leaving academy football for this club's first team. */
+  seniorPathway?: boolean;
   /** Terms won at the table, and how many times he has been back to it. */
   signingBonus?: number;
   releaseClause?: number | null;

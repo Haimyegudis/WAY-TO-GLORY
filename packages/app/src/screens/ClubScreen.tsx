@@ -464,7 +464,15 @@ function LeagueTable() {
       {rows.length === 0 ? (
         <Empty>—</Empty>
       ) : (
-        <div className="scroll-x">
+        <>
+          {compState?.splitGroups && (
+            <div className="row wrap league-split-legend">
+              <span className="chip chip-green">{t('club.championshipGroup')}</span>
+              <span className="chip chip-amber">{t('club.relegationGroup')}</span>
+              <span className="faint">{t('club.splitPointsCarry')}</span>
+            </div>
+          )}
+          <div className="scroll-x">
           <table className="tbl">
             <thead>
               <tr>
@@ -480,7 +488,10 @@ function LeagueTable() {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={row.clubId} className={row.clubId === mine ? 'me' : ''}>
+                <tr
+                  key={row.clubId}
+                  className={`${row.clubId === mine ? 'me' : ''} ${compState?.splitGroups && i === compState.splitGroups.upper.length ? 'split-cut' : ''}`}
+                >
                   <td className="n">{i + 1}</td>
                   <td className="start">
                     <span className="row" style={{ gap: 7, minWidth: 0 }}>
@@ -500,7 +511,8 @@ function LeagueTable() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </Card>
   );

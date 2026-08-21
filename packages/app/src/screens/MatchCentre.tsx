@@ -4,7 +4,7 @@ import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubShortName, localiseArgs } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, openHalfTime, recentMatches } from '../state/selectors.js';
-import { competitionLabel, findPlayer, playerName } from '../lib/names.js';
+import { competitionLabel, countryName, findPlayer, playerName } from '../lib/names.js';
 import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 import { LiveMatch } from '../components/LiveMatch.js';
 import { HalfTimeSheet } from './HalfTimeSheet.js';
@@ -108,6 +108,11 @@ export function MatchCentre() {
 
   const home = club(state, match.homeClubId);
   const away = club(state, match.awayClubId);
+  const pack = getPack();
+  const homeCountry = pack.countries.find((country) => country.code === match.homeClubId);
+  const awayCountry = pack.countries.find((country) => country.code === match.awayClubId);
+  const homeLabel = clubShortName(home, lang) || countryName(homeCountry, lang) || match.homeClubId;
+  const awayLabel = clubShortName(away, lang) || countryName(awayCountry, lang) || match.awayClubId;
   const line = match.userLine;
   const campFeedback = match.competitionId.startsWith('friendly')
     ? state.inbox.find(
@@ -139,7 +144,7 @@ export function MatchCentre() {
   return (
     <div className="screen stack match-report">
       <div className="match-report-meta">
-        <span className="eyebrow">{competitionLabel(match.competitionId, getPack(), lang, t)}</span>
+        <span className="eyebrow">{competitionLabel(match.competitionId, pack, lang, t)}</span>
         <span className="eyebrow">
           {formatSeason(match.season)} · {t('hub.week', { week: match.week })}
         </span>
@@ -148,15 +153,19 @@ export function MatchCentre() {
       <Card lit>
         <div className="scoreline">
           <div className="side">
-            <Crest club={home} size="lg" />
-            <span>{clubShortName(home, lang) || match.homeClubId}</span>
+            {home
+              ? <Crest club={home} size="lg" />
+              : <span className="crest crest-lg crest-fallback">{homeLabel.slice(0, 2)}</span>}
+            <span>{homeLabel}</span>
           </div>
           <div className="score">
             {match.homeGoals}–{match.awayGoals}
           </div>
           <div className="side away">
-            <Crest club={away} size="lg" />
-            <span>{clubShortName(away, lang) || match.awayClubId}</span>
+            {away
+              ? <Crest club={away} size="lg" />
+              : <span className="crest crest-lg crest-fallback">{awayLabel.slice(0, 2)}</span>}
+            <span>{awayLabel}</span>
           </div>
         </div>
         {match.importance && match.importance !== 'normal' && (

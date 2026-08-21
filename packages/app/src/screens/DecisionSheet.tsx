@@ -207,6 +207,7 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
               <Crest club={club} size="lg" />
               <span className="offer-title">{clubName(club, lang)}</span>
               <span className="offer-sub">{competition(offer.competitionId)}</span>
+              {offer.seniorPathway && <Chip tone="blue">{t('market.seniorFirstTeam')}</Chip>}
               <Chip tone={roleTone}>{t(`role.${offer.squadRole}`)}</Chip>
               <span className="offer-sub num">{formatMoney(offer.salaryPerWeek, lang)} / {t('market.week')}</span>
               <span className="offer-sub">{t('market.expectedMinutes')}: {minutes}%</span>
@@ -252,7 +253,7 @@ function OfferTerms({ offer, onBack, onSign }: { offer: TransferOffer; onBack: (
         </li>
         <li className="list-item row-between">
           <span className="eyebrow">{t('market.role')}</span>
-          <span>{t(`role.${offer.squadRole}`)} · {minutes}%</span>
+          <span>{offer.seniorPathway ? `${t('market.seniorFirstTeam')} · ` : ''}{t(`role.${offer.squadRole}`)} · {minutes}%</span>
         </li>
         <li className="list-item row-between">
           <span className="eyebrow">{t('market.contractLength')}</span>

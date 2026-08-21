@@ -47,7 +47,11 @@ export function competitionLabel(
   if (league) return competitionName(league, lang);
 
   if (id === 'friendly.youth') return t('competition.friendlyYouth');
+  if (id === 'friendly.national') return t('competition.friendlyNational');
   if (id === 'ucl' || id === 'uel' || id === 'uecl' || id === 'friendly') return t(`competition.${id}`);
+  if (id === 'national.qualifier') return t('competition.nationalQualifier');
+  if (id === 'national.worldCup') return t('competition.worldCup');
+  if (id === 'national.euro') return t('competition.euro');
 
   // The youth league carries the name of the division it shadows.
   if (id.endsWith('.youth')) {
