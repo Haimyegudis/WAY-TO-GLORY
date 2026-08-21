@@ -1140,6 +1140,68 @@ select:focus-visible,
   100% { opacity: 0; }
 }
 
+/* Referee incidents use the pitch as the stage, just like a goal. */
+.incident-splash {
+  position: absolute;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  pointer-events: none;
+  color: #fff;
+  background: radial-gradient(100% 70% at 50% 44%, rgba(22, 30, 46, 0.56), rgba(6, 10, 18, 0.9));
+  animation: incidentIn 2300ms ease both;
+}
+.incident-against { box-shadow: inset 0 0 0 2px rgba(255, 105, 105, 0.55); }
+.incident-card {
+  width: 42px;
+  height: 62px;
+  border-radius: 5px;
+  transform: rotate(-7deg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+}
+.incident-card-yellow { background: #ffd83d; }
+.incident-card-red { background: #ef3f4d; }
+.incident-penalty-mark,
+.incident-injury-mark {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 900;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 0 28px rgba(255, 255, 255, 0.35);
+}
+.incident-injury-mark { color: #ef3f4d; font-size: 38px; }
+.incident-title { font-size: clamp(25px, 8vw, 42px); font-weight: 900; text-align: center; }
+.incident-player { font-size: 17px; font-weight: 700; }
+.incident-minute { color: rgba(255, 255, 255, 0.72); }
+@keyframes incidentIn {
+  0% { opacity: 0; transform: scale(0.82); }
+  14%, 78% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+.live-instruction {
+  display: grid;
+  gap: 3px;
+  margin-block: 8px 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border-inline-start: 3px solid var(--amber);
+  background: rgba(240, 190, 90, 0.08);
+  font-size: 12.5px;
+}
+.live-instruction b { font-size: 14px; }
+
 /*
  * The referee's whistle, on screen. It stays up rather than fading, because unlike a
  * goal this is not a moment that passes - the match has stopped, and it stays stopped

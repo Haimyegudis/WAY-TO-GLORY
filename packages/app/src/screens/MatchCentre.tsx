@@ -20,7 +20,6 @@ function variantKey(key: string, minute: number): string {
 /** The name behind a goal, an assist or a booking, when we model that player. */
 function namedFor(event: { type: string; playerId?: string; byUser: boolean }, state: CareerState, lang: 'he' | 'en'): string {
   if (!event.playerId) return '';
-  if (event.type !== 'goal' && event.type !== 'assist' && event.type !== 'concede') return '';
   if (event.playerId === state.player.id) return '';
   const player = findPlayer(state, event.playerId);
   return player ? playerName(player, lang) : '';
@@ -112,7 +111,8 @@ export function MatchCentre() {
   const events = allEvents.filter((e) => {
     if (e.ambient) return false;
     const decisive = e.type === 'goal' || e.type === 'concede' || e.type === 'assist'
-      || e.type === 'yellow' || e.type === 'red' || e.type === 'injury' || e.type === 'penaltyScored' || e.type === 'penaltyMissed';
+      || e.type === 'yellow' || e.type === 'red' || e.type === 'injury' || e.type === 'penaltyAwarded'
+      || e.type === 'penaltyScored' || e.type === 'penaltyMissed';
     if (decisive) return true;
     if (!e.byUser) return false;
     if (e.type === 'miss' || e.type === 'save') {
@@ -181,6 +181,15 @@ export function MatchCentre() {
               <Stat label={line.saves > 0 ? t('match.saves') : t('match.keyPasses')} value={line.saves > 0 ? line.saves : line.keyPasses} />
             </div>
           </Card>
+
+          {match.instruction && (
+            <Card title={t('live.activeInstruction')}>
+              <p style={{ fontWeight: 700 }}>{t(`halfTime.instruction.${match.instruction}`)}</p>
+              <p className="faint" style={{ fontSize: 12.5, marginBlockStart: 5 }}>
+                {t(`halfTime.instruction.${match.instruction}.hint`)}
+              </p>
+            </Card>
+          )}
 
           {events.length > 0 && (
             <Card title="90′">

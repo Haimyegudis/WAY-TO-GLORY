@@ -23,6 +23,7 @@ export function Hub() {
   const goto = useGame((s) => s.goto);
   const markInboxRead = useGame((s) => s.markInboxRead);
   const openMessage = useGame((s) => s.openMessage);
+  const applyInboxAction = useGame((s) => s.applyInboxAction);
   const openMessageId = useGame((s) => s.openMessageId);
   const openedMessage = openMessageId ? state.inbox.find((m) => m.id === openMessageId) ?? null : null;
   // Some messages are questions he has not answered. They wait here rather than stopping
@@ -429,6 +430,15 @@ export function Hub() {
             {openedQuestion ? (
               <div style={{ marginBlockStart: 16 }}>
                 <DecisionOptions decision={openedQuestion} onAnswered={() => openMessage(null)} />
+              </div>
+            ) : openedMessage.action ? (
+              <div className="stack" style={{ marginBlockStart: 16, gap: 8 }}>
+                <button className="btn btn-primary btn-block" onClick={() => applyInboxAction(openedMessage.id)}>
+                  {t('inbox.action.applyTraining')}
+                </button>
+                <button className="btn btn-quiet btn-block" onClick={() => openMessage(null)}>
+                  {t('action.close')}
+                </button>
               </div>
             ) : (
               <button className="btn btn-primary btn-block" style={{ marginBlockStart: 16 }} onClick={() => openMessage(null)}>

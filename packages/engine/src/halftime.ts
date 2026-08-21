@@ -24,10 +24,16 @@ export type HalfTimeInstructionId =
   | 'createForOthers'
   | 'takeThemOn'
   | 'saveLegs'
-  | 'chaseEverything';
+  | 'chaseEverything'
+  | 'shootFromDistance'
+  | 'playAlone'
+  | 'passMore'
+  | 'defendMore'
+  | 'pressHigher';
 
 export const HALF_TIME_INSTRUCTIONS_ORDER: readonly HalfTimeInstructionId[] = [
-  'pushForward', 'holdShape', 'createForOthers', 'takeThemOn', 'saveLegs', 'chaseEverything',
+  'pushForward', 'holdShape', 'createForOthers', 'takeThemOn', 'shootFromDistance',
+  'playAlone', 'passMore', 'defendMore', 'pressHigher', 'saveLegs', 'chaseEverything',
 ];
 
 /**
@@ -40,6 +46,8 @@ export interface HalfTimeEffect {
   involvement: number;
   /** Whether he shoots or looks for somebody better placed. */
   shooting: number;
+  /** Quality of the user's attempts after shot selection; volume is not accuracy. */
+  conversion: number;
   /** How often he is the one who makes the goal. */
   creating: number;
   /** Tackles, blocks, and being where he is supposed to be. */
@@ -55,40 +63,65 @@ export interface HalfTimeEffect {
 export const HALF_TIME_INSTRUCTIONS: Record<HalfTimeInstructionId, HalfTimeEffect> = {
   // Get up there. Somebody has to, and the space behind is the price.
   pushForward: {
-    involvement: 1.3, shooting: 1.25, creating: 1.05, defending: 0.7,
+    involvement: 1.3, shooting: 1.25, conversion: 1.03, creating: 1.05, defending: 0.7,
     fatigue: 1.25, cardRisk: 1.05, injuryRisk: 1.1, variance: 1.15,
   },
   // Hold the shape, see it out, do not be the reason it goes wrong.
   holdShape: {
-    involvement: 0.78, shooting: 0.7, creating: 0.9, defending: 1.35,
+    involvement: 0.78, shooting: 0.7, conversion: 1, creating: 0.9, defending: 1.35,
     fatigue: 0.9, cardRisk: 0.75, injuryRisk: 0.9, variance: 0.8,
   },
   // Stop trying to be the hero and give it to the man who is free.
   createForOthers: {
-    involvement: 1.1, shooting: 0.6, creating: 1.45, defending: 0.95,
+    involvement: 1.1, shooting: 0.6, conversion: 1.05, creating: 1.45, defending: 0.95,
     fatigue: 1.05, cardRisk: 0.95, injuryRisk: 1, variance: 0.95,
   },
   // Run at the full-back until something gives. Something usually does, in one direction
   // or the other.
   takeThemOn: {
-    involvement: 1.2, shooting: 1.15, creating: 1.2, defending: 0.8,
+    involvement: 1.2, shooting: 1.15, conversion: 1.08, creating: 1.2, defending: 0.8,
     fatigue: 1.2, cardRisk: 1.1, injuryRisk: 1.25, variance: 1.4,
   },
   // Nothing stupid, nothing wasted. There is another match on Wednesday.
   saveLegs: {
-    involvement: 0.7, shooting: 0.85, creating: 0.85, defending: 0.85,
+    involvement: 0.7, shooting: 0.85, conversion: 0.98, creating: 0.85, defending: 0.85,
     fatigue: 0.65, cardRisk: 0.7, injuryRisk: 0.7, variance: 0.85,
   },
   // Every ball, every second ball, every lost cause.
   chaseEverything: {
-    involvement: 1.15, shooting: 0.95, creating: 1, defending: 1.25,
+    involvement: 1.15, shooting: 0.95, conversion: 0.96, creating: 1, defending: 1.25,
     fatigue: 1.45, cardRisk: 1.35, injuryRisk: 1.3, variance: 1.1,
+  },
+  // More shots, including the low-percentage ones the normal match model declines.
+  shootFromDistance: {
+    involvement: 1.12, shooting: 1.75, conversion: 0.74, creating: 0.68, defending: 0.85,
+    fatigue: 1.08, cardRisk: 1, injuryRisk: 1, variance: 1.3,
+  },
+  // Demand the ball and solve the action yourself. High ceiling, low team contribution.
+  playAlone: {
+    involvement: 1.42, shooting: 1.42, conversion: 0.94, creating: 0.5, defending: 0.66,
+    fatigue: 1.28, cardRisk: 1.12, injuryRisk: 1.18, variance: 1.48,
+  },
+  // Recycle possession and look for the next man rather than forcing the finish.
+  passMore: {
+    involvement: 1.2, shooting: 0.42, conversion: 1.08, creating: 1.65, defending: 1,
+    fatigue: 1.02, cardRisk: 0.85, injuryRisk: 0.95, variance: 0.82,
+  },
+  // Stay goal-side, contest more defensive phases, and sacrifice attacking presence.
+  defendMore: {
+    involvement: 0.86, shooting: 0.5, conversion: 0.92, creating: 0.72, defending: 1.62,
+    fatigue: 1.14, cardRisk: 1.18, injuryRisk: 1.05, variance: 0.86,
+  },
+  // Engage earlier and more often. It can win the ball high, but carries a real cost.
+  pressHigher: {
+    involvement: 1.22, shooting: 0.92, conversion: 0.96, creating: 1.02, defending: 1.48,
+    fatigue: 1.58, cardRisk: 1.42, injuryRisk: 1.3, variance: 1.12,
   },
 };
 
 /** No instruction at all: the second half plays exactly like the first. */
 export const NO_INSTRUCTION: HalfTimeEffect = {
-  involvement: 1, shooting: 1, creating: 1, defending: 1,
+  involvement: 1, shooting: 1, conversion: 1, creating: 1, defending: 1,
   fatigue: 1, cardRisk: 1, injuryRisk: 1, variance: 1,
 };
 
@@ -124,15 +157,15 @@ export function managerDemand(
   if (userRating < 6.2) return rng.chance(0.6) ? 'chaseEverything' : 'holdShape';
   if (scoreDiff <= -1) {
     if (group === 'DEF' || group === 'GK') return rng.chance(0.5) ? 'holdShape' : 'pushForward';
-    return rng.chance(0.65) ? 'pushForward' : 'takeThemOn';
+    return rng.chance(0.45) ? 'pushForward' : rng.chance(0.5) ? 'takeThemOn' : 'pressHigher';
   }
   if (scoreDiff >= 1) {
     if (group === 'ATT') return rng.chance(0.5) ? 'createForOthers' : 'holdShape';
     return rng.chance(0.7) ? 'holdShape' : 'saveLegs';
   }
-  if (group === 'ATT') return rng.chance(0.5) ? 'takeThemOn' : 'createForOthers';
-  if (group === 'MID') return rng.chance(0.5) ? 'pushForward' : 'chaseEverything';
-  return rng.chance(0.6) ? 'holdShape' : 'chaseEverything';
+  if (group === 'ATT') return rng.chance(0.45) ? 'takeThemOn' : rng.chance(0.5) ? 'shootFromDistance' : 'passMore';
+  if (group === 'MID') return rng.chance(0.4) ? 'pushForward' : rng.chance(0.5) ? 'pressHigher' : 'passMore';
+  return rng.chance(0.5) ? 'holdShape' : rng.chance(0.5) ? 'defendMore' : 'chaseEverything';
 }
 
 /**
@@ -140,9 +173,10 @@ export function managerDemand(
  * the full-back, and a defender is not told to play for others in the final third.
  */
 export function instructionsFor(group: PositionGroup): HalfTimeInstructionId[] {
-  if (group === 'GK') return ['holdShape', 'saveLegs', 'chaseEverything'];
-  if (group === 'DEF') return ['holdShape', 'pushForward', 'chaseEverything', 'saveLegs'];
-  return [...HALF_TIME_INSTRUCTIONS_ORDER];
+  if (group === 'GK') return ['holdShape', 'passMore', 'saveLegs'];
+  if (group === 'DEF') return ['holdShape', 'defendMore', 'pressHigher', 'passMore', 'pushForward', 'saveLegs'];
+  if (group === 'MID') return ['passMore', 'pressHigher', 'pushForward', 'shootFromDistance', 'defendMore', 'takeThemOn', 'saveLegs'];
+  return ['takeThemOn', 'shootFromDistance', 'playAlone', 'passMore', 'pressHigher', 'pushForward', 'saveLegs'];
 }
 
 /**

@@ -232,3 +232,89 @@ test('shows one slow-motion goal replay and removes its label before play resume
     return rect.top >= 0 && rect.bottom <= window.innerHeight;
   })).toBe(true);
 });
+
+test('applies a coach camp assignment and opens the selected training focus', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('Camp');
+  await page.getByLabel('Last name').fill('Action');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    const messageId = 'msg_e2e_camp_action';
+    state.flags[`campRecommendedFocus:${state.world.season}`] = 'physical';
+    state.inbox.unshift({
+      id: messageId, season: state.world.season, week: state.world.week,
+      category: 'manager', titleKey: 'inbox.trainingCampFeedback.1', read: false,
+      args: {
+        rating: '7.2', strength: 'skill.technique', weakness: 'skill.physical',
+        focus: 'train.focus.physical',
+      },
+      action: { type: 'setTrainingFocus', focus: 'physical' },
+    });
+    game.setState({ state, pendingNews: [messageId] });
+  });
+
+  await page.getByRole('button', { name: 'Apply plan and open training' }).click();
+  await expect(page.getByRole('heading', { name: 'Training' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Physical' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('Coach assignment')).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('shows a penalty announcement on the pitch before the kick', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('Penalty');
+  await page.getByLabel('Last name').fill('Test');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    const player = state.player;
+    const homeClubId = player.clubId as string;
+    const awayClubId = Object.keys(state.world.clubs).find((id) => id !== homeClubId) as string;
+    const match = {
+      id: 'e2e_penalty_match', season: state.world.season, week: state.world.week,
+      competitionId: 'friendly', homeClubId, awayClubId, homeGoals: 0, awayGoals: 0,
+      detailLevel: 1, importance: 'friendly',
+      userLine: {
+        played: true, started: true, minutes: 90, position: player.primaryPos,
+        goals: 0, assists: 0, shots: 0, keyPasses: 0, tackles: 0, saves: 0,
+        yellow: 0, red: 0, rating: 6.5, motm: false,
+      },
+      events: [{
+        minute: 0, type: 'penaltyAwarded', byUser: false, forUserTeam: true,
+        detailKey: 'match.event.penaltyFor',
+      }],
+    };
+    state.lastMatch = match;
+    state.matchLog = [match, ...state.matchLog];
+    game.setState({
+      state, screen: 'match', focusMatchId: match.id, liveMatchId: match.id, liveFromMinute: 0,
+    });
+  });
+
+  const incident = page.locator('.incident-splash');
+  await expect(page.getByText('PENALTY FOR US')).toBeVisible({ timeout: 2_000 });
+  await expect.poll(async () => page.evaluate(() => {
+    const pitch = document.querySelector('.pitch-wrap')!.getBoundingClientRect();
+    const overlay = document.querySelector('.incident-splash')!.getBoundingClientRect();
+    return overlay.top >= pitch.top - 1 && overlay.bottom <= pitch.bottom + 1
+      && overlay.left >= pitch.left - 1 && overlay.right <= pitch.right + 1;
+  })).toBe(true);
+  await expect(incident).toBeVisible();
+});

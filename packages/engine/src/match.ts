@@ -154,15 +154,18 @@ interface HalfState {
   /** Dismissals elsewhere on the pitch alter every later chance. */
   userTeamRedAt?: number;
   opponentRedAt?: number;
+  /** A forced change takes some structure and quality out of the side that suffered it. */
+  userTeamInjuryAt?: number;
+  opponentInjuryAt?: number;
 }
 
 type MatchMoment =
   | { minute: number; order: number; kind: 'chance'; chance: Chance }
-  | { minute: number; order: number; kind: 'penalty' }
+  | { minute: number; order: number; kind: 'penalty'; forUser: boolean }
   | { minute: number; order: number; kind: 'yellow' | 'secondYellow' | 'straightRed' | 'injury' }
-  | { minute: number; order: number; kind: 'teamRed' | 'opponentRed' | 'teamSub' | 'opponentSub' };
+  | { minute: number; order: number; kind: 'teamYellow' | 'opponentYellow' | 'teamRed' | 'opponentRed' | 'teamInjury' | 'opponentInjury' | 'teamSub' | 'opponentSub' };
 
-const CONVERSION_BASE = 0.115;
+const CONVERSION_BASE = 0.086;
 
 /**
  * Chance-based simulation, used only for matches the user is involved in.
@@ -182,7 +185,9 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
   const userXg = expectedGoals(userSquadRating, oppRating, userHome);
   const oppXg = expectedGoals(oppRating, userSquadRating, !userHome);
 
-  const totalChances = clamp(Math.round((userXg + oppXg) * 4.2 + rng.range(-2, 2)), 6, 22);
+  // A real match contains far more than the goals. These are credible attempts and
+  // dangerous set pieces; conversion is reduced in step so scorelines do not inflate.
+  const totalChances = clamp(Math.round((userXg + oppXg) * 6.2 + rng.range(-2, 3)), 10, 28);
   const userShare = userXg / (userXg + oppXg);
   const userChances = clamp(Math.round(totalChances * userShare), 1, totalChances - 1);
   const oppChances = totalChances - userChances;
@@ -317,6 +322,7 @@ function buildResult(
     awayGoals,
     detailLevel: 1,
     importance,
+    ...(ctx.instruction ? { instruction: ctx.instruction } : {}),
     userLine: half.line,
     events: half.events.slice().sort((a, b) => a.minute - b.minute),
   };
@@ -345,11 +351,20 @@ function playHalf(
   // A penalty is a team event. The designated taker takes it only when present at that
   // exact minute; otherwise a teammate steps up. Its likelihood no longer depends on
   // whether a substitute happened to play in the other half.
-  if (rng.chance(0.0375)) {
+  if (rng.chance(0.055)) {
     moments.push({
-      minute: rng.int(which === 1 ? 6 : 46, which === 1 ? 45 : 90),
+      minute: rng.int(which === 1 ? 6 : 46, which === 1 ? 44 : 89),
       order: 30,
       kind: 'penalty',
+      forUser: true,
+    });
+  }
+  if (rng.chance(0.055)) {
+    moments.push({
+      minute: rng.int(which === 1 ? 6 : 46, which === 1 ? 44 : 89),
+      order: 31,
+      kind: 'penalty',
+      forUser: false,
     });
   }
 
@@ -397,6 +412,38 @@ function playHalf(
       kind: rng.chance(0.5) ? 'teamRed' : 'opponentRed',
     });
   }
+  // Bookings elsewhere matter to the picture of the match even when the user's own
+  // disciplinary line is untouched. About two to three yellows per match is typical.
+  for (let i = 0; i < Math.min(2, poisson(rng, 0.58)); i++) {
+    moments.push({
+      minute: rng.int(which === 1 ? 8 : 47, which === 1 ? 44 : 89),
+      order: 14 + i,
+      kind: 'teamYellow',
+    });
+  }
+  for (let i = 0; i < Math.min(2, poisson(rng, 0.58)); i++) {
+    moments.push({
+      minute: rng.int(which === 1 ? 8 : 47, which === 1 ? 44 : 89),
+      order: 16 + i,
+      kind: 'opponentYellow',
+    });
+  }
+  // Teammates and opponents can also be forced off. These incidents change later
+  // chance quality slightly, so they are match state rather than decorative copy.
+  if (rng.chance(0.026)) {
+    moments.push({
+      minute: rng.int(which === 1 ? 10 : 48, which === 1 ? 43 : 82),
+      order: 22,
+      kind: 'teamInjury',
+    });
+  }
+  if (rng.chance(0.026)) {
+    moments.push({
+      minute: rng.int(which === 1 ? 10 : 48, which === 1 ? 43 : 82),
+      order: 23,
+      kind: 'opponentInjury',
+    });
+  }
   if (which === 2) {
     moments.push({ minute: rng.int(56, 76), order: 40, kind: 'teamSub' });
     moments.push({ minute: rng.int(58, 80), order: 41, kind: 'opponentSub' });
@@ -414,14 +461,14 @@ function playHalf(
         }
         break;
       case 'penalty':
-        resolvePenalty(rng, ctx, setup, half, moment.minute, userOnPitch);
+        resolvePenalty(rng, ctx, setup, half, moment.minute, userOnPitch, moment.forUser);
         break;
       case 'yellow':
         if (!userOnPitch) break;
         line.yellow++;
         half.events.push({
           minute: moment.minute, type: 'yellow', playerId: ctx.user.id,
-          byUser: true, detailKey: 'match.event.yellow',
+          byUser: true, forUserTeam: true, detailKey: 'match.event.yellow',
         });
         break;
       case 'secondYellow':
@@ -441,16 +488,54 @@ function playHalf(
         half.userTeamRedAt = moment.minute;
         half.events.push({
           minute: moment.minute, type: 'red', byUser: false,
-          detailKey: 'match.event.teamRed',
+          forUserTeam: true, detailKey: 'match.event.teamRed',
         });
         break;
       case 'opponentRed':
         half.opponentRedAt = moment.minute;
         half.events.push({
           minute: moment.minute, type: 'red', byUser: false,
-          detailKey: 'match.event.opponentRed',
+          forUserTeam: false, detailKey: 'match.event.opponentRed',
         });
         break;
+      case 'teamYellow': {
+        const booked = randomLineupPlayer(rng, ctx, true);
+        half.events.push({
+          minute: moment.minute, type: 'yellow', byUser: false, forUserTeam: true,
+          ...(booked ? { playerId: booked.id } : {}),
+          detailKey: 'match.event.teamYellow',
+        });
+        break;
+      }
+      case 'opponentYellow': {
+        const booked = randomLineupPlayer(rng, ctx, false);
+        half.events.push({
+          minute: moment.minute, type: 'yellow', byUser: false, forUserTeam: false,
+          ...(booked ? { playerId: booked.id } : {}),
+          detailKey: 'match.event.opponentYellow',
+        });
+        break;
+      }
+      case 'teamInjury': {
+        const injured = randomLineupPlayer(rng, ctx, true);
+        half.userTeamInjuryAt = moment.minute;
+        half.events.push({
+          minute: moment.minute, type: 'injury', byUser: false, forUserTeam: true,
+          ...(injured ? { playerId: injured.id } : {}),
+          detailKey: 'match.event.teamInjury',
+        });
+        break;
+      }
+      case 'opponentInjury': {
+        const injured = randomLineupPlayer(rng, ctx, false);
+        half.opponentInjuryAt = moment.minute;
+        half.events.push({
+          minute: moment.minute, type: 'injury', byUser: false, forUserTeam: false,
+          ...(injured ? { playerId: injured.id } : {}),
+          detailKey: 'match.event.opponentInjury',
+        });
+        break;
+      }
       case 'teamSub':
         half.events.push({
           minute: moment.minute, type: 'sub-on', byUser: false,
@@ -509,7 +594,7 @@ function dismissUser(ctx: UserMatchContext, half: HalfState, minute: number, det
   half.userSentOffAt = minute;
   half.userUnavailableAt = Math.min(half.userUnavailableAt ?? 90, minute);
   half.events.push({
-    minute, type: 'red', playerId: ctx.user.id, byUser: true, detailKey,
+    minute, type: 'red', playerId: ctx.user.id, byUser: true, forUserTeam: true, detailKey,
   });
 }
 
@@ -520,7 +605,7 @@ function injureUser(ctx: UserMatchContext, half: HalfState, minute: number): voi
   half.line.offMinute = minute;
   half.events.push({
     minute, type: 'injury', playerId: ctx.user.id,
-    byUser: true, detailKey: 'match.event.userInjured',
+    byUser: true, forUserTeam: true, detailKey: 'match.event.userInjured',
   });
   half.events.push({
     minute, type: 'sub-off', playerId: ctx.user.id,
@@ -535,35 +620,64 @@ function resolvePenalty(
   half: HalfState,
   minute: number,
   userOnPitch: boolean,
+  forUserTeam: boolean,
 ): void {
-  const taker = ctx.penaltyTaker && userOnPitch
-    ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
-    : rng.weighted(setup.attackers, (candidate) => attackWeight(candidate.player, candidate.slot));
-  if (!taker) return;
-
-  const byUser = taker.player.id === ctx.user.id;
-  const nerve = taker.player.attributes.composure * 0.45 + taker.player.attributes.finishing * 0.55;
+  half.events.push({
+    minute, type: 'penaltyAwarded', byUser: false, forUserTeam,
+    detailKey: forUserTeam ? 'match.event.penaltyFor' : 'match.event.penaltyAgainst',
+  });
+  const selectedOpponent = rng.weighted(
+    ctx.opponentStars,
+    (candidate) => attackWeight(candidate, candidate.primaryPos),
+  );
+  const taker = forUserTeam
+    ? ctx.penaltyTaker && userOnPitch
+      ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
+      : rng.weighted(setup.attackers, (candidate) => attackWeight(candidate.player, candidate.slot))
+    : selectedOpponent
+      ? { player: selectedOpponent, slot: selectedOpponent.primaryPos }
+      : null;
+  const byUser = Boolean(forUserTeam && taker?.player.id === ctx.user.id);
+  const nerve = taker
+    ? taker.player.attributes.composure * 0.45 + taker.player.attributes.finishing * 0.55
+    : forUserTeam ? setup.userDefenceRating : setup.oppDefenceRating;
   if (byUser) half.line.shots++;
+  const outcomeMinute = Math.min(90, minute + 1);
   if (rng.chance(clamp(0.6 + nerve / 300 + (byUser ? (ctx.mental - 1) * 0.25 : 0), 0.45, 0.95))) {
-    half.userGoals++;
+    if (forUserTeam) half.userGoals++;
+    else half.oppGoals++;
     if (byUser) half.line.goals++;
     half.events.push({
-      minute,
+      minute: outcomeMinute,
       type: 'penaltyScored',
-      playerId: taker.player.id,
+      ...(taker ? { playerId: taker.player.id } : {}),
       byUser,
-      detailKey: byUser ? 'match.event.penaltyScored' : 'match.event.teamPenaltyScored',
+      forUserTeam,
+      detailKey: forUserTeam
+        ? byUser ? 'match.event.penaltyScored' : 'match.event.teamPenaltyScored'
+        : 'match.event.opponentPenaltyScored',
       score: setup.userHome ? [half.userGoals, half.oppGoals] : [half.oppGoals, half.userGoals],
     });
   } else {
     half.events.push({
-      minute,
+      minute: outcomeMinute,
       type: 'penaltyMissed',
-      playerId: taker.player.id,
+      ...(taker ? { playerId: taker.player.id } : {}),
       byUser,
-      detailKey: byUser ? 'match.event.penaltyMissed' : 'match.event.teamPenaltyMissed',
+      forUserTeam,
+      detailKey: forUserTeam
+        ? byUser ? 'match.event.penaltyMissed' : 'match.event.teamPenaltyMissed'
+        : 'match.event.opponentPenaltyMissed',
     });
   }
+}
+
+/** A named participant for a card or injury overlay, from the actual match register. */
+function randomLineupPlayer(rng: Rng, ctx: UserMatchContext, userTeam: boolean): Player | null {
+  if (!userTeam) return ctx.opponentStars.length > 0 ? rng.pick(ctx.opponentStars) : null;
+  const starters = new Set(ctx.lineup.starters.map((slot) => slot.playerId));
+  const players = ctx.userClubSquad.filter((player) => player.id !== ctx.user.id && starters.has(player.id));
+  return players.length > 0 ? rng.pick(players) : null;
 }
 
 function resolveUserChance(
@@ -606,13 +720,16 @@ function resolveUserChance(
   const numerical = userRed ? 0.82 : opponentRed ? 1.17 : 1;
   const setPieceConversion = source === 'corner' ? 0.68 : source === 'freeKick' ? 0.76 : 1;
   const freshLegs = minute >= 56 ? setup.userSecondHalfEnergy : 1;
+  const injuryShape = half.userTeamInjuryAt !== undefined && minute >= half.userTeamInjuryAt ? 0.94 : 1;
   const p = clamp(
     CONVERSION_BASE
       * (0.5 + logistic((quality - resistance) / 12) * 1.6)
       * scoreStateAttackFactor(half.userGoals - half.oppGoals, minute)
       * numerical
       * setPieceConversion
-      * freshLegs,
+      * freshLegs
+      * injuryShape
+      * (isUser ? mods.conversion : 1),
     0.025,
     0.55,
   );
@@ -733,13 +850,15 @@ function resolveOpponentChance(
   const numericalAdvantage = userRed ? 1.18 : opponentRed ? 0.82 : 1;
   const setPieceConversion = source === 'corner' ? 0.7 : source === 'freeKick' ? 0.78 : 1;
   const freshLegs = minute >= 56 ? setup.oppSecondHalfEnergy : 1;
+  const injuryShape = half.opponentInjuryAt !== undefined && minute >= half.opponentInjuryAt ? 0.94 : 1;
   const p = clamp(
     CONVERSION_BASE
       * (0.5 + logistic((shooterRating - resistance) / 12) * 1.6)
       * scoreStateAttackFactor(half.oppGoals - half.userGoals, minute)
       * numericalAdvantage
       * setPieceConversion
-      * freshLegs,
+      * freshLegs
+      * injuryShape,
     0.03,
     0.55,
   );
@@ -942,7 +1061,7 @@ function addBroadcastEvents(
 
   // Outcome-derived chance events now carry most of the broadcast. A few quieter beats
   // preserve the rhythm between them without drowning the player in invented action.
-  const count = rng.int(2, 4);
+  const count = rng.int(5, 8);
   const used = new Set(events.filter((e) => e.ambient && e.detailKey).map((e) => e.detailKey!));
   for (let i = 0; i < count; i++) {
     const minute = rng.int(start, end);

@@ -207,6 +207,8 @@ interface GameStore {
   acceptOffer: (offerId: string) => void;
   signAgent: (agentId: string) => void;
   updateTraining: (plan: Partial<TrainingPlan>) => void;
+  /** Carry out a task attached to an inbox message and open the screen where it lives. */
+  applyInboxAction: (messageId: string) => void;
   retire: () => void;
   markInboxRead: () => void;
   /** The message being read, like opening one in a mail app. */
@@ -680,6 +682,30 @@ export const useGame = create<GameStore>((set, get) => ({
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({ state: { ...state } });
+  },
+
+  applyInboxAction(messageId) {
+    const { state, pendingNews, screen, trail } = get();
+    if (!state) return;
+    const message = state.inbox.find((entry) => entry.id === messageId);
+    if (!message?.action) return;
+
+    if (message.action.type === 'setTrainingFocus') {
+      engineSetTraining(state, { focus: message.action.focus });
+      state.flags[`campAppliedFocus:${state.world.season}`] = message.action.focus;
+    }
+    message.read = true;
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+
+    rememberScreen('train');
+    set({
+      state: { ...state },
+      screen: 'train',
+      trail: screen === 'train' ? trail : [...trail, screen].slice(-10),
+      pendingNews: pendingNews.filter((id) => id !== messageId),
+      openMessageId: null,
+    });
   },
 
   retire() {

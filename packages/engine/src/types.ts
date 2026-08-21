@@ -314,7 +314,7 @@ export interface MatchEvent {
   minute: number;
   type:
     | 'goal' | 'assist' | 'miss' | 'save' | 'concede' | 'keyPass' | 'tackle' | 'blockedShot'
-    | 'yellow' | 'red' | 'injury' | 'sub-on' | 'sub-off' | 'penaltyScored' | 'penaltyMissed'
+    | 'yellow' | 'red' | 'injury' | 'sub-on' | 'sub-off' | 'penaltyAwarded' | 'penaltyScored' | 'penaltyMissed'
     // Broadcast colour: things that happen in a game without changing the score.
     | 'kickOff' | 'halfTime' | 'fullTime' | 'corner' | 'freeKick' | 'offside'
     | 'chance' | 'woodwork' | 'oppMiss';
@@ -322,6 +322,8 @@ export interface MatchEvent {
   byUser: boolean;
   detailKey?: string;
   score?: [number, number];
+  /** Which side the incident belongs to when `byUser` alone cannot say it. */
+  forUserTeam?: boolean;
   /** Colour for the live broadcast; left out of the written match report. */
   ambient?: boolean;
 }
@@ -337,6 +339,10 @@ export interface MatchResult {
   awayGoals: number;
   detailLevel: 1 | 2 | 3;
   importance?: MatchImportance;
+  /** The instruction that genuinely shaped the second half, when one was chosen. */
+  instruction?:
+    | 'pushForward' | 'holdShape' | 'createForOthers' | 'takeThemOn' | 'saveLegs' | 'chaseEverything'
+    | 'shootFromDistance' | 'playAlone' | 'passMore' | 'defendMore' | 'pressHigher';
   /** Only present for detail level 1 (matches the user was involved in). */
   userLine?: UserMatchLine;
   /**
@@ -613,6 +619,11 @@ export interface InboxMessage {
   args?: Record<string, string | number>;
   read: boolean;
   decisionId?: string;
+  /** A concrete task offered by the sender, not merely prose that looks actionable. */
+  action?: {
+    type: 'setTrainingFocus';
+    focus: TrainingFocus;
+  };
 }
 
 export interface NewsItem {

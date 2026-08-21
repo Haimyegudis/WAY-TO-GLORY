@@ -725,6 +725,21 @@ export function milestoneById(id: MilestoneId): MilestoneQuestion | undefined {
 }
 
 /**
+ * Which editorial version this career hears.
+ *
+ * A milestone is normally rare, but a restarted career or a derby next season must not
+ * read like the same recorded interview. The choice is deterministic so loading a save
+ * cannot reroll the wording or the answer order.
+ */
+export function milestoneCopyVariant(
+  state: Pick<CareerState, 'careerSeed' | 'world'>,
+  id: MilestoneId,
+): 1 | 2 | 3 {
+  const topic = [...id].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return (Math.abs(state.careerSeed + state.world.season * 37 + state.world.week * 13 + topic) % 3 + 1) as 1 | 2 | 3;
+}
+
+/**
  * Applying the answer. Everything named in it moves in the direction it is written -
  * these are trades, so several of the numbers go down.
  *

@@ -13,7 +13,7 @@ import { YOUTH_MAX_AGE, countryLeagues, userYouthCompetition, userYouthCompetiti
 import { YOUTH_SQUAD_SIZE, generateYouthSquad, youthSquad } from '../src/youth-squads.js';
 import { HALF_TIME_INSTRUCTIONS, instructionsFor, managerDemand, managerDictates } from '../src/halftime.js';
 import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
-import { MILESTONES, applyMilestoneAnswer, milestoneById } from '../src/milestones.js';
+import { MILESTONES, applyMilestoneAnswer, milestoneById, milestoneCopyVariant } from '../src/milestones.js';
 import {
   MENTORS,
   MENTOR_COOLDOWN_WEEKS,
@@ -364,6 +364,31 @@ describe('save', () => {
     const envelope = JSON.parse(serialize(state));
     envelope.schemaVersion = 999;
     expect(() => deserialize(JSON.stringify(envelope))).toThrow(/newer version/);
+  });
+
+  it('removes an already-saved new-shirt interview after the debut was answered', () => {
+    const { state } = startedCareer();
+    const season = state.world.season;
+    const decisionId = `milestone_firstAfterTransfer_${season}_${state.world.week}`;
+    state.flags[`asked:debut:${season}`] = true;
+    state.pendingDecisions.push({
+      id: decisionId,
+      kind: 'event',
+      eventId: 'milestone:firstAfterTransfer',
+      category: 'media',
+      textKey: 'milestone.firstAfterTransfer',
+      options: [],
+      blocking: true,
+    });
+    state.inbox.unshift({
+      id: 'duplicate_new_shirt', season, week: state.world.week, category: 'media',
+      titleKey: 'milestone.firstAfterTransfer', read: false, decisionId,
+    });
+
+    const restored = deserialize(serialize(state));
+    expect(restored.flags[`asked:firstAfterTransfer:${season}`]).toBe(true);
+    expect(restored.pendingDecisions.some((decision) => decision.id === decisionId)).toBe(false);
+    expect(restored.inbox.some((message) => message.id === 'duplicate_new_shirt')).toBe(false);
   });
 });
 
@@ -785,6 +810,11 @@ describe('pre-season camp', () => {
     expect(camp).toHaveLength(3);
     expect(camp.every((match) => match.userLine?.played)).toBe(true);
     expect(state.flags[`campVerdict:${state.world.season}`]).toBeTruthy();
+    const feedback = state.inbox.find((message) => message.titleKey === 'inbox.trainingCampFeedback.1');
+    expect(feedback?.action).toEqual({
+      type: 'setTrainingFocus',
+      focus: state.flags[`campRecommendedFocus:${state.world.season}`],
+    });
   });
 
   it('evaluates a new senior in three friendlies before competitive football', () => {
@@ -914,7 +944,35 @@ describe('pre-match chronology', () => {
     advanceWeek(state, index);
 
     expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:bigMatch')).toBe(false);
-    expect(state.inbox.some((message) => message.titleKey.startsWith('inbox.buildUp.'))).toBe(false);
+    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.cupFinal')).toBe(false);
+  });
+
+  it('announces a youth derby before the academy fixture is played', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 8104 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+    state.pendingDecisions = [];
+    state.inbox = [];
+    state.world.week = 12;
+
+    const club = state.world.clubs[clubId]!;
+    const youthCompetition = userYouthCompetition(state)!;
+    const derby = youthCompetition.fixtures.find(
+      (fixture) => fixture.homeClubId === clubId || fixture.awayClubId === clubId,
+    )!;
+    const opponentId = derby.homeClubId === clubId ? derby.awayClubId : derby.homeClubId;
+    club.rivals = Array.from(new Set([...(club.rivals ?? []), opponentId]));
+    state.world.clubs[opponentId]!.city = club.city ?? 'Test Derby City';
+    club.city = state.world.clubs[opponentId]!.city;
+    for (const fixture of youthCompetition.fixtures) fixture.played = fixture !== derby;
+    derby.week = state.world.week;
+    derby.played = false;
+
+    const result = advanceWeek(state, index);
+    expect(result.stopped).toBe('decision');
+    expect(derby.played).toBe(false);
+    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.youth.derby')).toBe(true);
+    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:derby')).toBe(true);
   });
 });
 
@@ -1225,6 +1283,65 @@ describe('half time', () => {
     // Different orders produce different second halves; the same seed, the same first.
     expect(forward.halfTimeScore).toEqual(legs.halfTimeScore);
     expect(forward.fatigueFactor).toBeGreaterThan(legs.fatigueFactor);
+    expect(forward.result.instruction).toBe('pushForward');
+    expect(legs.result.instruction).toBe('saveLegs');
+  });
+
+  it('makes the expanded instructions change the actions the player performs', () => {
+    const ctx = matchContext();
+    const totals = (instruction: keyof typeof HALF_TIME_INSTRUCTIONS) => {
+      const sum = { shots: 0, keyPasses: 0, tackles: 0, fatigue: 0 };
+      for (let seed = 1; seed <= 240; seed++) {
+        const outcome = simulateUserMatch(new Rng(seed), { ...ctx, instruction });
+        sum.shots += outcome.line.shots;
+        sum.keyPasses += outcome.line.keyPasses + outcome.line.assists;
+        sum.tackles += outcome.line.tackles;
+        sum.fatigue += outcome.fatigueFactor;
+      }
+      return sum;
+    };
+    const shooting = totals('shootFromDistance');
+    const passing = totals('passMore');
+    const defending = totals('defendMore');
+    const solo = totals('playAlone');
+    const pressing = totals('pressHigher');
+
+    expect(shooting.shots).toBeGreaterThan(passing.shots);
+    expect(passing.keyPasses).toBeGreaterThan(solo.keyPasses);
+    expect(defending.tackles).toBeGreaterThan(solo.tackles);
+    expect(pressing.fatigue).toBeGreaterThan(defending.fatigue);
+  });
+
+  it('produces a full match stream with named cards, injuries and announced penalties', () => {
+    const base = matchContext();
+    const ctx = { ...base, opponentStars: base.userClubSquad.filter((player) => player.id !== base.user.id) };
+    let events = 0;
+    let matches = 0;
+    let yellowFor = false;
+    let yellowAgainst = false;
+    let namedInjury = false;
+    let announcedPenalty = false;
+    for (let seed = 1; seed <= 500; seed++) {
+      const outcome = simulateUserMatch(new Rng(seed), ctx);
+      events += outcome.events.length;
+      matches++;
+      yellowFor ||= outcome.events.some((event) => event.type === 'yellow' && event.forUserTeam === true);
+      yellowAgainst ||= outcome.events.some((event) => event.type === 'yellow' && event.forUserTeam === false);
+      namedInjury ||= outcome.events.some((event) => event.type === 'injury' && Boolean(event.playerId));
+      for (const event of outcome.events.filter((entry) => entry.type === 'penaltyAwarded')) {
+        const resolved = outcome.events.find(
+          (entry) => entry.minute === event.minute + 1
+            && (entry.type === 'penaltyScored' || entry.type === 'penaltyMissed')
+            && entry.forUserTeam === event.forUserTeam,
+        );
+        if (resolved) announcedPenalty = true;
+      }
+    }
+    expect(events / matches).toBeGreaterThan(22);
+    expect(yellowFor).toBe(true);
+    expect(yellowAgainst).toBe(true);
+    expect(namedInjury).toBe(true);
+    expect(announcedPenalty).toBe(true);
   });
 
   it('keeps score snapshots chronological', () => {
@@ -1482,13 +1599,18 @@ describe('half time', () => {
     const rng = new Rng(5);
     const losing = Array.from({ length: 40 }, () => managerDemand(rng, -1, 6.8, 'ATT'));
     const winning = Array.from({ length: 40 }, () => managerDemand(rng, 2, 6.8, 'MID'));
-    expect(losing.every((id) => id === 'pushForward' || id === 'takeThemOn')).toBe(true);
+    expect(losing.every((id) => id === 'pushForward' || id === 'takeThemOn' || id === 'pressHigher')).toBe(true);
     expect(winning.every((id) => id === 'holdShape' || id === 'saveLegs')).toBe(true);
   });
 
   it('does not ask a goalkeeper to run at the full-back', () => {
     expect(instructionsFor('GK')).not.toContain('takeThemOn');
     expect(instructionsFor('ATT')).toContain('takeThemOn');
+    expect(instructionsFor('ATT')).toContain('shootFromDistance');
+    expect(instructionsFor('ATT')).toContain('playAlone');
+    expect(instructionsFor('MID')).toContain('passMore');
+    expect(instructionsFor('DEF')).toContain('defendMore');
+    expect(instructionsFor('DEF')).toContain('pressHigher');
   });
 });
 
@@ -1828,6 +1950,36 @@ describe('the national youth sides', () => {
     expect(nt.interest['ISR'] ?? 0).toBeLessThan(55);
   });
 
+  it('cools national interest during injury and rebuilds it only with recovered form', () => {
+    const { index, player, nt } = boyWithAYouthSeason(52);
+    nt.interest['ISR'] = 78;
+    const update = (availability: { injuredWeeks: number; sharpness: number; fitness: number; form: number }) =>
+      updateNationalInterest({
+        player, age: 19, season: 2026,
+        minutesPct: availability.injuredWeeks > 0 ? 0 : 0.75,
+        clubReputation: 60, leagueReputation: 55,
+        index, nt,
+        ...availability,
+      });
+
+    update({ injuredWeeks: 12, sharpness: 35, fitness: 55, form: 48 });
+    const afterInjury = nt.interest['ISR'] ?? 0;
+    expect(afterInjury).toBeLessThan(78);
+    for (let week = 0; week < 4; week++) {
+      update({ injuredWeeks: 8 - week, sharpness: 35, fitness: 60, form: 44 });
+    }
+    const duringLayoff = nt.interest['ISR'] ?? 0;
+    expect(duringLayoff).toBeLessThan(afterInjury);
+
+    update({ injuredWeeks: 0, sharpness: 38, fitness: 72, form: 45 });
+    const justReturned = nt.interest['ISR'] ?? 0;
+    expect(justReturned).toBeLessThanOrEqual(afterInjury);
+    for (let week = 0; week < 8; week++) {
+      update({ injuredWeeks: 0, sharpness: 86, fitness: 94, form: 76 });
+    }
+    expect(nt.interest['ISR'] ?? 0).toBeGreaterThan(justReturned);
+  });
+
   it('remembers the shirts he wore before the senior one', () => {
     const { state, index } = startedCareer({ seed: 1234 });
     for (let i = 0; i < 52 * 5; i++) {
@@ -1879,6 +2031,16 @@ describe('the old player', () => {
     expect(older).toContain('body');
     expect(older).not.toContain('firstTeam');
     expect(older.length).toBeGreaterThan(3);
+  });
+
+  it('chooses media copy deterministically while varying it between careers', () => {
+    const variants = new Set<number>();
+    for (let seed = 1; seed <= 12; seed++) {
+      const { state } = startedCareer({ seed });
+      variants.add(milestoneCopyVariant(state, 'debut'));
+      expect(milestoneCopyVariant(state, 'debut')).toBe(milestoneCopyVariant(state, 'debut'));
+    }
+    expect(variants.size).toBe(3);
   });
 
   it('offers a different contextual question set at the next conversation', () => {

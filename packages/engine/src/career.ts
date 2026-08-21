@@ -64,6 +64,7 @@ import { negotiate, type ContractAsk, type NegotiationOutcome } from './negotiat
 import {
   applyMilestoneAnswer,
   milestoneById,
+  milestoneCopyVariant,
   milestoneFor,
   occasionMilestone,
   settleClaim,
@@ -155,6 +156,7 @@ import {
   rollCallUp,
   simulateInternationalMatch,
   updateNationalInterest,
+  type CallUpContext,
 } from './national.js';
 import { isEligible, isStoryEvent, pickEvent, toPendingDecision, type EventContext } from './events.js';
 import {
@@ -863,6 +865,7 @@ function pushInbox(
   titleKey: string,
   args?: Record<string, string | number>,
   decisionId?: string,
+  action?: InboxMessage['action'],
 ): void {
   state.inbox.unshift({
     id: `msg_${state.world.season}_${state.world.week}_${state.inbox.length}`,
@@ -873,6 +876,7 @@ function pushInbox(
     ...(args ? { args } : {}),
     read: false,
     ...(decisionId ? { decisionId } : {}),
+    ...(action ? { action } : {}),
   });
   if (state.inbox.length > 80) state.inbox.length = 80;
 }
@@ -1156,9 +1160,13 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
   }
 
-  // 5. National team.
+  // 5. National team. Scouting interest is live every week, not only when an
+  // international window happens to open. Injuries, recovery sharpness, minutes and
+  // form therefore change the number the player sees as they change.
+  const nationalCtx = club ? nationalContextFor(state, index, club) : null;
+  if (nationalCtx) updateNationalInterest(nationalCtx);
   if (INTERNATIONAL_WEEKS.includes(week)) {
-    if (club) handleInternationalWeek(state, index, rng, club);
+    if (club && nationalCtx) handleInternationalWeek(state, index, rng, nationalCtx);
     // Qualifiers run whether or not he is in the squad: his country plays either way,
     // and a table he is not in is still the table that decides his summer.
     playQualifiers(state, index, rng, state.nationalTeam.level === 'senior' && Boolean(club));
@@ -1464,17 +1472,24 @@ function raiseMilestone(
 
   state.flags[askedKey] = true;
   state.flags['lastMediaWeek'] = absolute;
+  // A professional debut at a new club is one human moment, not two interviews with
+  // different internal IDs. Cover the generic new-shirt question when the debut has
+  // already asked what the first appearance meant.
+  if (id === 'debut') state.flags[`asked:firstAfterTransfer:${state.world.season}`] = true;
 
   const club = userClub(state);
   const decisionId = `milestone_${id}_${state.world.season}_${state.world.week}`;
+  const copyVariant = milestoneCopyVariant(state, id);
+  const copySuffix = copyVariant === 1 ? '' : `.v${copyVariant}`;
+  const answers = question.answers.map((answer, index, all) => all[(index + copyVariant - 1) % all.length]!);
   state.pendingDecisions.push({
     id: decisionId,
     kind: 'event',
     eventId: `milestone:${id}`,
     category: 'media',
-    textKey: `milestone.${id}`,
+    textKey: `milestone.${id}${copySuffix}`,
     textArgs: { club: club?.name ?? '', ...(opts.args ?? {}) },
-    options: question.answers.map((answer) => ({
+    options: answers.map((answer) => ({
       id: answer.id,
       labelKey: `milestone.${id}.${answer.id}`,
       // What it will cost him, said before he says it. He is allowed to be reckless;
@@ -1485,7 +1500,7 @@ function raiseMilestone(
     blocking: true,
     expiresWeek: state.world.season * 52 + state.world.week + 2,
   });
-  pushInbox(state, 'media', `milestone.${id}`, { club: club?.name ?? '', ...(opts.args ?? {}) }, decisionId);
+  pushInbox(state, 'media', `milestone.${id}${copySuffix}`, { club: club?.name ?? '', ...(opts.args ?? {}) }, decisionId);
   return true;
 }
 
@@ -1840,7 +1855,7 @@ function resolveGrudgeTarget(state: CareerState, index: PackIndex, against: 'nex
   return fixture.homeClubId === club.id ? fixture.awayClubId : fixture.homeClubId;
 }
 
-type ScheduledMatchSource = 'league' | 'cup' | 'europe';
+type ScheduledMatchSource = 'league' | 'cup' | 'europe' | 'youth';
 
 interface ScheduledUserMatch {
   source: ScheduledMatchSource;
@@ -1862,10 +1877,39 @@ interface ScheduledUserMatch {
  */
 function scheduledUserMatchThisWeek(state: CareerState, index: PackIndex): ScheduledUserMatch | null {
   const club = userClub(state);
-  // Academy players have their own youth calendar. A senior derby or European night is
-  // club news, not their pre-match press conference.
-  if (!club || isAcademyPlayer(state) || state.world.week <= PRESEASON_END_WEEK) return null;
+  if (!club || state.world.week <= PRESEASON_END_WEEK) return null;
   const week = state.world.week;
+
+  // An academy player reads his own Sunday fixture list. This is deliberately resolved
+  // before any senior calendar is inspected: a first-team final belongs to the club,
+  // but it is not his match unless he has actually been promoted into that squad.
+  if (isAcademyPlayer(state)) {
+    const competition = userYouthCompetition(state);
+    const fixture = competition?.fixtures.find(
+      (entry) => !entry.played
+        && entry.week <= week
+        && (entry.homeClubId === club.id || entry.awayClubId === club.id),
+    );
+    if (!competition || !fixture) return null;
+    const opponentId = fixture.homeClubId === club.id ? fixture.awayClubId : fixture.homeClubId;
+    const opponent = state.world.clubs[opponentId];
+    if (!opponent) return null;
+    return {
+      source: 'youth',
+      competitionId: competition.competitionId,
+      homeClubId: fixture.homeClubId,
+      awayClubId: fixture.awayClubId,
+      opponentName: opponent.name,
+      importance: matchImportanceFor(
+        state,
+        index,
+        competition.competitionId,
+        fixture.homeClubId,
+        fixture.awayClubId,
+      ),
+      key: `${state.world.season}:${week}:${competition.competitionId}:${fixture.homeClubId}:${fixture.awayClubId}`,
+    };
+  }
   const matches: ScheduledUserMatch[] = [];
 
   const add = (
@@ -1942,7 +1986,7 @@ function scheduledUserMatchThisWeek(state: CareerState, index: PackIndex): Sched
     }
   }
 
-  const sourcePriority: Record<ScheduledMatchSource, number> = { league: 0, cup: 1, europe: 2 };
+  const sourcePriority: Record<ScheduledMatchSource, number> = { league: 0, cup: 1, europe: 2, youth: 0 };
   return matches.sort((a, b) =>
     importanceWeight(b.importance) - importanceWeight(a.importance)
       || sourcePriority[b.source] - sourcePriority[a.source],
@@ -1998,6 +2042,9 @@ function raisePreMatchEvent(
   rng: Rng,
   match: ScheduledUserMatch,
 ): boolean {
+  // Youth matches get one coherent pre-match interaction through their occasion
+  // milestone. Senior-only dressing-room dilemmas must not leak into the academy.
+  if (match.source === 'youth') return false;
   const checkedKey = `preMatchEvent:${match.key}`;
   if (state.flags[checkedKey]) return false;
   state.flags[checkedKey] = true;
@@ -2049,8 +2096,11 @@ function announceBigMatch(state: CareerState, match: ScheduledUserMatch | null):
   if (state.flags['lastBigMatch'] === announced) return match.importance;
   state.flags['lastBigMatch'] = announced;
 
-  pushInbox(state, 'club', `inbox.buildUp.${match.importance}`, { opponent: match.opponentName });
-  pushNews(state, `news.buildUp.${match.importance}`, {
+  const level = match.source === 'youth' ? 'youth.' : '';
+  pushInbox(state, match.source === 'youth' ? 'manager' : 'club', `inbox.buildUp.${level}${match.importance}`, {
+    opponent: match.opponentName,
+  });
+  pushNews(state, `news.buildUp.${level}${match.importance}`, {
     club: club.name,
     opponent: match.opponentName,
   }, 'high');
@@ -2113,7 +2163,10 @@ export function importanceWeight(importance: MatchImportance): number {
 
 function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, club: Club | null): MatchResult | null {
   const week = state.world.week;
-  const userCompId = club?.competitionId ?? null;
+  // Senior football is simulated as club-world football while the player is in the
+  // academy. It becomes a user match only after he is genuinely in the senior squad.
+  const seniorClub = club && !isAcademyPlayer(state) ? club : null;
+  const userCompId = seniorClub?.competitionId ?? null;
   const resumedMatchId = state.pendingHalfTime?.matchId;
   let userResult: MatchResult | null = null;
 
@@ -2132,7 +2185,8 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
     for (const fixture of compState.fixtures) {
       if (fixture.played || fixture.week > week) continue;
 
-      const involvesUser = club !== null && (fixture.homeClubId === club.id || fixture.awayClubId === club.id);
+      const involvesUser = seniorClub !== null
+        && (fixture.homeClubId === seniorClub.id || fixture.awayClubId === seniorClub.id);
       if (involvesUser) {
         const importance = matchImportanceFor(state, index, competition.id, fixture.homeClubId, fixture.awayClubId);
         const result = playUserMatch(state, index, rng, fixture.homeClubId, fixture.awayClubId, competition.id, importance);
@@ -2163,8 +2217,8 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
   }
 
   const youthResult = simulateYouthWeek(state, index, rng, club);
-  const cupResult = simulateCupWeek(state, index, rng, club);
-  const euroResult = simulateEuroWeek(state, index, rng, club);
+  const cupResult = simulateCupWeek(state, index, rng, seniorClub);
+  const euroResult = simulateEuroWeek(state, index, rng, seniorClub);
   const resumed = [userResult, youthResult, cupResult, euroResult]
     .find((result) => result?.id === resumedMatchId) ?? null;
   // A European night is the match of the week when there is one; a youth match only
@@ -2194,16 +2248,13 @@ function simulatePreseasonFriendly(
     rng,
     userAtHome ? club.id : opponent.id,
     userAtHome ? opponent.id : club.id,
-    'friendly',
+    academyCamp ? 'friendly.youth' : 'friendly',
     'friendly',
     // Academy signings play the same visible camp schedule with the youth team. The
     // rating tells playUserMatch to use youth squads, while senior signings continue
     // with the first team.
     academyCamp ? youthClubRating(opponent, age) : undefined,
   );
-  // Keep friendlies on the friendly simulation path while identifying the level in
-  // history. Consumers can now distinguish an academy appearance from a senior one.
-  if (academyCamp) result.competitionId = 'friendly.youth';
   state.flags[`friendlyPlayed:${state.world.season}:${week}`] = true;
   return result;
 }
@@ -2889,7 +2940,7 @@ function playUserMatch(
   const club = userClub(state)!;
   const player = state.player;
   const youthMatch = youthOpponentRating !== undefined;
-  const friendly = competitionId === 'friendly';
+  const friendly = competitionId.startsWith('friendly');
   // On a Sunday morning he lines up with the age group, not with the first team.
   const squad = youthMatch ? [...youthSquad(state, club.id), player] : userSquad(state);
   const userIsHome = homeClubId === club.id;
@@ -3014,8 +3065,7 @@ function playUserMatch(
   const onPitchAtTheBreak =
     minutes.played && (minutes.cameOnMinute ?? 0) <= 45 && (minutes.offMinute ?? 90) > 45;
   const frequency = halfTimeFrequency(state.flags['halfTimeTalks']);
-  const wantsTheRoom =
-    !friendly && (frequency === 'always' || (frequency === 'big' && importance !== 'normal'));
+  const wantsTheRoom = frequency === 'always' || (frequency === 'big' && importance !== 'normal');
 
   if (!held && onPitchAtTheBreak && wantsTheRoom) {
     const firstHalf = simulateUserMatch(new Rng(matchSeed), { ...baseCtx, stopAtHalfTime: true });
@@ -3025,6 +3075,9 @@ function playUserMatch(
       : firstHalf.result.awayGoals - firstHalf.result.homeGoals;
     const soFar = ratingSoFar(firstHalf.events, player.id);
     const dictates = managerDictates(state.managerTrust, player.squadRole);
+    const demand = dictates ? managerDemand(rng, scoreDiff, soFar, group) : null;
+    const options = instructionsFor(group);
+    if (demand && !options.includes(demand)) options.unshift(demand);
 
     state.pendingHalfTime = {
       matchId,
@@ -3041,8 +3094,8 @@ function playUserMatch(
       rating: soFar,
       mental: baseCtx.mental,
       penaltyTaker: baseCtx.penaltyTaker,
-      demand: dictates ? managerDemand(rng, scoreDiff, soFar, group) : null,
-      options: instructionsFor(group),
+      demand,
+      options,
     };
     // Nothing above this line has touched the world, and the caller has not marked the
     // fixture played yet, so the week can simply be walked again once he has answered.
@@ -3081,7 +3134,6 @@ function playUserMatch(
     + (state.world.seasonStats[player.id]?.apps ?? 0);
   if (!friendly && result.userLine?.played && appsBefore === 0) {
     result.importance = 'firstProMatch';
-    pushInbox(state, 'club', 'inbox.debut', { club: club.name });
     pushNews(state, 'news.debut', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'high');
     unlock(state, 'firstProMatch', { club: club.name });
     raiseMilestone(state, 'debut', { force: true });
@@ -3219,12 +3271,15 @@ function applyFriendlyToPlayer(
     state.flags[appsKey] = Number(state.flags[appsKey] ?? 0) + 1;
     state.flags[ratingKey] = Number(state.flags[ratingKey] ?? 0) + line.rating;
     updateCampAssessment(state);
+    const recommendedFocus = String(
+      state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced',
+    ) as TrainingPlan['focus'];
     pushInbox(state, 'manager', `inbox.trainingCampFeedback.${state.world.week}`, {
       rating: line.rating.toFixed(1),
       strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
       weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
-      focus: `train.focus.${String(state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced')}`,
-    });
+      focus: `train.focus.${recommendedFocus}`,
+    }, undefined, { type: 'setTrainingFocus', focus: recommendedFocus });
 
     if (injuryRolled) {
       const injury = rollInjury(rng, player, state.world.season, 1.05);
@@ -3403,17 +3458,17 @@ function applyMatchToPlayer(
   }
 }
 
-function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club): void {
+function nationalContextFor(state: CareerState, index: PackIndex, club: Club): CallUpContext {
   const player = state.player;
   const season = state.world.season;
   const age = season - player.birthYear;
   const comp = index.competitionById.get(club.competitionId);
-
   const youthForm = state.world.youth?.form;
-  const youthPlayed = Object.values(state.world.youth?.competitions ?? {})
-    .find((c) => c.competitionId === userYouthCompetitionId(state))
-    ?.table[club.id]?.played ?? 0;
-  const nationalCtx = {
+  const injuredWeeks = player.condition.injuries.reduce(
+    (longest, injury) => Math.max(longest, injury.weeksRemaining),
+    0,
+  );
+  return {
     player,
     age,
     season,
@@ -3425,10 +3480,21 @@ function handleInternationalWeek(state: CareerState, index: PackIndex, rng: Rng,
     youthMinutesPct: youthMinutesPct(state),
     youthRating: youthForm && youthForm.apps > 0 ? youthForm.ratingSum / youthForm.apps : 0,
     youthGoals: youthForm?.goals ?? 0,
+    injuredWeeks,
+    sharpness: player.condition.sharpness,
+    fitness: player.fitness,
+    form: player.form,
   };
+}
 
-  updateNationalInterest(nationalCtx);
-
+function handleInternationalWeek(
+  state: CareerState,
+  index: PackIndex,
+  rng: Rng,
+  nationalCtx: CallUpContext,
+): void {
+  const player = state.player;
+  const season = state.world.season;
   if (isInjured(player)) return;
 
   const callUp = rollCallUp(rng, nationalCtx);

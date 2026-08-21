@@ -104,7 +104,36 @@ export function migrate(envelope: SaveEnvelope): CareerState {
   }
 
   state.schemaVersion = SCHEMA_VERSION;
+  repairConversationContinuity(state);
   return state;
+}
+
+/**
+ * Repair conversation state that was valid to older builds but reads as a repeated
+ * interaction now.
+ *
+ * A first professional appearance used to raise both the debut interview and a second
+ * "first match in new colours" interview. New careers cover the second milestone at
+ * source; loaded careers also need the already-queued duplicate removed or the bug
+ * survives an otherwise-correct deployment.
+ */
+function repairConversationContinuity(state: CareerState): void {
+  const season = state.world.season;
+  if (!state.flags[`asked:debut:${season}`]) return;
+
+  state.flags[`asked:firstAfterTransfer:${season}`] = true;
+  const duplicateDecisionIds = new Set(
+    state.pendingDecisions
+      .filter((decision) => decision.eventId === 'milestone:firstAfterTransfer')
+      .map((decision) => decision.id),
+  );
+  if (duplicateDecisionIds.size === 0) return;
+  state.pendingDecisions = state.pendingDecisions.filter(
+    (decision) => !duplicateDecisionIds.has(decision.id),
+  );
+  state.inbox = state.inbox.filter(
+    (message) => !message.decisionId || !duplicateDecisionIds.has(message.decisionId),
+  );
 }
 
 type Migration = (state: CareerState) => CareerState;

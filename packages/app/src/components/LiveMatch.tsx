@@ -13,7 +13,7 @@ import { findPlayer, playerName } from '../lib/names.js';
 
 /** Beats worth stopping on: the clock hangs for a moment so they land. */
 const DECISIVE = new Set<MatchEvent['type']>([
-  'goal', 'concede', 'penaltyScored', 'penaltyMissed', 'red', 'injury', 'woodwork',
+  'goal', 'concede', 'penaltyAwarded', 'penaltyScored', 'penaltyMissed', 'yellow', 'red', 'injury', 'woodwork',
 ]);
 
 /** Three phrasings for the beats that come round often, picked by minute. */
@@ -51,6 +51,7 @@ function squadOf(
 
 function toneOf(event: MatchEvent): string {
   if (event.type === 'goal' || event.type === 'assist') return event.byUser ? 'live-great' : 'live-good';
+  if (event.type === 'penaltyAwarded') return event.forUserTeam ? 'live-great' : 'live-bad';
   if (event.type === 'concede' || event.type === 'red' || event.type === 'injury') return 'live-bad';
   if (event.type === 'save' || event.type === 'tackle') return 'live-good';
   if (event.type === 'yellow' || event.type === 'miss' || event.type === 'woodwork') return 'live-warn';
@@ -131,7 +132,7 @@ export function LiveMatch({
     // of the general match speed. At x2/x4 the clock used to leave the goal before the
     // slow-motion pass had even begun, while at normal speed it could cancel the timer
     // that removed the replay badge. One goal now always gets exactly one full replay.
-    const delay = isGoal ? 7000 : (notable ? 2400 : 620) / speed;
+    const delay = isGoal ? 7000 : (notable ? 2600 : 1050) / speed;
     const id = window.setTimeout(() => setMinute(next), delay);
     return () => window.clearTimeout(id);
   }, [minute, paused, speed, done, events]);
@@ -152,9 +153,8 @@ export function LiveMatch({
     feedRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [shown.length]);
 
-  const scorerName = (event: MatchEvent): string => {
+  const actorName = (event: MatchEvent): string => {
     if (!event.playerId || event.playerId === state.player.id) return '';
-    if (event.type !== 'goal' && event.type !== 'assist' && event.type !== 'concede') return '';
     const player = findPlayer(state, event.playerId);
     return player ? playerName(player, lang) : '';
   };
@@ -169,6 +169,8 @@ export function LiveMatch({
         case 'goal':
         case 'concede':
         case 'penaltyScored':
+          return 7;
+        case 'penaltyAwarded':
           return 6;
         case 'penaltyMissed':
         case 'woodwork':
@@ -209,7 +211,7 @@ export function LiveMatch({
     return {
       scorer: named(goal),
       assist: named(assist),
-      ours: goal.type !== 'concede',
+      ours: goal.type === 'concede' ? false : goal.type === 'penaltyScored' ? goal.forUserTeam !== false : true,
       minute: goal.minute,
       score: goal.score,
     };
@@ -218,6 +220,22 @@ export function LiveMatch({
   // The moment itself, as opposed to the board that stays up after it: the ball is
   // still crossing the screen on the minute it went in, and not a minute later.
   const goalSplash = goalMoment && goalMoment.minute === minute ? goalMoment : null;
+  const incidentPriorities: Partial<Record<MatchEvent['type'], number>> = {
+    penaltyAwarded: 5, red: 4, injury: 3, yellow: 2,
+  };
+  const incidentEvent = shown
+    .filter((event) => event.minute === minute && incidentPriorities[event.type])
+    .sort((a, b) => (incidentPriorities[b.type] ?? 0) - (incidentPriorities[a.type] ?? 0))[0] ?? null;
+  const incidentMoment = incidentEvent && !goalSplash
+    ? {
+        event: incidentEvent,
+        kind: incidentEvent.type === 'penaltyAwarded' ? 'penalty' : incidentEvent.type,
+        actor: incidentEvent.playerId === state.player.id ? playerName(state.player, lang) : actorName(incidentEvent),
+        title: incidentEvent.type === 'penaltyAwarded'
+          ? t(incidentEvent.forUserTeam ? 'live.penaltyFor' : 'live.penaltyAgainst')
+          : t(`live.overlay.${incidentEvent.type}`),
+      }
+    : null;
 
   // The whistle, and the word that goes with it. Half time when the playback stops at
   // the interval, the end of the match when it stops at ninety - both are the referee
@@ -302,6 +320,22 @@ export function LiveMatch({
             )}
           </div>
         )}
+        {incidentMoment && (
+          <div
+            className={`incident-splash incident-${incidentMoment.kind} ${incidentMoment.event.forUserTeam === false ? 'incident-against' : ''}`}
+            key={`${incidentMoment.event.minute}-${incidentMoment.event.type}-${incidentMoment.event.playerId ?? ''}`}
+            role="status"
+          >
+            {(incidentMoment.kind === 'yellow' || incidentMoment.kind === 'red') && (
+              <span className={`incident-card incident-card-${incidentMoment.kind}`} aria-hidden="true" />
+            )}
+            {incidentMoment.kind === 'penalty' && <span className="incident-penalty-mark num">PEN</span>}
+            {incidentMoment.kind === 'injury' && <span className="incident-injury-mark" aria-hidden="true">✚</span>}
+            <span className="incident-title">{incidentMoment.title}</span>
+            {incidentMoment.actor && <span className="incident-player">{incidentMoment.actor}</span>}
+            <span className="incident-minute num">{incidentMoment.event.minute}′</span>
+          </div>
+        )}
         {goalMoment && !goalSplash && (
           <div className={`goal-card ${goalMoment.ours ? '' : 'goal-card-against'}`} role="status">
             <span className="goal-word">{t('live.goal')}</span>
@@ -343,6 +377,14 @@ export function LiveMatch({
         )}
       </div>
 
+      {match.instruction && entry >= 45 && (
+        <div className="live-instruction" role="status">
+          <span className="eyebrow">{t('live.activeInstruction')}</span>
+          <b>{t(`halfTime.instruction.${match.instruction}`)}</b>
+          <span className="faint">{t(`halfTime.instruction.${match.instruction}.hint`)}</span>
+        </div>
+      )}
+
       {before.length > 0 && (
         <div className="live-before">
           {/* Two different things read the same box: a substitute has missed the first
@@ -357,7 +399,7 @@ export function LiveMatch({
               <span className="live-minute num">{event.minute}′</span>
               <p>
                 {t(variantKey(event.detailKey ?? `match.event.${event.type}`, event.minute))}
-                {scorerName(event) && <span className="who"> · {scorerName(event)}</span>}
+                {actorName(event) && <span className="who"> · {actorName(event)}</span>}
               </p>
             </div>
           ))}
@@ -375,7 +417,7 @@ export function LiveMatch({
             <span className="live-minute num">{event.minute}′</span>
             <p>
               {t(variantKey(event.detailKey ?? `match.event.${event.type}`, event.minute))}
-              {scorerName(event) && <span className="who"> · {scorerName(event)}</span>}
+              {actorName(event) && <span className="who"> · {actorName(event)}</span>}
             </p>
             {event.score && (
               <span className="num live-row-score">{event.score[0]}–{event.score[1]}</span>

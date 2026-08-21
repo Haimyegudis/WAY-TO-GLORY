@@ -43,6 +43,11 @@ export interface CallUpContext {
   youthMinutesPct?: number;
   youthRating?: number;
   youthGoals?: number;
+  /** Availability is selection evidence too: scouts cool on a player they cannot pick. */
+  injuredWeeks?: number;
+  sharpness?: number;
+  fitness?: number;
+  form?: number;
 }
 
 /**
@@ -74,10 +79,23 @@ export function updateNationalInterest(ctx: CallUpContext): void {
       )
       : clamp((ctx.minutesPct - 0.3) * 26, -12, 16);
     const stageBonus = clamp((ctx.leagueReputation - 40) * 0.22, -8, 14);
+    const unavailable = (ctx.injuredWeeks ?? 0) > 0;
+    const availabilityPenalty = unavailable
+      ? clamp(20 + (ctx.injuredWeeks ?? 0) * 2.4, 22, 78)
+      : clamp(
+        Math.max(0, 68 - (ctx.sharpness ?? 68)) * 0.65
+          + Math.max(0, 82 - (ctx.fitness ?? 82)) * 0.35,
+        0,
+        30,
+      );
+    const formBonus = clamp(((ctx.form ?? 50) - 50) * 0.2, -10, 10);
     // A player exactly at the standard is a genuine squad candidate, not a hopeful.
-    const raw = 52 + (ovr - bar) * 4.5 + playingBonus + stageBonus + (ctx.player.reputation - 40) * 0.25;
+    const raw = 52 + (ovr - bar) * 4.5 + playingBonus + stageBonus
+      + (ctx.player.reputation - 40) * 0.25 + formBonus - availabilityPenalty;
     const previous = ctx.nt.interest[code] ?? 0;
-    ctx.nt.interest[code] = clamp(previous * 0.6 + clamp(raw, 0, 100) * 0.4, 0, 100);
+    // This now runs weekly. Interest moves visibly without snapping from watched to
+    // forgotten, and a recovered player must rebuild sharpness, form and minutes.
+    ctx.nt.interest[code] = clamp(previous * 0.84 + clamp(raw, 0, 100) * 0.16, 0, 100);
   }
 }
 

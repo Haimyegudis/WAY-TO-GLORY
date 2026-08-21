@@ -107,6 +107,8 @@ export function TrainingScreen() {
   const lang = useLang((s) => s.lang);
   const wage = state.contract?.salaryPerWeek ?? 0;
   const weeklyDiet = dietCost(plan.diet, wage);
+  const coachFocus = String(state.flags[`campAppliedFocus:${state.world.season}`] ?? '');
+  const followingCoachPlan = coachFocus !== '' && plan.focus === coachFocus;
 
   return (
     <div className="screen stack">
@@ -114,6 +116,15 @@ export function TrainingScreen() {
         <p className="eyebrow">{t('nav.train')}</p>
         <h1 className="title">{t('train.title')}</h1>
       </header>
+
+      {followingCoachPlan && (
+        <Card>
+          <p className="eyebrow">{t('train.coachPlan')}</p>
+          <p style={{ fontSize: 13.5, marginBlockStart: 6 }}>
+            {t('train.coachPlan.active', { focus: `train.focus.${coachFocus}` })}
+          </p>
+        </Card>
+      )}
 
       <Card>
         <div className="stack">
@@ -183,6 +194,7 @@ export function TrainingScreen() {
               {FOCUSES.filter((f) => f !== 'goalkeeping' || isKeeper).map((focus) => (
                 <button
                   key={focus}
+                  aria-pressed={plan.focus === focus}
                   onClick={() => update({ focus })}
                   className="btn"
                   style={{

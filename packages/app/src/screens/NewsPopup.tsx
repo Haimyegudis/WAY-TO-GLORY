@@ -22,6 +22,7 @@ export function NewsPopup() {
   const state = useGame((s) => s.state);
   const pending = useGame((s) => s.pendingNews);
   const dismiss = useGame((s) => s.dismissNews);
+  const applyAction = useGame((s) => s.applyInboxAction);
   const pack = getPack();
 
   const message: InboxMessage | undefined = state?.inbox.find((entry) => entry.id === pending[0]);
@@ -76,6 +77,15 @@ export function NewsPopup() {
         {question ? (
           <div style={{ marginBlockStart: 16 }}>
             <DecisionOptions decision={question} onAnswered={() => dismiss()} />
+          </div>
+        ) : message.action ? (
+          <div className="stack" style={{ marginBlockStart: 16, gap: 8 }}>
+            <button className="btn btn-primary btn-block" onClick={() => applyAction(message.id)}>
+              {t('inbox.action.applyTraining')}
+            </button>
+            <button className="btn btn-quiet btn-block" onClick={() => dismiss()}>
+              {pending.length > 1 ? t('news.next') : t('action.close')}
+            </button>
           </div>
         ) : (
           <button className="btn btn-primary btn-block" style={{ marginBlockStart: 16 }} onClick={() => dismiss()}>
