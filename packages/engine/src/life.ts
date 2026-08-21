@@ -113,9 +113,13 @@ export function declineSponsors(state: CareerState): void {
 
 /* -------------------------------------------------------------- things to own */
 
+export type LifeCategory = 'car' | 'home' | 'luxury' | 'lifestyle';
+
 export interface LifeItem {
   id: string;
   cost: number;
+  /** Which shelf it sits on, so the shop reads like a shop. */
+  category: LifeCategory;
   /** What owning it does, every week, for as long as he owns it. */
   weekly?: { morale?: number; fame?: number; fatigue?: number; upkeep?: number };
   /** What it does the day he buys it. */
@@ -125,21 +129,49 @@ export interface LifeItem {
 }
 
 /**
- * Six things, and every one of them is a trade.
+ * The things a footballer's money actually goes on, and every one of them is a trade.
  *
- * Nothing here buys ability. A car is fame and a lift in the mood and nothing else; a
- * gym at home takes the edge off a hard week; a quiet house away from the city is worth
- * a point of recovery and costs him the crowd's attention. The charity is the only one
- * that pays nothing back except what the stands think of him, which is the point of it.
+ * Nothing here buys ability. A car is fame and a lift in the mood; a gym at home takes
+ * the edge off a hard week; a house out of town is worth a point of recovery and costs
+ * him the crowd's attention. The charity pays nothing back except what the stands think
+ * of him, which is the point of it.
+ *
+ * They come in price bands, and a band holds more than one thing, because two players on
+ * the same money do not buy the same car. The alternatives cost exactly the same and are
+ * not the same choice: the coupe is seen and the estate is not, the sailing yacht is a
+ * summer and the motor yacht is a photograph.
  */
 export const LIFE_ITEMS: LifeItem[] = [
-  { id: 'firstCar', cost: 35_000, once: { morale: 6, fame: 2 }, weekly: { upkeep: 40 } },
-  { id: 'flat', cost: 140_000, once: { morale: 8 }, weekly: { morale: 0.25, upkeep: 90 } },
-  { id: 'homeGym', cost: 60_000, once: { morale: 3 }, weekly: { fatigue: -0.9, upkeep: 30 } },
-  { id: 'quietHouse', cost: 420_000, needsFame: 45, once: { morale: 10, fame: -2 }, weekly: { morale: 0.4, fatigue: -0.5, upkeep: 220 } },
-  { id: 'supercar', cost: 900_000, needsFame: 60, once: { morale: 9, fame: 6 }, weekly: { upkeep: 600 } },
-  { id: 'charity', cost: 250_000, once: { morale: 5, fans: 8 }, weekly: { fame: 0.05, upkeep: 400 } },
+  // ------------------------------------------------------------------- cars
+  { id: 'firstCar', category: 'car', cost: 35_000, once: { morale: 6, fame: 2 }, weekly: { upkeep: 40 } },
+  { id: 'familyEstate', category: 'car', cost: 35_000, once: { morale: 5 }, weekly: { morale: 0.1, upkeep: 30 } },
+  { id: 'germanSaloon', category: 'car', cost: 260_000, needsFame: 35, once: { morale: 7, fame: 3 }, weekly: { upkeep: 180 } },
+  { id: 'electricGT', category: 'car', cost: 260_000, needsFame: 35, once: { morale: 6, fame: 4 }, weekly: { upkeep: 120 } },
+  { id: 'supercar', category: 'car', cost: 900_000, needsFame: 60, once: { morale: 9, fame: 6 }, weekly: { upkeep: 600 } },
+  { id: 'grandTourer', category: 'car', cost: 900_000, needsFame: 60, once: { morale: 10, fame: 4 }, weekly: { morale: 0.1, upkeep: 520 } },
+
+  // ------------------------------------------------------------------ homes
+  { id: 'flat', category: 'home', cost: 140_000, once: { morale: 8 }, weekly: { morale: 0.25, upkeep: 90 } },
+  { id: 'townhouse', category: 'home', cost: 140_000, once: { morale: 7 }, weekly: { morale: 0.2, fatigue: -0.2, upkeep: 110 } },
+  { id: 'quietHouse', category: 'home', cost: 420_000, needsFame: 45, once: { morale: 10, fame: -2 }, weekly: { morale: 0.4, fatigue: -0.5, upkeep: 220 } },
+  { id: 'poolVilla', category: 'home', cost: 420_000, needsFame: 45, once: { morale: 11, fame: 2 }, weekly: { morale: 0.3, fatigue: -0.3, upkeep: 300 } },
+  { id: 'penthouse', category: 'home', cost: 2_200_000, needsFame: 65, once: { morale: 12, fame: 5 }, weekly: { morale: 0.35, upkeep: 900 } },
+  { id: 'seafrontMansion', category: 'home', cost: 2_200_000, needsFame: 65, once: { morale: 13, fame: 3 }, weekly: { morale: 0.45, fatigue: -0.4, upkeep: 1_200 } },
+
+  // ---------------------------------------------------------------- luxury
+  { id: 'sailingYacht', category: 'luxury', cost: 4_500_000, needsFame: 70, once: { morale: 14, fame: 4 }, weekly: { morale: 0.3, fatigue: -0.4, upkeep: 2_400 } },
+  { id: 'motorYacht', category: 'luxury', cost: 4_500_000, needsFame: 70, once: { morale: 12, fame: 9 }, weekly: { morale: 0.2, upkeep: 3_200 } },
+  { id: 'lightJet', category: 'luxury', cost: 9_000_000, needsFame: 80, once: { morale: 12, fame: 8 }, weekly: { fatigue: -0.8, upkeep: 5_000 } },
+  { id: 'longRangeJet', category: 'luxury', cost: 14_000_000, needsFame: 88, once: { morale: 15, fame: 12 }, weekly: { fatigue: -1.2, upkeep: 8_500 } },
+
+  // ------------------------------------------------------------- lifestyle
+  { id: 'homeGym', category: 'lifestyle', cost: 60_000, once: { morale: 3 }, weekly: { fatigue: -0.9, upkeep: 30 } },
+  { id: 'charity', category: 'lifestyle', cost: 250_000, once: { morale: 5, fans: 8 }, weekly: { fame: 0.05, upkeep: 400 } },
+  { id: 'watchCollection', category: 'lifestyle', cost: 300_000, needsFame: 50, once: { morale: 6, fame: 5 }, weekly: { upkeep: 60 } },
 ];
+
+/** The order the shop shows its shelves in. */
+export const LIFE_CATEGORIES: LifeCategory[] = ['car', 'home', 'luxury', 'lifestyle'];
 
 export function itemById(id: string): LifeItem | undefined {
   return LIFE_ITEMS.find((item) => item.id === id);

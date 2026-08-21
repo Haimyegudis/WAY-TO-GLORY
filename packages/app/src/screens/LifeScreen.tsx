@@ -1,4 +1,4 @@
-import { LIFE_ITEMS, canBuy, itemById } from '@fc/engine';
+import { LIFE_CATEGORIES, LIFE_ITEMS, canBuy, itemById, type LifeItem } from '@fc/engine';
 import { formatMoney, useLang, useT } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 import { Card, Chip, Empty, Stat } from '../components/ui.js';
@@ -85,48 +85,94 @@ export function LifeScreen() {
         )}
       </Card>
 
-      <Card title={t('life.things')}>
-        <div className="stack" style={{ gap: 8 }}>
-          {LIFE_ITEMS.map((item) => {
-            const verdict = canBuy(state, item.id);
-            const owned = verdict === 'owned';
-            return (
-              <button
-                key={item.id}
-                className="option"
-                disabled={verdict !== 'yes'}
-                style={owned ? { opacity: 0.75 } : undefined}
-                onClick={() => buy(item.id)}
-              >
-                <span className="row-between">
-                  <span style={{ fontSize: 14.5, fontWeight: 600 }}>{t(`life.item.${item.id}`)}</span>
-                  <span className="num" style={{ fontSize: 12 }}>
-                    {owned ? t('life.owned') : formatMoney(item.cost, lang)}
-                  </span>
-                </span>
-                <span className="risk" style={{ display: 'block', marginBlockStart: 5 }}>
-                  {t(`life.item.${item.id}.desc`)}
-                </span>
-                {verdict === 'fame' && (
-                  <span className="risk risk-bad" style={{ display: 'block', marginBlockStart: 4 }}>
-                    {t('life.needsFame', { fame: item.needsFame ?? 0 })}
-                  </span>
-                )}
-                {verdict === 'money' && (
-                  <span className="risk risk-bad" style={{ display: 'block', marginBlockStart: 4 }}>
-                    {t('life.needsMoney')}
-                  </span>
-                )}
-                {item.weekly?.upkeep ? (
-                  <span className="faint" style={{ display: 'block', fontSize: 11, marginBlockStart: 4 }}>
-                    {t('life.upkeepLine', { cost: formatMoney(item.weekly.upkeep, lang) })}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
+      {/*
+        * The shop, shelf by shelf.
+        *
+        * Things are grouped by what they are and then by what they cost, because the
+        * choice a player actually makes is between two things at the same price: the
+        * coupe or the estate, the sailing yacht or the motor one. A photograph of each,
+        * because a car nobody can see is a line of text with a number next to it.
+        */}
+      {LIFE_CATEGORIES.map((category) => {
+        const items = LIFE_ITEMS.filter((item) => item.category === category);
+        if (items.length === 0) return null;
+        const bands = [...new Set(items.map((item) => item.cost))].sort((a, b) => a - b);
+
+        return (
+          <Card key={category} title={t(`life.category.${category}`)}>
+            <div className="stack" style={{ gap: 14 }}>
+              {bands.map((cost) => {
+                const band = items.filter((item) => item.cost === cost);
+                return (
+                  <div key={cost} className="stack" style={{ gap: 7 }}>
+                    <div className="row-between">
+                      <span className="eyebrow num">{formatMoney(cost, lang)}</span>
+                      {band.length > 1 && <span className="faint" style={{ fontSize: 11 }}>{t('life.sameMoney')}</span>}
+                    </div>
+                    <div className="life-shelf">
+                      {band.map((item) => (
+                        <LifeCard
+                          key={item.id}
+                          item={item}
+                          verdict={canBuy(state, item.id)}
+                          onBuy={() => buy(item.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        );
+      })}
+
+      <p className="faint" style={{ fontSize: 10.5, textAlign: 'center' }}>{t('life.photoCredit')}</p>
     </div>
+  );
+}
+
+/** One thing he can buy, with a picture of it. */
+function LifeCard({
+  item,
+  verdict,
+  onBuy,
+}: {
+  item: LifeItem;
+  verdict: ReturnType<typeof canBuy>;
+  onBuy: () => void;
+}) {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
+  const owned = verdict === 'owned';
+
+  return (
+    <button
+      className={`life-card ${owned ? 'life-card-owned' : ''}`}
+      disabled={verdict !== 'yes'}
+      onClick={onBuy}
+    >
+      <span className="life-photo">
+        <img src={`/life/${item.id}.jpg`} alt="" loading="lazy" />
+        {owned && <span className="life-owned-tag">{t('life.owned')}</span>}
+      </span>
+      <span className="life-card-body">
+        <span className="life-card-title">{t(`life.item.${item.id}`)}</span>
+        <span className="risk" style={{ display: 'block' }}>{t(`life.item.${item.id}.desc`)}</span>
+        {verdict === 'fame' && (
+          <span className="risk risk-bad" style={{ display: 'block' }}>
+            {t('life.needsFame', { fame: item.needsFame ?? 0 })}
+          </span>
+        )}
+        {verdict === 'money' && (
+          <span className="risk risk-bad" style={{ display: 'block' }}>{t('life.needsMoney')}</span>
+        )}
+        {item.weekly?.upkeep ? (
+          <span className="faint" style={{ display: 'block', fontSize: 11 }}>
+            {t('life.upkeepLine', { cost: formatMoney(item.weekly.upkeep, lang) })}
+          </span>
+        ) : null}
+      </span>
+    </button>
   );
 }

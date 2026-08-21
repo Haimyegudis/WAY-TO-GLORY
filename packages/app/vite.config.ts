@@ -39,6 +39,9 @@ export default defineConfig({
           '**/crests/**',
           '**/crests.html',
           '**/audio/**',
+          // The shop's photographs are two megabytes he may never open. Same bargain as
+          // the badges: cached the first time he looks at them.
+          '**/life/**',
           '**/assets/pack-*.js',
           '**/assets/cloud-*.js',
         ],
@@ -49,6 +52,15 @@ export default defineConfig({
             options: {
               cacheName: 'career-lazy-data',
               expiration: { maxEntries: 6, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\/life\/.*\.(jpe?g|png)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'life-photos',
+              expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 365 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

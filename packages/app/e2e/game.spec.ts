@@ -361,6 +361,41 @@ test('opens a played camp friendly from the camp card', async ({ page }) => {
   await expectAccessible(page);
 });
 
+test('shows the shop as shelves of photographs with choices at the same price', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'New career' }).click();
+  await page.getByLabel('First name').fill('Rich');
+  await page.getByLabel('Last name').fill('Life');
+  for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign here' }).first().click();
+
+  await page.evaluate(() => {
+    const game = (window as unknown as {
+      fc: { game: { getState: () => Record<string, any>; setState: (next: Record<string, unknown>) => void } };
+    }).fc.game;
+    const state = structuredClone(game.getState().state);
+    state.finances.balance = 30_000_000;
+    state.player.fame = 92;
+    game.setState({ state, pendingNews: [], screen: 'life' });
+  });
+
+  // Shelves, not one flat list.
+  await expect(page.getByText('Cars')).toBeVisible();
+  await expect(page.getByText('Homes')).toBeVisible();
+  await expect(page.getByText('The big things')).toBeVisible();
+  // Two things at one price, and a photograph of each.
+  await expect(page.getByText('Same money, different taste.').first()).toBeVisible();
+  const photos = page.locator('.life-photo img');
+  expect(await photos.count()).toBeGreaterThan(10);
+
+  // And he can actually buy one of them.
+  await page.getByRole('button', { name: /A sailing yacht/ }).click();
+  await expect(page.getByText('Yours').first()).toBeVisible();
+  await expectAccessible(page);
+});
+
 test('shows a penalty announcement on the pitch before the kick', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'English' }).click();

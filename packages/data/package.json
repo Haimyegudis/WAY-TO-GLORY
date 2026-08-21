@@ -11,6 +11,7 @@
   },
   "scripts": {
     "fetch": "tsx src/fetch-openfootball.ts",
+    "fetch:life": "tsx src/fetch-life-photos.ts",
     "build": "tsx src/build-pack.ts",
     "typecheck": "tsc --noEmit"
   },

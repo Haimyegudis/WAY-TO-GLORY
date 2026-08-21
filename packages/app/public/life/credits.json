@@ -1,0 +1,74 @@
+{
+  "germanSaloon": {
+    "title": "File:Mercedes Benz W123 Sedan.jpg",
+    "license": "CC BY-SA 3.0",
+    "artist": "Charles01",
+    "source": "https://commons.wikimedia.org/wiki/File:Mercedes_Benz_W123_Sedan.jpg"
+  },
+  "electricGT": {
+    "title": "File:A sea of Tesla Model S electric cars.jpg",
+    "license": "CC BY 2.0",
+    "artist": "Steve Jurvetson",
+    "source": "https://commons.wikimedia.org/wiki/File:A_sea_of_Tesla_Model_S_electric_cars.jpg"
+  },
+  "grandTourer": {
+    "title": "File:Aston Martin DB2-4 Drophead Coupe c.1954 (14188969197).jpg",
+    "license": "CC BY 2.0",
+    "artist": "Andrew Bone from Weymouth, England",
+    "source": "https://commons.wikimedia.org/wiki/File:Aston_Martin_DB2-4_Drophead_Coupe_c.1954_(14188969197).jpg"
+  },
+  "poolVilla": {
+    "title": "File:Villa Miragalli infinity swimminh pool.jpg",
+    "license": "CC BY-SA 3.0",
+    "artist": "Bruno Acampora",
+    "source": "https://commons.wikimedia.org/wiki/File:Villa_Miragalli_infinity_swimminh_pool.jpg"
+  },
+  "penthouse": {
+    "title": "File:One-Harbour-Green-Penthouses.jpg",
+    "license": "Public domain",
+    "artist": "Brianpirie at English Wikipedia",
+    "source": "https://commons.wikimedia.org/wiki/File:One-Harbour-Green-Penthouses.jpg"
+  },
+  "seafrontMansion": {
+    "title": "File:Mount Vernon Estate Mansion 2.JPG",
+    "license": "CC BY-SA 3.0",
+    "artist": "Martin Falbisoner",
+    "source": "https://commons.wikimedia.org/wiki/File:Mount_Vernon_Estate_Mansion_2.JPG"
+  },
+  "sailingYacht": {
+    "title": "File:Sailing Yacht Lively Lady, Port Solent, Jun 2012.jpg",
+    "license": "CC BY-SA 3.0",
+    "artist": "Coffeedave",
+    "source": "https://commons.wikimedia.org/wiki/File:Sailing_Yacht_Lively_Lady,_Port_Solent,_Jun_2012.jpg"
+  },
+  "motorYacht": {
+    "title": "File:MY Harbour Island Superyacht berthed by The Sails, Queensway Quay Marina, Gibraltar.jpg",
+    "license": "CC BY-SA 2.0",
+    "artist": "Moshi Anahory",
+    "source": "https://commons.wikimedia.org/wiki/File:MY_Harbour_Island_Superyacht_berthed_by_The_Sails,_Queensway_Quay_Marina,_Gibraltar.jpg"
+  },
+  "lightJet": {
+    "title": "File:Cessna 550B Citation Bravo, Jet Aviation Business Jets JP7600971.jpg",
+    "license": "CC BY-SA 3.0",
+    "artist": "Pedro Aragão",
+    "source": "https://commons.wikimedia.org/wiki/File:Cessna_550B_Citation_Bravo,_Jet_Aviation_Business_Jets_JP7600971.jpg"
+  },
+  "longRangeJet": {
+    "title": "File:Gulfstream G-400.jpg",
+    "license": "CC BY 2.0",
+    "artist": "Planephotoman",
+    "source": "https://commons.wikimedia.org/wiki/File:Gulfstream_G-400.jpg"
+  },
+  "charity": {
+    "title": "File:Children playing football in africa.jpg",
+    "license": "CC BY-SA 4.0",
+    "artist": "Biggiepopa",
+    "source": "https://commons.wikimedia.org/wiki/File:Children_playing_football_in_africa.jpg"
+  },
+  "homeGym": {
+    "title": "File:Gym Iztacala.jpg",
+    "license": "CC BY-SA 3.0",
+    "artist": "Angeloide1",
+    "source": "https://commons.wikimedia.org/wiki/File:Gym_Iztacala.jpg"
+  }
+}
