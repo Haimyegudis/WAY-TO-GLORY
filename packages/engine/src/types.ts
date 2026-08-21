@@ -240,6 +240,9 @@ export interface Country {
   /** The domestic cup, by its real name. */
   cupName?: string;
   cupNameHe?: string;
+  /** The league cup, where the country actually plays one - Israel's Toto, England's EFL. */
+  leagueCupName?: string;
+  leagueCupNameHe?: string;
 }
 
 export interface SeasonStats {

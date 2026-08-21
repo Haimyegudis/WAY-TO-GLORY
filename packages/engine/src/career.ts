@@ -61,7 +61,7 @@ import {
   sortedTable,
   type SeasonEndOutcome,
 } from './league.js';
-import { createCup, drawRound, isCupFinal, isCupSemi, recordTieResult, type CupState } from './cup.js';
+import { createCup, drawRound, isCupFinal, isCupSemi, leagueCupId, recordTieResult, youthCupId, type CupState } from './cup.js';
 import { runAbstractMarket, runSquadWindow, type SquadMove } from './market.js';
 import { negotiate, type ContractAsk, type NegotiationOutcome } from './negotiate.js';
 import {
@@ -127,6 +127,7 @@ import {
   scoringRank,
   youthTablePosition,
   youthMembers,
+  buildYouthCups,
   newYouthSeason,
   emptyYouthForm,
   YOUTH_EXCHANGE,
@@ -317,6 +318,27 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     const cup = createCup(rng, country.code, clubs, season, cupWeeks);
     drawRound(rng, cup);
     state.world.cups[cup.id] = cup;
+
+    /*
+     * The league cup, where the country plays one.
+     *
+     * Israel's Toto, England's EFL, Scotland's and Portugal's: a smaller field - the
+     * top two divisions rather than everybody - and it is over by midwinter, which is
+     * what makes it a different competition rather than a second national cup.
+     */
+    if (country.leagueCupName) {
+      const entrants = clubs.filter((entry) => entry.tier <= 2);
+      if (entrants.length >= 8) {
+        const lastRound = Math.round(first + (last - first) * 0.55);
+        const leagueCupWeeks = Array.from({ length: 6 }, (_, round) =>
+          Math.round(first + ((lastRound - first) * round) / 5));
+        const leagueCup = createCup(
+          rng, country.code, entrants, season, leagueCupWeeks, leagueCupId(country.code),
+        );
+        drawRound(rng, leagueCup);
+        state.world.cups[leagueCup.id] = leagueCup;
+      }
+    }
   }
 
   loadEuropeanSlots(index);
@@ -488,6 +510,9 @@ function rollYouthSeason(state: CareerState, index: PackIndex, rng: Rng): void {
       rng, competitionId, clubIds, state.world.season, parent?.split,
     );
   }
+
+  // The knockouts start again with everybody in them, the way a cup does.
+  youth.cups = buildYouthCups(rng, state, index, club.country);
 
   ageYouthWorld(rng, state, index);
   const division = userYouthCompetitionId(state);
@@ -2619,7 +2644,8 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
     }
   }
 
-  const youthResult = simulateYouthWeek(state, index, rng, club);
+  const youthResult = simulateYouthWeek(state, index, rng, club)
+    ?? simulateYouthCupWeek(state, index, rng, club);
   const cupResult = simulateCupWeek(state, index, rng, seniorClub);
   const euroResult = simulateEuroWeek(state, index, rng, seniorClub);
   const resumed = [userResult, youthResult, cupResult, euroResult]
@@ -2927,6 +2953,70 @@ function attributeCards(state: CareerState, rng: Rng, compState: CompetitionSeas
  * A Sunday morning in the youth league. He plays these in full - they are the only
  * football he has - and what he does in them is what gets him seen.
  */
+/**
+ * The age group's cup football.
+ *
+ * The boys enter the same knockouts their clubs do. His own ties are played out like
+ * any other match he is in; everybody else's are settled on the strength of the two
+ * age groups, because a bracket that stops moving is not a cup.
+ */
+function simulateYouthCupWeek(
+  state: CareerState,
+  index: PackIndex,
+  rng: Rng,
+  club: Club | null,
+): MatchResult | null {
+  const youth = state.world.youth;
+  if (!youth?.cups || !club) return null;
+  const age = state.world.season - state.player.birthYear;
+  const stillYouth = age <= YOUTH_MAX_AGE && (isAcademyPlayer(state) || minutesPct(state) < 0.25);
+  const week = state.world.week;
+  let userResult: MatchResult | null = null;
+
+  for (const cup of Object.values(youth.cups)) {
+    if (cup.finished) continue;
+    const due = cup.ties.filter((tie) => !tie.played && tie.week <= week);
+    if (due.length === 0) continue;
+
+    for (const tie of due) {
+      const home = state.world.clubs[tie.homeClubId];
+      const away = state.world.clubs[tie.awayClubId];
+      if (!home || !away) { tie.played = true; continue; }
+
+      const involvesUser = stillYouth && (tie.homeClubId === club.id || tie.awayClubId === club.id);
+      if (involvesUser) {
+        const opponent = tie.homeClubId === club.id ? away : home;
+        const opponentSquad = youthSquad(state, opponent.id);
+        const rating = opponentSquad.length >= 8
+          ? teamRatingFromSquad(opponentSquad)
+          : youthClubRating(opponent, age);
+        const importance: MatchImportance = isCupFinal(cup, tie)
+          ? 'cupFinal'
+          : isCupSemi(cup, tie) ? 'cupSemi' : 'normal';
+        const result = playUserMatch(
+          state, index, rng, tie.homeClubId, tie.awayClubId, cup.id, importance, rating,
+        );
+        recordTieResult(cup, tie, result.homeGoals, result.awayGoals, rng);
+        userResult = result;
+        if (importance === 'cupFinal' && tie.winner === club.id) {
+          state.trophies.push({ season: state.world.season, competitionId: cup.id, kind: 'cup' });
+          pushNews(state, 'news.cupWon', { club: club.name }, 'high');
+        }
+      } else {
+        const [homeGoals, awayGoals] = simulateQuickResult(rng, {
+          homeRating: youthClubRating(home, age),
+          awayRating: youthClubRating(away, age),
+        });
+        recordTieResult(cup, tie, homeGoals, awayGoals, rng);
+      }
+    }
+
+    if (!cup.finished && cup.ties.every((tie) => tie.played)) drawRound(rng, cup);
+  }
+
+  return userResult;
+}
+
 function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club: Club | null): MatchResult | null {
   const youth = state.world.youth;
   if (!youth || !club) return null;

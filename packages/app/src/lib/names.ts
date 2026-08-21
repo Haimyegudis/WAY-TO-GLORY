@@ -53,19 +53,30 @@ export function competitionLabel(
   if (id === 'national.worldCup') return t('competition.worldCup');
   if (id === 'national.euro') return t('competition.euro');
 
+  /*
+   * Cups, national and league, and their age-group twins.
+   *
+   * This has to be read before the generic youth branch: "isr_cup.youth" is a cup and
+   * not a division, so looking for a league to shadow found nothing and the boys' cup
+   * came out as the word "youth".
+   */
+  const cupMatch = /^([a-z]{3})_(cup|leaguecup)(\.youth)?$/.exec(id);
+  if (cupMatch) {
+    const code = cupMatch[1]!.toUpperCase();
+    const country = pack.countries.find((c) => c.code === code);
+    const leagueCup = cupMatch[2] === 'leaguecup';
+    const named = lang === 'he'
+      ? (leagueCup ? country?.leagueCupNameHe : country?.cupNameHe)
+      : (leagueCup ? country?.leagueCupName : country?.cupName);
+    const name = named
+      ?? (country ? `${countryName(country, lang)} · ${t('club.cup')}` : t('club.cup'));
+    return cupMatch[3] ? t('competition.youthOf', { league: name }) : name;
+  }
+
   // The youth league carries the name of the division it shadows.
   if (id.endsWith('.youth')) {
     const parent = pack.competitions.find((c) => c.id === id.slice(0, -'.youth'.length));
     return parent ? t('competition.youthOf', { league: competitionName(parent, lang) }) : t('competition.youth');
-  }
-
-  const cupMatch = /^([a-z]{3})_cup$/.exec(id);
-  if (cupMatch) {
-    const code = cupMatch[1]!.toUpperCase();
-    const country = pack.countries.find((c) => c.code === code);
-    const name = lang === 'he' ? country?.cupNameHe : country?.cupName;
-    if (name) return name;
-    return country ? `${countryName(country, lang)} · ${t('club.cup')}` : t('club.cup');
   }
 
   return t('club.cup');

@@ -1,5 +1,6 @@
 import { Rng, clamp } from './rng.js';
 import { FIRST_MATCH_WEEK, buildFixtures, emptyRow, sortedTable } from './league.js';
+import { createCup, drawRound, youthCupId, type CupState } from './cup.js';
 import type { PackIndex } from './data.js';
 import type {
   CareerState,
@@ -64,6 +65,11 @@ export interface YouthWorld {
   form: YouthForm;
   /** The division the player's own club is in, cached for the screens. */
   userCompetitionId: string | null;
+  /**
+   * The knockouts the age groups play: the national cup, and the league cup where the
+   * country has one. Boys play the same competitions their clubs do.
+   */
+  cups?: Record<string, CupState>;
 }
 
 export function youthCompetitionId(competitionId: string): string {
@@ -124,6 +130,7 @@ export function createYouthWorld(rng: Rng, state: CareerState, index: PackIndex,
     world.competitions[id] = newYouthSeason(rng, id, clubIds, state.world.season, league.split);
   }
 
+  world.cups = buildYouthCups(rng, state, index, country);
   return world;
 }
 
@@ -161,6 +168,49 @@ export function newYouthSeason(
     finished: false,
   };
 }
+
+/**
+ * The knockouts the age groups play.
+ *
+ * A boy's club enters the national cup and, where the country has one, the league cup -
+ * so the boy does too. The field is the clubs whose age groups this world models, which
+ * is every division in his country rather than only his own.
+ */
+export function buildYouthCups(
+  rng: Rng,
+  state: CareerState,
+  index: PackIndex,
+  country: string,
+): Record<string, CupState> {
+  const entrants = Object.values(state.world.clubs).filter((club) => club.country === country);
+  if (entrants.length < 8) return {};
+  const cups: Record<string, CupState> = {};
+
+  const national = createCup(
+    rng, country, entrants, state.world.season, YOUTH_CUP_WEEKS, youthCupId(`${country.toLowerCase()}_cup`),
+  );
+  drawRound(rng, national);
+  cups[national.id] = national;
+
+  const details = index.countryByCode.get(country);
+  if (details?.leagueCupName) {
+    const topTwo = entrants.filter((club) => club.tier <= 2);
+    if (topTwo.length >= 8) {
+      const leagueCup = createCup(
+        rng, country, topTwo, state.world.season, YOUTH_LEAGUE_CUP_WEEKS,
+        youthCupId(`${country.toLowerCase()}_leaguecup`),
+      );
+      drawRound(rng, leagueCup);
+      cups[leagueCup.id] = leagueCup;
+    }
+  }
+
+  return cups;
+}
+
+/** Sunday mornings, spread across the season the boys actually play. */
+const YOUTH_CUP_WEEKS = [9, 14, 19, 24, 31, 37, 42, 46];
+const YOUTH_LEAGUE_CUP_WEEKS = [8, 13, 18, 23, 28, 33];
 
 /** The clubs in one youth division, read off the membership map. */
 export function youthMembers(youth: YouthWorld, competitionId: string): string[] {

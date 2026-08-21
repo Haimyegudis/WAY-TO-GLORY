@@ -115,6 +115,9 @@ export interface CountrySeed {
   nameLocale: string;
   cupName: string;
   cupNameHe: string;
+  /** Only the countries that actually play one. Most do not. */
+  leagueCupName?: string;
+  leagueCupNameHe?: string;
   /** Defaults to UEFA: everything here was European until the Americas arrived. */
   confederation?: 'UEFA' | 'CONMEBOL' | 'CONCACAF';
 }
@@ -133,19 +136,19 @@ export const COUNTRIES: CountrySeed[] = [
   { code: 'HUN', name: 'Hungary', nameHe: 'הונגריה', reputation: 52, nameLocale: 'hu', cupName: 'Magyar Kupa', cupNameHe: 'גביע הונגריה' },
   { code: 'CYP', name: 'Cyprus', nameHe: 'קפריסין', reputation: 50, nameLocale: 'gr', cupName: 'Cypriot Cup', cupNameHe: 'גביע קפריסין' },
 
-  { code: 'ENG', name: 'England', nameHe: 'אנגליה', reputation: 90, nameLocale: 'en' , cupName: 'FA Cup', cupNameHe: 'גביע האנגלי' },
+  { code: 'ENG', name: 'England', nameHe: 'אנגליה', reputation: 90, nameLocale: 'en' , cupName: 'FA Cup', cupNameHe: 'גביע האנגלי', leagueCupName: 'EFL Cup', leagueCupNameHe: 'גביע הליגה האנגלי' },
   { code: 'ESP', name: 'Spain', nameHe: 'ספרד', reputation: 93, nameLocale: 'es' , cupName: 'Copa del Rey', cupNameHe: 'קופה דל ריי' },
   { code: 'ITA', name: 'Italy', nameHe: 'איטליה', reputation: 88, nameLocale: 'it' , cupName: 'Coppa Italia', cupNameHe: 'גביע איטליה' },
   { code: 'GER', name: 'Germany', nameHe: 'גרמניה', reputation: 90, nameLocale: 'de' , cupName: 'DFB-Pokal', cupNameHe: 'גביע גרמניה' },
-  { code: 'ISR', name: 'Israel', nameHe: 'ישראל', reputation: 55, nameLocale: 'he' , cupName: 'State Cup', cupNameHe: 'גביע המדינה' },
+  { code: 'ISR', name: 'Israel', nameHe: 'ישראל', reputation: 55, nameLocale: 'he' , cupName: 'State Cup', cupNameHe: 'גביע המדינה', leagueCupName: 'Toto Cup', leagueCupNameHe: 'גביע הטוטו' },
   { code: 'FRA', name: 'France', nameHe: 'צרפת', reputation: 92, nameLocale: 'fr' , cupName: 'Coupe de France', cupNameHe: 'גביע צרפת' },
-  { code: 'POR', name: 'Portugal', nameHe: 'פורטוגל', reputation: 87, nameLocale: 'pt' , cupName: 'Taça de Portugal', cupNameHe: 'גביע פורטוגל' },
+  { code: 'POR', name: 'Portugal', nameHe: 'פורטוגל', reputation: 87, nameLocale: 'pt' , cupName: 'Taça de Portugal', cupNameHe: 'גביע פורטוגל', leagueCupName: 'Taça da Liga', leagueCupNameHe: 'גביע הליגה הפורטוגלי' },
   { code: 'NED', name: 'Netherlands', nameHe: 'הולנד', reputation: 85, nameLocale: 'nl' , cupName: 'KNVB Beker', cupNameHe: 'גביע הולנד' },
   { code: 'TUR', name: 'Turkey', nameHe: 'טורקיה', reputation: 70, nameLocale: 'tr' , cupName: 'Türkiye Kupası', cupNameHe: 'גביע טורקיה' },
   { code: 'BEL', name: 'Belgium', nameHe: 'בלגיה', reputation: 82, nameLocale: 'fr' , cupName: 'Belgian Cup', cupNameHe: 'גביע בלגיה' },
   { code: 'AUT', name: 'Austria', nameHe: 'אוסטריה', reputation: 72, nameLocale: 'de' , cupName: 'ÖFB-Cup', cupNameHe: 'גביע אוסטריה' },
   { code: 'GRE', name: 'Greece', nameHe: 'יוון', reputation: 66, nameLocale: 'gr' , cupName: 'Greek Cup', cupNameHe: 'גביע יוון' },
-  { code: 'SCO', name: 'Scotland', nameHe: 'סקוטלנד', reputation: 66, nameLocale: 'en' , cupName: 'Scottish Cup', cupNameHe: 'גביע סקוטלנד' },
+  { code: 'SCO', name: 'Scotland', nameHe: 'סקוטלנד', reputation: 66, nameLocale: 'en' , cupName: 'Scottish Cup', cupNameHe: 'גביע סקוטלנד', leagueCupName: 'Scottish League Cup', leagueCupNameHe: 'גביע הליגה הסקוטי' },
 
   // Across the water. Not in Europe, so nothing here plays for a European place - but a
   // career that starts in Buenos Aires or ends in Miami is a career people actually have.

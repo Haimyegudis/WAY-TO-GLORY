@@ -17,7 +17,7 @@ function matchKind(match: MatchResult): MatchKind {
 function officialCategory(match: MatchResult): Exclude<OfficialCategory, 'all'> {
   const id = match.competitionId.toLowerCase();
   if (id === 'ucl' || id === 'uel' || id === 'uecl' || id.startsWith('europe.')) return 'europe';
-  if (id.endsWith('_cup') || id.startsWith('cup.')) return 'cup';
+  if (/_(cup|leaguecup)(\.youth)?$/.test(id) || id.startsWith('cup.')) return 'cup';
   if (id.startsWith('national.') || id.startsWith('international.') || id.startsWith('qualifier.')) return 'national';
   return 'league';
 }

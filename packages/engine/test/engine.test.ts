@@ -1271,6 +1271,7 @@ describe('pre-match chronology', () => {
     const { state, index, clubId } = seniorCareer(8102);
     state.world.week = 19;
     state.world.cups = {};
+    if (state.world.youth) state.world.youth.cups = {};
     for (const competition of Object.values(state.world.competitions)) {
       for (const scheduled of competition.fixtures) scheduled.played = true;
     }
@@ -1402,6 +1403,53 @@ describe('summer tournaments', () => {
   });
 });
 
+describe('the competitions a club actually enters', () => {
+  it('gives every modelled country its national cup, and a league cup where one exists', () => {
+    const { state, index } = startedCareer({ seed: 31 });
+    for (const country of index.pack.countries) {
+      const clubs = Object.values(state.world.clubs).filter((club) => club.country === country.code);
+      if (clubs.length < 8) continue;
+      expect(
+        state.world.cups[`${country.code.toLowerCase()}_cup`],
+        `${country.code} has no national cup`,
+      ).toBeTruthy();
+      if (country.leagueCupName) {
+        expect(
+          state.world.cups[`${country.code.toLowerCase()}_leaguecup`],
+          `${country.code} plays a ${country.leagueCupName} and has none`,
+        ).toBeTruthy();
+      }
+    }
+    // Israel plays both, and the Toto is a smaller field than the State Cup.
+    // The Toto is the top two divisions; the State Cup is everybody.
+    const nationalCup = state.world.cups['isr_cup']!;
+    const toto = state.world.cups['isr_leaguecup']!;
+    const entrants = (cup: typeof toto) => cup.alive.length + cup.ties.length * 2;
+    expect(entrants(toto)).toBeLessThan(entrants(nationalCup));
+  });
+
+  it('sends the age group into the same knockouts as the first team', () => {
+    const { state, index } = startedCareer({ seed: 32 });
+    expect(Object.keys(state.world.youth?.cups ?? {})).toEqual(
+      expect.arrayContaining(['isr_cup.youth', 'isr_leaguecup.youth']),
+    );
+
+    const cupTies: string[] = [];
+    for (let i = 0; i < 52 && cupTies.length < 2; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      for (const match of state.matchLog) {
+        if (match.userLine?.played && match.competitionId.includes('cup') && !cupTies.includes(match.id)) {
+          cupTies.push(match.id);
+        }
+      }
+    }
+
+    // He plays cup football, on Sunday mornings, for his own age group.
+    expect(cupTies.length, 'a season of youth football with no cup tie in it').toBeGreaterThan(0);
+  });
+});
+
 describe('who the build-up is for', () => {
   it('leaves an injured player out of the questions as well as the squad', () => {
     const { state, index } = startedCareer({ seed: 97 });
@@ -1473,6 +1521,7 @@ describe('losing the shirt over a bad run', () => {
     expect(state.player.squadRole).toBe('academy');
 
     state.player.form = 22;
+    state.player.condition.injuries = [];
     const dropped = evaluateConsequences(new Rng(4), state);
     expect(dropped.some((entry) => entry.id === 'benchedForForm')).toBe(true);
     expect(state.flags['formBenchNotified']).toBe(true);
@@ -1483,6 +1532,10 @@ describe('losing the shirt over a bad run', () => {
     let weeksBenched = 0;
     for (let i = 0; i < 20 && state.flags['formBenchNotified']; i++) {
       const before = state.matchLog.length;
+      // He is not playing his way out of it: the run stays bad for as long as we watch,
+      // and he is fit throughout - this is about form, not about a hamstring.
+      state.player.form = 22;
+      state.player.condition.injuries = [];
       playWeek(state, index);
       state.pendingDecisions = [];
       weeksBenched++;
@@ -1494,8 +1547,8 @@ describe('losing the shirt over a bad run', () => {
     }
 
     expect(cameOffTheBench, 'he started every match while dropped').toBe(true);
-    // A few matches, not half a season: the spell is served and there is a way out of
-    // it that does not depend on chances he is no longer on the pitch to take.
+    // A few matches, not half a season: even with the form line pinned at its worst,
+    // the spell is served and he is back in the side.
     expect(state.flags['formBenchNotified']).toBe(false);
     expect(weeksBenched).toBeLessThanOrEqual(8);
   });
@@ -1884,6 +1937,7 @@ describe('the press', () => {
     for (const competition of Object.values(state.world.competitions)) competition.fixtures = [];
     for (const competition of Object.values(state.world.youth?.competitions ?? {})) competition.fixtures = [];
     state.world.cups = {};
+    if (state.world.youth) state.world.youth.cups = {};
     state.world.europe = {};
     state.world.week = 10;
     state.pendingDecisions = [];
@@ -1918,6 +1972,7 @@ describe('the press', () => {
     for (const competition of Object.values(state.world.competitions)) competition.fixtures = [];
     for (const competition of Object.values(state.world.youth?.competitions ?? {})) competition.fixtures = [];
     state.world.cups = {};
+    if (state.world.youth) state.world.youth.cups = {};
     state.world.europe = {};
     state.world.week = 12;
     state.pendingDecisions = [];
@@ -2412,7 +2467,13 @@ describe('half time', () => {
       const held = state.pendingHalfTime!;
       resumeHalfTime(state, index, held.demand ?? held.options[0]!);
       answered++;
-      expect(state.pendingHalfTime, 'the interval was still on the table after it was answered').toBeUndefined();
+      // A week can hold two matches - a league game and a cup tie - and the second one
+      // is entitled to its own dressing room. What must never happen is the match he
+      // has just answered for staying on the table.
+      expect(
+        state.pendingHalfTime?.matchId,
+        'the interval was still on the table after it was answered',
+      ).not.toBe(held.matchId);
     }
     expect(answered, 'no interval ever came up').toBeGreaterThan(0);
   });
@@ -2814,6 +2875,7 @@ describe('the national youth sides', () => {
       for (const competition of Object.values(state.world.competitions)) competition.fixtures = [];
       for (const competition of Object.values(state.world.youth?.competitions ?? {})) competition.fixtures = [];
       state.world.cups = {};
+      if (state.world.youth) state.world.youth.cups = {};
       state.world.europe = {};
       state.pendingDecisions = [];
       state.player.condition.injuries = [];

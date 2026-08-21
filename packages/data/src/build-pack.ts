@@ -375,6 +375,7 @@ async function main(): Promise<void> {
     nameLocale: c.nameLocale,
     cupName: c.cupName,
     cupNameHe: c.cupNameHe,
+    ...(c.leagueCupName ? { leagueCupName: c.leagueCupName, leagueCupNameHe: c.leagueCupNameHe } : {}),
   })).filter((c) => c.competitionIds.length > 0);
 
   // Rivalries, both ways round, plus anything that shares a city.

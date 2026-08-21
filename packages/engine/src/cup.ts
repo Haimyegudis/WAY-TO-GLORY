@@ -1,6 +1,16 @@
 import { Rng } from './rng.js';
 import type { Club } from './types.js';
 
+/** The id a country's league cup is kept under, and its age-group twin. */
+export function leagueCupId(country: string): string {
+  return `${country.toLowerCase()}_leaguecup`;
+}
+
+/** The age-group version of any cup. */
+export function youthCupId(cupId: string): string {
+  return `${cupId}.youth`;
+}
+
 /** Weeks the cup rounds are played on. Later rounds sit in the second half of the season. */
 export const CUP_ROUND_WEEKS = [7, 12, 17, 22, 29, 35, 40, 44];
 
@@ -34,10 +44,12 @@ export function createCup(
   clubs: Club[],
   season: number,
   roundWeeks: number[] = CUP_ROUND_WEEKS,
+  /** What this knockout is: the national cup, the league cup, or either one's age group. */
+  id = `${country.toLowerCase()}_cup`,
 ): CupState {
   const entrants = rng.shuffle(clubs.map((c) => c.id));
   return {
-    id: `${country.toLowerCase()}_cup`,
+    id,
     country,
     season,
     ties: [],
