@@ -42,6 +42,7 @@ import {
   getAcademyOffers,
   joinClub,
   mentalFactor,
+  setTraining,
   userSquad,
 } from '../src/career.js';
 import { DEFAULT_INPUT, loadPack, playWeek, startedCareer } from './helpers.js';
@@ -915,7 +916,51 @@ describe('pre-season camp', () => {
     expect(feedback?.action).toEqual({
       type: 'setTrainingFocus',
       focus: state.flags[`campRecommendedFocus:${state.world.season}`],
+      intensity: state.flags[`campRecommendedIntensity:${state.world.season}`],
     });
+  });
+
+  it('asks for a load as well as a focus, and reads the body before the gap', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 6063 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+
+    const season = state.world.season;
+    const intensity = String(state.flags[`campRecommendedIntensity:${season}`] ?? '');
+    expect(['light', 'normal', 'intensive', 'extreme']).toContain(intensity);
+
+    playWeek(state, index);
+    const review = state.inbox.find((message) => message.titleKey === 'inbox.trainingCampFeedback.1');
+    expect(review?.action?.intensity).toBe(state.flags[`campRecommendedIntensity:${season}`]);
+    expect(review?.args?.intensity).toBe(`train.intensity.${state.flags[`campRecommendedIntensity:${season}`]}`);
+
+    // A body that cannot take a hard block sets the ceiling whatever the gap looks like:
+    // an injured player is told to go light, not to chase his weakest attribute.
+    state.player.condition.injuries.push({
+      id: 'inj_test', type: 'hamstring', severity: 'moderate', weeksOut: 4, seasonStarted: season,
+    });
+    state.flags[`campRecommendedIntensity:${season}`] = 'intensive';
+    playWeek(state, index);
+    expect(state.flags[`campRecommendedIntensity:${season}`]).toBe('light');
+  });
+
+  it('only counts the camp plan as followed when the load matches too', () => {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 16, seed: 6065 });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { asAcademy: true });
+
+    const season = state.world.season;
+    const focus = state.flags[`campRecommendedFocus:${season}`] as CareerState['training']['focus'];
+    const asked = state.flags[`campRecommendedIntensity:${season}`] as CareerState['training']['intensity'];
+    const wrong = asked === 'light' ? 'intensive' : 'light';
+
+    setTraining(state, { focus, intensity: wrong });
+    playWeek(state, index);
+    expect(state.flags[`campFollowedCoach:${season}:1`]).toBeUndefined();
+
+    setTraining(state, { focus, intensity: asked });
+    playWeek(state, index);
+    expect(state.flags[`campFollowedCoach:${season}:2`]).toBe(true);
   });
 
   it('reviews the camp once a week and delivers one verdict', () => {

@@ -926,7 +926,33 @@ function updateCampAssessment(state: CareerState): void {
   if (weakest) {
     state.flags[`campWeakness:${state.world.season}`] = weakest.key;
     state.flags[`campRecommendedFocus:${state.world.season}`] = focusForCampWeakness(weakest.key);
+    state.flags[`campRecommendedIntensity:${state.world.season}`] = intensityForCamp(
+      state,
+      strongest ? strongest.value - weakest.value : 0,
+    );
   }
+}
+
+/**
+ * How hard the staff want him working, which is a medical question before it is a
+ * coaching one.
+ *
+ * The body sets the ceiling: a player carrying an injury, or just back from one, is
+ * given a light block whatever his weakness looks like, and a tired or blunt one is
+ * held at normal. Only once he is fit does the size of the gap decide how far up the
+ * ladder he goes - and the top of it is reserved for a young professional with real
+ * ground to make up, because that is the block that breaks people.
+ */
+function intensityForCamp(state: CareerState, gap: number): TrainingIntensity {
+  const player = state.player;
+  if (isInjured(player) || state.flags['returnedFromLayoff']) return 'light';
+  if (player.condition.fatigue >= 55 || player.condition.sharpness <= 40) return 'normal';
+
+  const age = state.world.season - player.birthYear;
+  const professional = player.personality.professionalism >= 62 && player.personality.determination >= 55;
+  if (gap >= 24 && age <= 21 && professional) return 'extreme';
+  if (gap >= 14) return 'intensive';
+  return 'normal';
 }
 
 function focusForCampWeakness(skill: ReturnType<typeof skillProfile>[number]['key']): TrainingPlan['focus'] {
@@ -1208,10 +1234,14 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
 
     applyTrainingCondition(player, weekPlan);
     const campFocus = String(state.flags[`campRecommendedFocus:${season}`] ?? '');
+    const campIntensity = String(state.flags[`campRecommendedIntensity:${season}`] ?? '');
     if (
       week <= PRESEASON_END_WEEK
       && Boolean(state.flags[`trainingCamp:${season}`])
       && weekPlan.focus === campFocus
+      // The plan is the focus and the load together. Doing the right work at the wrong
+      // intensity is not the block the staff asked for.
+      && (!campIntensity || weekPlan.intensity === campIntensity)
     ) {
       // Following the staff's individual plan is noticed and gets more useful coaching.
       state.flags[`campFollowedCoach:${season}:${week}`] = true;
@@ -3619,12 +3649,20 @@ function applyFriendlyToPlayer(
     const recommendedFocus = String(
       state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced',
     ) as TrainingPlan['focus'];
+    const recommendedIntensity = String(
+      state.flags[`campRecommendedIntensity:${state.world.season}`] ?? 'normal',
+    ) as TrainingIntensity;
     pushInbox(state, 'manager', `inbox.trainingCampFeedback.${state.world.week}`, {
       rating: weekRating.toFixed(1),
       strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
       weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
       focus: `train.focus.${recommendedFocus}`,
-    }, undefined, { type: 'setTrainingFocus', focus: recommendedFocus });
+      intensity: `train.intensity.${recommendedIntensity}`,
+    }, undefined, {
+      type: 'setTrainingFocus',
+      focus: recommendedFocus,
+      intensity: recommendedIntensity,
+    });
   }
 
   if (state.world.week === PRESEASON_END_WEEK) {
@@ -3662,6 +3700,7 @@ function applyFriendlyToPlayer(
       strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
       weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
       focus: `train.focus.${String(state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced')}`,
+      intensity: `train.intensity.${String(state.flags[`campRecommendedIntensity:${state.world.season}`] ?? 'normal')}`,
     });
     const verdict = academy
       ? academyPromotion ? 'academyPromoted' : direction < 0 ? 'academyDevelopment' : 'academyConfirmed'
@@ -3836,14 +3875,22 @@ export function applyLiveInstruction(
       const recommendedFocus = String(
         state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced',
       ) as TrainingPlan['focus'];
+      const recommendedIntensity = String(
+        state.flags[`campRecommendedIntensity:${state.world.season}`] ?? 'normal',
+      ) as TrainingIntensity;
       feedback.args = {
         ...feedback.args,
         rating: match.userLine.rating.toFixed(1),
         strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
         weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
         focus: `train.focus.${recommendedFocus}`,
+        intensity: `train.intensity.${recommendedIntensity}`,
       };
-      feedback.action = { type: 'setTrainingFocus', focus: recommendedFocus };
+      feedback.action = {
+        type: 'setTrainingFocus',
+        focus: recommendedFocus,
+        intensity: recommendedIntensity,
+      };
     }
   } else {
     const stats = state.world.seasonStats[player.id];

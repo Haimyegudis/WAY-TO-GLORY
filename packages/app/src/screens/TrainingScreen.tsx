@@ -108,7 +108,11 @@ export function TrainingScreen() {
   const wage = state.contract?.salaryPerWeek ?? 0;
   const weeklyDiet = dietCost(plan.diet, wage);
   const coachFocus = String(state.flags[`campAppliedFocus:${state.world.season}`] ?? '');
-  const followingCoachPlan = coachFocus !== '' && plan.focus === coachFocus;
+  const coachLoad = String(state.flags[`campAppliedIntensity:${state.world.season}`] ?? '');
+  // The assignment is the work and the load. Drifting off either one drops the plan.
+  const followingCoachPlan = coachFocus !== ''
+    && plan.focus === coachFocus
+    && (coachLoad === '' || plan.intensity === coachLoad);
 
   return (
     <div className="screen stack">
@@ -121,7 +125,12 @@ export function TrainingScreen() {
         <Card>
           <p className="eyebrow">{t('train.coachPlan')}</p>
           <p style={{ fontSize: 13.5, marginBlockStart: 6 }}>
-            {t('train.coachPlan.active', { focus: `train.focus.${coachFocus}` })}
+            {coachLoad
+              ? t('train.coachPlan.activeLoad', {
+                  focus: `train.focus.${coachFocus}`,
+                  intensity: `train.intensity.${coachLoad}`,
+                })
+              : t('train.coachPlan.active', { focus: `train.focus.${coachFocus}` })}
           </p>
         </Card>
       )}

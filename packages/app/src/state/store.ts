@@ -744,8 +744,12 @@ export const useGame = create<GameStore>((set, get) => ({
     if (!message?.action) return;
 
     if (message.action.type === 'setTrainingFocus') {
-      engineSetTraining(state, { focus: message.action.focus });
-      state.flags[`campAppliedFocus:${state.world.season}`] = message.action.focus;
+      // The staff ask for work and a load. Applying the plan applies both, or the
+      // player follows half of it and never earns the coaching that comes with it.
+      const { focus, intensity } = message.action;
+      engineSetTraining(state, { focus, ...(intensity ? { intensity } : {}) });
+      state.flags[`campAppliedFocus:${state.world.season}`] = focus;
+      if (intensity) state.flags[`campAppliedIntensity:${state.world.season}`] = intensity;
     }
     message.read = true;
     const slot = get().activeSaveId;

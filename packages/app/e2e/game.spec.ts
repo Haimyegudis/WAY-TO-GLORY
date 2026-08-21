@@ -275,14 +275,15 @@ test('applies a coach camp assignment and opens the selected training focus', as
     const state = structuredClone(game.getState().state);
     const messageId = 'msg_e2e_camp_action';
     state.flags[`campRecommendedFocus:${state.world.season}`] = 'physical';
+    state.flags[`campRecommendedIntensity:${state.world.season}`] = 'intensive';
     state.inbox.unshift({
       id: messageId, season: state.world.season, week: state.world.week,
       category: 'manager', titleKey: 'inbox.trainingCampFeedback.1', read: true,
       args: {
         rating: '7.2', strength: 'skill.technique', weakness: 'skill.physical',
-        focus: 'train.focus.physical',
+        focus: 'train.focus.physical', intensity: 'train.intensity.intensive',
       },
-      action: { type: 'setTrainingFocus', focus: 'physical' },
+      action: { type: 'setTrainingFocus', focus: 'physical', intensity: 'intensive' },
     });
     const player = state.player;
     const homeClubId = player.clubId as string;
@@ -310,7 +311,10 @@ test('applies a coach camp assignment and opens the selected training focus', as
   await page.getByRole('button', { name: 'Apply plan and open training' }).click();
   await expect(page.getByRole('heading', { name: 'Training' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Physical' })).toHaveAttribute('aria-pressed', 'true');
+  // The assignment is the work and the load: applying it sets the intensity too.
+  await expect(page.getByRole('button', { name: 'Intensive' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('Coach assignment')).toBeVisible();
+  await expect(page.getByText('at Intensive load', { exact: false })).toBeVisible();
   await expectAccessible(page);
 });
 

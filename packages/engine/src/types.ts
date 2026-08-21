@@ -642,6 +642,8 @@ export interface InboxMessage {
   action?: {
     type: 'setTrainingFocus';
     focus: TrainingFocus;
+    /** The load the staff asked for, alongside the work itself. */
+    intensity?: TrainingIntensity;
   };
 }
 

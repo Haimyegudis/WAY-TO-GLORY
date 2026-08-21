@@ -81,6 +81,7 @@ export function Hub() {
   const campStrength = String(state.flags[`campStrength:${state.world.season}`] ?? '');
   const campWeakness = String(state.flags[`campWeakness:${state.world.season}`] ?? '');
   const campFocus = String(state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced');
+  const campLoad = String(state.flags[`campRecommendedIntensity:${state.world.season}`] ?? 'normal');
   const recentRated = state.matchLog
     .filter((match) => match.userLine?.played && match.userLine.rating > 0)
     .slice(0, 5);
@@ -251,6 +252,7 @@ export function Hub() {
             {campStrength && <p style={{ fontSize: 13 }}>{t('camp.strength', { skill: `skill.${campStrength}` })}</p>}
             {campWeakness && <p style={{ fontSize: 13 }}>{t('camp.weakness', { skill: `skill.${campWeakness}` })}</p>}
             <p style={{ fontSize: 13 }}>{t('camp.coachFocus', { focus: `train.focus.${campFocus}` })}</p>
+            <p style={{ fontSize: 13 }}>{t('camp.coachLoad', { intensity: `train.intensity.${campLoad}` })}</p>
           </div>
         </Card>
       )}
