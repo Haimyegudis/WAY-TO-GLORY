@@ -124,7 +124,11 @@ export function LiveMatch({
     const isGoal = events.some(
       (e) => e.minute === minute && (e.type === 'goal' || e.type === 'concede' || e.type === 'penaltyScored'),
     );
-    const delay = (isGoal ? 6200 : notable ? 2400 : 620) / speed;
+    // A goal replay is a complete broadcast sequence and is deliberately independent
+    // of the general match speed. At x2/x4 the clock used to leave the goal before the
+    // slow-motion pass had even begun, while at normal speed it could cancel the timer
+    // that removed the replay badge. One goal now always gets exactly one full replay.
+    const delay = isGoal ? 7000 : (notable ? 2400 : 620) / speed;
     const id = window.setTimeout(() => setMinute(next), delay);
     return () => window.clearTimeout(id);
   }, [minute, paused, speed, done, events]);

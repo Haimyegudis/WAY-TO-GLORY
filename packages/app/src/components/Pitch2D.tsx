@@ -325,7 +325,15 @@ export function Pitch2D({
   // the way the text says it went.
   useEffect(() => {
     const event = held.current;
+    for (const id of timers.current) window.clearTimeout(id);
+    timers.current = [];
+    // A new match beat owns a clean broadcast state. In particular, it must remove a
+    // replay badge even if the previous event changed before its final timer fired.
+    setReplaying(false);
+    setNetHit(false);
+    setFlash(null);
     if (!event) return;
+
     const theirs =
       event.type === 'concede' ||
       event.type === 'oppMiss' ||
@@ -334,8 +342,6 @@ export function Pitch2D({
     setAttackingRight(rightwards);
 
     const play = playFor(event, rightwards);
-    for (const id of timers.current) window.clearTimeout(id);
-    timers.current = [];
 
     const run = (beats: typeof play.beats, slow: number, offset: number) => {
       let at = offset;
@@ -364,9 +370,11 @@ export function Pitch2D({
       timers.current.push(window.setTimeout(() => setReplaying(true), replayFrom));
       const replayEnd = run(play.beats, 1.7, replayFrom);
       timers.current.push(window.setTimeout(() => setNetHit(true), replayEnd - 200));
+      // The on-air label belongs only to the slow-motion replay, not to the short
+      // settling animation after the ball reaches the net.
+      timers.current.push(window.setTimeout(() => setReplaying(false), replayEnd));
       timers.current.push(
         window.setTimeout(() => {
-          setReplaying(false);
           setNetHit(false);
           setFlash(null);
         }, replayEnd + 700),
