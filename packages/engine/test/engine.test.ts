@@ -153,6 +153,93 @@ describe('development', () => {
     return player;
   };
 
+  /**
+   * A striker in a plain league match: ten teammates, an opponent of ordinary strength,
+   * ninety minutes. Built from the pack rather than from a career so the test measures
+   * the match engine and nothing else.
+   */
+  const strikerContext = (user: Player): UserMatchContext => {
+    const pack = loadPack();
+    const index = indexPack(pack);
+    const rng = new Rng(5);
+    const home = pack.clubs.find((entry) => entry.competitionId === 'en.1')!;
+    const away = pack.clubs.find((entry) => entry.competitionId === 'en.1' && entry.id !== home.id)!;
+    const teammates = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'CAM', 'LW', 'RW'].map((pos) =>
+      generatePlayer(rng, index, {
+        clubId: home.id, pos: pos as Position, age: 26, targetOvr: 68, season: 2030, countryCode: 'ENG',
+      }));
+    const opponentStars = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'CAM', 'ST'].map((pos) =>
+      generatePlayer(rng, index, {
+        clubId: away.id, pos: pos as Position, age: 26, targetOvr: 66, season: 2030, countryCode: 'ENG',
+      }));
+    const squad = [...teammates, user];
+    return {
+      season: 2030,
+      week: 20,
+      competitionId: 'en.1',
+      homeClub: home,
+      awayClub: away,
+      userIsHome: true,
+      userClubSquad: squad,
+      opponentStars,
+      opponentRating: 66,
+      user,
+      lineup: pickLineup(new Rng(11), squad, {
+        formation: '4-3-3', managerTrust: 70, userId: user.id, rotationPressure: 0, importantMatch: false,
+      }),
+      minutes: { played: true, started: true, minutes: 90, slot: 'ST' },
+      importance: 'normal',
+      matchId: 'training_effect',
+      mental: 1,
+      penaltyTaker: false,
+    };
+  };
+
+  /*
+   * Training has to reach the scoreboard, not just the attribute screen.
+   *
+   * Both halves of that chain are asserted here: a season on finishing puts real points
+   * on the attribute compared with a season spent elsewhere, and the striker those
+   * points belong to converts more of his chances. Break either link and a training
+   * plan becomes decoration.
+   */
+  it('turns a season of finishing work into goals', () => {
+    const season = 2030;
+    const trainFor = (focus: TrainingPlan['focus']): Player => {
+      const player = generatePlayer(new Rng(42), indexPack(loadPack()), {
+        clubId: null, pos: 'ST', age: 19, targetOvr: 62, season, countryCode: 'ENG',
+      });
+      player.potential = 88;
+      const rng = new Rng(77);
+      for (let week = 0; week < 52; week++) {
+        developWeek(rng, player, season, {
+          training: { intensity: 'normal', focus, diet: 'normal' },
+          coachQuality: 55, facilities: 55, minutesPct: 0.6, competitiveLevel: 55, inSeason: true,
+        });
+      }
+      return player;
+    };
+
+    const sharpshooter = trainFor('finishing');
+    const defender = trainFor('defending');
+    expect(sharpshooter.attributes.finishing).toBeGreaterThan(defender.attributes.finishing + 8);
+
+    // The same striker, the same chances, one attribute apart: the finishing he was
+    // trained on has to be worth goals.
+    const goalsWith = (finishing: number): number => {
+      const player = structuredClone(sharpshooter);
+      player.attributes.finishing = finishing;
+      const ctx = strikerContext(player);
+      let goals = 0;
+      for (let seed = 1; seed <= 300; seed++) goals += simulateUserMatch(new Rng(seed), ctx).line.goals;
+      return goals;
+    };
+
+    const trained = goalsWith(sharpshooter.attributes.finishing);
+    const untrained = goalsWith(defender.attributes.finishing);
+    expect(trained).toBeGreaterThan(untrained);
+  });
+
   it('improves a young player who plays regularly', () => {
     const player = makePlayer(18, 85, 55);
     const rng = new Rng(1);
@@ -937,7 +1024,7 @@ describe('pre-season camp', () => {
     // A body that cannot take a hard block sets the ceiling whatever the gap looks like:
     // an injured player is told to go light, not to chase his weakest attribute.
     state.player.condition.injuries.push({
-      id: 'inj_test', type: 'hamstring', severity: 'moderate', weeksOut: 4, seasonStarted: season,
+      id: 'inj_test', type: 'hamstring', severity: 'moderate', weeksOut: 4, weeksRemaining: 4, season,
     });
     state.flags[`campRecommendedIntensity:${season}`] = 'intensive';
     playWeek(state, index);
@@ -950,8 +1037,8 @@ describe('pre-season camp', () => {
     joinClub(state, index, clubId, { asAcademy: true });
 
     const season = state.world.season;
-    const focus = state.flags[`campRecommendedFocus:${season}`] as CareerState['training']['focus'];
-    const asked = state.flags[`campRecommendedIntensity:${season}`] as CareerState['training']['intensity'];
+    const focus = state.flags[`campRecommendedFocus:${season}`] as TrainingPlan['focus'];
+    const asked = state.flags[`campRecommendedIntensity:${season}`] as TrainingPlan['intensity'];
     const wrong = asked === 'light' ? 'intensive' : 'light';
 
     setTraining(state, { focus, intensity: wrong });
