@@ -58,6 +58,16 @@ function YouthTable() {
   if (rows.length === 0) return <Empty>—</Empty>;
 
   return (
+    <>
+      {/* The age group splits when its senior division does, so the table has to show
+          where the cut falls and that the points carry over it. */}
+      {comp?.splitGroups && (
+        <div className="row wrap league-split-legend">
+          <span className="chip chip-green">{t('club.championshipGroup')}</span>
+          <span className="chip chip-amber">{t('club.relegationGroup')}</span>
+          <span className="faint">{t('club.splitPointsCarry')}</span>
+        </div>
+      )}
     <div className="scroll-x">
       <table className="tbl">
         <thead>
@@ -73,7 +83,12 @@ function YouthTable() {
           {rows.map((row, i) => {
             const side = club(state, row.clubId);
             return (
-              <tr key={row.clubId} className={row.clubId === mine ? 'me' : ''}>
+              <tr
+                key={row.clubId}
+                className={`${row.clubId === mine ? 'me' : ''} ${
+                  comp?.splitGroups && i === comp.splitGroups.upper.length ? 'split-cut' : ''
+                }`}
+              >
                 <td className="n">{i + 1}</td>
                 <td className="start">
                   <span className="row" style={{ gap: 6 }}>
@@ -90,6 +105,7 @@ function YouthTable() {
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 

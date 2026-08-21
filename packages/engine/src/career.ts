@@ -121,6 +121,7 @@ import {
   youthClubRating,
   createYouthWorld,
   userYouthCompetitionId,
+  youthParentId,
   userYouthCompetition,
   scoringRank,
   youthTablePosition,
@@ -480,7 +481,10 @@ function rollYouthSeason(state: CareerState, index: PackIndex, rng: Rng): void {
       delete youth.competitions[competitionId];
       continue;
     }
-    youth.competitions[competitionId] = newYouthSeason(rng, competitionId, clubIds, state.world.season);
+    const parent = index.competitionById.get(youthParentId(competitionId));
+    youth.competitions[competitionId] = newYouthSeason(
+      rng, competitionId, clubIds, state.world.season, parent?.split,
+    );
   }
 
   ageYouthWorld(rng, state, index);
@@ -1185,6 +1189,12 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   for (const competitionState of Object.values(state.world.competitions)) {
     const competition = index.competitionById.get(competitionState.competitionId);
     if (competition) ensureLeagueSplit(rng, competitionState, competition, week);
+  }
+  // The age groups play the same competition their clubs do, playoff and all: a boy in
+  // the Israeli youth league finishes his season the way the seniors finish theirs.
+  for (const [competitionId, youthState] of Object.entries(state.world.youth?.competitions ?? {})) {
+    const parent = index.competitionById.get(youthParentId(competitionId));
+    if (parent?.split) ensureLeagueSplit(rng, youthState, parent, week);
   }
 
   // 0a. The week before a big one starts on the Monday.

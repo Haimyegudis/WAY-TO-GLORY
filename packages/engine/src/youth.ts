@@ -1,10 +1,11 @@
 import { Rng, clamp } from './rng.js';
-import { buildFixtures, emptyRow, sortedTable } from './league.js';
+import { FIRST_MATCH_WEEK, buildFixtures, emptyRow, sortedTable } from './league.js';
 import type { PackIndex } from './data.js';
 import type {
   CareerState,
   Club,
   CompetitionSeasonState,
+  LeagueSplitRules,
   LeagueTableRow,
   Player,
   SeasonStats,
@@ -69,6 +70,11 @@ export function youthCompetitionId(competitionId: string): string {
   return `${competitionId}.youth`;
 }
 
+/** The senior division a youth division belongs to. */
+export function youthParentId(competitionId: string): string {
+  return competitionId.replace(/\.youth$/, '');
+}
+
 export function seniorCompetitionId(youthId: string): string {
   return youthId.endsWith('.youth') ? youthId.slice(0, -'.youth'.length) : youthId;
 }
@@ -115,27 +121,40 @@ export function createYouthWorld(rng: Rng, state: CareerState, index: PackIndex,
     if (clubIds.length < 4) continue;
     const id = youthCompetitionId(league.id);
     for (const clubId of clubIds) world.membership[clubId] = id;
-    world.competitions[id] = newYouthSeason(rng, id, clubIds, state.world.season);
+    world.competitions[id] = newYouthSeason(rng, id, clubIds, state.world.season, league.split);
   }
 
   return world;
 }
 
-/** A fresh table and fixture list for one youth division. */
+/**
+ * A fresh table and fixture list for one youth division.
+ *
+ * An age group plays the competition its club's senior side plays: where the league
+ * splits after its regular rounds, so does the youth division, which is why the boys'
+ * table now stops in the same week the seniors' does and finishes the same way.
+ */
 export function newYouthSeason(
   rng: Rng,
   competitionId: string,
   clubIds: string[],
   season: number,
+  split?: LeagueSplitRules,
 ): CompetitionSeasonState {
   const table: Record<string, LeagueTableRow> = {};
   for (const id of clubIds) table[id] = emptyRow(id);
+  const fixtures = buildFixtures(
+    rng,
+    clubIds,
+    split?.regularRounds ?? 2,
+    split ? { firstWeek: FIRST_MATCH_WEEK, lastWeek: split.regularLastWeek } : undefined,
+  ).map((fixture) => ({ ...fixture, phase: 'regular' as const }));
   return {
     competitionId,
     season,
     clubIds: clubIds.slice(),
     table,
-    fixtures: buildFixtures(rng, clubIds, 2),
+    fixtures,
     currentRound: 0,
     scorers: {},
     assists: {},

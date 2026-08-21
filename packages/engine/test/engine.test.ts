@@ -471,6 +471,40 @@ describe('league', () => {
     expect(sortedTable(state).slice(0, 6).every((row) => upper.has(row.clubId))).toBe(true);
   });
 
+  it('splits the youth division the way its senior league splits', () => {
+    const { state, index } = startedCareer({ seed: 21 });
+    const season = state.world.season;
+    // The last look at his division before the season rolls over and rebuilds it.
+    let split = false;
+    let playoffPlayed = 0;
+    let playoffTotal = 0;
+    let regularRounds = 0;
+    let hisMatches = 0;
+
+    for (let i = 0; i < 52 && state.world.season === season; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      const division = userYouthCompetitionId(state);
+      const comp = division ? state.world.youth?.competitions[division] : null;
+      if (!comp || state.world.season !== season) continue;
+      const playoff = comp.fixtures.filter((fixture) => fixture.phase && fixture.phase !== 'regular');
+      split = Boolean(comp.splitGroups);
+      playoffPlayed = playoff.filter((fixture) => fixture.played).length;
+      playoffTotal = playoff.length;
+      regularRounds = new Set(
+        comp.fixtures.filter((fixture) => (fixture.phase ?? 'regular') === 'regular').map((f) => f.round),
+      ).size;
+      hisMatches = comp.table[state.player.clubId!]?.played ?? 0;
+    }
+
+    // His division belongs to a league that splits, so his season has to end in a
+    // playoff and not stop dead when the regular rounds run out.
+    expect(split).toBe(true);
+    expect(playoffTotal).toBeGreaterThan(0);
+    expect(playoffPlayed).toBe(playoffTotal);
+    expect(hisMatches).toBeGreaterThan(regularRounds);
+  });
+
   it('gives a season saved before the playoff its playoff, from the week he is in', () => {
     const pack = loadPack();
     const competition = pack.competitions.find((entry) => entry.id === 'il.1')!;
