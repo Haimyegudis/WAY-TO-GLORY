@@ -51,6 +51,38 @@ export function Hub() {
   const ovrTone = ovr >= 82 ? 'ovr-tile-elite' : ovr >= 70 ? 'ovr-tile-high' : '';
   const goal = state.seasonGoal?.season === state.world.season ? state.seasonGoal : null;
   const standing = seasonGoalStanding(state);
+  const inCamp = Boolean(state.flags[`trainingCamp:${state.world.season}`]) && state.world.week <= 3;
+  const campMatches = state.matchLog.filter(
+    (match) => match.season === state.world.season && match.competitionId === 'friendly' && match.userLine?.played,
+  );
+  const campAverage = campMatches.length > 0
+    ? campMatches.reduce((sum, match) => sum + (match.userLine?.rating ?? 0), 0) / campMatches.length
+    : 0;
+  const campStartOvr = Number(state.flags[`campStartOvr:${state.world.season}`] ?? ovr);
+  const campStrength = String(state.flags[`campStrength:${state.world.season}`] ?? '');
+  const campWeakness = String(state.flags[`campWeakness:${state.world.season}`] ?? '');
+  const campFocus = String(state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced');
+  const recentRated = state.matchLog
+    .filter((match) => match.userLine?.played && match.userLine.rating > 0)
+    .slice(0, 5);
+  const recentAverage = recentRated.length > 0
+    ? recentRated.reduce((sum, match) => sum + (match.userLine?.rating ?? 0), 0) / recentRated.length
+    : 0;
+  const formBand = player.form >= 72 ? 'excellent' : player.form >= 56 ? 'good' : player.form >= 42 ? 'unstable' : 'poor';
+  const selectionOutlook = injuredWeeks > 0
+    ? 'injured'
+    : state.flags['formBenchNotified']
+      ? 'benchForm'
+      : state.flags['calledUpToSeniors']
+        ? 'seniorTraining'
+        : player.squadRole === 'academy'
+          ? 'academy'
+          : ['starter', 'important', 'key', 'star'].includes(player.squadRole)
+            ? 'starting'
+            : 'competing';
+  const nationalInterest = Math.round(Math.max(0, ...Object.values(state.nationalTeam.interest)));
+  const youthForm = state.world.youth?.form;
+  const youthAverage = youthForm && youthForm.apps > 0 ? youthForm.ratingSum / youthForm.apps : 0;
 
   return (
     <div className="screen stack">
@@ -131,6 +163,50 @@ export function Hub() {
           <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t('hub.youthHint')}</p>
         </Card>
       )}
+
+      {inCamp && (
+        <Card title={t('camp.title')}>
+          <p className="muted" style={{ fontSize: 12.5, marginBlockEnd: 10 }}>
+            {t('camp.phase', { week: state.world.week })}
+          </p>
+          <div className="statrow">
+            <Stat label={t('camp.friendlies')} value={`${campMatches.length}/3`} />
+            <Stat label={t('match.rating')} value={campAverage > 0 ? campAverage.toFixed(2) : '—'} />
+            <Stat label={t('rel.manager')} value={Math.round(state.managerTrust)} />
+            <Stat label={t('camp.development')} value={`${ovr - campStartOvr >= 0 ? '+' : ''}${(ovr - campStartOvr).toFixed(1)}`} />
+          </div>
+          <div className="stack" style={{ gap: 6, marginBlockStart: 12 }}>
+            {campStrength && <p style={{ fontSize: 13 }}>{t('camp.strength', { skill: `skill.${campStrength}` })}</p>}
+            {campWeakness && <p style={{ fontSize: 13 }}>{t('camp.weakness', { skill: `skill.${campWeakness}` })}</p>}
+            <p style={{ fontSize: 13 }}>{t('camp.coachFocus', { focus: `train.focus.${campFocus}` })}</p>
+          </div>
+        </Card>
+      )}
+
+      <Card title={t('status.title')}>
+        <div className="statrow">
+          <Stat label={t('hub.form')} value={Math.round(player.form)} />
+          <Stat label={t('status.lastFive')} value={recentAverage > 0 ? recentAverage.toFixed(2) : '—'} />
+          <Stat label={t('status.nationalInterest')} value={`${nationalInterest}%`} />
+          <Stat label={t('rel.manager')} value={Math.round(state.managerTrust)} />
+        </div>
+        <div className="stack" style={{ gap: 7, marginBlockStart: 12 }}>
+          <p style={{ fontSize: 13 }}>{t(`status.form.${formBand}`)}</p>
+          <p style={{ fontSize: 13 }}>{t(`status.selection.${selectionOutlook}`)}</p>
+          {player.squadRole === 'academy' && youthForm && (
+            <p style={{ fontSize: 13 }}>
+              {t('status.youthPath', {
+                apps: youthForm.apps,
+                rating: youthAverage > 0 ? youthAverage.toFixed(2) : '—',
+                interest: nationalInterest,
+              })}
+            </p>
+          )}
+        </div>
+        <button className="btn btn-block" style={{ marginBlockStart: 12 }} onClick={() => goto(player.form < 56 ? 'social' : 'train')}>
+          {t(player.form < 56 ? 'status.openActions' : 'status.openTraining')}
+        </button>
+      </Card>
 
       {/*
         * What the season is for.
@@ -227,7 +303,7 @@ export function Hub() {
                   {clubName(fixture.opponent, lang)}
                 </p>
                 <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 2 }}>
-                  {fixture.home ? t('match.home') : t('match.away')} · {t('hub.week', { week: fixture.fixture.week })}
+                  {fixture.home ? t('match.home') : t('match.away')} · {fixture.competitionId === 'friendly' ? t('match.importance.friendly') : t('hub.week', { week: fixture.fixture.week })}
                 </p>
               </div>
             </div>

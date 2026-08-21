@@ -591,6 +591,47 @@ describe('training and state feed performance', () => {
     state.flags['dressingRoomFallout'] = true;
     expect(availableActions(state).map((a) => a.id)).toContain('apologiseTeammates');
   });
+
+  it('benches sustained poor form and restores selection after recovery', () => {
+    const { state } = startedCareer({ seed: 901 });
+    state.player.squadRole = 'starter';
+    state.player.form = 30;
+
+    const dropped = evaluateConsequences(new Rng(1), state);
+    expect(dropped.some((consequence) => consequence.id === 'benchedForForm')).toBe(true);
+    expect(state.flags['formBenchNotified']).toBe(true);
+
+    state.player.form = 52;
+    const restored = evaluateConsequences(new Rng(2), state);
+    expect(restored.some((consequence) => consequence.id === 'backInForm')).toBe(true);
+    expect(state.flags['formBenchNotified']).toBe(false);
+  });
+
+  it('turns strong youth performances into a real senior-training request', () => {
+    const { state } = startedCareer({ seed: 902 });
+    state.player.squadRole = 'academy';
+    state.player.birthYear = state.world.season - 17;
+    expect(state.world.youth).toBeDefined();
+    const youth = state.world.youth!;
+    youth.form = {
+      ...youth.form,
+      apps: 5,
+      minutes: 450,
+      ratingSum: 37.5,
+    };
+
+    expect(availableActions(state).map((action) => action.id)).toContain('requestSeniorTraining');
+    // Search deterministic outcomes so the test validates the accepted branch without
+    // replacing the manager's real uncertainty with a guaranteed promotion.
+    for (let seed = 1; seed <= 20 && !state.flags['calledUpToSeniors']; seed++) {
+      state.socialActions.used = 0;
+      state.actionCooldowns = state.actionCooldowns ?? {};
+      state.actionCooldowns['requestSeniorTraining'] = -99;
+      performAction(new Rng(seed), state, 'requestSeniorTraining');
+    }
+    expect(state.flags['calledUpToSeniors']).toBe(true);
+    expect(state.world.squads[state.player.clubId!] ?? []).toContain(state.player.id);
+  });
 });
 
 describe('clamp', () => {
@@ -728,7 +769,10 @@ describe('pre-season camp', () => {
 
     const camp = state.matchLog.filter((match) => match.competitionId === 'friendly');
     expect(camp).toHaveLength(3);
-    expect(camp.every((match) => match.userLine?.played)).toBe(true);
+    expect(camp.every((match) => match.userLine !== undefined)).toBe(true);
+    // A fit player gets an audition; an actual camp injury is still allowed to rule
+    // him out rather than being silently ignored for the sake of the schedule.
+    expect(camp.some((match) => match.userLine?.played)).toBe(true);
     expect(camp.every((match) => match.importance === 'friendly')).toBe(true);
     expect(state.managerTrust).not.toBe(trustBefore);
     expect(Object.values(state.world.competitions).every(
@@ -748,8 +792,73 @@ describe('pre-season camp', () => {
 
     for (let week = 1; week <= 6; week++) playWeek(state, index);
     expect(league.table[clubId]!.played).toBe(0);
-    playWeek(state, index);
+    // Week seven can first stop on a fixture-bound media/coach question. Answering it
+    // (represented here by clearing the test queue) must then play that same fixture.
+    for (let attempt = 0; attempt < 5 && league.table[clubId]!.played === 0; attempt++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
     expect(league.table[clubId]!.played).toBeGreaterThan(0);
+  });
+});
+
+describe('pre-match chronology', () => {
+  function seniorCareer(seed: number) {
+    const { state, index } = createCareer(loadPack(), { ...DEFAULT_INPUT, age: 19, seed });
+    const clubId = getAcademyOffers(state, index)[0]!.clubId;
+    joinClub(state, index, clubId, { role: 'rotation' });
+    state.pendingDecisions = [];
+    return { state, index, clubId };
+  }
+
+  it('asks about a domestic cup final before the tie is played', () => {
+    const { state, index, clubId } = seniorCareer(8101);
+    state.world.week = 44;
+    const club = state.world.clubs[clubId]!;
+    const opponent = Object.values(state.world.clubs).find(
+      (candidate) => candidate.country === club.country && candidate.id !== clubId,
+    )!;
+    const tie = {
+      round: 1, week: state.world.week, homeClubId: clubId, awayClubId: opponent.id, played: false,
+    };
+    state.world.cups = {
+      test_cup: {
+        id: 'test_cup', country: club.country, season: state.world.season,
+        ties: [tie], alive: [], round: 1, finished: false,
+      },
+    };
+
+    const beforeWeek = state.world.week;
+    const result = advanceWeek(state, index);
+    expect(result.stopped).toBe('decision');
+    expect(state.world.week).toBe(beforeWeek);
+    expect(tie.played).toBe(false);
+    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:bigMatch')).toBe(true);
+    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.cupFinal')).toBe(true);
+  });
+
+  it('asks about a European night before the European fixture is played', () => {
+    const { state, index, clubId } = seniorCareer(8102);
+    state.world.week = 19;
+    const club = state.world.clubs[clubId]!;
+    const opponent = Object.values(state.world.clubs).find((candidate) => candidate.id !== clubId)!;
+    const fixture = {
+      round: 1, week: state.world.week, homeClubId: clubId, awayClubId: opponent.id, played: false,
+    };
+    state.world.europe = {
+      ucl: {
+        id: 'ucl', season: state.world.season, groups: [], fixtures: [fixture], ties: [],
+        stage: 'group', alive: [club.id, opponent.id],
+      },
+    };
+
+    const beforeWeek = state.world.week;
+    const result = advanceWeek(state, index);
+    expect(result.stopped).toBe('decision');
+    expect(state.world.week).toBe(beforeWeek);
+    expect(fixture.played).toBe(false);
+    expect(state.pendingDecisions.some((decision) => decision.eventId === 'milestone:bigMatch')).toBe(true);
+    expect(state.inbox.some((message) => message.titleKey === 'inbox.buildUp.europeanNight')).toBe(true);
   });
 });
 
@@ -1090,7 +1199,10 @@ describe('half time', () => {
         ? { played: true, started: true, minutes: 35, slot: base.user.primaryPos, offMinute: 35 }
         : { played: true, started: false, minutes: 25, slot: base.user.primaryPos, cameOnMinute: 45, offMinute: 70 };
       const match = simulateUserMatch(new Rng(seed), { ...base, minutes });
-      const forced = match.events.find((event) => event.type === 'red' || event.type === 'injury');
+      const forced = match.events.find(
+        (event) => event.byUser && event.playerId === base.user.id
+          && (event.type === 'red' || event.type === 'injury'),
+      );
       if (forced) forcedExitSeen = true;
       const exit = Math.min(plannedOff, forced?.minute ?? 90);
 

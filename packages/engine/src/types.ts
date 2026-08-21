@@ -472,6 +472,8 @@ export type ConsequenceId =
   | 'boardWarning'
   | 'captaincyLost'
   | 'clubSeeksReplacement'
+  | 'benchedForForm'
+  | 'backInForm'
   | 'injuryPickedUp'
   | 'apologyAccepted'
   | 'apologyRejected';

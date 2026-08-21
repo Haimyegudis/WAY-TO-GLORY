@@ -137,7 +137,7 @@ export const EVENTS: CareerEventDef[] = [
     opt('injury_treatment_choice', 'playThrough', [e('custom', 1, 'treatmentPlayThrough'), e('managerTrust', 6), e('injuryRisk', 55)], 'risk.high'),
   ]),
   ev('play_final_injured', 'medical', 16, 52, { ageRange: [18, 36], injured: true, minManagerTrust: 45 }, [
-    opt('play_final_injured', 'play', [e('managerTrust', 12), e('fame', 6), e('injuryRisk', 60), e('reputation', 3)], 'risk.high'),
+    opt('play_final_injured', 'play', [e('custom', 1, 'clearedForInjuredFinal'), e('managerTrust', 12), e('fame', 6), e('injuryRisk', 45), e('reputation', 3)], 'risk.high'),
     opt('play_final_injured', 'rest', [e('managerTrust', -6), e('morale', -5)]),
   ]),
   ev('painkiller_offer', 'medical', 18, 40, { ageRange: [20, 36], injured: true }, [

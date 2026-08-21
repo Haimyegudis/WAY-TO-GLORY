@@ -1,5 +1,5 @@
 import { Rng, clamp, hashString, randomSeed } from './rng.js';
-import { FORMATIONS, overall, positionGroup, ratingAt } from './positions.js';
+import { FORMATIONS, overall, positionGroup, ratingAt, skillProfile } from './positions.js';
 import {
   halfTimeFrequency,
   instructionsFor,
@@ -156,7 +156,7 @@ import {
   simulateInternationalMatch,
   updateNationalInterest,
 } from './national.js';
-import { isStoryEvent, pickEvent, toPendingDecision, type EventContext } from './events.js';
+import { isEligible, isStoryEvent, pickEvent, toPendingDecision, type EventContext } from './events.js';
 import {
   adjustRelationship,
   availableActions,
@@ -192,6 +192,7 @@ import type {
   CompetitionSeasonState,
   Fixture,
   TrainingIntensity,
+  TrainingPlan,
   UserMatchLine,
 } from './types.js';
 
@@ -315,6 +316,7 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   const club = userClub(state);
   if (club && !isAcademyPlayer(state)) {
     state.flags[`trainingCamp:${season}`] = true;
+    scheduleTrainingCamp(state, rng, club);
     pushInbox(state, 'manager', 'inbox.trainingCampBegins', { club: club.name });
   }
 }
@@ -685,8 +687,78 @@ export function joinClub(
   if (age <= 17) pushInbox(state, 'club', 'inbox.welcomeAcademy', { club: club.name });
   if (!isAcademyPlayer(state) && state.world.week <= PRESEASON_END_WEEK) {
     state.flags[`trainingCamp:${season}`] = true;
+    state.flags[`campStartOvr:${season}`] = overall(
+      state.player.attributes,
+      state.player.primaryPos,
+      state.player.secondaryPos,
+    );
+    scheduleTrainingCamp(state, rng, club);
     pushInbox(state, 'manager', 'inbox.trainingCampBegins', { club: club.name });
   }
+}
+
+/**
+ * Put the camp on the calendar when it opens, rather than inventing an opponent at
+ * kickoff. That makes every friendly visible in advance and stable across save/reload.
+ */
+function scheduleTrainingCamp(state: CareerState, rng: Rng, club: Club): void {
+  const season = state.world.season;
+  if (typeof state.flags[`campStartOvr:${season}`] !== 'number') {
+    state.flags[`campStartOvr:${season}`] = overall(
+      state.player.attributes,
+      state.player.primaryPos,
+      state.player.secondaryPos,
+    );
+  }
+  const level = clubRating(club);
+  const chosen = new Set<string>();
+
+  for (let week = 1; week <= PRESEASON_END_WEEK; week++) {
+    const key = `campOpponent:${season}:${week}`;
+    const existing = String(state.flags[key] ?? '');
+    if (state.world.clubs[existing]) {
+      chosen.add(existing);
+      continue;
+    }
+    const preferred = Object.values(state.world.clubs).filter((candidate) => {
+      if (candidate.id === club.id || chosen.has(candidate.id)) return false;
+      const gap = clubRating(candidate) - level;
+      if (week === 1) return candidate.country === club.country && gap >= -22 && gap <= -5;
+      if (week === 2) return candidate.country === club.country && Math.abs(gap) <= 10;
+      return gap >= -3 && gap <= 16;
+    });
+    const fallback = Object.values(state.world.clubs).filter(
+      (candidate) => candidate.id !== club.id && !chosen.has(candidate.id),
+    );
+    const opponent = rng.pick(preferred.length > 0 ? preferred : fallback);
+    state.flags[key] = opponent.id;
+    chosen.add(opponent.id);
+  }
+
+  updateCampAssessment(state);
+}
+
+/** Real, position-aware strengths and weaknesses used by both the UI and the coaches. */
+function updateCampAssessment(state: CareerState): void {
+  const profile = skillProfile(state.player.attributes, state.player.primaryPos)
+    .slice()
+    .sort((a, b) => b.value - a.value);
+  const strongest = profile[0];
+  const weakest = profile[profile.length - 1];
+  if (strongest) state.flags[`campStrength:${state.world.season}`] = strongest.key;
+  if (weakest) {
+    state.flags[`campWeakness:${state.world.season}`] = weakest.key;
+    state.flags[`campRecommendedFocus:${state.world.season}`] = focusForCampWeakness(weakest.key);
+  }
+}
+
+function focusForCampWeakness(skill: ReturnType<typeof skillProfile>[number]['key']): TrainingPlan['focus'] {
+  if (skill === 'speed' || skill === 'agility' || skill === 'physical' || skill === 'heading') return 'physical';
+  if (skill === 'finishing') return 'finishing';
+  if (skill === 'defending') return 'defending';
+  if (skill === 'goalkeeping') return 'goalkeeping';
+  if (skill === 'vision') return 'mental';
+  return 'technical';
 }
 
 /**
@@ -890,7 +962,8 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   const injuriesAddedThisWeek = new Set<string>();
 
   // 0a. The week before a big one starts on the Monday.
-  const weekImportance = announceBigMatch(state, index);
+  const scheduledMatch = scheduledUserMatchThisWeek(state, index);
+  const weekImportance = announceBigMatch(state, scheduledMatch);
 
   /*
    * 0a2. The build-up question, before the build-up is over.
@@ -902,10 +975,21 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
    */
   if (club && weekImportance !== 'normal') {
     const occasion = occasionMilestone(weekImportance);
-    if (occasion && raiseMilestone(state, occasion, { force: true })) {
+    if (occasion && raiseMilestone(state, occasion, {
+      force: true,
+      key: `asked:${occasion}:${weekImportance}:${state.world.season}`,
+      args: scheduledMatch ? { opponent: scheduledMatch.opponentName } : undefined,
+    })) {
       commitRng(state, rng);
       return { state, stopped: 'decision', log };
     }
+  }
+
+  // Fixture-bound dilemmas are not random stories to discover after the whistle. They
+  // are tied to the actual match on the calendar and block the week until answered.
+  if (club && scheduledMatch && raisePreMatchEvent(state, index, rng, scheduledMatch)) {
+    commitRng(state, rng);
+    return { state, stopped: 'decision', log };
   }
 
   // 0. Nothing waits for ever. A club that hears nothing back signs someone else and
@@ -936,6 +1020,17 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
 
     applyTrainingCondition(player, weekPlan);
+    const campFocus = String(state.flags[`campRecommendedFocus:${season}`] ?? '');
+    if (
+      week <= PRESEASON_END_WEEK
+      && Boolean(state.flags[`trainingCamp:${season}`])
+      && weekPlan.focus === campFocus
+    ) {
+      // Following the staff's individual plan is noticed and gets more useful coaching.
+      state.flags[`campFollowedCoach:${season}:${week}`] = true;
+      state.managerTrust = clamp(state.managerTrust + 1, 0, 100);
+      state.relationships.manager = state.managerTrust;
+    }
     if (!isInjured(player) && rng.chance(trainingInjuryChance(player, weekPlan, season))) {
       const injury = rollInjury(rng, player, season);
       player.condition.injuries.push(injury);
@@ -998,7 +1093,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     : Math.max(minutesPct(state), youthMinutesPct(state) * 0.85);
   const trainingCtx = {
     training: weekPlan,
-    coachQuality: club?.training ?? 45,
+    coachQuality: (club?.training ?? 45) + (state.flags[`campFollowedCoach:${season}:${week}`] ? 10 : 0),
     facilities: club?.academy ?? 45,
     minutesPct: developmentMinutes,
     competitiveLevel: comp?.reputation ?? 35,
@@ -1167,6 +1262,10 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 7b. The press, on the weeks the press cares.
   if (club) askTheMedia(state, index, weekImportance);
 
+  // A post-match conversation is only raised when the match log proves its premise.
+  // It stays in the inbox so the player still sees the match report first.
+  if (userMatch) raisePostMatchEvent(state, index, rng, userMatch);
+
   // 8. Career events. His life keeps happening at the same rate; what changed is how
   // much of it is allowed to stop him. A season holds a handful of real forks - a move,
   // an operation, a contract - and a great deal of noise around them, and being asked
@@ -1179,7 +1278,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
 
   if (!storyPending && colourPending < 2 && rng.chance(0.36)) {
     const ctx = buildEventContext(state, index);
-    const def = pickEvent(rng, index.pack.events, ctx, state);
+    const def = pickEvent(rng, index.pack.events.filter((event) => !FIXTURE_BOUND_EVENTS.has(event.id)), ctx, state);
     if (def) {
       const story = isStoryEvent(def);
       // Past the ceiling, the week's question is one he reads rather than one he is
@@ -1201,6 +1300,14 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 9. The people around him react to the week just played.
   state.socialActions.used = 0;
   driftMorale(state);
+  // Form must include today's match before the manager reacts to it. Previously this
+  // ran after consequences, so a collapse or recovery reached the team sheet one week
+  // late.
+  const recentRatings = state.matchLog
+    .filter((m) => m.userLine?.played && m.season === season)
+    .slice(0, 5)
+    .map((m) => m.userLine!.rating);
+  updateForm(player, recentRatings);
   const weekRatings = state.matchLog
     .filter((m) => m.season === season && m.userLine?.played)
     .slice(0, 3)
@@ -1215,12 +1322,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     pushNews(state, `consequence.${consequence.id}`, consequence.args ?? {}, 'medium');
   }
 
-  // 10. Form and market value.
-  const recentRatings = state.matchLog
-    .filter((m) => m.userLine?.played && m.season === season)
-    .slice(0, 5)
-    .map((m) => m.userLine!.rating);
-  updateForm(player, recentRatings);
+  // 10. Market value follows the newly updated form.
   state.marketValue = marketValue(player, {
     season,
     leagueReputation: comp?.reputation ?? 35,
@@ -1340,6 +1442,8 @@ function raiseMilestone(
      * its own microphone.
      */
     key?: string;
+    /** Fixture context used by the copy, so the question names the match it concerns. */
+    args?: Record<string, string | number>;
   } = {},
 ): boolean {
   const askedKey = opts.key ?? `asked:${id}:${state.world.season}`;
@@ -1363,7 +1467,7 @@ function raiseMilestone(
     eventId: `milestone:${id}`,
     category: 'media',
     textKey: `milestone.${id}`,
-    textArgs: { club: club?.name ?? '' },
+    textArgs: { club: club?.name ?? '', ...(opts.args ?? {}) },
     options: question.answers.map((answer) => ({
       id: answer.id,
       labelKey: `milestone.${id}.${answer.id}`,
@@ -1375,7 +1479,7 @@ function raiseMilestone(
     blocking: true,
     expiresWeek: state.world.season * 52 + state.world.week + 2,
   });
-  pushInbox(state, 'media', `milestone.${id}`, { club: club?.name ?? '' }, decisionId);
+  pushInbox(state, 'media', `milestone.${id}`, { club: club?.name ?? '', ...(opts.args ?? {}) }, decisionId);
   return true;
 }
 
@@ -1631,14 +1735,9 @@ function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImpo
   const weeksAtNewClub =
     state.world.season * 52 + state.world.week - Number(state.flags['lastTransferWeek'] ?? -999);
   const rumoured = state.transferOffers.length > 0 || Boolean(state.flags['transferRequested']);
-  // An occasion first, then whatever he has actually been doing, and only then the
-  // background noise of a rumour - otherwise every microphone in a career is somebody
-  // asking whether he is leaving.
-  const occasionId = occasionMilestone(importance);
-  if (occasionId) {
-    raiseMilestone(state, occasionId);
-    return;
-  }
+  // Fixture occasions are raised before training and kick-off. This end-of-week pass is
+  // exclusively for reactions to what actually happened and background career news.
+  void importance;
   /*
    * The weeks he does not get to walk past.
    *
@@ -1730,30 +1829,219 @@ function resolveGrudgeTarget(state: CareerState, index: PackIndex, against: 'nex
   return fixture.homeClubId === club.id ? fixture.awayClubId : fixture.homeClubId;
 }
 
-/** Announces the week's fixture if it is worth announcing, and says what kind it is. */
-function announceBigMatch(state: CareerState, index: PackIndex): MatchImportance {
+type ScheduledMatchSource = 'league' | 'cup' | 'europe';
+
+interface ScheduledUserMatch {
+  source: ScheduledMatchSource;
+  competitionId: string;
+  homeClubId: string;
+  awayClubId: string;
+  opponentName: string;
+  importance: MatchImportance;
+  key: string;
+}
+
+/**
+ * The match that is genuinely waiting for the player this week.
+ *
+ * The old build-up only looked in the domestic league table. A cup final or European
+ * semi-final therefore became visible to the conversation system only after it had
+ * already been simulated. This collects every senior competition before any football
+ * is played and chooses the most important fixture when a congested week contains two.
+ */
+function scheduledUserMatchThisWeek(state: CareerState, index: PackIndex): ScheduledUserMatch | null {
   const club = userClub(state);
-  if (!club) return 'normal';
+  if (!club || state.world.week <= PRESEASON_END_WEEK) return null;
   const week = state.world.week;
+  const matches: ScheduledUserMatch[] = [];
 
-  const compState = state.world.competitions[club.competitionId];
-  const fixture = compState?.fixtures.find(
-    (f) => !f.played && f.week === week && (f.homeClubId === club.id || f.awayClubId === club.id),
+  const add = (
+    source: ScheduledMatchSource,
+    competitionId: string,
+    homeClubId: string,
+    awayClubId: string,
+    importance: MatchImportance,
+  ) => {
+    if (homeClubId !== club.id && awayClubId !== club.id) return;
+    const opponentId = homeClubId === club.id ? awayClubId : homeClubId;
+    const opponent = state.world.clubs[opponentId];
+    if (!opponent) return;
+    matches.push({
+      source,
+      competitionId,
+      homeClubId,
+      awayClubId,
+      opponentName: opponent.name,
+      importance,
+      key: `${state.world.season}:${week}:${competitionId}:${homeClubId}:${awayClubId}`,
+    });
+  };
+
+  const league = state.world.competitions[club.competitionId];
+  for (const fixture of league?.fixtures ?? []) {
+    if (fixture.played || fixture.week > week) continue;
+    add(
+      'league',
+      club.competitionId,
+      fixture.homeClubId,
+      fixture.awayClubId,
+      matchImportanceFor(state, index, club.competitionId, fixture.homeClubId, fixture.awayClubId),
+    );
+  }
+
+  for (const cup of Object.values(state.world.cups)) {
+    if (cup.finished || cup.country !== club.country) continue;
+    for (const tie of cup.ties) {
+      if (tie.played || tie.week > week) continue;
+      const importance: MatchImportance = isCupFinal(cup, tie)
+        ? 'cupFinal'
+        : isCupSemi(cup, tie)
+          ? 'cupSemi'
+          : 'normal';
+      add('cup', cup.id, tie.homeClubId, tie.awayClubId, importance);
+    }
+  }
+
+  for (const competition of Object.values(state.world.europe ?? {})) {
+    if (competition.stage === 'done') continue;
+    if (competition.stage === 'qualifying') {
+      for (const tie of competition.qualifying?.ties ?? []) {
+        if (!tie.played && tie.week <= week) {
+          add('europe', competition.id, tie.homeClubId, tie.awayClubId, 'europeanNight');
+        }
+      }
+    } else if (competition.stage === 'group') {
+      for (const fixture of competition.fixtures) {
+        if (!fixture.played && fixture.week <= week) {
+          add('europe', competition.id, fixture.homeClubId, fixture.awayClubId, 'europeanNight');
+        }
+      }
+    } else {
+      for (const tie of competition.ties) {
+        if (tie.played || tie.week > week) continue;
+        const importance: MatchImportance = tie.stage === 'final'
+          ? 'cupFinal'
+          : tie.stage === 'sf'
+            ? 'cupSemi'
+            : 'europeanNight';
+        add('europe', competition.id, tie.homeClubId, tie.awayClubId, importance);
+      }
+    }
+  }
+
+  const sourcePriority: Record<ScheduledMatchSource, number> = { league: 0, cup: 1, europe: 2 };
+  return matches.sort((a, b) =>
+    importanceWeight(b.importance) - importanceWeight(a.importance)
+      || sourcePriority[b.source] - sourcePriority[a.source],
+  )[0] ?? null;
+}
+
+const FIXTURE_BOUND_EVENTS = new Set([
+  'play_final_injured',
+  'derby_week_pressure',
+  'champions_league_night',
+  'penalty_in_last_minute',
+  'opponent_targets_you',
+  'national_coach_watching',
+  'goal_celebration_controversy',
+  'derby_goal_celebration',
+  'missed_sitter',
+  'own_goal',
+]);
+
+function raisePostMatchEvent(
+  state: CareerState,
+  index: PackIndex,
+  rng: Rng,
+  match: MatchResult,
+): void {
+  const line = match.userLine;
+  if (!line?.played) return;
+  const ids: string[] = [];
+  if ((match.importance === 'derby' || match.importance === 'rival') && line.goals > 0) {
+    ids.push('derby_goal_celebration');
+  }
+  if (line.shots >= 3 && line.goals === 0 && line.rating < 6.35) ids.push('missed_sitter');
+  if (line.goals > 0 && state.player.fame >= 20) ids.push('goal_celebration_controversy');
+  if (ids.length === 0 || !rng.chance(0.55)) return;
+
+  const ctx = buildEventContext(state, index);
+  const eligible = ids
+    .map((id) => index.pack.events.find((event) => event.id === id))
+    .filter((event): event is NonNullable<typeof event> => Boolean(event))
+    .filter((event) => isEligible(event, ctx, state));
+  const def = rng.weighted(eligible, (event) => event.weight);
+  if (!def) return;
+  const decision = toPendingDecision(def, ctx.absoluteWeek);
+  decision.blocking = false;
+  state.pendingDecisions.push(decision);
+  pushInbox(state, def.category === 'media' ? 'media' : def.category, def.textKey, undefined, decision.id);
+}
+
+/** One contextual dilemma at most, attached to the real fixture and answered first. */
+function raisePreMatchEvent(
+  state: CareerState,
+  index: PackIndex,
+  rng: Rng,
+  match: ScheduledUserMatch,
+): boolean {
+  const checkedKey = `preMatchEvent:${match.key}`;
+  if (state.flags[checkedKey]) return false;
+  state.flags[checkedKey] = true;
+
+  const injuryWeeks = state.player.condition.injuries.reduce(
+    (longest, injury) => Math.max(longest, injury.weeksRemaining),
+    0,
   );
-  if (!fixture) return 'normal';
+  const ids: string[] = [];
+  if (match.importance === 'cupFinal' && injuryWeeks > 0 && injuryWeeks <= 3) {
+    ids.push('play_final_injured');
+  } else {
+    if (match.importance === 'derby' || match.importance === 'rival') ids.push('derby_week_pressure');
+    if (match.source === 'europe') ids.push('champions_league_night');
+    if (match.importance !== 'normal') ids.push('penalty_in_last_minute');
+    ids.push('opponent_targets_you', 'national_coach_watching');
+  }
 
-  const importance = matchImportanceFor(state, index, club.competitionId, fixture.homeClubId, fixture.awayClubId);
-  if (importance === 'normal') return 'normal';
+  const ctx = buildEventContext(state, index);
+  const eligible = ids
+    .map((id) => index.pack.events.find((event) => event.id === id))
+    .filter((event): event is NonNullable<typeof event> => Boolean(event))
+    .filter((event) => isEligible(event, ctx, state));
+  if (eligible.length === 0) return false;
 
-  const announced = `bigMatch:${state.world.season}:${week}`;
-  if (state.flags['lastBigMatch'] === announced) return importance;
+  const forcedMedical = eligible.find((event) => event.id === 'play_final_injured');
+  if (!forcedMedical && !rng.chance(match.importance === 'normal' ? 0.18 : 0.48)) return false;
+  const def = forcedMedical ?? rng.weighted(eligible, (event) => event.weight);
+  if (!def) return false;
+
+  const decision = toPendingDecision(def, ctx.absoluteWeek, {
+    opponent: match.opponentName,
+    competition: match.competitionId,
+  });
+  decision.id = `${decision.id}_${hashString(match.key)}`;
+  decision.blocking = true;
+  decision.expiresWeek = ctx.absoluteWeek + 1;
+  state.pendingDecisions.push(decision);
+  pushInbox(state, def.category === 'media' ? 'media' : def.category, def.textKey, decision.textArgs, decision.id);
+  return true;
+}
+
+/** Announces the week's fixture if it is worth announcing, and says what kind it is. */
+function announceBigMatch(state: CareerState, match: ScheduledUserMatch | null): MatchImportance {
+  const club = userClub(state);
+  if (!club || !match || match.importance === 'normal') return 'normal';
+
+  const announced = `bigMatch:${match.key}`;
+  if (state.flags['lastBigMatch'] === announced) return match.importance;
   state.flags['lastBigMatch'] = announced;
 
-  const opponentId = fixture.homeClubId === club.id ? fixture.awayClubId : fixture.homeClubId;
-  const opponent = state.world.clubs[opponentId];
-  pushInbox(state, 'club', `inbox.buildUp.${importance}`, { opponent: opponent?.name ?? '' });
-  pushNews(state, `news.buildUp.${importance}`, { club: club.name, opponent: opponent?.name ?? '' }, 'high');
-  return importance;
+  pushInbox(state, 'club', `inbox.buildUp.${match.importance}`, { opponent: match.opponentName });
+  pushNews(state, `news.buildUp.${match.importance}`, {
+    club: club.name,
+    opponent: match.opponentName,
+  }, 'high');
+  return match.importance;
 }
 
 function matchImportanceFor(
@@ -1772,6 +2060,9 @@ function matchImportanceFor(
   // Something he said in public. It does not matter whether these two clubs have any
   // history: he gave this fixture a name himself, and now he has to go and play in it.
   if (grudgeClubId(state) === opponentId) return 'rival';
+
+  const previousClubId = state.flags['previousClubId'];
+  if (typeof previousClubId === 'string' && previousClubId === opponentId) return 'vsFormerClub';
 
   if (club.rivals?.includes(opponentId)) {
     return club.city && opponent.city && club.city === opponent.city ? 'derby' : 'rival';
@@ -1877,16 +2168,10 @@ function simulatePreseasonFriendly(
 ): MatchResult | null {
   if (!club || isAcademyPlayer(state)) return null;
   const week = state.world.week;
-  const level = clubRating(club);
-  const preferred = Object.values(state.world.clubs).filter((candidate) => {
-    if (candidate.id === club.id) return false;
-    const gap = clubRating(candidate) - level;
-    if (week === 1) return candidate.country === club.country && gap >= -22 && gap <= -5;
-    if (week === 2) return candidate.country === club.country && Math.abs(gap) <= 10;
-    return gap >= -3 && gap <= 16;
-  });
-  const fallback = Object.values(state.world.clubs).filter((candidate) => candidate.id !== club.id);
-  const opponent = rng.pick(preferred.length > 0 ? preferred : fallback);
+  scheduleTrainingCamp(state, rng, club);
+  const opponentId = String(state.flags[`campOpponent:${state.world.season}:${week}`] ?? '');
+  const opponent = state.world.clubs[opponentId];
+  if (!opponent) return null;
   const userAtHome = week !== 3;
   const result = playUserMatch(
     state,
@@ -2590,10 +2875,15 @@ function playUserMatch(
   const opponent = state.world.clubs[opponentId]!;
 
   const suspension = player.condition.suspensions.find((s) => s.competitionId === competitionId && s.matchesRemaining > 0);
+  const clearedForFinal =
+    importance === 'cupFinal'
+    && isInjured(player)
+    && !suspension
+    && Number(state.flags['clearedForInjuredFinal'] ?? -1) === state.world.season * 52 + state.world.week;
   // In his own age group he plays; it is senior football an academy player is kept out of.
   const available = youthMatch
     ? isAvailable(player, competitionId)
-    : isAvailable(player, competitionId) && !isAcademyPlayer(state) && !isFrozenOut(state);
+    : (isAvailable(player, competitionId) || clearedForFinal) && !isAcademyPlayer(state) && !isFrozenOut(state);
 
   const rotationPressure = clamp(state.matchLog.filter((m) => m.season === state.world.season && m.week >= state.world.week - 2).length / 3, 0, 1);
   const selectionCtx: SelectionContext = {
@@ -2651,6 +2941,16 @@ function playUserMatch(
       ? { played: true, started: true, minutes: 90, slot: player.primaryPos }
       : (() => {
           const resolved = capMinutes(resolveMinutes(rng, player.id, lineup, player), gate, player);
+          if (!friendly && state.flags['formBenchNotified'] && resolved.started) {
+            const on = rng.int(62, 78);
+            return {
+              played: true,
+              started: false,
+              minutes: 90 - on,
+              slot: resolved.slot ?? player.primaryPos,
+              cameOnMinute: on,
+            };
+          }
           // Camp exists to evaluate the whole senior squad. A fit new player is promised
           // a real audition even when he is not yet in the manager's best eleven.
           if (friendly && !resolved.played) {
@@ -2896,6 +3196,13 @@ function applyFriendlyToPlayer(
     player.condition.sharpness = clamp(player.condition.sharpness + line.minutes / 18, 0, 100);
     state.flags[appsKey] = Number(state.flags[appsKey] ?? 0) + 1;
     state.flags[ratingKey] = Number(state.flags[ratingKey] ?? 0) + line.rating;
+    updateCampAssessment(state);
+    pushInbox(state, 'manager', `inbox.trainingCampFeedback.${state.world.week}`, {
+      rating: line.rating.toFixed(1),
+      strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
+      weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
+      focus: `train.focus.${String(state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced')}`,
+    });
 
     if (injuryRolled) {
       const injury = rollInjury(rng, player, state.world.season, 1.05);
@@ -2907,10 +3214,29 @@ function applyFriendlyToPlayer(
   if (state.world.week === PRESEASON_END_WEEK) {
     const apps = Number(state.flags[appsKey] ?? 0);
     const average = apps > 0 ? Number(state.flags[ratingKey] ?? 0) / apps : 0;
+    const oldRole = state.player.squadRole;
+    const oldIndex = SQUAD_ROLE_ORDER.indexOf(oldRole);
+    const direction = average >= 7.15 && state.managerTrust >= 48
+      ? 1
+      : average < 6.15 || state.managerTrust < 36
+        ? -1
+        : 0;
+    const nextIndex = clamp(oldIndex + direction, 0, SQUAD_ROLE_ORDER.length - 1);
+    const nextRole = SQUAD_ROLE_ORDER[nextIndex] ?? oldRole;
+    state.player.squadRole = nextRole;
+    if (state.contract) state.contract.squadRole = nextRole;
+    state.flags[`campVerdict:${state.world.season}`] = nextRole;
     pushInbox(state, 'manager', 'inbox.trainingCampReport', {
       apps,
       rating: average.toFixed(1),
       trust: Math.round(state.managerTrust),
+      strength: `skill.${String(state.flags[`campStrength:${state.world.season}`] ?? '')}`,
+      weakness: `skill.${String(state.flags[`campWeakness:${state.world.season}`] ?? '')}`,
+      focus: `train.focus.${String(state.flags[`campRecommendedFocus:${state.world.season}`] ?? 'balanced')}`,
+    });
+    const verdict = direction > 0 ? 'promoted' : direction < 0 ? 'demoted' : 'confirmed';
+    pushInbox(state, 'manager', `inbox.trainingCampVerdict.${verdict}`, {
+      rating: average.toFixed(1),
     });
   }
 }

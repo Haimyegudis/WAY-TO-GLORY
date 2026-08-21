@@ -84,17 +84,32 @@ export interface MentorReply {
  * in a career, and a list that never changes is a list nobody reads twice.
  */
 export function mentorTopics(state: CareerState, age: number): MentorTopic[] {
-  const topics: MentorTopic[] = ['advice', 'path'];
+  const relevant: MentorTopic[] = [];
   const inAcademy = state.player.squadRole === 'academy' || Boolean(state.world.youth);
-  if (inAcademy) topics.push('firstTeam');
-  topics.push('club');
-  if (age >= 17 && age <= 30) topics.push('abroad');
-  if (age >= 26 || state.player.condition.injuryHistory.length >= 2) topics.push('body');
-  if (state.player.fame >= 20 || state.relationships.media < 45) topics.push('pressure');
-  if (state.contract) topics.push('money');
-  if ((state.mentor?.talks ?? 0) >= 4) topics.push('regret');
-  topics.push('support');
-  return topics;
+  if (inAcademy) relevant.push('firstTeam');
+  relevant.push('club');
+  if (age >= 17 && age <= 30) relevant.push('abroad');
+  if (age >= 26 || state.player.condition.injuryHistory.length >= 2) relevant.push('body');
+  if (state.player.fame >= 20 || state.relationships.media < 45) relevant.push('pressure');
+  if (state.contract) relevant.push('money');
+  if ((state.mentor?.talks ?? 0) >= 4) relevant.push('regret');
+
+  // A conversation offers a small changing set, not the same permanent help menu.
+  // Advice is always useful; the other questions rotate deterministically with the
+  // career week so save/reload cannot reroll them.
+  const priority: MentorTopic = inAcademy
+    ? 'firstTeam'
+    : age >= 26 || state.player.condition.injuryHistory.length >= 2
+      ? 'body'
+      : state.player.fame >= 20 || state.relationships.media < 45
+        ? 'pressure'
+        : 'club';
+  const remaining = relevant.filter((topic) => topic !== priority);
+  const absolute = state.world.season * 52 + state.world.week + (state.mentor?.talks ?? 0);
+  const rotated = remaining.length === 0
+    ? []
+    : remaining.map((_, index) => remaining[(index + absolute) % remaining.length]!);
+  return ['advice', 'path', priority, ...rotated.slice(0, 1), 'support'];
 }
 
 /** How long he waits between calls. A mentor who is always available is not a mentor. */
@@ -223,10 +238,21 @@ export function talkToMentor(
     };
   }
 
+  // The long-term path question must answer the path question. It used to reuse the
+  // immediate "what should I do this week?" line, which is why a player could ask about
+  // his future and receive an irrelevant instruction about the next team sheet.
+  if (topic === 'path') {
+    applyTopicEffect(topic, player, held.bond);
+    return {
+      topic, mentorId: mentor.id, voice: mentor.voice, situation: read,
+      lineKey: `mentor.path.${read}`, brief: null, bond: held.bond,
+    };
+  }
+
   // The questions that are about a subject rather than about this week. They are not
   // advice the agent can act on - they are the old player telling him how it went for
   // him, which is the part a career page cannot give him.
-  if (topic !== 'advice' && topic !== 'path') {
+  if (topic !== 'advice') {
     applyTopicEffect(topic, player, held.bond);
     return {
       topic, mentorId: mentor.id, voice: mentor.voice, situation: read,
@@ -352,7 +378,11 @@ export type MentorPromptId =
   | 'whoDoYouListenTo'
   | 'whatAreYouAfraidOf'
   | 'wouldYouLeave'
-  | 'whoAreYouDoingItFor';
+  | 'whoAreYouDoingItFor'
+  | 'whatDidCoachAsk'
+  | 'howIsYourBody'
+  | 'whatWillYouSacrifice'
+  | 'didYouOwnTheMistake';
 
 export interface MentorPromptAnswer {
   id: string;
@@ -378,6 +408,7 @@ export const MENTOR_PROMPTS: MentorPromptDef[] = [
       { id: 'sawIt', bond: 5, personality: { ambition: 0.6 }, attributes: { vision: 0.8 } },
       { id: 'panicked', bond: 8, morale: -2, attributes: { composure: 1 } },
       { id: 'itWasOn', bond: -3, personality: { determination: 0.8 }, attributes: { decisions: -0.4 } },
+      { id: 'wrongDecision', bond: 9, morale: -1, attributes: { decisions: 0.9 } },
     ],
   },
   {
@@ -386,6 +417,7 @@ export const MENTOR_PROMPTS: MentorPromptDef[] = [
       { id: 'yes', bond: 4, morale: 4 },
       { id: 'notLately', bond: 9, morale: -3, personality: { professionalism: 0.9 } },
       { id: 'notTheQuestion', bond: -2, personality: { ambition: 1 }, attributes: { concentration: 0.5 } },
+      { id: 'onlyOnMatchday', bond: 6, morale: 1, personality: { pressureHandling: 0.6 } },
     ],
   },
   {
@@ -394,6 +426,7 @@ export const MENTOR_PROMPTS: MentorPromptDef[] = [
       { id: 'theCoach', bond: 4, personality: { professionalism: 1 } },
       { id: 'myself', bond: -2, personality: { determination: 1.1, adaptability: -0.5 } },
       { id: 'you', bond: 10, personality: { adaptability: 0.8, ambition: -0.4 } },
+      { id: 'differentPeople', bond: 7, personality: { adaptability: 1, professionalism: 0.4 } },
     ],
   },
   {
@@ -402,6 +435,7 @@ export const MENTOR_PROMPTS: MentorPromptDef[] = [
       { id: 'notMakingIt', bond: 9, morale: -3, personality: { determination: 1.2 } },
       { id: 'gettingHurt', bond: 7, attributes: { concentration: 0.6 }, personality: { pressureHandling: 0.6 } },
       { id: 'nothing', bond: -3, personality: { pressureHandling: -0.6, ambition: 0.8 } },
+      { id: 'wastingMyChance', bond: 10, morale: -1, personality: { professionalism: 1.1 } },
     ],
   },
   {
@@ -410,6 +444,7 @@ export const MENTOR_PROMPTS: MentorPromptDef[] = [
       { id: 'tomorrow', bond: 3, personality: { ambition: 1.2, loyalty: -1 } },
       { id: 'notYet', bond: 6, personality: { loyalty: 1.1, ambition: -0.5 } },
       { id: 'dependsWhoAsks', bond: 5, personality: { adaptability: 0.9 } },
+      { id: 'onlyForMinutes', bond: 8, personality: { ambition: 0.6, professionalism: 0.8 } },
     ],
   },
   {
@@ -418,6 +453,43 @@ export const MENTOR_PROMPTS: MentorPromptDef[] = [
       { id: 'family', bond: 8, morale: 4, personality: { loyalty: 1 } },
       { id: 'myself', bond: 4, personality: { ambition: 1.1 } },
       { id: 'toProveThem', bond: 6, personality: { determination: 1.3, pressureHandling: -0.5 } },
+      { id: 'team', bond: 7, personality: { loyalty: 0.8, professionalism: 0.7 } },
+    ],
+  },
+  {
+    id: 'whatDidCoachAsk',
+    answers: [
+      { id: 'playSimple', bond: 6, attributes: { decisions: 0.7 } },
+      { id: 'beBrave', bond: 5, personality: { ambition: 0.8 }, attributes: { composure: 0.4 } },
+      { id: 'defendFirst', bond: 7, personality: { professionalism: 0.8 }, attributes: { concentration: 0.5 } },
+      { id: 'wasNotClear', bond: 3, morale: -1, personality: { adaptability: 0.8 } },
+    ],
+  },
+  {
+    id: 'howIsYourBody',
+    answers: [
+      { id: 'fresh', bond: 4, morale: 2 },
+      { id: 'heavy', bond: 8, morale: -1, personality: { professionalism: 0.8 } },
+      { id: 'hidingPain', bond: 10, morale: -2, attributes: { concentration: 0.6 } },
+      { id: 'recoveringWell', bond: 6, personality: { consistency: 0.7 } },
+    ],
+  },
+  {
+    id: 'whatWillYouSacrifice',
+    answers: [
+      { id: 'freeTime', bond: 6, personality: { professionalism: 1 } },
+      { id: 'comfort', bond: 7, personality: { determination: 1 } },
+      { id: 'nothingImportant', bond: -2, morale: 2, personality: { professionalism: -0.5 } },
+      { id: 'whateverItTakes', bond: 3, personality: { ambition: 1.2, pressureHandling: -0.3 } },
+    ],
+  },
+  {
+    id: 'didYouOwnTheMistake',
+    answers: [
+      { id: 'yes', bond: 8, attributes: { decisions: 0.7 }, morale: -1 },
+      { id: 'teamMistake', bond: 2, personality: { loyalty: 0.5 } },
+      { id: 'coachWasWrong', bond: -3, personality: { adaptability: -0.6, determination: 0.7 } },
+      { id: 'watchedItBack', bond: 9, personality: { professionalism: 0.8 }, attributes: { concentration: 0.6 } },
     ],
   },
 ];
@@ -445,11 +517,12 @@ export function mentorReachesOut(
 
   const asked = new Set(String(state.flags['mentorAsked'] ?? '').split(',').filter(Boolean));
   const pool: MentorPromptId[] = [];
-  if (ctx.recentRating !== null && ctx.recentRating < 6.3) pool.push('whyThatPass', 'whatAreYouAfraidOf');
-  if (ctx.minutesPct < 0.25) pool.push('areYouEnjoyingIt', 'wouldYouLeave');
+  if (ctx.recentRating !== null && ctx.recentRating < 6.3) pool.push('whyThatPass', 'whatAreYouAfraidOf', 'didYouOwnTheMistake');
+  if (ctx.minutesPct < 0.25) pool.push('areYouEnjoyingIt', 'wouldYouLeave', 'whatDidCoachAsk');
   if (ctx.rumoured) pool.push('wouldYouLeave');
-  if (ctx.recentRating !== null && ctx.recentRating > 7.2) pool.push('whoAreYouDoingItFor', 'whoDoYouListenTo');
-  pool.push('whoDoYouListenTo', 'areYouEnjoyingIt');
+  if (state.player.condition.fatigue > 65 || state.player.condition.injuries.length > 0) pool.push('howIsYourBody');
+  if (ctx.recentRating !== null && ctx.recentRating > 7.2) pool.push('whoAreYouDoingItFor', 'whoDoYouListenTo', 'whatWillYouSacrifice');
+  pool.push('whoDoYouListenTo', 'areYouEnjoyingIt', 'whatDidCoachAsk');
 
   const fresh = pool.filter((id) => !asked.has(id));
   const from = fresh.length > 0 ? fresh : pool;

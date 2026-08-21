@@ -122,6 +122,7 @@ export interface UserMatchOutcome {
 interface Chance {
   minute: number;
   forUser: boolean;
+  source: 'openPlay' | 'corner' | 'freeKick';
 }
 
 /** Everything the two halves share, worked out once before either is played. */
@@ -134,6 +135,8 @@ interface MatchSetup {
   onPitchFrom: number;
   onPitchTo: number;
   userHome: boolean;
+  userSecondHalfEnergy: number;
+  oppSecondHalfEnergy: number;
 }
 
 /** What the halves write into. */
@@ -148,12 +151,16 @@ interface HalfState {
   userSentOffAt?: number;
   /** Earliest unplanned exit; planned substitutions remain in MatchSetup. */
   userUnavailableAt?: number;
+  /** Dismissals elsewhere on the pitch alter every later chance. */
+  userTeamRedAt?: number;
+  opponentRedAt?: number;
 }
 
 type MatchMoment =
   | { minute: number; order: number; kind: 'chance'; chance: Chance }
   | { minute: number; order: number; kind: 'penalty' }
-  | { minute: number; order: number; kind: 'yellow' | 'secondYellow' | 'straightRed' | 'injury' };
+  | { minute: number; order: number; kind: 'yellow' | 'secondYellow' | 'straightRed' | 'injury' }
+  | { minute: number; order: number; kind: 'teamRed' | 'opponentRed' | 'teamSub' | 'opponentSub' };
 
 const CONVERSION_BASE = 0.115;
 
@@ -226,6 +233,8 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     onPitchFrom: ctx.minutes.cameOnMinute ?? 0,
     onPitchTo: ctx.minutes.offMinute ?? (ctx.minutes.played ? 90 : 0),
     userHome,
+    userSecondHalfEnergy: benchEnergy(ctx.userClubSquad, ctx.lineup.bench),
+    oppSecondHalfEnergy: opponentBenchEnergy(ctx.opponentStars, oppRating),
   };
 
   // The chances, spread across the ninety and shared out between the two sides. Which
@@ -236,7 +245,14 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     ...Array.from({ length: userChances }, () => true),
     ...Array.from({ length: oppChances }, () => false),
   ]);
-  const chances: Chance[] = minutes.map((minute, i) => ({ minute, forUser: owners[i] ?? true }));
+  const chances: Chance[] = minutes.map((minute, i) => {
+    const setPieceRoll = rng.next();
+    return {
+      minute,
+      forUser: owners[i] ?? true,
+      source: setPieceRoll < 0.14 ? 'corner' : setPieceRoll < 0.22 ? 'freeKick' : 'openPlay',
+    };
+  });
 
   const half: HalfState = { events: [], line, userGoals: 0, oppGoals: 0 };
 
@@ -371,15 +387,30 @@ function playHalf(
     }
   }
 
+  // Cards and substitutions elsewhere on the pitch are match state, not commentary.
+  // A dismissal changes every later chance; fresh legs modestly change second-half
+  // attacking energy. Rates are intentionally low and close to real match frequency.
+  if (rng.chance(0.0125)) {
+    moments.push({
+      minute: rng.int(which === 1 ? 18 : 50, which === 1 ? 44 : 84),
+      order: 12,
+      kind: rng.chance(0.5) ? 'teamRed' : 'opponentRed',
+    });
+  }
+  if (which === 2) {
+    moments.push({ minute: rng.int(56, 76), order: 40, kind: 'teamSub' });
+    moments.push({ minute: rng.int(58, 80), order: 41, kind: 'opponentSub' });
+  }
+
   moments.sort((a, b) => a.minute - b.minute || a.order - b.order);
   for (const moment of moments) {
     const userOnPitch = userOnPitchAt(ctx, setup, half, moment.minute);
     switch (moment.kind) {
       case 'chance':
         if (moment.chance.forUser) {
-          resolveUserChance(rng, ctx, setup, half, moment.minute, userOnPitch, mods);
+          resolveUserChance(rng, ctx, setup, half, moment.chance, userOnPitch, mods);
         } else {
-          resolveOpponentChance(rng, ctx, setup, half, moment.minute, userOnPitch, mods);
+          resolveOpponentChance(rng, ctx, setup, half, moment.chance, userOnPitch, mods);
         }
         break;
       case 'penalty':
@@ -405,6 +436,32 @@ function playHalf(
       case 'injury':
         if (!userOnPitch) break;
         injureUser(ctx, half, moment.minute);
+        break;
+      case 'teamRed':
+        half.userTeamRedAt = moment.minute;
+        half.events.push({
+          minute: moment.minute, type: 'red', byUser: false,
+          detailKey: 'match.event.teamRed',
+        });
+        break;
+      case 'opponentRed':
+        half.opponentRedAt = moment.minute;
+        half.events.push({
+          minute: moment.minute, type: 'red', byUser: false,
+          detailKey: 'match.event.opponentRed',
+        });
+        break;
+      case 'teamSub':
+        half.events.push({
+          minute: moment.minute, type: 'sub-on', byUser: false,
+          detailKey: setup.userSecondHalfEnergy >= 1 ? 'match.event.teamAttackingSub' : 'match.event.teamFreshLegs',
+        });
+        break;
+      case 'opponentSub':
+        half.events.push({
+          minute: moment.minute, type: 'sub-on', byUser: false,
+          detailKey: setup.oppSecondHalfEnergy >= 1 ? 'match.event.opponentAttackingSub' : 'match.event.opponentFreshLegs',
+        });
         break;
     }
   }
@@ -514,10 +571,11 @@ function resolveUserChance(
   ctx: UserMatchContext,
   setup: MatchSetup,
   half: HalfState,
-  minute: number,
+  chance: Chance,
   userOnPitch: boolean,
   mods: HalfTimeEffect,
 ): void {
+  const { minute, source } = chance;
   const { line } = half;
   const picked = rng.weighted(setup.attackers, (a) => attackWeight(a.player, a.slot));
   if (!picked) return;
@@ -534,21 +592,42 @@ function resolveUserChance(
   const isUser = shooter.player.id === ctx.user.id;
   const finishing = shooter.player.attributes.finishing;
   const composure = shooter.player.attributes.composure;
-  const rawQuality = finishing * 0.6 + composure * 0.25 + shooter.player.attributes.shooting * 0.15;
+  const rawQuality = source === 'corner'
+    ? shooter.player.attributes.heading * 0.55 + shooter.player.attributes.jumping * 0.25 + composure * 0.2
+    : source === 'freeKick'
+      ? shooter.player.attributes.shooting * 0.55 + finishing * 0.2 + composure * 0.25
+      : finishing * 0.6 + composure * 0.25 + shooter.player.attributes.shooting * 0.15;
   // Confidence is worth a few points of finishing either way.
   const quality = isUser ? rawQuality * (0.88 + ctx.mental * 0.12) : rawQuality;
   const resistance = setup.oppDefenceRating * 0.68 + setup.oppGoalkeeperRating * 0.32;
-  const downToTen = half.userSentOffAt !== undefined && minute >= half.userSentOffAt ? 0.84 : 1;
+  const userRed = (half.userSentOffAt !== undefined && minute >= half.userSentOffAt)
+    || (half.userTeamRedAt !== undefined && minute >= half.userTeamRedAt);
+  const opponentRed = half.opponentRedAt !== undefined && minute >= half.opponentRedAt;
+  const numerical = userRed ? 0.82 : opponentRed ? 1.17 : 1;
+  const setPieceConversion = source === 'corner' ? 0.68 : source === 'freeKick' ? 0.76 : 1;
+  const freshLegs = minute >= 56 ? setup.userSecondHalfEnergy : 1;
   const p = clamp(
     CONVERSION_BASE
       * (0.5 + logistic((quality - resistance) / 12) * 1.6)
       * scoreStateAttackFactor(half.userGoals - half.oppGoals, minute)
-      * downToTen,
+      * numerical
+      * setPieceConversion
+      * freshLegs,
     0.025,
     0.55,
   );
 
   if (isUser) line.shots++;
+
+  if (source !== 'openPlay') {
+    half.events.push({
+      minute,
+      type: source === 'corner' ? 'corner' : 'freeKick',
+      byUser: isUser,
+      playerId: isUser ? ctx.user.id : undefined,
+      detailKey: source === 'corner' ? 'match.event.cornerChance' : 'match.event.freeKickChance',
+    });
+  }
 
   if (rng.chance(p)) {
     half.userGoals++;
@@ -587,20 +666,48 @@ function resolveUserChance(
       });
     }
   } else if (isUser) {
-    const near = rng.chance(0.45);
+    const outcome = rng.next();
+    const type: MatchEvent['type'] = outcome < 0.12 ? 'woodwork' : outcome < 0.38 ? 'blockedShot' : outcome < 0.68 ? 'save' : 'miss';
     half.events.push({
       minute,
-      type: near ? 'miss' : 'save',
+      type,
       playerId: ctx.user.id,
       byUser: true,
-      detailKey: near ? 'match.event.userMiss' : 'match.event.userSaved',
+      detailKey: type === 'woodwork'
+        ? 'match.event.userWoodwork'
+        : type === 'blockedShot'
+          ? 'match.event.userBlocked'
+          : type === 'save'
+            ? 'match.event.userSaved'
+            : 'match.event.userMiss',
     });
-  } else if (userOnPitch && rng.chance(0.6)) {
+  } else {
+    const outcome = rng.next();
+    const type: MatchEvent['type'] = outcome < 0.1 ? 'woodwork' : outcome < 0.4 ? 'blockedShot' : outcome < 0.7 ? 'save' : 'miss';
+    half.events.push({
+      minute, type, playerId: shooter.player.id, byUser: false,
+      detailKey: type === 'woodwork'
+        ? 'match.event.teamWoodwork'
+        : type === 'blockedShot'
+          ? 'match.event.teamBlocked'
+          : type === 'save'
+            ? 'match.event.teamSaved'
+            : 'match.event.teamMiss',
+    });
+  }
+
+  if (!isUser && userOnPitch && rng.chance(0.6)) {
     // The user was involved in the build-up even when someone else finished.
     const involved = rng.chance(
       userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * mods.involvement * 0.8 * mods.creating,
     );
-    if (involved) line.keyPasses++;
+    if (involved) {
+      line.keyPasses++;
+      half.events.push({
+        minute, type: 'keyPass', playerId: ctx.user.id,
+        byUser: true, detailKey: 'match.event.userKeyPass',
+      });
+    }
   }
 }
 
@@ -609,25 +716,40 @@ function resolveOpponentChance(
   ctx: UserMatchContext,
   setup: MatchSetup,
   half: HalfState,
-  minute: number,
+  chance: Chance,
   userOnPitch: boolean,
   mods: HalfTimeEffect,
 ): void {
+  const { minute, source } = chance;
   const { line } = half;
   const slot = ctx.minutes.slot ?? ctx.user.primaryPos;
   const group = positionGroup(slot);
 
   const shooterRating = setup.oppDefenceRating + rng.gauss(0, 6);
   const resistance = setup.userDefenceRating * 0.68 + setup.userGoalkeeperRating * 0.32;
-  const numericalAdvantage = half.userSentOffAt !== undefined && minute >= half.userSentOffAt ? 1.18 : 1;
+  const userRed = (half.userSentOffAt !== undefined && minute >= half.userSentOffAt)
+    || (half.userTeamRedAt !== undefined && minute >= half.userTeamRedAt);
+  const opponentRed = half.opponentRedAt !== undefined && minute >= half.opponentRedAt;
+  const numericalAdvantage = userRed ? 1.18 : opponentRed ? 0.82 : 1;
+  const setPieceConversion = source === 'corner' ? 0.7 : source === 'freeKick' ? 0.78 : 1;
+  const freshLegs = minute >= 56 ? setup.oppSecondHalfEnergy : 1;
   const p = clamp(
     CONVERSION_BASE
       * (0.5 + logistic((shooterRating - resistance) / 12) * 1.6)
       * scoreStateAttackFactor(half.oppGoals - half.userGoals, minute)
-      * numericalAdvantage,
+      * numericalAdvantage
+      * setPieceConversion
+      * freshLegs,
     0.03,
     0.55,
   );
+
+  if (source !== 'openPlay') {
+    half.events.push({
+      minute, type: source === 'corner' ? 'corner' : 'freeKick', byUser: false,
+      detailKey: source === 'corner' ? 'match.event.opponentCornerChance' : 'match.event.opponentFreeKickChance',
+    });
+  }
 
   // Defensive involvement: keepers save, defenders intervene.
   if (userOnPitch && group === 'GK') {
@@ -691,6 +813,19 @@ function resolveOpponentChance(
       detailKey: 'match.event.oppGoal',
       score: setup.userHome ? [half.userGoals, half.oppGoals] : [half.oppGoals, half.userGoals],
     });
+  } else {
+    const outcome = rng.next();
+    const type: MatchEvent['type'] = outcome < 0.09 ? 'woodwork' : outcome < 0.34 ? 'blockedShot' : outcome < 0.7 ? 'save' : 'oppMiss';
+    half.events.push({
+      minute, type, byUser: false,
+      detailKey: type === 'woodwork'
+        ? 'match.event.opponentWoodwork'
+        : type === 'blockedShot'
+          ? 'match.event.opponentBlocked'
+          : type === 'save'
+            ? 'match.event.opponentSaved'
+            : 'match.event.opponentMiss',
+    });
   }
 }
 
@@ -704,6 +839,30 @@ function scoreStateAttackFactor(goalDifference: number, minute: number): number 
   const urgency = clamp((minute - 55) / 35, 0, 1);
   if (goalDifference < 0) return 1 + urgency * Math.min(0.2, Math.abs(goalDifference) * 0.08);
   return 1 - urgency * Math.min(0.12, goalDifference * 0.05);
+}
+
+/** A useful bench lifts the final half hour; a thin one cannot magically do so. */
+function benchEnergy(squad: Player[], benchIds: string[]): number {
+  const bench = benchIds
+    .map((id) => squad.find((player) => player.id === id))
+    .filter((player): player is Player => Boolean(player))
+    .map((player) => ratingAt(player.attributes, player.primaryPos))
+    .sort((a, b) => b - a)
+    .slice(0, 3);
+  if (bench.length === 0) return 0.96;
+  const average = bench.reduce((sum, value) => sum + value, 0) / bench.length;
+  return clamp(0.96 + (average - 55) / 500, 0.94, 1.06);
+}
+
+function opponentBenchEnergy(players: Player[], teamRating: number): number {
+  if (players.length < 5) return clamp(0.98 + (teamRating - 55) / 700, 0.95, 1.05);
+  const depth = players
+    .map((player) => ratingAt(player.attributes, player.primaryPos))
+    .sort((a, b) => b - a)
+    .slice(8, 13);
+  if (depth.length === 0) return 0.98;
+  const average = depth.reduce((sum, value) => sum + value, 0) / depth.length;
+  return clamp(0.96 + (average - teamRating) / 180, 0.94, 1.06);
 }
 
 /**
@@ -781,7 +940,9 @@ function addBroadcastEvents(
     ['chance', 'match.live.userDuel'],
   ];
 
-  const count = rng.int(5, 7);
+  // Outcome-derived chance events now carry most of the broadcast. A few quieter beats
+  // preserve the rhythm between them without drowning the player in invented action.
+  const count = rng.int(2, 4);
   const used = new Set(events.filter((e) => e.ambient && e.detailKey).map((e) => e.detailKey!));
   for (let i = 0; i < count; i++) {
     const minute = rng.int(start, end);

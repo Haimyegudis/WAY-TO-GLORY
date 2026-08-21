@@ -16,12 +16,40 @@ The strongest parts are career progression, breadth of scenarios, deterministic 
 | Architecture and determinism | 8.5/10 | Clear engine/data/app split; reproducible simulation; strong domain coverage. |
 | Player development | 8/10 | Age, potential, minutes, coaching, facilities, intensity, diet, morale, fitness and personality have real effects. |
 | Module connectivity | 8/10 | Most visible choices reach selection, development, match output or career state. |
-| Scenarios and correspondence | 8.5/10 | 142 events, 304 choices, 34 repeatable relationship actions; impact is now exposed before selection. |
-| Match gameplay | 7.5/10 | Chronological events, real exits, goalkeeper strength, score-state behavior and ten-man effects are integrated and regression-tested. |
+| Scenarios and correspondence | 9/10 | 142 events, expanded rotating mentor prompts and contextual pre/post-match conversations; answers expose and apply real consequences. |
+| Match gameplay | 8/10 | Chronological chances, set pieces, saves, blocks, woodwork, key passes, substitutions, real exits and numerical advantage are integrated and regression-tested. |
 | World and competition realism | 7.5/10 | 2026/27 career calendar with competition profiles; source-strength snapshot is honestly retained as 2025/26. |
 | UI/UX | 8.5/10 | Strong mobile/RTL identity, accessible dialogs/live regions, clearer consequences and browser-tested core flow. |
 | Performance | 8.5/10 | Weekly simulation is fast; screens/data/cloud are lazy and the install precache is substantially smaller. |
-| Reliability and tests | 8.5/10 | 111 engine tests plus Playwright save/load and axe coverage pass. |
+| Reliability and tests | 8.5/10 | 115 engine tests plus Playwright save/load and axe coverage pass. |
+
+## PC and mobile competitor benchmark
+
+The benchmark focused on official feature descriptions rather than copying surface presentation:
+
+- [Football Manager 26](https://www.footballmanager.com/fm26/features) retains players through interlocking recruitment, tactics, training, staff and match systems. Its advantage is depth and world simulation; its cost is complexity and a high information burden.
+- [Football Manager 26 Mobile](https://www.footballmanager.com/fm26/features/football-manager-26-mobile-new-features-showcase) compresses that loop into detailed training reports, form and medical information, coach feedback, match preparation, storylines and conversations. This is the most relevant manager-game benchmark for short sessions.
+- [EA SPORTS FC 26 Player Career](https://www.ea.com/games/ea-sports-fc/fc-26/features/fc-26-career-mode) uses archetype XP, objectives and career events to keep a player-directed career moving between matches.
+- [New Star Soccer](https://play.google.com/store/apps/details?id=com.newstargames.newstarsoccer) demonstrates the durability of a first-person football career when match contributions, training, lifestyle and relationships all compete for the player's attention.
+
+### Product position
+
+WAY TO GLORY's strongest differentiators are its first-person career perspective, deterministic long career, consequence-driven relationships, approachable mobile flow, proper Hebrew/RTL experience and unusually broad off-pitch life simulation. It does not need to become a smaller Football Manager. It should become the clearest simulation of what one footballer chooses, learns, risks and earns every week.
+
+The main retention weakness was that important state existed but was often hidden or passive. The player could advance weeks without receiving a concise diagnosis or having a relevant corrective action. Match simulation also had less causal detail than the career systems around it.
+
+This pass closes the largest part of that gap:
+
+- the hub now reports current form, last-five rating, manager trust, national-team interest and the reason for the current selection outlook;
+- very poor form produces a real bench consequence, while recovery restores normal selection;
+- video analysis and an individual form session provide distinct low-risk and load-risk responses to poor performances;
+- strong youth performance unlocks a request to train with the senior squad, and youth form already drives youth-national-team interest and selection;
+- the opening camp gives three visible friendlies, live development evidence, coach feedback after every match and a final strength/weakness/training verdict;
+- mentor questions rotate by career context, include more answer choices, and the two-year-path question now returns a long-term path rather than an unrelated immediate answer;
+- fixture questions occur before the named league, cup or European match; celebration and missed-chance reactions require evidence from the completed match;
+- the live match now derives more of its feed from actual chances and state changes instead of cosmetic commentary.
+
+The next retention layer should be a weekly objectives board: two or three coach/player tasks chosen from current evidence, an opponent report, a visible position-competition ladder, and multi-week story arcs that remember promises. Those additions would create more actions without turning the game into repetitive button maintenance.
 
 ## Remediation completed
 
@@ -76,7 +104,7 @@ Status: resolved. Exits update the on-pitch boundary immediately and ten-man str
 
 ### Match model depth
 
-The match model is a narrative probability engine, not a full tactical manager. It now resolves goalkeeper strength, score-state behavior, player exits and numerical disadvantage. Explicit AI substitutions, weather, referee tendencies and team styles remain future depth opportunities. Ambient sequences are intentionally cosmetic.
+The match model is a narrative probability engine, not a full tactical manager. It now resolves goalkeeper strength, score-state behavior, set-piece source, player and teammate exits, numerical advantage, both teams' second-half substitutions and bench quality. Weather, referee tendencies and persistent team styles remain future depth opportunities. Ambient sequences are intentionally cosmetic.
 
 Recommendation: add AI substitution choices and team styles next; the causality layer is now stable enough to support them.
 
@@ -97,7 +125,7 @@ Production build before remediation:
 - PWA precache: 2,771.10 KiB;
 - Vite reports chunks over 500 kB.
 
-All screens are route-lazy, the data pack is loaded only when a career needs it, and cloud code is isolated. The current production build has a 472.21 kB main chunk (143.36 kB gzip) and a 1,024.23 KiB precache; pack/cloud chunks are cached on first use. The latest soak completed 1,277 weeks and 450 matches without a crash.
+All screens are route-lazy, the data pack is loaded only when a career needs it, and cloud code is isolated. The current production build has a 500.30 kB main chunk (151.98 kB gzip) and a 1,067.69 KiB precache; the 1,596.90 kB data pack and cloud chunk are loaded on demand rather than included in the install precache. The latest soak completed 1,249 weeks and 390 matches without a crash.
 
 ### Save durability — resolved
 
@@ -150,24 +178,27 @@ This audit included implementation, not only recommendations:
 - added a dedicated media category to relationship actions;
 - mentor topics now explain their gameplay effect before asking, and career-changing advice shows the exact agent brief it will set;
 - mentor answer effects are now visible in the same impact system as other decisions;
+- mentor topics rotate with age, role, body, pressure and career state; ten contextual prompts now have four distinct answers each;
+- all new Hebrew dialogue is written directly to a male player in standard masculine grammar, with English kept in exact key parity;
 - rebuilt the content pack from 139 to 142 career events.
 
 The changes preserve English parity, while the requested editorial rewrite is focused on the Hebrew experience.
 
 ## Verification performed
 
-- `npm test`: 111/111 engine tests passed.
+- `npm test`: 115/115 engine tests passed.
 - `npm run test:e2e`: 2/2 Playwright journeys passed, including axe checks and IndexedDB save/reload.
 - `npm run build`: TypeScript and production PWA build passed; precache 1,024.23 KiB.
 - data pack build: 142 events across 28 countries, 39 competitions and 608 clubs.
-- translation parity: 2,004 Hebrew keys and 2,004 English keys.
-- long simulation soak: 1,277 weeks, 20 seasons, 450 matches, no crash.
+- translation parity: 2,090 Hebrew keys and 2,090 English keys.
+- long simulation soak: 1,249 weeks, 19 seasons, 390 matches, no crash.
 - `npm audit`: 0 known dependency vulnerabilities after upgrading Vitest to 4.1.11.
 - `git diff --check`: no whitespace errors.
 
 ## Remaining product opportunities
 
-1. Add explicit AI substitutions, team styles, weather and referee tendencies for deeper match tactics.
-2. Expand E2E journeys through training, a full friendly, transfers and season rollover.
-3. Refresh club/squad source strength when an authoritative 2026/27 upstream dataset becomes available.
-4. Compress cloud/export saves and tune long-career transfer churn.
+1. Add weekly evidence-based objectives, an opponent report and a visible positional competition ladder.
+2. Add persistent team styles, weather and referee tendencies for deeper match tactics.
+3. Expand E2E journeys through training, a full friendly, transfers and season rollover.
+4. Refresh club/squad source strength when an authoritative 2026/27 upstream dataset becomes available.
+5. Compress cloud/export saves and tune long-career transfer churn.

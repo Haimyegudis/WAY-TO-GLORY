@@ -320,6 +320,11 @@ function applyChoiceConsequence(rng: Rng, state: CareerState, key: string, chang
   const player = state.player;
   const contract = state.contract;
   switch (key) {
+    case 'clearedForInjuredFinal':
+      // A medical override belongs to this one fixture, not to the injury in general.
+      // Selection reads the absolute week and still respects suspensions.
+      state.flags[key] = state.world.season * 52 + state.world.week;
+      return;
     case 'treatmentSurgery':
       applyTreatmentChoice(rng, state, 'surgery', changes);
       return;

@@ -39,8 +39,37 @@ export interface UpcomingFixture {
 /** The next league fixture our club has, from this week on. */
 export function nextFixture(state: CareerState): UpcomingFixture | null {
   const c = myClub(state);
+  if (!c) return null;
+
+  // Friendlies do not belong to a league table, but the camp schedule is fixed by the
+  // engine and the player must be able to see each one before pressing kickoff.
+  if (
+    state.player.squadRole !== 'academy'
+    && state.world.week >= 1
+    && state.world.week <= 3
+    && state.flags[`trainingCamp:${state.world.season}`]
+  ) {
+    const opponentId = String(state.flags[`campOpponent:${state.world.season}:${state.world.week}`] ?? '');
+    const opponent = club(state, opponentId);
+    if (opponent) {
+      const home = state.world.week !== 3;
+      return {
+        fixture: {
+          round: state.world.week,
+          week: state.world.week,
+          homeClubId: home ? c.id : opponent.id,
+          awayClubId: home ? opponent.id : c.id,
+          played: false,
+        },
+        opponent,
+        home,
+        competitionId: 'friendly',
+      };
+    }
+  }
+
   const comp = myCompetitionState(state);
-  if (!c || !comp) return null;
+  if (!comp) return null;
 
   const upcoming = comp.fixtures
     .filter((f) => !f.played && (f.homeClubId === c.id || f.awayClubId === c.id) && f.week >= state.world.week)

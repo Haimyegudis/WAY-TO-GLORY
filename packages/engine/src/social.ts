@@ -93,6 +93,18 @@ export function evaluateConsequences(rng: Rng, state: CareerState): ConsequenceO
     out.push({ id: 'backInFavour' });
   }
 
+  // Reputation cannot protect a player indefinitely from very poor football. This is
+  // separate from being frozen out after a dispute: he remains in the matchday squad,
+  // but loses the starting shirt until the form line recovers.
+  if (inSquad && state.player.form < 34 && !flags['formBenchNotified']) {
+    flags['formBenchNotified'] = true;
+    out.push({ id: 'benchedForForm' });
+  }
+  if (state.player.form >= 48 && flags['formBenchNotified']) {
+    flags['formBenchNotified'] = false;
+    out.push({ id: 'backInForm' });
+  }
+
   // The club starts looking for a replacement, then lists him.
   if (inSquad && rel.manager < 30 && rel.board < 40 && !flags['transferListed']) {
     if (!flags['replacementSought']) {
@@ -144,6 +156,9 @@ export function isFrozenOut(state: CareerState): boolean {
 export type PlayerActionId =
   | 'askManagerTrust'
   | 'askManagerFeedback'
+  | 'reviewMatchVideo'
+  | 'individualFormSession'
+  | 'requestSeniorTraining'
   | 'apologiseManager'
   | 'acceptBenchRole'
   | 'demandPlayingTime'
@@ -185,6 +200,9 @@ export interface PlayerActionDef {
 const ACTION_COOLDOWN_WEEKS: Partial<Record<PlayerActionId, number>> = {
   askManagerTrust: 16,
   askManagerFeedback: 8,
+  reviewMatchVideo: 6,
+  individualFormSession: 5,
+  requestSeniorTraining: 12,
   apologiseManager: 12,
   acceptBenchRole: 20,
   demandPlayingTime: 20,
@@ -248,6 +266,11 @@ function recentRating(state: CareerState): number | null {
   const rated = state.matchLog.filter((m) => m.userLine?.played).slice(0, 4);
   if (rated.length === 0) return null;
   return rated.reduce((sum, m) => sum + (m.userLine?.rating ?? 0), 0) / rated.length;
+}
+
+function youthAverage(state: CareerState): number {
+  const form = state.world.youth?.form;
+  return form && form.apps > 0 ? form.ratingSum / form.apps : 0;
 }
 
 /** True after a defeat, a heavy one, or a sending off - the weeks you say sorry. */
@@ -315,6 +338,34 @@ export const PLAYER_ACTIONS: PlayerActionDef[] = [
     cost: 1,
     riskKey: 'risk.low',
     available: (s) => hasClub(s) && !s.retired,
+  },
+  {
+    id: 'reviewMatchVideo',
+    category: 'manager',
+    cost: 1,
+    riskKey: 'risk.low',
+    available: (s) => hasClub(s) && !s.retired && (s.player.form < 58 || (recentRating(s) ?? 7) < 6.6),
+  },
+  {
+    id: 'individualFormSession',
+    category: 'personal',
+    cost: 1,
+    riskKey: 'risk.medium',
+    available: (s) => hasClub(s) && !s.retired && s.player.form < 62 && s.player.condition.fatigue < 82,
+  },
+  {
+    id: 'requestSeniorTraining',
+    category: 'manager',
+    cost: 1,
+    riskKey: 'risk.medium',
+    available: (s) => {
+      const age = s.world.season - s.player.birthYear;
+      const form = s.world.youth?.form;
+      return s.player.squadRole === 'academy'
+        && age >= 16
+        && Boolean(form && form.apps >= 3 && youthAverage(s) >= 6.7)
+        && !s.flags['calledUpToSeniors'];
+    },
   },
   {
     id: 'apologiseManager',
@@ -538,6 +589,54 @@ export function performAction(rng: Rng, state: CareerState, id: PlayerActionId):
         break;
       }
       narrativeKey = `action.${id}.good`;
+      break;
+    }
+    case 'reviewMatchVideo': {
+      adjustRelationship(state, 'manager', swing(2), changes);
+      const first = rng.pick(['decisions', 'positioning', 'concentration'] as const);
+      const second = first === 'decisions' ? 'composure' : 'decisions';
+      for (const key of [first, second] as const) {
+        const before = player.attributes[key];
+        player.attributes[key] = clamp(before + rng.range(0.25, 0.7), 1, 99);
+        track(changes, `change.attr.${key}`, before, player.attributes[key]);
+      }
+      player.morale = clamp(player.morale + 2, 0, 100);
+      narrativeKey = `action.${id}.good`;
+      break;
+    }
+    case 'individualFormSession': {
+      const sharpnessBefore = player.condition.sharpness;
+      player.condition.sharpness = clamp(sharpnessBefore + rng.range(5, 9), 0, 100);
+      player.condition.fatigue = clamp(player.condition.fatigue + rng.range(6, 10), 0, 100);
+      player.form = clamp(player.form + rng.range(2, 5), 0, 100);
+      track(changes, 'change.sharpness', sharpnessBefore, player.condition.sharpness);
+      const overworked = rng.chance(clamp(player.condition.fatigue / 230, 0.08, 0.38));
+      if (overworked) {
+        player.fitness = clamp(player.fitness - rng.range(2, 5), 0, 100);
+        player.morale = clamp(player.morale - 2, 0, 100);
+        narrativeKey = `action.${id}.overworked`;
+      } else {
+        narrativeKey = `action.${id}.good`;
+      }
+      break;
+    }
+    case 'requestSeniorTraining': {
+      const form = state.world.youth?.form;
+      const average = form && form.apps > 0 ? form.ratingSum / form.apps : 0;
+      const accepted = rng.chance(clamp(0.32 + (average - 6.5) * 0.28 + rel.manager / 250, 0.2, 0.9));
+      if (accepted && player.clubId) {
+        state.flags['calledUpToSeniors'] = true;
+        player.squadRole = state.world.season - player.birthYear >= 17 ? 'prospect' : 'futureProspect';
+        const list = state.world.squads[player.clubId] ?? (state.world.squads[player.clubId] = []);
+        if (!list.includes(player.id)) list.push(player.id);
+        adjustRelationship(state, 'manager', swing(5), changes);
+        player.morale = clamp(player.morale + 7, 0, 100);
+        narrativeKey = `action.${id}.good`;
+      } else {
+        adjustRelationship(state, 'manager', -swing(2), changes);
+        player.morale = clamp(player.morale - 2, 0, 100);
+        narrativeKey = `action.${id}.notYet`;
+      }
       break;
     }
     case 'apologiseManager': {
