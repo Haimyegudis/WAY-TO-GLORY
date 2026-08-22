@@ -1843,7 +1843,7 @@ function raiseMilestone(
   // Derby questions change with the context, so their answers change with them too.
   // Reusing one stock phrase under three different questions produced literal,
   // irrelevant replies even when the underlying attitude/effects were correct.
-  const answerCopySuffix = id === 'derby' ? copySuffix : '';
+  const answerCopySuffix = id === 'derby' || id === 'rivalMatch' ? copySuffix : '';
   const answers = question.answers.map((answer, index, all) => all[(index + copyVariant - 1) % all.length]!);
   state.pendingDecisions.push({
     id: decisionId,
@@ -2097,7 +2097,9 @@ function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | nul
 
   // Somebody from the other lot had something to say before a derby.
   const nextImportance = upcomingImportance(state, index);
-  if ((nextImportance === 'derby' || nextImportance === 'rival') && state.flags[`asked:derby:${state.world.season}`]) {
+  const alreadyAsked = state.flags[`asked:derby:${state.world.season}`]
+    || state.flags[`asked:rivalMatch:${state.world.season}`];
+  if ((nextImportance === 'derby' || nextImportance === 'rival') && alreadyAsked) {
     return 'rivalDig';
   }
 
@@ -2382,12 +2384,14 @@ function scheduledUserMatchThisWeek(state: CareerState, index: PackIndex): Sched
 const FIXTURE_BOUND_EVENTS = new Set([
   'play_final_injured',
   'derby_week_pressure',
+  'rival_week_pressure',
   'champions_league_night',
   'penalty_in_last_minute',
   'opponent_targets_you',
   'national_coach_watching',
   'goal_celebration_controversy',
   'derby_goal_celebration',
+  'rival_goal_celebration',
   'missed_sitter',
   'own_goal',
 ]);
@@ -2402,7 +2406,9 @@ function raisePostMatchEvent(
   if (!line?.played) return;
   const ids: string[] = [];
   if ((match.importance === 'derby' || match.importance === 'rival') && line.goals > 0) {
-    ids.push('derby_goal_celebration');
+    // The same celebration, under the name the fixture actually has: a rivalry that
+    // spans two cities is not a derby, and the copy must not claim it is.
+    ids.push(match.importance === 'derby' ? 'derby_goal_celebration' : 'rival_goal_celebration');
   }
   if (line.shots >= 3 && line.goals === 0 && line.rating < 6.35) ids.push('missed_sitter');
   if (line.goals > 0 && state.player.fame >= 20) ids.push('goal_celebration_controversy');
@@ -2459,7 +2465,8 @@ function raisePreMatchEvent(
     // Everything else in here assumes he is playing on Saturday.
     return false;
   } else {
-    if (match.importance === 'derby' || match.importance === 'rival') ids.push('derby_week_pressure');
+    if (match.importance === 'derby') ids.push('derby_week_pressure');
+    if (match.importance === 'rival') ids.push('rival_week_pressure');
     if (match.source === 'europe') ids.push('champions_league_night');
     if (match.importance !== 'normal') ids.push('penalty_in_last_minute');
     ids.push('opponent_targets_you', 'national_coach_watching');
@@ -2535,13 +2542,16 @@ export function matchImportanceFor(
   const previousClubId = state.flags['previousClubId'];
   if (typeof previousClubId === 'string' && previousClubId === opponentId) return 'vsFormerClub';
 
-  if (club.rivals?.includes(opponentId)) {
-    return club.city && opponent.city && club.city === opponent.city ? 'derby' : 'rival';
-  }
+  // A derby is two clubs from one town. Everything else with history behind it - a
+  // classico, a fixture two cities apart that both of them plan their season around -
+  // is a rivalry, and calling it a derby in the build-up is the sort of thing a
+  // supporter hears immediately.
+  if (club.derbies?.includes(opponentId)) return 'derby';
   // Two clubs from the same town is a derby whether or not anybody wrote it down. The
-  // rivalry list only covers the famous fixtures, so without this a player at a smaller
+  // derby list only covers the famous fixtures, so without this a player at a smaller
   // club could go a whole career without one.
   if (club.city && opponent.city && club.city === opponent.city) return 'derby';
+  if (club.rivals?.includes(opponentId)) return 'rival';
 
   /*
    * Where the two of them stand.

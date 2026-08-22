@@ -365,6 +365,12 @@ export const EVENTS: CareerEventDef[] = [
     opt('derby_week_pressure', 'embrace', [e('form', 5), e('personality', 2, 'pressureHandling'), e('fatigue', 6)]),
     opt('derby_week_pressure', 'routine', [e('personality', 1, 'consistency')]),
   ]),
+  // The same week, without the city. Two clubs can hate each other from opposite ends
+  // of the country, and the build-up belongs to the country rather than to one town.
+  ev('rival_week_pressure', 'club', 24, 30, { ageRange: [17, 40] }, [
+    opt('rival_week_pressure', 'embrace', [e('form', 5), e('personality', 2, 'pressureHandling'), e('fatigue', 6)]),
+    opt('rival_week_pressure', 'routine', [e('personality', 1, 'consistency')]),
+  ]),
   ev('club_financial_trouble', 'club', 14, 80, { ageRange: [17, 40], tierIn: [2, 3] }, [
     opt('club_financial_trouble', 'takeCut', [e('money', -80000), e('managerTrust', 8), e('reputation', 3)]),
     opt('club_financial_trouble', 'refuse', [e('relationship', -10, 'board'), e('relationship', -5, 'teammates')]),

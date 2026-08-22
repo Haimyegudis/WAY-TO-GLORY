@@ -150,6 +150,12 @@ export interface Club {
   prestige?: number;
   /** Clubs this one has history with. A fixture against them is never just a fixture. */
   rivals?: string[];
+  /**
+   * The rivals that share a town with this club. A derby is two clubs from one city -
+   * every other grudge, however old, is a rivalry - and the city field is missing for
+   * enough leagues that the famous ones are listed by hand.
+   */
+  derbies?: string[];
   reputation: number;   // 0-100
   academy: number;      // 0-100 youth development
   training: number;     // 0-100 facilities/coaching

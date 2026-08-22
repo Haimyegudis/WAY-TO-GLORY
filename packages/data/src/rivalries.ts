@@ -67,3 +67,52 @@ export const RIVALRIES: [string, string][] = [
   ['fra_olympique_lyonnais', 'fra_as_saint_etienne'],
   ['at_fk_austria_wien', 'at_sk_rapid_wien'],
 ];
+
+/**
+ * The rivalries that are also derbies.
+ *
+ * A derby is two clubs out of one city, and nothing else is: Newcastle against
+ * Sunderland is an old and bad-tempered afternoon, but it is not a derby, and a player
+ * told it was one notices immediately. The engine works this out from the city on the
+ * club when it has one, and half the leagues in the pack do not, so the famous
+ * same-town pairs are written down here as well.
+ */
+export const DERBIES: [string, string][] = [
+  // England
+  ['eng_liverpool_fc', 'eng_everton_fc'],
+  ['eng_manchester_united_fc', 'eng_manchester_city_fc'],
+  ['eng_arsenal_fc', 'eng_tottenham_hotspur_fc'],
+  ['eng_arsenal_fc', 'eng_chelsea_fc'],
+  ['eng_chelsea_fc', 'eng_tottenham_hotspur_fc'],
+  ['eng_west_ham_united_fc', 'eng_millwall_fc'],
+  ['eng_aston_villa_fc', 'eng_birmingham_city_fc'],
+  ['eng_sheffield_united_fc', 'eng_sheffield_wednesday_fc'],
+
+  // Spain
+  ['esp_real_madrid_cf', 'esp_club_atletico_de_madrid'],
+  ['esp_fc_barcelona', 'esp_rcd_espanyol_de_barcelona'],
+  ['esp_sevilla_fc', 'esp_real_betis_balompie'],
+
+  // Italy
+  ['ita_fc_internazionale_milano', 'ita_ac_milan'],
+  ['ita_as_roma', 'ita_ss_lazio'],
+  ['ita_juventus_fc', 'ita_torino_fc'],
+  ['ita_genoa_cfc', 'ita_uc_sampdoria'],
+
+  // Germany
+  ['ger_fc_bayern_munchen', 'ger_tsv_1860_munchen'],
+  ['ger_hamburger_sv', 'ger_fc_st_pauli'],
+
+  // Israel
+  ['isr_maccabi_tel_aviv', 'isr_hapoel_tel_aviv'],
+  ['isr_maccabi_haifa', 'isr_hapoel_haifa'],
+  ['isr_beitar_jerusalem', 'isr_hapoel_jerusalem'],
+
+  // Elsewhere
+  ['por_sl_benfica', 'por_sporting_cp'],
+  ['tur_galatasaray', 'tur_fenerbahce'],
+  ['tur_besiktas', 'tur_galatasaray'],
+  ['gre_paok_saloniki', 'gre_aris_saloniki'],
+  ['sco_celtic_fc', 'sco_rangers_fc'],
+  ['at_fk_austria_wien', 'at_sk_rapid_wien'],
+];

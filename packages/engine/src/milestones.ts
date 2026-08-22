@@ -27,6 +27,9 @@ export type MilestoneId =
   | 'debut'
   | 'firstGoal'
   | 'derby'
+  // Same city is a derby. A famous rivalry that spans two cities is not - and calling
+  // it one in front of a microphone is exactly the sort of thing a supporter notices.
+  | 'rivalMatch'
   | 'bigMatch'
   | 'firstAfterTransfer'
   | 'againstOldClub'
@@ -89,6 +92,42 @@ export interface ClaimSettlement {
  * The questions. Each answer is a trade, never a bonus: the bold one risks something the
  * careful one does not, and the careful one gives away something the bold one takes.
  */
+/**
+ * The questions a grudge fixture asks.
+ *
+ * A derby and a rivalry across two cities put the same three answers in front of him -
+ * respect them, promise fireworks, or say nothing - so the effects are shared. Only the
+ * words differ, because the occasion has a different name.
+ */
+const RIVALRY_ANSWERS: MilestoneAnswer[] = [
+  {
+    // Refuses to give them anything to pin on the dressing-room wall.
+    id: 'respect',
+    risk: 'medium',
+    attributes: { concentration: 1 },
+    personality: { professionalism: 0.8 },
+    relationships: { manager: 5, fans: -5 },
+  },
+  {
+    // Tells the other lot exactly what is coming. The crowd loves it. The other lot
+    // read it too.
+    id: 'fire',
+    risk: 'high',
+    attributes: { composure: -1.1 },
+    personality: { determination: 1.4, discipline: -1 },
+    relationships: { fans: 12, media: 7, manager: -4 },
+    fame: 4,
+    backsItUp: { attribute: 'composure', swing: 2.6 },
+  },
+  {
+    id: 'deflect',
+    risk: 'medium',
+    personality: { professionalism: 0.6 },
+    relationships: { media: -6, manager: 3 },
+    morale: -2,
+  },
+];
+
 export const MILESTONES: MilestoneQuestion[] = [
   {
     id: 'debut',
@@ -143,34 +182,11 @@ export const MILESTONES: MilestoneQuestion[] = [
   },
   {
     id: 'derby',
-    answers: [
-      {
-        // Refuses to give them anything to pin on the dressing-room wall.
-        id: 'respect',
-        risk: 'medium',
-        attributes: { concentration: 1 },
-        personality: { professionalism: 0.8 },
-        relationships: { manager: 5, fans: -5 },
-      },
-      {
-        // Tells the other lot exactly what is coming. The crowd loves it. The other lot
-        // read it too.
-        id: 'fire',
-        risk: 'high',
-        attributes: { composure: -1.1 },
-        personality: { determination: 1.4, discipline: -1 },
-        relationships: { fans: 12, media: 7, manager: -4 },
-        fame: 4,
-        backsItUp: { attribute: 'composure', swing: 2.6 },
-      },
-      {
-        id: 'deflect',
-        risk: 'medium',
-        personality: { professionalism: 0.6 },
-        relationships: { media: -6, manager: 3 },
-        morale: -2,
-      },
-    ],
+    answers: RIVALRY_ANSWERS,
+  },
+  {
+    id: 'rivalMatch',
+    answers: RIVALRY_ANSWERS,
   },
   {
     id: 'bigMatch',
@@ -708,8 +724,9 @@ export function occasionMilestone(importance: MatchImportance): MilestoneId | nu
     case 'vsFormerClub':
       return 'againstOldClub';
     case 'derby':
-    case 'rival':
       return 'derby';
+    case 'rival':
+      return 'rivalMatch';
     case 'cupFinal':
     case 'cupSemi':
     case 'titleDecider':

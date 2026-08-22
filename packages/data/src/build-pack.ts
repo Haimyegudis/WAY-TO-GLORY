@@ -26,7 +26,7 @@ import { EVENTS_LIFESTYLE } from './events-lifestyle.js';
 import { EVENTS_DILEMMAS } from './events-dilemmas.js';
 import { HEBREW_CLUB_NAMES } from './hebrew-clubs.js';
 import { CLUB_COLORS } from './club-colors.js';
-import { RIVALRIES } from './rivalries.js';
+import { DERBIES, RIVALRIES } from './rivalries.js';
 import { REAL_PLAYERS } from './real-players.js';
 
 interface ClubAsset {
@@ -391,6 +391,21 @@ async function main(): Promise<void> {
     addRival(a, b);
     addRival(b, a);
   }
+  // Which of them are derbies. Same town is a derby by definition; the hand-written
+  // list covers the leagues whose clubs reached the pack without a city on them.
+  const derbiesById = new Map<string, Set<string>>();
+  const addDerby = (a: string, b: string) => {
+    if (a === b) return;
+    if (!clubs.some((c) => c.id === a) || !clubs.some((c) => c.id === b)) return;
+    addRival(a, b);
+    const set = derbiesById.get(a) ?? new Set<string>();
+    set.add(b);
+    derbiesById.set(a, set);
+  };
+  for (const [a, b] of DERBIES) {
+    addDerby(a, b);
+    addDerby(b, a);
+  }
   const byCity = new Map<string, Club[]>();
   for (const club of clubs) {
     if (!club.city) continue;
@@ -399,11 +414,13 @@ async function main(): Promise<void> {
   }
   for (const sameCity of byCity.values()) {
     if (sameCity.length < 2 || sameCity.length > 4) continue;
-    for (const a of sameCity) for (const b of sameCity) addRival(a.id, b.id);
+    for (const a of sameCity) for (const b of sameCity) addDerby(a.id, b.id);
   }
   for (const club of clubs) {
     const rivals = rivalsById.get(club.id);
     if (rivals && rivals.size > 0) club.rivals = [...rivals];
+    const derbies = derbiesById.get(club.id);
+    if (derbies && derbies.size > 0) club.derbies = [...derbies];
   }
 
   const pack: DataPack = {

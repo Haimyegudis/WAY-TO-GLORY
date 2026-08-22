@@ -215,6 +215,10 @@ export const EVENTS_EXTRA: CareerEventDef[] = [
     opt('derby_goal_celebration', 'run_to_fans', [e('relationship', 12, 'fans'), e('fame', 5), e('relationship', -2, 'board')]),
     opt('derby_goal_celebration', 'stay_calm', [e('personality', 2, 'professionalism'), e('relationship', 3, 'board')]),
   ]),
+  ev('rival_goal_celebration', 'media', 16, 60, { ageRange: [18, 36] }, [
+    opt('rival_goal_celebration', 'run_to_fans', [e('relationship', 12, 'fans'), e('fame', 5), e('relationship', -2, 'board')]),
+    opt('rival_goal_celebration', 'stay_calm', [e('personality', 2, 'professionalism'), e('relationship', 3, 'board')]),
+  ]),
   ev('missed_sitter', 'club', 22, 30, { ageRange: [17, 38], minMinutesSeasonPct: 0.25 }, [
     opt('missed_sitter', 'extra_finishing', [e('attribute', 1.5, 'finishing'), e('fatigue', 6)]),
     opt('missed_sitter', 'forget_it', [e('personality', 2, 'pressureHandling'), e('morale', 2)]),
