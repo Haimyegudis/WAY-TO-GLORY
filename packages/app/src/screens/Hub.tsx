@@ -1,21 +1,18 @@
 import {
   currentOvr,
   potentialLabel,
-  relationshipLabel,
   scoringRank,
   shirtRival,
-  skillProfile,
   sortedTable,
   userYouthCompetition,
 } from '@fc/engine';
-import { formatMoney, formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
+import { formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
 import { PrepareCard } from './PrepareScreen.js';
 import { campSchedule, inTrainingCamp, myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, clubShortName, localiseArgs } from '../lib/club.js';
 import { competitionName, countryName } from '../lib/names.js';
-import { seasonGoalStanding } from '@fc/engine';
-import { Card, Chip, ClubLine, Crest, Gauge, Meter, RatingBadge, Stat } from '../components/ui.js';
+import { Card, Chip, ClubLine, Crest, Gauge, RatingBadge, Stat } from '../components/ui.js';
 import { DecisionOptions } from './DecisionSheet.js';
 
 export function Hub() {
@@ -44,11 +41,6 @@ export function Hub() {
   const ovr = currentOvr(state);
   const seasonStartOvr = Number(state.flags['seasonStartOvr'] ?? ovr);
   const ovrProgress = ovr - Math.round(seasonStartOvr);
-  const currentSkills = skillProfile(player.attributes, player.primaryPos);
-  const startingSkills = new Map(
-    skillProfile(state.seasonStartAttributes ?? player.attributes, player.primaryPos)
-      .map((skill) => [skill.key, skill.value]),
-  );
   const age = state.world.season - player.birthYear;
   const fixture = nextFixture(state);
   const preparation = useGame((s) => s.preparation)();
@@ -69,8 +61,6 @@ export function Hub() {
     : undefined;
 
   const ovrTone = ovr >= 82 ? 'ovr-tile-elite' : ovr >= 70 ? 'ovr-tile-high' : '';
-  const goal = state.seasonGoal?.season === state.world.season ? state.seasonGoal : null;
-  const standing = seasonGoalStanding(state);
   const inCamp = inTrainingCamp(state);
   const camp = inCamp ? campSchedule(state) : [];
   const campPlayed = camp.filter((entry) => entry.match);
@@ -263,13 +253,31 @@ export function Hub() {
         </Card>
       )}
 
+      {/*
+        * How he is playing, in one card.
+        *
+        * Form was a number here, a gauge two cards down, and a sentence in between; his
+        * standing with the manager was on this card and again on the next one. A screen
+        * that says the same thing three times is not telling him more, it is making him
+        * read more to find out less.
+        */}
       <Card title={t('status.title')}>
-        <div className="statrow">
-          <Stat label={t('hub.form')} value={Math.round(player.form)} />
-          <Stat label={t('status.lastFive')} value={recentAverage > 0 ? recentAverage.toFixed(2) : '—'} />
-          <Stat label={t('status.nationalInterest')} value={`${nationalInterest}%`} />
-          <Stat label={t('rel.manager')} value={Math.round(state.managerTrust)} />
+        <div className="stack" style={{ gap: 12 }}>
+          <div className="row" style={{ gap: 14 }}>
+            <Gauge label={t('hub.form')} value={player.form} tone={player.form < 40 ? 'red' : 'green'} />
+            <Gauge label={t('hub.fitness')} value={player.fitness} tone={player.fitness < 60 ? 'red' : 'blue'} />
+          </div>
+          <div className="row" style={{ gap: 14 }}>
+            <Gauge label={t('hub.morale')} value={player.morale} tone={player.morale < 40 ? 'amber' : 'green'} />
+            <Gauge label={t('train.fatigue')} value={player.condition.fatigue} tone={player.condition.fatigue > 55 ? 'red' : 'amber'} />
+          </div>
         </div>
+        {recentAverage > 0 && (
+          <div className="row-between" style={{ marginBlockStart: 12 }}>
+            <span className="eyebrow">{t('status.lastFive')}</span>
+            <span className="num">{recentAverage.toFixed(2)}</span>
+          </div>
+        )}
         <div className="stack" style={{ gap: 7, marginBlockStart: 12 }}>
           <p style={{ fontSize: 13 }}>{t(`status.form.${formBand}`)}</p>
           <p style={{ fontSize: 13 }}>{t(`status.selection.${selectionOutlook}`)}</p>
@@ -298,98 +306,6 @@ export function Hub() {
         <button className="btn btn-block" style={{ marginBlockStart: 12 }} onClick={() => goto(player.form < 56 ? 'social' : 'train')}>
           {t(player.form < 56 ? 'status.openActions' : 'status.openTraining')}
         </button>
-      </Card>
-
-      {/*
-        * What the season is for.
-        *
-        * The summer conversation is only worth having if he can see it all year, so the
-        * three terms it was written in are on his own screen with where he stands
-        * against each of them.
-        */}
-      {goal && standing && (
-        <Card title={t('seasonGoal.title')}>
-          <div className="stack" style={{ gap: 10 }}>
-            <div>
-              <div className="row-between" style={{ marginBlockEnd: 4 }}>
-                <span style={{ fontSize: 13 }}>{t('seasonGoal.minutes')}</span>
-                <span className="num" style={{ fontSize: 12 }}>
-                  {Math.round(standing.minutesPct * 100)}% / {Math.round(goal.minutes * 100)}%
-                </span>
-              </div>
-              <Meter value={Math.min(100, (standing.minutesPct / Math.max(0.01, goal.minutes)) * 100)} tone={standing.metMinutes ? 'amber' : 'blue'} />
-            </div>
-            {goal.contributions > 0 && (
-              <div>
-                <div className="row-between" style={{ marginBlockEnd: 4 }}>
-                  <span style={{ fontSize: 13 }}>{t('seasonGoal.contributions')}</span>
-                  <span className="num" style={{ fontSize: 12 }}>{standing.contributions} / {goal.contributions}</span>
-                </div>
-                <Meter value={Math.min(100, (standing.contributions / Math.max(1, goal.contributions)) * 100)} tone={standing.metContributions ? 'amber' : 'blue'} />
-              </div>
-            )}
-            {goal.tablePosition !== null && standing.position !== null && (
-              <div className="row-between">
-                <span style={{ fontSize: 13 }}>{t('seasonGoal.position')}</span>
-                <span className="num" style={{ fontSize: 12 }}>
-                  {standing.position} / {goal.tablePosition}
-                </span>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      <Card title={t('hub.skills')}>
-        <div className="grid-3" style={{ gap: 10 }}>
-          {currentSkills.map((skill) => {
-            const delta = skill.value - (startingSkills.get(skill.key) ?? skill.value);
-            return <div key={skill.key}>
-              <div className="row-between" style={{ marginBlockEnd: 4 }}>
-                <span style={{ fontSize: 12 }}>{t(`skill.${skill.key}`)}</span>
-                <span className="row" style={{ gap: 4 }}>
-                  <span className="num" style={{ fontSize: 12.5, color: skillColor(skill.value) }}>{skill.value}</span>
-                  <span className={`skill-progress ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}`} title={t('progress.sinceSeasonStart')}>
-                    {delta > 0 ? '+' : ''}{delta}
-                  </span>
-                </span>
-              </div>
-              <div className="meter" style={{ height: 4 }}>
-                <i style={{ width: `${skill.value}%`, background: skillColor(skill.value) }} />
-              </div>
-            </div>
-          })}
-        </div>
-        <p className="faint" style={{ fontSize: 10.5, marginBlockStart: 9 }}>{t('progress.legend')}</p>
-      </Card>
-
-      <Card title={t('hub.condition')}>
-        <div className="stack" style={{ gap: 12 }}>
-          <div className="row" style={{ gap: 14 }}>
-            <Gauge label={t('hub.form')} value={player.form} tone={player.form < 40 ? 'red' : 'green'} />
-            <Gauge label={t('hub.fitness')} value={player.fitness} tone={player.fitness < 60 ? 'red' : 'blue'} />
-          </div>
-          <div className="row" style={{ gap: 14 }}>
-            <Gauge label={t('hub.morale')} value={player.morale} tone={player.morale < 40 ? 'amber' : 'green'} />
-            <Gauge label={t('train.fatigue')} value={player.condition.fatigue} tone={player.condition.fatigue > 55 ? 'red' : 'amber'} />
-          </div>
-        </div>
-      </Card>
-
-      <Card
-        title={t('social.standing')}
-        action={
-          <button className="eyebrow" style={{ color: 'var(--amber)' }} onClick={() => goto('social')}>
-            {t('social.open')} →
-          </button>
-        }
-      >
-        <div className="stack" style={{ gap: 10 }}>
-          <RelationRow label={t('rel.manager')} value={state.relationships.manager} />
-          <RelationRow label={t('rel.teammates')} value={state.relationships.teammates} />
-          <RelationRow label={t('rel.fans')} value={state.relationships.fans} />
-          <RelationRow label={t('rel.board')} value={state.relationships.board} />
-        </div>
       </Card>
 
       {/* The week's homework comes before the fixture card: he reads the report, picks
@@ -538,61 +454,9 @@ export function Hub() {
         </div>
       )}
 
-      <Card title={t('hub.money')}>
-        <div className="row-between">
-          <span className="eyebrow">{t('hub.value')}</span>
-          <span className="num">{formatMoney(state.marketValue, lang)}</span>
-        </div>
-        {state.contract && (
-          <>
-            <div className="row-between" style={{ marginBlockStart: 8 }}>
-              <span className="eyebrow">{t('hub.wage')}</span>
-              <span className="num">{formatMoney(state.contract.salaryPerWeek, lang)}</span>
-            </div>
-            <div className="row-between" style={{ marginBlockStart: 8 }}>
-              <span className="eyebrow">{t('market.until')}</span>
-              <span className="num">{formatSeason(state.contract.endSeason)}</span>
-            </div>
-          </>
-        )}
-        <div className="row" style={{ gap: 8, marginBlockStart: 12 }}>
-          <button className="btn btn-quiet grow" onClick={() => goto('train')}>{t('nav.train')}</button>
-          <button className="btn btn-quiet grow" onClick={() => goto('market')}>{t('nav.market')}</button>
-        </div>
-      </Card>
-
       <p className="faint center" style={{ fontSize: 11.5 }}>
         {t('hub.potential')}: {t(`potential.${potentialLabel(state)}`)}
       </p>
-    </div>
-  );
-}
-
-/** Colour a rating the way a scouting report would: green is good, red is a problem. */
-function skillColor(value: number): string {
-  if (value >= 78) return 'var(--green)';
-  if (value >= 62) return '#9fd15f';
-  if (value >= 45) return 'var(--amber)';
-  return 'var(--red)';
-}
-
-function RelationRow({ label, value }: { label: string; value: number }) {
-  const t = useT();
-  const tone = value >= 62 ? 'green' : value >= 40 ? 'amber' : 'red';
-  return (
-    <div>
-      <div className="row-between" style={{ marginBlockEnd: 5 }}>
-        <span style={{ fontSize: 13 }}>{label}</span>
-        <span className="faint" style={{ fontSize: 11.5 }}>{t(relationshipLabel(value))}</span>
-      </div>
-      <div className="meter" style={{ height: 5 }}>
-        <i
-          style={{
-            width: `${Math.max(0, Math.min(100, value))}%`,
-            background: tone === 'green' ? 'var(--green)' : tone === 'amber' ? 'var(--amber)' : 'var(--red)',
-          }}
-        />
-      </div>
     </div>
   );
 }

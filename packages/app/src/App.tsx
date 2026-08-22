@@ -380,12 +380,16 @@ const TABS: { id: Screen; key: string; icon: JSX.Element }[] = [
   { id: 'social', key: 'nav.social', icon: <IconChat /> },
 ];
 
-/** Everything else, named for what it is rather than for where it was filed. */
+/**
+ * Everything else, named for what it is rather than for where it was filed.
+ *
+ * Only what is not already on the bar. Two of these rows used to lead to the club and
+ * the matches screens, which are one tap away underneath the sheet he opened to find
+ * them - a longer road to the same place, which reads as a different place.
+ */
 const MORE: { id: Screen; key: string; hint: string }[] = [
   { id: 'train', key: 'nav.train', hint: 'nav.train.hint' },
   { id: 'market', key: 'nav.market', hint: 'nav.market.hint' },
-  { id: 'club', key: 'nav.tables', hint: 'nav.tables.hint' },
-  { id: 'matches', key: 'nav.results', hint: 'nav.results.hint' },
   { id: 'mentor', key: 'nav.mentor', hint: 'nav.mentor.hint' },
   { id: 'life', key: 'nav.life', hint: 'nav.life.hint' },
   { id: 'national', key: 'nav.national', hint: 'nav.national.hint' },

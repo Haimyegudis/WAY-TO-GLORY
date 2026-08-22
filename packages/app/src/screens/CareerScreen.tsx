@@ -128,6 +128,7 @@ export function CareerScreen() {
   const splitSeasons = state.seasonHistory.filter((record) => (record.spells?.length ?? 0) > 1);
   const myClub = state.player.clubId ? state.world.clubs[state.player.clubId] : undefined;
   const myClubName = myClub ? clubShortName(myClub, lang) : '—';
+  const [view, setView] = useState<'numbers' | 'seasons' | 'honours'>('numbers');
 
   return (
     <div className="screen stack">
@@ -156,6 +157,21 @@ export function CareerScreen() {
 
       {state.retired && <Legacy />}
 
+      {/*
+        * A career is three different questions, and they were all on one scroll.
+        *
+        * How good am I, what did I do each year, and what did I win - each of them a
+        * table or a chart long enough to hide the other two. They are three views now,
+        * and the one he opened last is the one he wanted.
+        */}
+      <div className="seg">
+        <button aria-pressed={view === 'numbers'} onClick={() => setView('numbers')}>{t('career.view.numbers')}</button>
+        <button aria-pressed={view === 'seasons'} onClick={() => setView('seasons')}>{t('career.view.seasons')}</button>
+        <button aria-pressed={view === 'honours'} onClick={() => setView('honours')}>{t('career.view.honours')}</button>
+      </div>
+
+      {view === 'numbers' && (
+        <>
       <Card title={t('career.totals')}>
         <div className="statrow">
           <Stat label={t('career.seasons')} value={summary.seasons} />
@@ -217,6 +233,11 @@ export function CareerScreen() {
         </Card>
       )}
 
+        </>
+      )}
+
+      {view === 'seasons' && (
+        <>
       <Card title={t('career.history')}>
         {state.seasonHistory.length === 0 ? (
           <Empty>—</Empty>
@@ -349,6 +370,11 @@ export function CareerScreen() {
         )}
       </Card>
 
+        </>
+      )}
+
+      {view === 'honours' && (
+        <>
       <Card title={t('career.honours')}>
         {(state.awards ?? []).length === 0 && (state.awardNominations ?? []).length === 0 ? (
           <Empty>{t('career.noHonours')}</Empty>
@@ -406,6 +432,9 @@ export function CareerScreen() {
           </div>
         )}
       </Card>
+
+        </>
+      )}
 
       <button className="btn btn-quiet btn-block" onClick={() => goto('national')}>
         {t('national.title')} →

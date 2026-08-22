@@ -2,6 +2,7 @@ import {
   ATTRIBUTE_KEYS,
   MENTAL_ATTRS,
   PHYSICAL_ATTRS,
+  skillProfile,
   type AttributeKey,
   type DietLevel,
   type TrainingFocus,
@@ -15,6 +16,14 @@ import { Meter, Card } from '../components/ui.js';
 const INTENSITIES: TrainingIntensity[] = ['light', 'normal', 'intensive', 'extreme'];
 const DIETS: DietLevel[] = ['poor', 'normal', 'professional', 'nutritionist'];
 const FOCUSES: TrainingFocus[] = ['balanced', 'physical', 'technical', 'mental', 'finishing', 'defending', 'goalkeeping', 'recovery'];
+
+/** Colour a rating the way a scouting report would: green is good, red is a problem. */
+function skillColor(value: number): string {
+  if (value >= 78) return 'var(--green)';
+  if (value >= 62) return '#9fd15f';
+  if (value >= 45) return 'var(--amber)';
+  return 'var(--red)';
+}
 
 const GK_ATTRS: AttributeKey[] = ['reflexes', 'handling', 'positioningGK', 'kicking'];
 const TECHNICAL: AttributeKey[] = ATTRIBUTE_KEYS.filter(
@@ -103,6 +112,11 @@ export function TrainingScreen() {
   const update = useGame((s) => s.updateTraining);
   const plan = state.training;
   const player = state.player;
+  // Where each of them stood in August, so the summary shows the season's work.
+  const skillStart = new Map(
+    skillProfile(state.seasonStartAttributes ?? player.attributes, player.primaryPos)
+      .map((skill) => [skill.key, skill.value]),
+  );
   const isKeeper = player.primaryPos === 'GK';
   const lang = useLang((s) => s.lang);
   const wage = state.contract?.salaryPerWeek ?? 0;
@@ -246,6 +260,32 @@ export function TrainingScreen() {
           <Line label={t('train.fatigue')} value={player.condition.fatigue} tone={player.condition.fatigue > 60 ? 'red' : 'amber'} />
           <Line label={t('train.sharpness')} value={player.condition.sharpness} tone="blue" />
         </div>
+      </Card>
+
+      <Card title={t('hub.skills')}>
+        <div className="grid-3" style={{ gap: 10 }}>
+          {skillProfile(player.attributes, player.primaryPos).map((skill) => {
+            const start = skillStart.get(skill.key) ?? skill.value;
+            const delta = skill.value - start;
+            return (
+              <div key={skill.key}>
+                <div className="row-between" style={{ marginBlockEnd: 4 }}>
+                  <span style={{ fontSize: 12 }}>{t(`skill.${skill.key}`)}</span>
+                  <span className="row" style={{ gap: 4 }}>
+                    <span className="num" style={{ fontSize: 12.5, color: skillColor(skill.value) }}>{skill.value}</span>
+                    <span className={`skill-progress ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}`} title={t('progress.sinceSeasonStart')}>
+                      {delta > 0 ? '+' : ''}{delta}
+                    </span>
+                  </span>
+                </div>
+                <div className="meter" style={{ height: 4 }}>
+                  <i style={{ width: `${skill.value}%`, background: skillColor(skill.value) }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="faint" style={{ fontSize: 10.5, marginBlockStart: 9 }}>{t('progress.legend')}</p>
       </Card>
 
       <Card title={t('train.physical')}>

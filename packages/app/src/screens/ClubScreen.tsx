@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   estimatedScorers,
+  seasonGoalStanding,
   leaguePhaseTable,
   sortedTable,
   userYouthCompetitionId,
@@ -23,6 +24,10 @@ export function ClubScreen() {
   const t = useT();
   const lang = useLang((s) => s.lang);
   const state = useGame((s) => s.state)!;
+  // What the club asked of him in the summer. It belongs with the club, not in the middle
+  // of his week - he agreed it once and checks it now and then.
+  const goal = state.seasonGoal?.season === state.world.season ? state.seasonGoal : null;
+  const standing = seasonGoalStanding(state);
   // A sixteen year old's league is the youth league. Opening his club on the first
   // team's table would be showing him a competition he does not play in.
   const inTheAgeGroup = Boolean(state.world.youth && userYouthCompetitionId(state));
@@ -67,6 +72,46 @@ export function ClubScreen() {
           <Bar label={t('academy.reputation')} value={home.reputation} />
         </div>
       </Card>
+
+      {/*
+        * What the season is for.
+        *
+        * The summer conversation is only worth having if he can see it all year, so the
+        * three terms it was written in sit with the club he agreed them with, and each
+        * one shows where he stands against it.
+        */}
+      {goal && standing && (
+        <Card title={t('seasonGoal.title')}>
+          <div className="stack" style={{ gap: 10 }}>
+            <div>
+              <div className="row-between" style={{ marginBlockEnd: 4 }}>
+                <span style={{ fontSize: 13 }}>{t('seasonGoal.minutes')}</span>
+                <span className="num" style={{ fontSize: 12 }}>
+                  {Math.round(standing.minutesPct * 100)}% / {Math.round(goal.minutes * 100)}%
+                </span>
+              </div>
+              <Meter value={Math.min(100, (standing.minutesPct / Math.max(0.01, goal.minutes)) * 100)} tone={standing.metMinutes ? 'amber' : 'blue'} />
+            </div>
+            {goal.contributions > 0 && (
+              <div>
+                <div className="row-between" style={{ marginBlockEnd: 4 }}>
+                  <span style={{ fontSize: 13 }}>{t('seasonGoal.contributions')}</span>
+                  <span className="num" style={{ fontSize: 12 }}>{standing.contributions} / {goal.contributions}</span>
+                </div>
+                <Meter value={Math.min(100, (standing.contributions / Math.max(1, goal.contributions)) * 100)} tone={standing.metContributions ? 'amber' : 'blue'} />
+              </div>
+            )}
+            {goal.tablePosition !== null && standing.position !== null && (
+              <div className="row-between">
+                <span style={{ fontSize: 13 }}>{t('seasonGoal.position')}</span>
+                <span className="num" style={{ fontSize: 12 }}>
+                  {standing.position} / {goal.tablePosition}
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       <div className="seg">
         <button aria-pressed={tab === 'table'} onClick={() => setTab('table')}>{t('club.table')}</button>
