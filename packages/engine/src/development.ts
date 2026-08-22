@@ -325,6 +325,14 @@ export function applyMatchCondition(player: Player, plan: TrainingPlan, playedMi
   player.fitness = clamp(player.fitness + (targetFitness - player.fitness) * 0.25, 20, 100);
 }
 
+/**
+ * How far back a match still counts as form.
+ *
+ * Six weeks. Beyond that a run is history rather than form, and holding on to it means
+ * a player who has not played since keeps being marked on games nobody remembers.
+ */
+export const FORM_WINDOW_WEEKS = 6;
+
 /** Form drifts toward recent match ratings and decays toward the mean when idle. */
 export function updateForm(player: Player, recentRatings: number[]): void {
   if (recentRatings.length === 0) {

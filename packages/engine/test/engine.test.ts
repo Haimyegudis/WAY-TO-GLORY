@@ -1552,6 +1552,81 @@ describe('losing the shirt over a bad run', () => {
     expect(state.flags['formBenchNotified']).toBe(false);
     expect(weeksBenched).toBeLessThanOrEqual(8);
   });
+
+  it('drops him on three bad afternoons, before the form line has caught up', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    const played = (career: typeof state) => career.matchLog
+      .filter((match) => match.userLine?.played && !match.competitionId.startsWith('friendly'));
+    for (let i = 0; i < 40 && played(state).length < 3; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const competitive = state.matchLog
+      .filter((match) => match.userLine?.played && !match.competitionId.startsWith('friendly'))
+      .slice(0, 3);
+    expect(competitive.length, 'he has not played three matches to be judged on').toBe(3);
+
+    // A run everyone watching can see is bad, with the form line still in the forties:
+    // the five-match average smoothed a quarter of the way a week never reaches 34, so
+    // the old test kept him in the side through the whole of it.
+    state.flags['formBenchNotified'] = false;
+    state.flags['formBenchClearedWeek'] = 0;
+    state.player.form = 42;
+    for (const match of competitive) {
+      match.userLine!.rating = 5.8;
+      match.userLine!.minutes = 90;
+      match.userLine!.started = true;
+    }
+    expect(state.player.form).toBeGreaterThan(34);
+    const dropped = evaluateConsequences(new Rng(11), state);
+    expect(dropped.some((entry) => entry.id === 'benchedForForm')).toBe(true);
+
+    // The same three afternoons played well leave him where he is.
+    const { state: other, index: otherIndex } = startedCareer({ seed: 96 });
+    for (let i = 0; i < 40 && played(other).length < 3; i++) {
+      playWeek(other, otherIndex);
+      other.pendingDecisions = [];
+    }
+    other.flags['formBenchNotified'] = false;
+    other.player.form = 42;
+    for (const match of other.matchLog.slice(0, 6)) {
+      if (match.userLine?.played) match.userLine.rating = 7.1;
+    }
+    expect(evaluateConsequences(new Rng(11), other).some((e) => e.id === 'benchedForForm')).toBe(false);
+  });
+
+  it('stops marking him on a run he played two months ago', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    for (let i = 0; i < 40 && !state.matchLog.some((m) => m.userLine?.played); i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+
+    // A bad run and then nothing: no fixture, no reserve game, weeks of it. His form used
+    // to be re-averaged from the same five old ratings every one of those weeks, so it
+    // kept falling with nothing new to answer it and the way back was shut. Out of the
+    // window, they stop counting and he drifts back toward the middle.
+    let idleWeek = false;
+    for (let i = 0; i < 80 && !idleWeek; i++) {
+      // Everything he has played, played badly, and played five months into this same
+      // season - the run is old, but it is not last year's.
+      const stamped = Math.max(1, state.world.week - 20);
+      for (const match of state.matchLog) {
+        match.season = state.world.season;
+        match.week = stamped;
+        if (match.userLine?.played) match.userLine.rating = 5.4;
+      }
+      state.player.form = 25;
+      const before = state.matchLog.length;
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      if (state.matchLog.length === before && state.world.week > 22) {
+        idleWeek = true;
+        expect(state.player.form, 'an old run still dragged his form down').toBeGreaterThan(25);
+      }
+    }
+    expect(idleWeek, 'he played every single week, so nothing was tested').toBe(true);
+  });
 });
 
 describe('clubs that have watched him', () => {

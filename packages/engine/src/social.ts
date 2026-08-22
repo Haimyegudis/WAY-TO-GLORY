@@ -1,5 +1,6 @@
 import { Rng, clamp } from './rng.js';
 import { overall } from './positions.js';
+import { FORM_WINDOW_WEEKS } from './development.js';
 import type {
   AppliedChange,
   CareerState,
@@ -105,7 +106,37 @@ export function evaluateConsequences(rng: Rng, state: CareerState): ConsequenceO
    * on the pitch to take.
    */
   const hasClub = state.player.clubId !== null;
-  if (hasClub && state.player.form < 34 && !flags['formBenchNotified']) {
+  /*
+   * Three bad afternoons in a row, judged as three bad afternoons.
+   *
+   * The form line alone was the whole test, and it is a five-match average smoothed a
+   * quarter of the way each week: three straight games at 5.8 with two decent ones
+   * still in the window land him on 36 or 40, never under the 34 the drop asked for.
+   * Which is how a player kept his shirt through a run everyone watching could see was
+   * bad. A manager does not average the last five, he watches the last three.
+   *
+   * Only real appearances count - a run of twenty-minute cameos is not evidence a
+   * starter has gone off, and matches older than the form window are not evidence of
+   * anything - and the three have to have come since he last won his place back, so a
+   * spell that ends cannot immediately re-trigger itself on the very games that caused
+   * it.
+   */
+  const clearedAt = Number(flags['formBenchClearedWeek'] ?? 0);
+  const lastThree = state.matchLog
+    .filter((match) => (
+      match.userLine?.played
+      && match.userLine.minutes >= 45
+      && !match.competitionId.startsWith('friendly')
+      && match.season * 52 + match.week >= clearedAt
+      && absoluteWeek - (match.season * 52 + match.week) <= FORM_WINDOW_WEEKS
+    ))
+    .slice(0, 3)
+    .map((match) => match.userLine!.rating);
+  const badRun = lastThree.length === 3
+    && lastThree.every((rating) => rating < 6.3)
+    && lastThree.reduce((a, b) => a + b, 0) / 3 < 6.1;
+
+  if (hasClub && (state.player.form < 34 || badRun) && !flags['formBenchNotified']) {
     flags['formBenchNotified'] = true;
     flags['formBenchFromWeek'] = absoluteWeek;
     flags['formBenchUntilWeek'] = absoluteWeek + rng.int(2, 3);
@@ -144,6 +175,9 @@ export function evaluateConsequences(rng: Rng, state: CareerState): ConsequenceO
       flags['formBenchNotified'] = false;
       flags['formBenchUntilWeek'] = 0;
       flags['formBenchFromWeek'] = 0;
+      // The games that cost him the shirt are spent. He has to play three more bad ones
+      // to lose it again, rather than being dropped straight back on the same evidence.
+      flags['formBenchClearedWeek'] = absoluteWeek;
       out.push({ id: 'backInForm' });
     }
   }

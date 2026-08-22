@@ -30,6 +30,7 @@ import {
   driftPotential,
   applyMatchCondition,
   applyTrainingCondition,
+  FORM_WINDOW_WEEKS,
   updateForm,
 } from './development.js';
 import {
@@ -1224,6 +1225,20 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     if (parent?.split) ensureLeagueSplit(rng, youthState, parent, week);
   }
 
+  /*
+   * A match he is standing in the middle of comes before the questions the week asks.
+   *
+   * These gates belong to the Monday: what the occasion means to him, a dilemma tied to
+   * the fixture, a club coming back with its answer. On the pass that finishes an
+   * answered team talk the week is not on Monday any more, it is in a dressing room at
+   * half past four, and stopping it here left the second half unplayed with the break
+   * already spent - the app showed a question, and behind it the match he had just been
+   * watching had quietly gone back to the first minute. They wait until he is off the
+   * pitch.
+   */
+  const finishingHalfTime = state.pendingHalfTime?.chosen !== undefined
+    && !state.matchLog.some((match) => match.id === state.pendingHalfTime!.matchId);
+
   // 0a. The week before a big one starts on the Monday.
   const scheduledMatch = scheduledUserMatchThisWeek(state, index);
   const weekImportance = announceBigMatch(state, scheduledMatch);
@@ -1236,7 +1251,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
    * ahead of him, and the week does not start until he has answered: nothing has been
    * written to the world yet, so it simply runs again once he has.
    */
-  if (club && weekImportance !== 'normal' && scheduledMatch && availableForFixture(state, scheduledMatch)) {
+  if (club && !finishingHalfTime && weekImportance !== 'normal' && scheduledMatch && availableForFixture(state, scheduledMatch)) {
     const occasion = occasionMilestone(weekImportance);
     if (occasion && raiseMilestone(state, occasion, {
       force: true,
@@ -1250,7 +1265,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
 
   // Fixture-bound dilemmas are not random stories to discover after the whistle. They
   // are tied to the actual match on the calendar and block the week until answered.
-  if (club && scheduledMatch && raisePreMatchEvent(state, index, rng, scheduledMatch)) {
+  if (club && !finishingHalfTime && scheduledMatch && raisePreMatchEvent(state, index, rng, scheduledMatch)) {
     commitRng(state, rng);
     return { state, stopped: 'decision', log };
   }
@@ -1262,7 +1277,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
    * there: no letter, no phone call, nothing. Whoever looked at him now makes his mind
    * up in his own time and says so either way - a contract on the table, or a no.
    */
-  if (club && resolveWatchingVerdict(state, index, rng)) {
+  if (club && !finishingHalfTime && resolveWatchingVerdict(state, index, rng)) {
     commitRng(state, rng);
     return { state, stopped: 'decision', log };
   }
@@ -1658,8 +1673,20 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // Form must include today's match before the manager reacts to it. Previously this
   // ran after consequences, so a collapse or recovery reached the team sheet one week
   // late.
+  /*
+   * The last five matches, and only the recent ones.
+   *
+   * This used to take the last five he played this season with no window on it, so a
+   * bad run he had in September was still the whole of his form line in November if he
+   * had not played since - and it kept dragging him further down every idle week,
+   * because the same five ratings were re-averaged with nothing newer to answer them.
+   * A run that old is not form any more. Six weeks out of the window and it drops, and
+   * the idle drift toward the middle takes over, which is what a player who has not
+   * kicked a ball in a month and a half actually has: no form, rather than last
+   * autumn's.
+   */
   const recentRatings = state.matchLog
-    .filter((m) => m.userLine?.played && m.season === season)
+    .filter((m) => m.userLine?.played && (season * 52 + state.world.week) - (m.season * 52 + m.week) <= FORM_WINDOW_WEEKS)
     .slice(0, 5)
     .map((m) => m.userLine!.rating);
   updateForm(player, recentRatings);
@@ -3430,6 +3457,7 @@ export function resumeHalfTime(
     state.flags['defiedTheManager'] = 0;
   }
 
+  const heldWeek = state.world.season * 52 + state.world.week;
   const result = advanceWeek(state, index);
   /*
    * A team talk he has answered is finished with.
@@ -3440,11 +3468,18 @@ export function resumeHalfTime(
    * still believed he was in the dressing room, so it hid the continue button and the
    * career could not be moved on at all.
    *
-   * The one break that must survive is the one the week is still on its way to play,
-   * and that week always comes back saying it stopped at the interval. Anything else
-   * means it is over.
+   * The break that must survive is the one the week is still on its way to play. Usually
+   * the replay comes straight back saying it stopped at the interval, but it can also
+   * stop before it reaches the match at all - a question tied to the fixture, a club
+   * coming back with its answer - and the clock has not moved when it does. Throwing the
+   * break away there loses the half he watched and the answer he gave: the match is
+   * simulated again from the first minute, and a different first half turns up in the
+   * log than the one he was in the dressing room for.
    */
-  if (result.stopped !== 'halfTime' && state.pendingHalfTime?.chosen !== undefined) {
+  const stillOnItsWay = result.stopped === 'decision'
+    && state.world.season * 52 + state.world.week === heldWeek
+    && !state.matchLog.some((match) => match.id === held.matchId);
+  if (result.stopped !== 'halfTime' && !stillOnItsWay && state.pendingHalfTime?.chosen !== undefined) {
     state.pendingHalfTime = undefined;
   }
   return result;
