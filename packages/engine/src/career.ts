@@ -148,6 +148,7 @@ import { decideAwards, awardFame, awardReputation, type AwardResult } from './aw
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { agentCommission, generateAgentOffers } from './agents.js';
 import { attendanceFor, pickReferee, pickWeather, type Atmosphere } from './atmosphere.js';
+import { buildTeamOfTheWeek } from './totw.js';
 import { appointManager, generateManager, sackingChance } from './manager.js';
 import { advanceTrackedPlayers, followPlayer, isTracked, peerTable, trackHisYear } from './peers.js';
 import {
@@ -2868,12 +2869,49 @@ function simulateWeekFixtures(state: CareerState, index: PackIndex, rng: Rng, cl
     ?? simulateYouthCupWeek(state, index, rng, club);
   const cupResult = simulateCupWeek(state, index, rng, seniorClub);
   const euroResult = simulateEuroWeek(state, index, rng, seniorClub);
+
+  // Saturday's eleven, in whichever division he is actually playing in.
+  if (playsYouthFootball(state)) {
+    const youthComp = userYouthCompetitionId(state);
+    if (youthComp) recordTeamOfTheWeek(state, index, youthComp, week, true);
+  } else if (userCompId) {
+    recordTeamOfTheWeek(state, index, userCompId, week, false);
+  }
   const resumed = [userResult, youthResult, cupResult, euroResult]
     .find((result) => result?.id === resumedMatchId) ?? null;
   // A European night is the match of the week when there is one; a youth match only
   // counts when there is nothing else. When the player has just answered a team talk,
   // that exact match remains the one shown even if another competition also played.
   return resumed ?? euroResult ?? userResult ?? cupResult ?? youthResult;
+}
+
+/**
+ * The division's team of the week, and the note that arrives when he is in it.
+ *
+ * Being told his rating was 7.9 says nothing on its own. Being told that 7.9 was the
+ * third best in the division on Saturday is the thing a player actually reads.
+ */
+function recordTeamOfTheWeek(
+  state: CareerState,
+  index: PackIndex,
+  competitionId: string,
+  week: number,
+  youth: boolean,
+): void {
+  const eleven = buildTeamOfTheWeek(state, competitionId, week, youth);
+  if (!eleven) return;
+
+  const his = eleven.entries.find((entry) => entry.isUser);
+  if (!his) return;
+  const total = Number(state.flags['totwCount'] ?? 0) + 1;
+  state.flags['totwCount'] = total;
+  // Youth divisions are filed under the senior competition's id with a suffix.
+  const competition = index.competitionById.get(youthParentId(competitionId));
+  pushInbox(state, 'media', total === 1 ? 'inbox.teamOfTheWeek.first' : 'inbox.teamOfTheWeek', {
+    competition: competition?.name ?? '',
+    rating: his.rating.toFixed(1),
+    total,
+  });
 }
 
 /** The camp fixture this week that has not been played yet, if there is one left. */

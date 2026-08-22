@@ -15,6 +15,7 @@ import { YOUTH_SQUAD_SIZE, generateYouthSquad, youthSquad } from '../src/youth-s
 import { HALF_TIME_INSTRUCTIONS, instructionsFor, managerDemand, managerDictates } from '../src/halftime.js';
 import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById, milestoneCopyVariant } from '../src/milestones.js';
+import { buildTeamOfTheWeek } from '../src/totw.js';
 import {
   MENTORS,
   MENTOR_COOLDOWN_WEEKS,
@@ -3967,5 +3968,64 @@ describe('the voices around a bad run', () => {
     for (const moment of ['debut', 'firstGoal', 'firstAssist', 'hundredthApp']) {
       expect(asked.has(moment), `nobody asked him about his ${moment}`).toBe(true);
     }
+  });
+});
+
+describe('the division eleven', () => {
+  /** The round he has just played, in whichever division he is playing in. */
+  function lastRound(state: ReturnType<typeof startedCareer>['state']) {
+    const youthId = userYouthCompetitionId(state);
+    const clubId = state.player.clubId;
+    const competitionId = youthId ?? (clubId ? state.world.clubs[clubId]?.competitionId : undefined);
+    if (!competitionId) return null;
+    const comp = youthId
+      ? state.world.youth?.competitions[competitionId]
+      : state.world.competitions[competitionId];
+    const week = (comp?.fixtures ?? []).filter((f) => f.played).map((f) => f.week).sort((a, b) => b - a)[0];
+    if (week === undefined) return null;
+    return { competitionId, week, youth: Boolean(youthId) };
+  }
+
+  it('picks a shape, not eleven strikers', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    for (let i = 0; i < 80; i++) playWeek(state, index);
+    const round = lastRound(state);
+    expect(round, 'no round had been played').not.toBeNull();
+    const eleven = buildTeamOfTheWeek(state, round!.competitionId, round!.week, round!.youth);
+    expect(eleven, 'the division published nothing').not.toBeNull();
+    expect(eleven!.entries).toHaveLength(11);
+
+    const groups = eleven!.entries.map((entry) => positionGroup(entry.slot));
+    expect(groups.filter((g) => g === 'GK')).toHaveLength(1);
+    expect(groups.filter((g) => g === 'DEF')).toHaveLength(4);
+    expect(groups.filter((g) => g === 'MID')).toHaveLength(3);
+    expect(groups.filter((g) => g === 'ATT')).toHaveLength(3);
+
+    // Nobody appears twice, and nobody is in it on a bad afternoon.
+    expect(new Set(eleven!.entries.map((e) => e.playerId)).size).toBe(11);
+    for (const entry of eleven!.entries) expect(entry.rating).toBeGreaterThan(6);
+  });
+
+  it('says the same thing every time the round is opened', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    for (let i = 0; i < 80; i++) playWeek(state, index);
+    const round = lastRound(state);
+    expect(round, 'no round had been played').not.toBeNull();
+    const first = buildTeamOfTheWeek(state, round!.competitionId, round!.week, round!.youth);
+    const again = buildTeamOfTheWeek(state, round!.competitionId, round!.week, round!.youth);
+    expect(JSON.stringify(again)).toBe(JSON.stringify(first));
+  });
+
+  it('puts him in it sometimes, and not every week', () => {
+    const { state, index } = startedCareer({ seed: 11 });
+    for (let i = 0; i < 53 * 5 && !state.retired; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const times = Number(state.flags['totwCount'] ?? 0);
+    const apps = state.seasonHistory.reduce((sum, season) => sum + season.apps, 0);
+    expect(apps, 'he never played').toBeGreaterThan(20);
+    expect(times, 'never once in the eleven').toBeGreaterThan(0);
+    expect(times, 'in the eleven nearly every week').toBeLessThan(apps * 0.5);
   });
 });

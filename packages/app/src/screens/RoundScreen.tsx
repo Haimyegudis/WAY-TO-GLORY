@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { sortedTable, userYouthCompetitionId, type CompetitionSeasonState, type Fixture } from '@fc/engine';
+import {
+  buildTeamOfTheWeek, sortedTable, userYouthCompetitionId,
+  type CompetitionSeasonState, type Fixture, type TeamOfTheWeekEntry,
+} from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { clubShortName } from '../lib/club.js';
 import { competitionLabel, playerName } from '../lib/names.js';
@@ -45,6 +48,12 @@ export function RoundScreen() {
   }
 
   const fixtures = comp.fixtures.filter((f) => f.round === shownRound);
+  // The division's eleven for this round, rebuilt from the same fixtures the page is
+  // showing. Deterministic, so the round he looked at last week reads the same today.
+  const roundWeek = fixtures.find((f) => f.played)?.week ?? null;
+  const eleven = roundWeek === null
+    ? null
+    : buildTeamOfTheWeek(state, comp.competitionId, roundWeek, comp === youth);
   const table = sortedTable(comp);
   const place = clubId ? table.findIndex((row) => row.clubId === clubId) + 1 : 0;
 
@@ -96,12 +105,46 @@ export function RoundScreen() {
         </ul>
       </Card>
 
+      {eleven && (
+        <Card title={t('round.teamOfTheWeek')}>
+          <ul className="list">
+            {eleven.entries.map((entry) => (
+              <ElevenRow key={entry.playerId} entry={entry} />
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {place > 0 && (
         <p className="faint center" style={{ fontSize: 12 }}>
           {t('round.standing', { place, teams: table.length })}
         </p>
       )}
     </div>
+  );
+}
+
+/** One name in the eleven: where he played, who for, and what he was given. */
+function ElevenRow({ entry }: { entry: TeamOfTheWeekEntry }) {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
+  const state = useGame((s) => s.state)!;
+  const side = club(state, entry.clubId);
+  const player = entry.isUser
+    ? state.player
+    : state.world.players[entry.playerId] ?? state.world.youth?.players[entry.playerId];
+  return (
+    <li className={`list-item ${entry.isUser ? 'me' : ''}`}>
+      <span className="chip" style={{ minWidth: 38, justifyContent: 'center' }}>
+        {t(`pos.${entry.slot}`)}
+      </span>
+      <span className="grow" style={{ minWidth: 0, fontSize: 13 }}>
+        {playerName(player, lang) || entry.name}
+        {entry.goals > 0 && <span className="faint"> {'⚽'.repeat(Math.min(entry.goals, 4))}</span>}
+      </span>
+      <Crest club={side} size="sm" />
+      <span className="num" style={{ fontSize: 13 }} dir="ltr">{entry.rating.toFixed(1)}</span>
+    </li>
   );
 }
 

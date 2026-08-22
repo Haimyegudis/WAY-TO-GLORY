@@ -170,6 +170,10 @@ export function CareerScreen() {
           <Stat label={t('career.peakOvr')} value={summary.peakOvr} />
         </div>
         <div className="row-between" style={{ marginBlockStart: 12 }}>
+          <span className="eyebrow">{t('career.teamOfTheWeek')}</span>
+          <span className="num">{Number(state.flags['totwCount'] ?? 0)}</span>
+        </div>
+        <div className="row-between" style={{ marginBlockStart: 6 }}>
           <span className="eyebrow">{t('career.peakValue')}</span>
           <span className="num">{formatMoney(summary.peakValue, lang)}</span>
         </div>

@@ -486,6 +486,30 @@ export interface CompetitionSeasonState {
   splitGroups?: { upper: string[]; lower: string[] };
 }
 
+/** One name in a matchday eleven. */
+export interface TeamOfTheWeekEntry {
+  playerId: string;
+  clubId: string;
+  name: string;
+  slot: Position;
+  rating: number;
+  goals: number;
+  isUser: boolean;
+}
+
+/**
+ * The division's eleven for one round. Published for the league he is playing in, which
+ * is the only one modelled player by player and the only one he would look at.
+ */
+export interface TeamOfTheWeek {
+  competitionId: string;
+  season: number;
+  week: number;
+  /** Whether this is the age group's round or the senior division's. */
+  youth: boolean;
+  entries: TeamOfTheWeekEntry[];
+}
+
 export interface Fixture {
   round: number;
   week: number;
