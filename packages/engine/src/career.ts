@@ -118,7 +118,7 @@ import {
   type EuroState,
   type EuroTier,
 } from './europe.js';
-import { isInjured, rollInjury, tickInjuries, trainingInjuryChance, treatInjury, treatmentsFor, TREATMENTS, type TreatmentChoice } from './injury.js';
+import { addInjury, isInjured, rollInjury, rollSetback, tickInjuries, trainingInjuryChance, treatInjury, treatmentsFor, TREATMENTS, type TreatmentChoice } from './injury.js';
 import { marketValue } from './value.js';
 import {
   deservesCallUp,
@@ -148,6 +148,7 @@ import { decideAwards, awardFame, awardReputation, type AwardResult } from './aw
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { agentCommission, generateAgentOffers } from './agents.js';
 import { attendanceFor, pickReferee, pickWeather, type Atmosphere } from './atmosphere.js';
+import { associationApproach, pledgeTo, turnDown } from './allegiance.js';
 import { buildTeamOfTheWeek } from './totw.js';
 import { matchCategory, type MatchCategory } from './category.js';
 import { appointManager, generateManager, sackingChance } from './manager.js';
@@ -181,6 +182,7 @@ import {
   simulateInternationalMatch,
   updateNationalInterest,
   type CallUpContext,
+  type CallUpResult,
   type InternationalMatchOutcome,
 } from './national.js';
 import { isEligible, isStoryEvent, pickEvent, toPendingDecision, type EventContext } from './events.js';
@@ -1395,9 +1397,13 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
       state.flags['aggravationWeeks'] = aggWeeks - 1;
       const weeklyRisk = Number(state.flags['aggravationRisk'] ?? 0) / AGGRAVATION_SPREAD;
       if (weeklyRisk > 0 && rng.chance(weeklyRisk)) {
-        const again = rollInjury(rng, player, season, 1.7);
+        // A setback on the one he is carrying, not a second injury off the full table.
+        const carrying = player.condition.injuries[0];
+        const again = carrying
+          ? rollSetback(rng, carrying, season)
+          : rollInjury(rng, player, season, 1.4);
         again.aggravated = true;
-        player.condition.injuries.push(again);
+        addInjury(player, again);
         injuriesAddedThisWeek.add(again.id);
         state.flags['aggravationWeeks'] = 0;
         pushNews(state, 'news.injured', { weeks: again.weeksOut }, 'high');
@@ -1423,7 +1429,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
     if (!isInjured(player) && rng.chance(trainingInjuryChance(player, weekPlan, season))) {
       const injury = rollInjury(rng, player, season);
-      player.condition.injuries.push(injury);
+      addInjury(player, injury);
       injuriesAddedThisWeek.add(injury.id);
       pushNews(state, 'news.injured', { weeks: injury.weeksOut }, 'high');
       reportInjury(state, injury, 'training');
@@ -1571,6 +1577,10 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // form therefore change the number the player sees as they change.
   const nationalCtx = club ? nationalContextFor(state, index, club) : null;
   if (nationalCtx) updateNationalInterest(nationalCtx);
+  // And the other federation, if there is one, picks up the phone.
+  if (nationalCtx) openAssociationApproach(state, index, rng);
+  // The squad for next week's window is named this week, the way squads are.
+  if (nationalCtx) announceCallUp(state, index, rng, nationalCtx);
   let nationalMatchThisWeek: MatchResult | null = null;
   if (INTERNATIONAL_WEEKS.includes(week)) {
     const qualifierDue = Boolean(state.campaign?.fixtures.some((fixture) => (
@@ -1613,6 +1623,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     isTransferWindow(week, club?.country) &&
     club &&
     settled &&
+    marketWouldMove(state) &&
     !approachedThisWindow &&
     movesThisSeason < 2 &&
     state.transferOffers.length === 0 &&
@@ -1658,7 +1669,9 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
       state.flags['freeAgentCall'] = absolute;
       // Without a club he has no minutes to show and no level to be measured against,
       // so this is the market at its most generous: whoever needs a player.
-      const offers = generateOffers({ state, index, rng, minutesPct: 0, maxOffers: 4 });
+      const offers = marketWouldMove(state)
+        ? generateOffers({ state, index, rng, minutesPct: 0, maxOffers: 4 })
+        : [];
       if (offers.length > 0) {
         state.transferOffers = offers;
         openOfferDecision(state, offers);
@@ -3246,6 +3259,17 @@ export function recentMinutesShare(state: CareerState): number {
   return clamp(last.minutes / (34 * 90), 0, 1);
 }
 
+/** How long since he last played senior football. Camp friendlies are not football. */
+function weeksSinceSeniorMatch(state: CareerState): number {
+  const now = state.world.season * WEEKS_PER_SEASON + state.world.week;
+  for (const match of state.matchLog) {
+    if (!match.userLine?.played) continue;
+    if (match.competitionId.endsWith('.youth') || match.competitionId.startsWith('friendly')) continue;
+    return now - (match.season * WEEKS_PER_SEASON + match.week);
+  }
+  return 99;
+}
+
 /**
  * Whether he is still a boy playing Sunday morning football.
  *
@@ -3260,12 +3284,22 @@ function playsYouthFootball(state: CareerState): boolean {
   const age = state.world.season - state.player.birthYear;
   if (age > YOUTH_MAX_AGE) return false;
   if (isAcademyPlayer(state)) return true;
-  const developmentRole = state.player.squadRole === 'futureProspect'
-    || state.player.squadRole === 'prospect'
-    || state.player.squadRole === 'fringe';
-  if (!developmentRole) return false;
   // A loan is senior football by definition: it is what he went there for.
   if (state.contract?.isLoan) return false;
+  /*
+   * Anybody young enough who is not playing is playing for the age group.
+   *
+   * This used to be gated on his squad role, so the week a promising boy was given a
+   * squad number - bench, rotation - he stopped being eligible for the youth team, and
+   * if the first-team manager then did not pick him he played no football at all. Top
+   * scorer in the age group one month, watching every Saturday the next, with nothing on
+   * any screen to explain it. No club on earth does that with a seventeen year old.
+   *
+   * It is a question about minutes, not about the label on his role - with one guard:
+   * a boy who was in the first team last Saturday is not sent to the under-19s the next
+   * morning. He goes back when he has actually stopped being used.
+   */
+  if (weeksSinceSeniorMatch(state) < 3) return false;
   return recentMinutesShare(state) < 0.25;
 }
 
@@ -3724,6 +3758,200 @@ class HalfTimeInterrupt extends Error {
     super('half time');
     this.name = 'HalfTimeInterrupt';
   }
+}
+
+/**
+ * The squad list.
+ *
+ * A call-up used to be rolled in the same tick as the international itself, so the news
+ * that he had been picked arrived alongside the match he had already played in - which
+ * is not how a footballer finds out. The squad is named the week before the window, he
+ * reads it, and then he goes and plays.
+ */
+function announceCallUp(state: CareerState, index: PackIndex, rng: Rng, ctx: CallUpContext): void {
+  const nextWeek = state.world.week + 1;
+  if (!INTERNATIONAL_WEEKS.includes(nextWeek)) return;
+  const key = `calledUp:${state.world.season}:${nextWeek}`;
+  if (state.flags[key]) return;
+  state.flags[key] = true;
+  if (isInjured(state.player)) return;
+
+  const callUp = rollCallUp(rng, ctx);
+  if (!callUp) return;
+  const country = index.countryByCode.get(callUp.countryCode);
+  if (!country) return;
+
+  state.flags['pendingCallUp'] = `${callUp.countryCode}|${callUp.level}|${callUp.isFirst ? 1 : 0}|${callUp.isSenior ? 1 : 0}|${nextWeek}`;
+  if (callUp.isFirst) {
+    pushInbox(state, 'national', 'inbox.firstCallUp', { country: country.name, level: `national.level.${callUp.level}` });
+    unlock(state, 'firstCallUp', { country: country.name });
+    // A first cap at any level is one of the nights that belongs to him; it does not
+    // wait behind whatever the press asked about a fortnight ago.
+    raiseMilestone(state, 'nationalCallUp', { force: true });
+  } else {
+    pushInbox(state, 'national', 'inbox.calledUp', { country: country.name, level: `national.level.${callUp.level}` });
+  }
+}
+
+/** The squad he was named in last week, if the window has come round. */
+function takeAnnouncedCallUp(state: CareerState): CallUpResult | null {
+  const held = String(state.flags['pendingCallUp'] ?? '');
+  if (!held) return null;
+  const [code, level, first, senior, week] = held.split('|');
+  state.flags['pendingCallUp'] = '';
+  if (!code || Number(week) !== state.world.week) return null;
+  return {
+    countryCode: code,
+    level: level as CallUpResult['level'],
+    isFirst: first === '1',
+    isSenior: senior === '1',
+  };
+}
+
+/**
+ * The other federation rings.
+ *
+ * A boy with two passports is a boy two associations are competing for, and the
+ * competition is one of the few national dramas a career has. It arrives as a decision
+ * because it is one: a pledge is not binding in law until he plays a competitive senior
+ * match, but it decides who is calling him next month.
+ */
+function openAssociationApproach(state: CareerState, index: PackIndex, rng: Rng): void {
+  if (state.pendingDecisions.some((decision) => decision.eventId === 'nationalApproach')) return;
+  const season = state.world.season;
+  // One approach a season from any one federation. Being courted every fortnight is not
+  // being courted.
+  const pitch = associationApproach(state, index);
+  if (!pitch) return;
+  if (state.flags[`ntApproach:${pitch.countryCode}:${season}`]) return;
+  // They do not ring the week they notice him. It builds.
+  if (!rng.chance(0.09)) return;
+
+  state.flags[`ntApproach:${pitch.countryCode}:${season}`] = true;
+  const decisionId = `ntApproach_${pitch.countryCode}_${season}_${state.world.week}`;
+  const args = {
+    country: pitch.countryName,
+    rival: pitch.rivalName,
+    interest: pitch.interest,
+    rivalInterest: pitch.rivalInterest,
+  };
+  state.pendingDecisions.push({
+    id: decisionId,
+    kind: 'event',
+    eventId: 'nationalApproach',
+    category: 'national',
+    blocking: true,
+    textKey: `national.approach.${pitch.reason}`,
+    textArgs: args,
+    options: [
+      {
+        id: 'accept',
+        labelKey: 'national.approach.accept',
+        riskKey: pitch.rivalInterest >= 45 ? 'risk.high' : 'risk.medium',
+        effects: [],
+      },
+      {
+        id: 'stay',
+        labelKey: pitch.rivalCode ? 'national.approach.stay' : 'national.approach.wait',
+        riskKey: 'risk.medium',
+        effects: [],
+      },
+    ],
+    expiresWeek: season * 52 + state.world.week + 3,
+  });
+  pushInbox(state, 'national', 'inbox.national.approach', args, decisionId);
+
+  /*
+   * And somebody who has been there says the other thing.
+   *
+   * A federation making its case is only half of this. The half that makes it a
+   * decision is the old international who rings the next day and says it is his
+   * country - which is exactly what happens to every dual-national footballer alive.
+   */
+  if (pitch.rivalCode) {
+    const mentor = state.mentor ? mentorById(state.mentor.id) : undefined;
+    pushInbox(state, 'national', mentor ? 'inbox.national.mentorCounter' : 'inbox.national.mediaCounter', {
+      ...args,
+      mentor: mentor?.name ?? '',
+    });
+  }
+}
+
+/**
+ * His answer to a federation.
+ *
+ * Saying yes is a pledge: they call him now and the other one mostly stops watching.
+ * Saying no closes that door for a while and is noticed by the one he stayed with.
+ */
+export function answerNationalApproach(
+  state: CareerState,
+  index: PackIndex,
+  decisionId: string,
+  optionId: string,
+): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex(
+    (decision) => decision.id === decisionId && decision.eventId === 'nationalApproach',
+  );
+  if (at === -1) return null;
+  const decision = state.pendingDecisions[at]!;
+  const code = decisionId.split('_')[1] ?? '';
+  const country = index.countryByCode.get(code);
+  state.pendingDecisions.splice(at, 1);
+
+  const before = Math.round(state.nationalTeam.interest[code] ?? 0);
+  if (optionId === 'accept') {
+    pledgeTo(state, code);
+    pushInbox(state, 'national', 'inbox.national.pledged', { country: country?.name ?? code });
+    pushNews(state, 'news.national.pledged', {
+      player: `${state.player.firstName} ${state.player.lastName}`,
+      country: country?.name ?? code,
+    }, 'high');
+  } else {
+    turnDown(state, code);
+    pushInbox(state, 'national', 'inbox.national.declined', { country: country?.name ?? code });
+  }
+  const after = Math.round(state.nationalTeam.interest[code] ?? 0);
+  const changes: AppliedChange[] = [{
+    key: 'change.nationalInterest',
+    delta: after - before,
+    before,
+    after,
+    tone: after >= before ? 'good' : 'bad',
+  }];
+
+  const result: DecisionResult = {
+    changes,
+    consequences: [],
+    narrativeKey: `national.approach.${optionId}.outcome`,
+    answerKey: `national.approach.${optionId}`,
+  };
+  state.lastResult = result;
+  void decision;
+  return result;
+}
+
+/**
+ * Whether anybody would actually move for him this week.
+ *
+ * Two things a club does not do: sign a man who is in a cast, and buy a player from a
+ * club he has not yet played a match for. Both were happening - an approach in the
+ * middle of a fourteen-month injury, and a second club ringing a fortnight after he had
+ * signed for the first without kicking a ball for them.
+ */
+function marketWouldMove(state: CareerState): boolean {
+  const weeksOut = state.player.condition.injuries.reduce(
+    (worst, injury) => Math.max(worst, injury.weeksRemaining),
+    0,
+  );
+  // A knock is nothing; a lay-off is a reason to wait and see him play again.
+  if (weeksOut > 3) return false;
+
+  const club = userClub(state);
+  if (!club) return true;
+  const played = state.world.seasonStats[state.player.id]?.apps ?? 0;
+  const sinceMove = state.world.season * WEEKS_PER_SEASON + state.world.week
+    - Number(state.flags['lastTransferWeek'] ?? 0);
+  return played >= 3 || sinceMove >= 34;
 }
 
 /** A stable seed for one fixture, so its crowd and its weather never change. */
@@ -4272,7 +4500,7 @@ function applyFriendlyToPlayer(
 
     if (injuryRolled) {
       const injury = rollInjury(rng, player, state.world.season, 1.05);
-      player.condition.injuries.push(injury);
+      addInjury(player, injury);
       reportInjury(state, injury, 'match');
     }
   }
@@ -4658,7 +4886,7 @@ function applyMatchToPlayer(
 
     if (injuryRolled) {
       const injury = rollInjury(rng, player, state.world.season, 1.2);
-      player.condition.injuries.push(injury);
+      addInjury(player, injury);
       reportInjury(state, injury, 'match');
     }
 
@@ -4892,7 +5120,8 @@ function handleInternationalWeek(
   const season = state.world.season;
   if (isInjured(player)) return false;
 
-  const callUp = rollCallUp(rng, nationalCtx);
+  // The squad was named last week, if it was named at all.
+  const callUp = takeAnnouncedCallUp(state) ?? rollCallUp(rng, nationalCtx);
   if (!callUp) return false;
 
   const country = index.countryByCode.get(callUp.countryCode);
@@ -4901,14 +5130,6 @@ function handleInternationalWeek(
   const nt = state.nationalTeam;
   nt.level = callUp.level;
   nt.callUpHistory.push({ season, level: callUp.level, countryCode: callUp.countryCode });
-
-  if (callUp.isFirst) {
-    pushInbox(state, 'national', 'inbox.firstCallUp', { country: country.name, level: callUp.level });
-    unlock(state, 'firstCallUp', { country: country.name });
-    // A first cap at any level is one of the nights that belongs to him; it does not
-    // wait behind whatever the press asked about a fortnight ago.
-    raiseMilestone(state, 'nationalCallUp', { force: true });
-  }
 
   // A senior qualifying week uses this selection for the qualifier below; it must not
   // also invent one or two friendlies and count three caps in one week. A youth call-up
@@ -5317,6 +5538,37 @@ function settleSideBets(state: CareerState, rng: Rng): void {
   }
 }
 
+/**
+ * The first professional contract.
+ *
+ * What a club pays a seventeen year old it has just promoted: mostly a function of what
+ * the club can afford, with something on top for a boy who is already close to the level
+ * of the side. It is not a negotiation - nobody negotiates his first deal - but it is
+ * real money, and every screen that spends money uses it from here on.
+ */
+function signFirstProfessionalDeal(state: CareerState, club: Club, gap: number): void {
+  const season = state.world.season;
+  const weekly = Math.round(clamp(260 + club.finances * 20 + Math.max(0, gap + 12) * 55, 320, 14000));
+  state.contract = {
+    clubId: club.id,
+    salaryPerWeek: weekly,
+    startSeason: season,
+    endSeason: season + 3,
+    squadRole: state.player.squadRole,
+    signingBonus: Math.round(weekly * 4),
+    appearanceBonus: Math.round(weekly * 0.2),
+    goalBonus: Math.round(weekly * 0.3),
+    releaseClause: null,
+  };
+  state.finances.balance += state.contract.signingBonus;
+  state.finances.careerEarnings += state.contract.signingBonus;
+  pushInbox(state, 'club', 'inbox.firstProContract', {
+    club: club.name,
+    wage: weekly,
+    years: 3,
+  });
+}
+
 function updateSquadRole(state: CareerState, rng: Rng, actualMinutes: number): void {
   const player = state.player;
   const club = userClub(state);
@@ -5335,6 +5587,15 @@ function updateSquadRole(state: CareerState, rng: Rng, actualMinutes: number): v
       const list = state.world.squads[club.id] ?? (state.world.squads[club.id] = []);
       if (!list.includes(player.id)) list.push(player.id);
       state.managerTrust = clamp(state.managerTrust + 6, 0, 100);
+      /*
+       * And the paperwork that goes with it.
+       *
+       * Being taken out of the academy changed his squad role and nothing else, so a boy
+       * promoted to the first team went on earning scholarship money for years - which
+       * he then discovered on the one screen that spends it, where a nutritionist cost
+       * more than he earned. A club that puts a boy in its squad signs him first.
+       */
+      signFirstProfessionalDeal(state, club, gap);
       pushInbox(state, 'club', 'inbox.promotedToFirstTeam', { club: club.name });
       pushNews(state, 'news.promotedToFirstTeam', { club: club.name }, 'high');
       unlock(state, 'firstTeamSquad', { club: club.name });
@@ -5518,6 +5779,7 @@ function handleComingOfAge(state: CareerState, index: PackIndex, rng: Rng): void
     const senior = state.world.squads[club.id] ?? (state.world.squads[club.id] = []);
     if (!senior.includes(player.id)) senior.push(player.id);
     state.flags['calledUpToSeniors'] = true;
+    signFirstProfessionalDeal(state, club, overall(player.attributes, player.primaryPos, player.secondaryPos) - clubBaseOvr(club));
     pushInbox(state, 'club', 'inbox.promotedToFirstTeam', { club: club.name });
     pushNews(state, 'news.promotedToFirstTeam', { player: `${player.firstName} ${player.lastName}`, club: club.name }, 'medium');
     unlock(state, 'promotedToFirstTeam', { club: club.name });

@@ -124,6 +124,51 @@ export function rollInjury(rng: Rng, player: Player, season: number, contextRisk
   return injury;
 }
 
+/**
+ * The longest a footballer is out for, however the weeks were arrived at.
+ *
+ * The worst injury in the game is about a year. Stacking a new one on top of an old one
+ * can arrive at two, which is not an injury any more, it is the end of a career by
+ * accident - so what he is already carrying limits what can be added to it.
+ */
+export const MAX_LAYOFF_WEEKS = 68;
+
+/** Add an injury without letting the pile add up to a career. */
+export function addInjury(player: Player, injury: Injury): Injury {
+  const carrying = player.condition.injuries.reduce((sum, held) => sum + held.weeksRemaining, 0);
+  const room = Math.max(1, MAX_LAYOFF_WEEKS - carrying);
+  if (injury.weeksRemaining > room) {
+    injury.weeksRemaining = room;
+    injury.weeksOut = Math.min(injury.weeksOut, room);
+  }
+  player.condition.injuries.push(injury);
+  return injury;
+}
+
+/**
+ * A setback, not a new career-threatening injury.
+ *
+ * Breaking down in rehabilitation is real and it is miserable, and it should cost him
+ * weeks. It should not roll a fresh injury off the full table on top of the one he is
+ * already carrying: a player fifty-eight weeks into a knee injury who then loses another
+ * thirty to a "new" one has been given a two-year absence by arithmetic rather than by
+ * anything that happened to him.
+ */
+export function rollSetback(rng: Rng, injury: Injury, season: number): Injury {
+  const weeks = clamp(Math.round(injury.weeksOut * rng.range(0.2, 0.45)), 1, 8);
+  injuryCounter = (injuryCounter + 1) % 100000;
+  return {
+    id: `inj_${season}_${injuryCounter}`,
+    type: injury.type,
+    severity: injury.severity === 'minor' ? 'minor' : 'moderate',
+    weeksOut: weeks,
+    weeksRemaining: weeks,
+    season,
+    recurrenceOf: injury.type,
+    aggravated: true,
+  };
+}
+
 /** Weekly chance of picking up an injury in training. */
 export function trainingInjuryChance(player: Player, plan: TrainingPlan, season: number): number {
   const intensityFactor: Record<TrainingPlan['intensity'], number> = {

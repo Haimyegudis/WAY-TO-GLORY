@@ -3531,25 +3531,72 @@ describe('the boys he came through with', () => {
 
 
 describe('senior football stays senior football', () => {
-  it('never puts a player with a senior shirt back in the age group', () => {
+  /*
+   * The rule is about minutes, not about the label on his squad role.
+   *
+   * A man who is playing first-team football is not sent back to an age group - that was
+   * the complaint this test was written for. But a seventeen year old who has been given
+   * a squad number and then does not get picked is exactly who plays for the under-19s on
+   * Sunday, and gating it on the role meant that boy played no football at all.
+   */
+  it('never puts a first-team player back in the age group', () => {
     for (const seed of [11, 233]) {
       const { state, index } = startedCareer({ seed });
       const seen = new Set<string>();
       for (let i = 0; i < 53 * 6 && !state.retired; i++) {
         playWeek(state, index);
         state.pendingDecisions = [];
-        const senior = !['academy', 'futureProspect', 'prospect', 'fringe'].includes(state.player.squadRole);
+        const age = state.world.season - state.player.birthYear;
+        // A regular, not a boy who got twenty minutes once: half the club's football.
+        const regular = recentMinutesShare(state) >= 0.5 || age > YOUTH_MAX_AGE;
         const onLoan = Boolean(state.contract?.isLoan);
         for (const match of state.matchLog) {
           if (seen.has(match.id)) continue;
           seen.add(match.id);
           if (!match.competitionId.endsWith('.youth') || !match.userLine?.played) continue;
           expect(
-            senior || onLoan,
-            `a ${state.player.squadRole}${onLoan ? ' on loan' : ''} played ${match.competitionId}`,
+            regular || onLoan,
+            `a first-team regular on ${recentMinutesShare(state).toFixed(2)} of the minutes${onLoan ? ', on loan,' : ''} played ${match.competitionId}`,
           ).toBe(false);
         }
       }
+    }
+  });
+
+  it('does not leave a boy with a squad number playing no football at all', () => {
+    for (const seed of [11, 96]) {
+      const { state, index } = startedCareer({ seed });
+      let idle = 0;
+      let longest = 0;
+      for (let i = 0; i < 53 * 5 && !state.retired; i++) {
+        const before = state.lastMatch?.id ?? '';
+        const clubId = state.player.clubId;
+        const youthId = userYouthCompetitionId(state);
+        const week = state.world.week;
+        const due = [
+          youthId ? state.world.youth?.competitions[youthId] : undefined,
+          clubId ? state.world.competitions[state.world.clubs[clubId]?.competitionId ?? ''] : undefined,
+        ].some((comp) => (comp?.fixtures ?? []).some(
+          (fixture) => !fixture.played && fixture.week === week
+            && (fixture.homeClubId === clubId || fixture.awayClubId === clubId),
+        ));
+        playWeek(state, index);
+        state.pendingDecisions = [];
+        const age = state.world.season - state.player.birthYear;
+        if (age > YOUTH_MAX_AGE) continue;
+        if (state.player.condition.injuries.length > 0) continue;
+        if (state.world.week < 8 || state.world.week > 45) continue;
+        // Only weeks his side actually had a fixture in. Cup weekends his club is not
+        // in are quiet for everybody.
+        if (!due) continue;
+        const at = state.matchLog.findIndex((match) => match.id === before);
+        const fresh = state.matchLog.slice(0, at === -1 ? state.matchLog.length : at);
+        if (fresh.some((match) => match.userLine?.played)) { idle = 0; continue; }
+        idle++;
+        longest = Math.max(longest, idle);
+      }
+      // Cup weeks and international breaks are quiet; a month of them is not.
+      expect(longest, 'he went a month and a half without a game').toBeLessThan(6);
     }
   });
 

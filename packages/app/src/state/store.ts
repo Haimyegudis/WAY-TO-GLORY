@@ -43,6 +43,7 @@ import {
   type NegotiationOutcome,
   type PendingDecision,
   answerContractRenewal,
+  answerNationalApproach,
   matchPreparation,
   setMatchPlan as engineSetMatchPlan,
   answerRetirement,
@@ -207,6 +208,8 @@ interface GameStore {
   deleteSave: (id?: string) => Promise<void>;
   refreshSaves: () => Promise<void>;
   advance: (weeks?: number) => void;
+  /** Run the calendar until the injury is behind him. */
+  skipInjury: () => void;
   decide: (decisionId: string, optionId: string) => void;
   answerOffer: (decisionId: string, offerId: string | null) => void;
   /** Go back to a club for better terms. Returns what they said, or null if it is gone. */
@@ -535,6 +538,47 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ celebration: null });
   },
 
+  /*
+   * Sit out the injury.
+   *
+   * Fourteen months of pressing "next week" to watch a physio's table is not a career
+   * decision, it is a chore. This runs the clock until he is fit again, and stops the
+   * moment anything actually wants him: a question, a trophy, the end of the season.
+   */
+  skipInjury() {
+    const { state, index } = get();
+    if (!state || !index || state.retired) return;
+    if (state.player.condition.injuries.length === 0) return;
+    set({ busy: true });
+    const before = new Set(state.inbox.map((message) => message.id));
+    const trophiesBefore = state.trophies.length;
+    const awardsBefore = (state.awards ?? []).length;
+
+    let result: TickResult | null = null;
+    for (let i = 0; i < 70; i++) {
+      result = advanceWeek(state, index);
+      if (state.retired) break;
+      if (state.player.condition.injuries.length === 0) break;
+      if (state.pendingDecisions.some((decision) => decision.blocking)) break;
+      if (result.stopped === 'halfTime' || result.stopped === 'seasonEnd' || result.stopped === 'decision') break;
+    }
+
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    const arrived = state.inbox
+      .filter((message) => !before.has(message.id))
+      .slice(0, 4)
+      .reverse()
+      .map((message) => message.id);
+    set({
+      state: { ...state },
+      busy: false,
+      celebration: celebrationFor(state, trophiesBefore, awardsBefore) ?? get().celebration,
+      lastTick: result?.stopped ?? null,
+      pendingNews: [...get().pendingNews, ...arrived],
+    });
+  },
+
   advance(weeks = 1) {
     const { state, index } = get();
     if (!state || !index || state.retired) return;
@@ -598,6 +642,15 @@ export const useGame = create<GameStore>((set, get) => ({
     // again: the second half he comes out for has to be that match's, not the cup tie
     // the same week happens to hold.
     const answeredId = state.pendingHalfTime?.matchId ?? null;
+    /*
+     * A cup is often won in the second half.
+     *
+     * The week that ends at the interval is finished from here rather than from
+     * advance(), and only advance() looked for something worth celebrating - so a final
+     * he came out for after a team talk was won with no confetti at all.
+     */
+    const trophiesBefore = state.trophies.length;
+    const awardsBefore = (state.awards ?? []).length;
     const result = engineResumeHalfTime(state, index, instructionId);
     const played = answeredId ? state.matchLog.find((match) => match.id === answeredId) ?? null : null;
     const slot = get().activeSaveId;
@@ -605,6 +658,7 @@ export const useGame = create<GameStore>((set, get) => ({
     set({
       state: { ...state },
       busy: false,
+      celebration: celebrationFor(state, trophiesBefore, awardsBefore) ?? get().celebration,
       lastTick: result.stopped,
       screen: 'match',
       focusMatchId: played?.id ?? state.lastMatch?.id ?? null,
@@ -691,6 +745,23 @@ export const useGame = create<GameStore>((set, get) => ({
         set({
           state: { ...state },
           result: treatmentResult,
+          resultDecision: answeredDecision,
+          openMessageId: null,
+          pendingNews: newsAfterDecision(),
+        });
+        return;
+      }
+    }
+    // Which flag he plays under. The engine owns the pledge and what it costs him with
+    // the association he turned down.
+    if (decisionId.startsWith('ntApproach_')) {
+      const pledgeResult = answerNationalApproach(state, index, decisionId, optionId);
+      if (pledgeResult) {
+        const pledgeSlot = get().activeSaveId;
+        if (pledgeSlot) persistTo(pledgeSlot, state, (saves) => set({ saves }));
+        set({
+          state: { ...state },
+          result: pledgeResult,
           resultDecision: answeredDecision,
           openMessageId: null,
           pendingNews: newsAfterDecision(),

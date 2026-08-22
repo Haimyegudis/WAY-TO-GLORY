@@ -1,6 +1,6 @@
 import { Rng, clamp } from './rng.js';
 import { overall } from './positions.js';
-import { applyTreatment, rollInjury } from './injury.js';
+import { addInjury, applyTreatment, rollInjury } from './injury.js';
 import type { TreatmentChoice } from './injury.js';
 import { adjustRelationship, evaluateConsequences, track } from './social.js';
 import type {
@@ -237,7 +237,7 @@ export function applyEffects(
       case 'injuryRisk': {
         if (rng.chance(clamp(value / 100, 0, 1))) {
           const injury = rollInjury(rng, player, state.world.season, 1.4);
-          player.condition.injuries.push(injury);
+          addInjury(player, injury);
           injuryTriggered = true;
         }
         break;

@@ -67,7 +67,9 @@ export const EVENTS: CareerEventDef[] = [
       e('personality', 1, 'professionalism'),
     ]),
   ]),
-  ev('academy_trial_abroad', 'agent', 22, 52, { ageRange: [15, 18], minCareerApps: 12 }, [
+  // A week on trial is what a club offers a boy nobody has signed. A professional under
+  // contract does not go on trial anywhere.
+  ev('academy_trial_abroad', 'agent', 22, 52, { ageRange: [15, 18], minCareerApps: 12, squadRoleIn: ['academy', 'futureProspect'] }, [
     opt('academy_trial_abroad', 'go', [e('reputation', 4), e('fame', 2), e('personality', 3, 'adaptability'), e('fatigue', 12), e('custom', 1, 'trialAbroad')], 'risk.medium'),
     opt('academy_trial_abroad', 'stay', [e('managerTrust', 5)]),
   ]),

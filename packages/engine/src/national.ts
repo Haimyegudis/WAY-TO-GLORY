@@ -110,8 +110,12 @@ export function rollCallUp(rng: Rng, ctx: CallUpContext): CallUpResult | null {
   const level = levelForAge(ctx.age);
   if (!level) return null;
 
-  // Once committed to an association, only that association can call you up.
-  const eligible = ctx.nt.capturedBySenior && ctx.nt.countryCode
+  /*
+   * Once committed to an association, only that association can call you up - and a
+   * pledge counts. Saying yes to a federation and then being picked by the one he turned
+   * down would make the choice meaningless.
+   */
+  const eligible = ctx.nt.countryCode
     ? [ctx.nt.countryCode]
     : ctx.nt.eligibleCountries;
 

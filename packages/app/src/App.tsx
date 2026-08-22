@@ -149,14 +149,16 @@ function Game() {
             * question has waited this long and can wait six seconds more - the sheets,
             * the news and the result all hold until the paper has come down.
             */}
-          {!celebration && (result && resultDecision
+          {(!celebration || inTheMatch) && (result && resultDecision
             ? <DecisionSheet decision={resultDecision} result={result} />
             : result && <ResultSheet result={result} />)}
           {/* News comes up. It is read and dismissed one at a time, behind anything that
               has actually stopped the week. */}
           {!celebration && !result && !pending && !inTheMatch && <NewsPopup />}
-          {!celebration && !result && pending && <DecisionSheet decision={pending} />}
-          {celebration && (
+          {(!celebration || inTheMatch) && !result && pending && <DecisionSheet decision={pending} />}
+          {/* It waits for the final whistle: a trophy does not interrupt the match it
+              was won in, it follows him off the pitch. */}
+          {celebration && !inTheMatch && (
             <Celebration kind={celebration.kind} titleKey={celebration.titleKey} args={celebration.args} />
           )}
         </Suspense>
@@ -329,6 +331,7 @@ function useBackGesture(): void {
 function ContinueDock() {
   const t = useT();
   const advance = useGame((s) => s.advance);
+  const skipInjury = useGame((s) => s.skipInjury);
   const goto = useGame((s) => s.goto);
   const screen = useGame((s) => s.screen);
   const busy = useGame((s) => s.busy);
@@ -359,6 +362,10 @@ function ContinueDock() {
           ? t('action.continueTo')
           : t('action.nextWeek');
 
+  // Sitting out a long injury a week at a time is not a decision, it is a chore.
+  const canSkipInjury = injured && !afterMatch && !kickOff && !backToTheBreak
+    && (state?.player.condition.injuries[0]?.weeksRemaining ?? 0) >= 3;
+
   return (
     <div className="continue-dock">
       <button
@@ -368,6 +375,11 @@ function ContinueDock() {
       >
         {label}
       </button>
+      {canSkipInjury && (
+        <button className="continue continue-skip" disabled={busy} onClick={() => skipInjury()}>
+          {t('action.skipInjury')}
+        </button>
+      )}
     </div>
   );
 }

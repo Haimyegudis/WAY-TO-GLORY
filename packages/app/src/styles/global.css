@@ -1596,3 +1596,13 @@ select:focus-visible,
   opacity: 0.6;
 }
 .scout[open] > summary::after { content: '⌃'; }
+
+/* The second button in the dock: smaller, quieter, for skipping a lay-off. */
+.continue-skip {
+  margin-block-start: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  padding-block: 10px;
+}

@@ -28,6 +28,7 @@ export * from './agents.js';
 export * from './national.js';
 export * from './events.js';
 export * from './milestones.js';
+export * from './allegiance.js';
 export * from './atmosphere.js';
 export * from './category.js';
 export * from './charts.js';
