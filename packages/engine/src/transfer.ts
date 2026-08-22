@@ -508,7 +508,9 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       week: state.world.week,
       interestLevel: Math.round(candidate.interest),
       competitionId: candidate.club.competitionId,
-      ...(candidate.joinAs ? { joinAs: candidate.joinAs } : {}),
+      // Always stated, never inferred. An offer that does not say whether it is the
+      // first team or the academy is an offer a player cannot answer honestly.
+      joinAs: candidate.joinAs ?? 'senior',
       // The old flag, kept because saves and screens read it: it means exactly what it
       // says now, which is that he is leaving academy football behind.
       ...(academyPlayer && candidate.joinAs !== 'academy' ? { seniorPathway: true } : {}),
@@ -729,8 +731,9 @@ export function generateLoanOffers(input: {
       week: state.world.week,
       interestLevel: Math.round(clamp(candidate.fit, 40, 99)),
       competitionId: candidate.club.competitionId,
-      // A loan is first-team football somewhere else, so for a boy it is a senior move.
-      ...(player.squadRole === 'academy' ? { seniorPathway: true, joinAs: 'senior' as const } : {}),
+      // A loan is first-team football somewhere else, always. That is what it is for.
+      joinAs: 'senior' as const,
+      ...(player.squadRole === 'academy' ? { seniorPathway: true } : {}),
     });
   }
   return offers;

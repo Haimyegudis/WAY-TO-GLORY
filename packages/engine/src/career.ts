@@ -1562,7 +1562,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     state.transferOffers.length === 0 &&
     rng.chance(offerChance)
   ) {
-    const share = isAcademyPlayer(state) ? youthMinutesPct(state) : minutesPct(state);
+    const share = isAcademyPlayer(state) ? youthMinutesPct(state) : recentMinutesShare(state);
     // A young player who cannot get on the pitch is offered a loan instead of a move.
     const loans = generateLoanOffers({ state, index, rng, minutesPct: share });
     const offers = loans.length > 0 && rng.chance(state.flags['wantsLoan'] ? 0.95 : 0.7)
@@ -3067,6 +3067,51 @@ function attributeCards(state: CareerState, rng: Rng, compState: CompetitionSeas
  * any other match he is in; everybody else's are settled on the strength of the two
  * age groups, because a bracket that stops moving is not a cup.
  */
+/**
+ * The football he is actually getting, when this season has not produced any yet.
+ *
+ * `minutesPct` divides his minutes by the matches his club has played, so in July it is
+ * zero for everybody - a first-team regular reads exactly like a boy who has never been
+ * picked. Everything that asks "is he playing?" then gets the wrong answer for the first
+ * month of every season: the market offered a starter a loan to get him minutes, and the
+ * age group put him back in it on Sunday morning. Until the season has a few matches in
+ * it, last season is the honest answer.
+ */
+export function recentMinutesShare(state: CareerState): number {
+  const club = userClub(state);
+  const played = club
+    ? state.world.competitions[club.competitionId]?.table[club.id]?.played ?? 0
+    : 0;
+  if (played >= 4) return minutesPct(state);
+  const last = state.seasonHistory[state.seasonHistory.length - 1];
+  if (!last || last.apps === 0) return minutesPct(state);
+  // Thirty-four matches is a league season, near enough for a question this coarse.
+  return clamp(last.minutes / (34 * 90), 0, 1);
+}
+
+/**
+ * Whether he is still a boy playing Sunday morning football.
+ *
+ * Being under nineteen and short of senior minutes used to be the whole test, which sent
+ * a first-division starter back to the age group every August - and, worse, sent a boy
+ * who had just taken a loan specifically to play senior football into his new club's
+ * youth team, which is the opposite of what he agreed to. A squad role is a promise: the
+ * moment a club gives him one above development, he is a senior player and the age group
+ * is finished with him whatever the minutes column says this week.
+ */
+function playsYouthFootball(state: CareerState): boolean {
+  const age = state.world.season - state.player.birthYear;
+  if (age > YOUTH_MAX_AGE) return false;
+  if (isAcademyPlayer(state)) return true;
+  const developmentRole = state.player.squadRole === 'futureProspect'
+    || state.player.squadRole === 'prospect'
+    || state.player.squadRole === 'fringe';
+  if (!developmentRole) return false;
+  // A loan is senior football by definition: it is what he went there for.
+  if (state.contract?.isLoan) return false;
+  return recentMinutesShare(state) < 0.25;
+}
+
 function simulateYouthCupWeek(
   state: CareerState,
   index: PackIndex,
@@ -3076,7 +3121,7 @@ function simulateYouthCupWeek(
   const youth = state.world.youth;
   if (!youth?.cups || !club) return null;
   const age = state.world.season - state.player.birthYear;
-  const stillYouth = age <= YOUTH_MAX_AGE && (isAcademyPlayer(state) || minutesPct(state) < 0.25);
+  const stillYouth = playsYouthFootball(state);
   const week = state.world.week;
   let userResult: MatchResult | null = null;
 
@@ -3130,8 +3175,9 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
   const age = state.world.season - state.player.birthYear;
   // He plays youth football until he has outgrown it, and keeps playing it after a
   // call-up until he is actually getting senior minutes. A seventeen year old promoted
-  // early should be playing on Sunday, not watching on Saturday.
-  const stillYouth = age <= YOUTH_MAX_AGE && (isAcademyPlayer(state) || minutesPct(state) < 0.25);
+  // early should be playing on Sunday, not watching on Saturday - but a seventeen year
+  // old who has been given a senior shirt is not sent back to the age group.
+  const stillYouth = playsYouthFootball(state);
   const week = state.world.week;
   const hisDivision = userYouthCompetitionId(state);
   let userResult: MatchResult | null = null;
@@ -5967,7 +6013,7 @@ function resolveWatchingVerdict(state: CareerState, index: PackIndex, rng: Rng):
   // A verdict cannot land on top of a move he is already being asked about.
   if (state.pendingDecisions.some((decision) => decision.kind === 'transfer')) return false;
 
-  const share = isAcademyPlayer(state) ? youthMinutesPct(state) : minutesPct(state);
+  const share = isAcademyPlayer(state) ? youthMinutesPct(state) : recentMinutesShare(state);
   const offer = offerFromWatchingClub({ state, index, rng, club, minutesPct: share, impression });
   if (!offer) {
     pushInbox(state, 'transfer', wasTrial ? 'inbox.trialRejected' : 'inbox.scoutingNothing', {

@@ -43,7 +43,9 @@ import {
   computeCareerScore,
   createCareer,
   matchPreparation,
+  minutesPct,
   peers,
+  recentMinutesShare,
   setMatchPlan,
   shirtRival,
   grudgeClubId,
@@ -3511,5 +3513,65 @@ describe('the boys he came through with', () => {
     expect(career.goals).toBe(14);
     expect(career.trophies).toBe(1);
     expect(career.peakOvr).toBe(66);
+  });
+});
+
+
+describe('senior football stays senior football', () => {
+  it('never puts a player with a senior shirt back in the age group', () => {
+    for (const seed of [11, 233]) {
+      const { state, index } = startedCareer({ seed });
+      const seen = new Set<string>();
+      for (let i = 0; i < 53 * 6 && !state.retired; i++) {
+        playWeek(state, index);
+        state.pendingDecisions = [];
+        const senior = !['academy', 'futureProspect', 'prospect', 'fringe'].includes(state.player.squadRole);
+        const onLoan = Boolean(state.contract?.isLoan);
+        for (const match of state.matchLog) {
+          if (seen.has(match.id)) continue;
+          seen.add(match.id);
+          if (!match.competitionId.endsWith('.youth') || !match.userLine?.played) continue;
+          expect(
+            senior || onLoan,
+            `a ${state.player.squadRole}${onLoan ? ' on loan' : ''} played ${match.competitionId}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('does not read a first-team regular as a boy who never plays in July', () => {
+    const { state, index } = startedCareer({ seed: 233 });
+    // A season of senior football behind him, and a new season that has not started.
+    state.seasonHistory.push({
+      season: state.world.season - 1, clubId: state.player.clubId, competitionId: null,
+      apps: 30, starts: 28, subApps: 2, minutes: 2500, goals: 6, assists: 4, cleanSheets: 0,
+      yellowCards: 2, redCards: 0, motm: 2, ratingSum: 210, ratedApps: 30,
+      age: 18, ovrStart: 60, ovrEnd: 66, valueStart: 0, valueEnd: 0, leaguePosition: 5, trophies: [],
+    });
+    state.world.seasonStats[state.player.id] = {
+      ...state.world.seasonStats[state.player.id]!,
+      apps: 0, minutes: 0,
+    };
+    expect(minutesPct(state), 'the season has not started, so this is zero').toBe(0);
+    expect(recentMinutesShare(state), 'and last season says otherwise').toBeGreaterThan(0.5);
+    void index;
+  });
+
+  it('says on every offer which side of the club is signing him', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    let offers = 0;
+    for (let i = 0; i < 53 * 8 && offers < 6 && !state.retired; i++) {
+      playWeek(state, index);
+      for (const offer of state.transferOffers) {
+        offers++;
+        expect(offer.joinAs, 'an offer that does not say who is signing him').toBeTruthy();
+        // A loan is senior football by definition; nobody is loaned into an academy.
+        if (offer.isLoan) expect(offer.joinAs).toBe('senior');
+      }
+      state.pendingDecisions = [];
+      state.transferOffers = [];
+    }
+    expect(offers, 'eight seasons and nobody came in for him').toBeGreaterThan(0);
   });
 });
