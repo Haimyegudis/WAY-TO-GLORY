@@ -1,3 +1,4 @@
+import { errandOptions } from '@fc/engine';
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName } from '../lib/names.js';
 import { clubName, clubShortName } from '../lib/club.js';
@@ -12,6 +13,7 @@ export function MarketScreen() {
   const state = useGame((s) => s.state)!;
   const accept = useGame((s) => s.acceptOffer);
   const signAgent = useGame((s) => s.signAgent);
+  const sendAgent = useGame((s) => s.sendAgent);
   const pack = getPack();
 
   const competition = (id: string) => competitionLabel(id, pack, lang, t);
@@ -123,6 +125,40 @@ export function MarketScreen() {
             <div className="row-between">
               <span className="eyebrow">{t('market.commission', { pct: (state.agent.commissionPct * 100).toFixed(1) })}</span>
               <span className="faint" style={{ fontSize: 12 }}>{state.agent.countries.join(' · ')}</span>
+            </div>
+
+            {/*
+              * And what he can be told to do.
+              *
+              * An agent used to be a percentage and a phone that rang on its own. These
+              * are the four or five things a player actually asks his man for, each with
+              * the odds of it working and the price of asking - because a club that
+              * hears its player is looking does not forget it.
+              */}
+            <div className="stack" style={{ gap: 6, marginBlockStart: 6 }}>
+              <p className="eyebrow">{t('errand.title')}</p>
+              {errandOptions(state).map((option) => (
+                <button
+                  key={option.id}
+                  className="option"
+                  disabled={!option.available}
+                  onClick={() => sendAgent(option.id)}
+                >
+                  <span className="row-between" style={{ gap: 8 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t(`errand.${option.id}`)}</span>
+                    <span className="faint num" style={{ fontSize: 11.5 }}>
+                      {option.available
+                        ? t('errand.odds', { pct: Math.round(option.odds * 100) })
+                        : option.blocked === 'cooldown'
+                          ? t('errand.wait', { weeks: option.weeksLeft })
+                          : t(`errand.blocked.${option.blocked}`)}
+                    </span>
+                  </span>
+                  <span className="faint" style={{ display: 'block', fontSize: 12, marginBlockStart: 3 }}>
+                    {t(`errand.${option.id}.cost`)}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         ) : state.agentOffers.length > 0 ? (

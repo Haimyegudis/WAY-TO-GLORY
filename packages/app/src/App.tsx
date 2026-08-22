@@ -12,6 +12,7 @@ const Hub = lazy(() => import('./screens/Hub.js').then((module) => ({ default: m
 const MatchCentre = lazy(() => import('./screens/MatchCentre.js').then((module) => ({ default: module.MatchCentre })));
 const MatchesScreen = lazy(() => import('./screens/MatchesScreen.js').then((module) => ({ default: module.MatchesScreen })));
 const ClubScreen = lazy(() => import('./screens/ClubScreen.js').then((module) => ({ default: module.ClubScreen })));
+const CompetitionsScreen = lazy(() => import('./screens/CompetitionsScreen.js').then((module) => ({ default: module.CompetitionsScreen })));
 const TrainingScreen = lazy(() => import('./screens/TrainingScreen.js').then((module) => ({ default: module.TrainingScreen })));
 const MarketScreen = lazy(() => import('./screens/MarketScreen.js').then((module) => ({ default: module.MarketScreen })));
 const CareerScreen = lazy(() => import('./screens/CareerScreen.js').then((module) => ({ default: module.CareerScreen })));
@@ -130,6 +131,7 @@ function Game() {
           {screen === 'match' && <MatchCentre />}
           {screen === 'matches' && <MatchesScreen />}
           {screen === 'club' && <ClubScreen />}
+          {screen === 'competitions' && <CompetitionsScreen />}
           {screen === 'train' && <TrainingScreen />}
           {screen === 'market' && <MarketScreen />}
           {screen === 'career' && <CareerScreen />}
@@ -407,6 +409,7 @@ const TABS: { id: Screen; key: string; icon: JSX.Element }[] = [
  * them - a longer road to the same place, which reads as a different place.
  */
 const MORE: { id: Screen; key: string; hint: string }[] = [
+  { id: 'competitions', key: 'nav.competitions', hint: 'nav.competitions.hint' },
   { id: 'train', key: 'nav.train', hint: 'nav.train.hint' },
   { id: 'market', key: 'nav.market', hint: 'nav.market.hint' },
   { id: 'mentor', key: 'nav.mentor', hint: 'nav.mentor.hint' },

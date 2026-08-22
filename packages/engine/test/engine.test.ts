@@ -17,6 +17,8 @@ import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById, milestoneCopyVariant } from '../src/milestones.js';
 import { buildTeamOfTheWeek } from '../src/totw.js';
 import { estimatedScorers } from '../src/charts.js';
+import { errandOptions, runErrand } from '../src/errands.js';
+import { signAgent } from '../src/career.js';
 import { careerBreakdown, careerSummary } from '../src/career.js';
 import { applyTrainingCondition } from '../src/development.js';
 import { matchCategory } from '../src/category.js';
@@ -4270,5 +4272,39 @@ describe('a career that has not finished yet', () => {
       table.some((peer) => peer.apps > 0),
       'every boy he came through with has played nothing all year',
     ).toBe(true);
+  });
+});
+
+describe('sending the agent out', () => {
+  it('costs him something at the club whether it works or not', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    for (let i = 0; i < 60; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      if (state.agentOffers.length > 0) signAgent(state, state.agentOffers[0]!.id);
+    }
+    if (!state.agent) return;
+
+    const board = state.relationships.board;
+    const trust = state.managerTrust;
+    const rng = new Rng(4);
+    const outcome = runErrand(rng, state, 'findClub');
+    expect(outcome, 'the errand was refused').not.toBeNull();
+    expect(state.relationships.board, 'the board did not care').toBeLessThan(board);
+    expect(state.managerTrust, 'the manager did not care').toBeLessThan(trust);
+    expect(state.flags['transferRequested']).toBe(true);
+
+    // And he cannot ask again next week.
+    expect(errandOptions(state).find((option) => option.id === 'findClub')?.available).toBe(false);
+  });
+
+  it('offers nothing at all to a player with no agent', () => {
+    const { state } = startedCareer({ seed: 11 });
+    state.agent = null;
+    for (const option of errandOptions(state)) {
+      expect(option.available, `${option.id} was offered without an agent`).toBe(false);
+      expect(option.blocked).toBe('noAgent');
+    }
+    expect(runErrand(new Rng(1), state, 'findClub')).toBeNull();
   });
 });

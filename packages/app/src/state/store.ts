@@ -44,6 +44,8 @@ import {
   type PendingDecision,
   answerContractRenewal,
   answerNationalApproach,
+  runErrand,
+  type ErrandId,
   matchPreparation,
   setMatchPlan as engineSetMatchPlan,
   answerRetirement,
@@ -123,6 +125,7 @@ function rememberScreen(screen: Screen): void {
 export type Screen =
   | 'hub'
   | 'club'
+  | 'competitions'
   | 'train'
   | 'market'
   | 'career'
@@ -210,6 +213,8 @@ interface GameStore {
   advance: (weeks?: number) => void;
   /** Run the calendar until the injury is behind him. */
   skipInjury: () => void;
+  /** Send his agent to do something, and live with what it costs. */
+  sendAgent: (id: ErrandId) => void;
   decide: (decisionId: string, optionId: string) => void;
   answerOffer: (decisionId: string, offerId: string | null) => void;
   /** Go back to a club for better terms. Returns what they said, or null if it is gone. */
@@ -545,6 +550,33 @@ export const useGame = create<GameStore>((set, get) => ({
    * decision, it is a chore. This runs the clock until he is fit again, and stops the
    * moment anything actually wants him: a question, a trophy, the end of the season.
    */
+  /*
+   * The agent as an instrument rather than a phone that rings on its own.
+   *
+   * What he asks for is answered by the engine, which also charges him for asking: the
+   * board, the manager and the dressing room all hear about it.
+   */
+  sendAgent(id) {
+    const { state } = get();
+    if (!state || state.retired) return;
+    const rng = Rng.fromState(state.rngState);
+    const outcome = runErrand(rng, state, id);
+    state.rngState = rng.getState();
+    if (!outcome) return;
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({
+      state: { ...state },
+      result: {
+        changes: outcome.changes,
+        consequences: [],
+        narrativeKey: `errand.${id}.${outcome.worked ? 'done' : 'failed'}`,
+        answerKey: `errand.${id}`,
+      },
+      resultDecision: null,
+    });
+  },
+
   skipInjury() {
     const { state, index } = get();
     if (!state || !index || state.retired) return;

@@ -32,6 +32,7 @@ export * from './allegiance.js';
 export * from './atmosphere.js';
 export * from './category.js';
 export * from './charts.js';
+export * from './errands.js';
 export * from './totw.js';
 export * from './manager.js';
 export * from './peers.js';

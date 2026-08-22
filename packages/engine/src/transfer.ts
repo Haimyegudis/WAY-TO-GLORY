@@ -68,8 +68,19 @@ export function windowIdFor(season: number, week: number, country?: string): str
   return `${season}:${week <= summer[1] + 6 ? 'summer' : 'winter'}`;
 }
 
-/** Which countries a club can realistically scout the player in. */
-function agentReach(agent: Agent | null, club: Club, playerCountry: string): number {
+/**
+ * Which countries a club can realistically scout the player in.
+ *
+ * And where his agent has been told to look. A player who sends his man abroad is a
+ * player whose name is suddenly on desks in three other countries - which is the whole
+ * point of having one.
+ */
+function agentReach(
+  agent: Agent | null,
+  club: Club,
+  playerCountry: string,
+  lookingAbroad = false,
+): number {
   if (!agent) {
     // Without an agent you are visible mostly at home.
     return club.country === playerCountry ? 0.8 : 0.18;
@@ -78,7 +89,8 @@ function agentReach(agent: Agent | null, club: Club, playerCountry: string): num
   const base = inNetwork ? 1 : agent.internationalNetwork / 130;
   const tierBonus =
     agent.tier === 'superAgent' ? 0.35 : agent.tier === 'international' ? 0.22 : agent.tier === 'national' ? 0.1 : 0;
-  return clamp(base + tierBonus, 0.1, 1.35);
+  const sentAbroad = lookingAbroad && club.country !== playerCountry ? 0.45 : 0;
+  return clamp(base + tierBonus + sentAbroad, 0.1, 1.6);
 }
 
 export interface InterestInput {
@@ -96,6 +108,8 @@ export interface InterestInput {
   /** Standing of the league he plays in now, which is how far a move really is. */
   currentLeagueReputation: number;
   minutesPct: number;
+  /** His agent has been sent to look for a move abroad. */
+  lookingAbroad?: boolean;
 }
 
 /**
@@ -149,7 +163,7 @@ export function transferInterest(input: InterestInput): number {
   const minutesScore = (input.minutesPct - 0.35) * 22;
 
   const affordability = logistic((input.club.finances * 1.6e6 - input.value) / 8e6) * 26 - 8;
-  const reach = agentReach(input.agent, input.club, input.playerCountry);
+  const reach = agentReach(input.agent, input.club, input.playerCountry, input.lookingAbroad);
 
   const raw = (fitScore * 0.55 + youthAppeal + formScore + repScore + minutesScore + affordability) * reach;
   return clamp(raw, 0, 100);
@@ -450,6 +464,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       currentClubStrength: currentClub?.strength ?? (lastLevel || 40),
       currentLeagueReputation: currentReputation,
       minutesPct: playingShare,
+      lookingAbroad: Boolean(state.flags['agentAbroad']),
     });
     let weighted = interest;
     /*

@@ -1607,6 +1607,18 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     }
   }
 
+  /*
+   * The errand he sent his agent on last week comes back with an answer.
+   *
+   * Asking for a new contract is a conversation with the club, not a flag: the man goes
+   * in, and either the offer lands on the table or it does not.
+   */
+  if (state.flags['agentAskedTerms'] && club && state.contract) {
+    state.flags['agentAskedTerms'] = 0;
+    const raise = Math.round(state.contract.salaryPerWeek * rng.range(1.12, 1.35));
+    openRenewalDecision(state, raise, rng.int(2, 4), recentMinutesShare(state));
+  }
+
   // 6. Transfer window activity. A player who just moved is not on the market again
   // a fortnight later, so interest only builds up after he has settled.
   const weeksSinceTransfer = season * 52 + week - Number(state.flags['lastTransferWeek'] ?? 0);
@@ -1617,7 +1629,14 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   const windowId = windowIdFor(season, week, club?.country);
   const approachedThisWindow = state.flags['offerWindow'] === windowId;
   const movesThisSeason = Number(state.flags['movesThisSeason'] ?? 0);
-  const offerChance = listed ? 0.5 : state.flags['transferRequested'] ? 0.42 : 0.28;
+  // An agent who was sent out to find a club is out finding one, and a good one finds
+  // more doors than a player sitting waiting for the phone.
+  const hunting = Boolean(state.flags['agentHunting']);
+  const offerChance = clamp(
+    (listed ? 0.5 : state.flags['transferRequested'] ? 0.42 : 0.28) + (hunting ? 0.3 : 0),
+    0,
+    0.95,
+  );
 
   if (
     isTransferWindow(week, club?.country) &&
@@ -1637,6 +1656,8 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
       : generateOffers({ state, index, rng, minutesPct: share });
     if (offers.length > 0) {
       state.flags['offerWindow'] = windowId;
+      state.flags['agentHunting'] = 0;
+      state.flags['agentAbroad'] = 0;
       state.transferOffers = offers;
       // The public story precedes the formal approach. Previously both decisions were
       // queued together, the offer sheet won, and the player could sign before being
