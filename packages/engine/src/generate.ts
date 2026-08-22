@@ -1,5 +1,5 @@
 import { Rng, clamp } from './rng.js';
-import { POSITION_WEIGHTS, positionGroup, ratingAt } from './positions.js';
+import { POSITION_WEIGHTS, overall, positionGroup, ratingAt } from './positions.js';
 import type { NamePool, PackIndex, StarPlayerSeed } from './data.js';
 import {
   ATTRIBUTE_KEYS,
@@ -170,7 +170,20 @@ export function generatePlayer(rng: Rng, index: PackIndex, opts: GenerateOptions
   const weightKg = Math.round(clamp((heightCm - 100) * rng.range(0.92, 1.02), 58, 105));
   applyPhysique(attributes, heightCm, weightKg);
 
-  const ovr = ratingAt(attributes, opts.pos);
+  const foot: Foot = opts.pos === 'LB' || opts.pos === 'LWB' || opts.pos === 'LM' || opts.pos === 'LW'
+    ? (rng.chance(0.75) ? 'L' : 'R')
+    : rng.chance(0.78) ? 'R' : rng.chance(0.9) ? 'L' : 'B';
+
+  const secondaryPos = pickSecondary(rng, opts.pos);
+  /*
+   * A ceiling above the player, whichever position he is read in.
+   *
+   * Potential was floored at his rating in his own position, but a player is rated at
+   * the best of the positions he can play - so a full back who is a better winger came
+   * out of the generator already above his own ceiling, and stayed there for the rest of
+   * his life while every audit reported it.
+   */
+  const ovr = overall(attributes, opts.pos, secondaryPos);
 
   // Younger players carry more headroom; by 27 potential is basically current ability.
   const growthYears = Math.max(0, 26 - opts.age);
@@ -179,12 +192,6 @@ export function generatePlayer(rng: Rng, index: PackIndex, opts: GenerateOptions
     ovr,
     99,
   );
-
-  const foot: Foot = opts.pos === 'LB' || opts.pos === 'LWB' || opts.pos === 'LM' || opts.pos === 'LW'
-    ? (rng.chance(0.75) ? 'L' : 'R')
-    : rng.chance(0.78) ? 'R' : rng.chance(0.9) ? 'L' : 'B';
-
-  const secondaryPos = pickSecondary(rng, opts.pos);
 
   return {
     id: newPlayerId(rng, opts.isUser ? 'user' : 'p'),
@@ -348,9 +355,10 @@ export function starToPlayer(
 ): Player {
   const attributes = buildAttributes(rng, star.pos, star.ovr, 5);
   const growthYears = Math.max(0, 26 - star.age);
+  const rated = overall(attributes, star.pos, []);
   const potential = star.potential ?? clamp(
-    Math.round(star.ovr + rng.gaussIn(growthYears * 1.3, growthYears * 0.7, 0, 30)),
-    star.ovr,
+    Math.round(rated + rng.gaussIn(growthYears * 1.3, growthYears * 0.7, 0, 30)),
+    rated,
     99,
   );
   return {

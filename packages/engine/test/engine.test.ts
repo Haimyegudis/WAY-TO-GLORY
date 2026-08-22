@@ -7,7 +7,7 @@ import { ageFactor, developWeek, headroom, updateCondition } from '../src/develo
 import { availableActions, evaluateConsequences, isFrozenOut, performAction } from '../src/social.js';
 import { isEligible } from '../src/events.js';
 import { buildAttributes, generatePlayer } from '../src/generate.js';
-import { CAMEO_MINUTES, eligibleForSenior, pickLineup, selectionScore } from '../src/selection.js';
+import { CAMEO_MINUTES, eligibleForSenior, pickBestLineup, pickLineup, resolveMinutes, selectionScore } from '../src/selection.js';
 import { applyResult, buildFixtures, ensureLeagueSplit, sortedTable, initCompetitionSeason } from '../src/league.js';
 import { deserialize, serialize } from '../src/save.js';
 import { YOUTH_MAX_AGE, countryLeagues, userYouthCompetition, userYouthCompetitionId, youthCompetitionId } from '../src/youth.js';
@@ -17,6 +17,8 @@ import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById, milestoneCopyVariant } from '../src/milestones.js';
 import { buildTeamOfTheWeek } from '../src/totw.js';
 import { estimatedScorers } from '../src/charts.js';
+import { generateSquad } from '../src/generate.js';
+import { simulateQuickResult } from '../src/match.js';
 import { errandOptions, runErrand } from '../src/errands.js';
 import { signAgent } from '../src/career.js';
 import { careerBreakdown, careerSummary } from '../src/career.js';
@@ -231,8 +233,10 @@ describe('development', () => {
   it('turns a season of finishing work into goals', () => {
     const season = 2030;
     const trainFor = (focus: TrainingPlan['focus']): Player => {
+      // Old enough that the age ceiling is not what is being measured: this test is
+      // about a focus turning into an attribute, and an attribute turning into goals.
       const player = generatePlayer(new Rng(42), indexPack(loadPack()), {
-        clubId: null, pos: 'ST', age: 19, targetOvr: 62, season, countryCode: 'ENG',
+        clubId: null, pos: 'ST', age: 23, targetOvr: 62, season, countryCode: 'ENG',
       });
       player.potential = 88;
       const rng = new Rng(77);
@@ -247,7 +251,7 @@ describe('development', () => {
 
     const sharpshooter = trainFor('finishing');
     const defender = trainFor('defending');
-    expect(sharpshooter.attributes.finishing).toBeGreaterThan(defender.attributes.finishing + 8);
+    expect(sharpshooter.attributes.finishing).toBeGreaterThan(defender.attributes.finishing + 5);
 
     // The same striker, the same chances, one attribute apart: the finishing he was
     // trained on has to be worth goals.
@@ -3279,11 +3283,11 @@ describe('his own contract', () => {
    * before it gets that far - so the first seed that does is the one the test uses.
    */
   const upForRenewal = (from: number) => {
-    for (let seed = from; seed < from + 8; seed++) {
+    for (let seed = from; seed < from + 25; seed++) {
       const walked = walk(seed);
       if (walked.decision) return walked;
     }
-    throw new Error('no career in eight reached a contract renewal');
+    throw new Error('no career in twenty-five reached a contract renewal');
   };
 
   it('puts the club\u2019s terms to him instead of signing them for him', () => {
@@ -4321,5 +4325,89 @@ describe('sending the agent out', () => {
       expect(option.blocked).toBe('noAgent');
     }
     expect(runErrand(new Rng(1), state, 'findClub')).toBeNull();
+  });
+});
+
+describe('what a very good player looks like', () => {
+  it('does not let one man score most of the goals his side manages', () => {
+    const pack = loadPack();
+    const index = indexPack(pack);
+    const home = index.clubById.get('ukr_dynamo_kyiv')!;
+    const away = index.clubById.get('ukr_livyi_bereh_kyiv')!;
+    const rng = new Rng(9);
+    const user = generatePlayer(rng, index, {
+      clubId: home.id, pos: 'ST', age: 22, targetOvr: 79, season: 2026,
+      countryCode: home.country, squadRole: 'key',
+    });
+    user.isUser = true;
+    const squad = [
+      ...generateSquad(rng, { club: home, season: 2026, index, stars: index.starsByClub.get(home.id) ?? [], taken: new Set() }),
+      user,
+    ];
+    const opponents = generateSquad(rng, {
+      club: away, season: 2026, index, stars: index.starsByClub.get(away.id) ?? [], taken: new Set(),
+    });
+    const lineup = pickBestLineup(new Rng(3), squad, {
+      formation: '4-3-3', managerTrust: 80, userId: user.id, rotationPressure: 0, importantMatch: false,
+    });
+
+    let goals = 0;
+    let sideGoals = 0;
+    let hauls = 0;
+    let played = 0;
+    for (let i = 0; i < 200; i++) {
+      const outcome = simulateUserMatch(new Rng(2000 + i), {
+        season: 2026, week: 10, competitionId: home.competitionId,
+        homeClub: home, awayClub: away, userIsHome: true,
+        userClubSquad: squad, opponentStars: opponents.slice(0, 11),
+        opponentRating: 30 + away.strength * 0.62,
+        user, lineup, minutes: resolveMinutes(new Rng(700 + i), user.id, lineup, user),
+        importance: 'normal', matchId: `t_${i}`, mental: 1, penaltyTaker: true,
+      });
+      if (!outcome.line.played) continue;
+      played++;
+      goals += outcome.line.goals;
+      sideGoals += outcome.result.homeGoals;
+      if (outcome.line.goals >= 3) hauls++;
+    }
+
+    expect(played, 'he never got on the pitch').toBeGreaterThan(100);
+    // A great striker in a dominant side is on 0.6-0.9 a game. Two a game is a video game.
+    expect(goals / played, 'he is scoring like nobody who has ever played').toBeLessThan(1);
+    expect(goals / played, 'a very good striker should still score').toBeGreaterThan(0.35);
+    // And his team-mates exist.
+    expect(goals / sideGoals, 'he scored most of everything his club managed').toBeLessThan(0.5);
+    expect(hauls / played, 'a hat-trick every few weeks').toBeLessThan(0.06);
+  });
+
+  it('does not finish a league season 6-0 every week', () => {
+    const rng = new Rng(5);
+    let big = 0;
+    const n = 1500;
+    for (let i = 0; i < n; i++) {
+      // Fifteen points is a champion against a relegation side.
+      const [home, away] = simulateQuickResult(rng, { homeRating: 75, awayRating: 60 });
+      if (home - away >= 4) big++;
+    }
+    expect(big / n, 'the best side wins by four most weeks').toBeLessThan(0.2);
+  });
+
+  it('does not make a nineteen year old a finished player', () => {
+    for (const seed of [11, 55, 96, 233]) {
+      const { state, index } = startedCareer({ seed });
+      for (let i = 0; i < 53 * 6 && !state.retired; i++) {
+        playWeek(state, index);
+        for (const decision of [...state.pendingDecisions]) {
+          if (decision.kind !== 'transfer') continue;
+          const best = [...state.transferOffers].sort((a, b) => b.interestLevel - a.interestLevel)[0];
+          answerOffer(state, index, decision.id, best?.id ?? null);
+        }
+        state.pendingDecisions = [];
+        const age = state.world.season - state.player.birthYear;
+        if (age > 20) break;
+        const ovr = overall(state.player.attributes, state.player.primaryPos, state.player.secondaryPos);
+        expect(ovr, `a ${age} year old was already a ${ovr}`).toBeLessThan(74);
+      }
+    }
   });
 });

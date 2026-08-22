@@ -51,10 +51,22 @@ export function clubRating(club: Club): number {
 /** Worth about half a goal a game, which is what home advantage is actually worth. */
 const HOME_ADVANTAGE = 3.4;
 
-/** Expected goals for a side, from the rating gap. */
+/**
+ * Expected goals for a side, from the rating gap.
+ *
+ * This used to grow exponentially with the gap and never stop: fifteen points better
+ * than the opposition was three and a bit goals a game, twenty-five points was five, and
+ * a strong side in a weak league beat everybody 5-0 every week. Football does not work
+ * that way. Being better wins matches, and past a point it stops adding goals - the
+ * eleven men in front of you park in their own half, the game becomes a training
+ * exercise, and it finishes 3-0 rather than 7-0.
+ *
+ * The curve saturates: a huge gap is worth about three and a half, a hopeless side still
+ * nicks one now and then, and the flat part of the curve is where most of a league lives.
+ */
 export function expectedGoals(attackRating: number, defenceRating: number, home: boolean): number {
   const gap = attackRating - defenceRating + (home ? HOME_ADVANTAGE : 0);
-  return clamp(1.35 * Math.exp(gap / 22), 0.15, 5.2);
+  return clamp(1.35 * Math.exp(0.93 * Math.tanh(gap / 25)), 0.32, 3.7);
 }
 
 export interface UserMatchContext {
@@ -800,11 +812,18 @@ function resolveUserChance(
   if (!picked) return;
 
   // If the user is on the pitch, they get their positional share of involvement.
+  /*
+   * Whether it falls to him. A focal striker is on the end of a good share of what his
+   * side creates, and no more than that: the cap is what stops one man taking every
+   * shot in the match.
+   */
   const shooter = userOnPitch
-    && rng.chance(
+    && rng.chance(clamp(
       userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * mods.involvement
-      * shootingBias(ctx) * mods.shooting * finishingPull(ctx.user),
-    )
+      * shootingBias(ctx) * mods.shooting,
+      0,
+      0.34,
+    ))
     ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
     : picked;
 
@@ -834,7 +853,7 @@ function resolveUserChance(
       * setPieceConversion
       * freshLegs
       * injuryShape
-      * (isUser ? mods.conversion : 1),
+      * (isUser ? mods.conversion * finishingEdge(ctx.user) : 1),
     0.025,
     0.55,
   );
@@ -1240,17 +1259,33 @@ function creatingBias(ctx: UserMatchContext): number {
  * look for the man who scores - that is most of what being a scorer is - so the work now
  * shows up in how many chances he is on the end of as well as in what he does with them.
  */
-function finishingPull(user: Player): number {
-  return clamp(0.85 + (user.attributes.finishing - 45) / 55, 0.85, 1.6);
+/**
+ * What being a finisher is worth - in the net, not in the share of the ball.
+ *
+ * This used to multiply his chance of being the man on the end of every attack, so a
+ * good finisher took seventy per cent of his side's shots and scored one and a half a
+ * game. Being clinical does not get you the ball more often; it makes the chances you
+ * get count. It moves conversion now, and the share of chances is decided by where he
+ * plays and how good he is, like everybody else's.
+ */
+function finishingEdge(user: Player): number {
+  return clamp(0.88 + (user.attributes.finishing - 45) / 140, 0.88, 1.3);
 }
 
-/** How often the ball finds the user, given where they play. */
+/**
+ * How often the ball finds the user, given where they play.
+ *
+ * A focal centre forward takes about a quarter of what his side has, a very good one a
+ * third. It used to be nearly half before anything else was applied, which is how a
+ * nineteen year old ended a season on twenty-seven goals in fourteen games and scored
+ * more than half of everything his club managed.
+ */
 function userInvolvementChance(user: Player, slot: Position | null, mental = 1): number {
   const group = positionGroup(slot ?? user.primaryPos);
-  const base = group === 'ATT' ? 0.44 : group === 'MID' ? 0.30 : group === 'DEF' ? 0.10 : 0.01;
-  const quality = clamp(ratingAt(user.attributes, slot ?? user.primaryPos) / 90, 0.4, 1.25);
+  const base = group === 'ATT' ? 0.30 : group === 'MID' ? 0.21 : group === 'DEF' ? 0.075 : 0.01;
+  const quality = clamp(ratingAt(user.attributes, slot ?? user.primaryPos) / 90, 0.4, 1.15);
   // A player who is off his game asks for the ball less and gets it less.
-  return clamp(base * quality * (0.85 + user.form / 320) * mental, 0.01, 0.6);
+  return clamp(base * quality * (0.85 + user.form / 320) * mental, 0.01, 0.45);
 }
 
 function inMatchInjuryChance(user: Player, minutes: number): number {

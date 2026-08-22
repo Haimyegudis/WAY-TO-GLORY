@@ -25,9 +25,46 @@ export function ageFactor(age: number, pos: Position): number {
   return interpolate(AGE_CURVE, age - shift);
 }
 
+/**
+ * How much of a player a footballer is allowed to be at a given age.
+ *
+ * Talent is not the only thing between a boy and his ceiling - years are. A nineteen
+ * year old is not a finished player however good he is or how hard he trains, and the
+ * game was letting one become one: a season in Israel, a season in the second tier, a
+ * season lost to injury, and he was a 79 at nineteen and on course for 90 at
+ * twenty-two. Real ones arrive at that in their middle twenties.
+ *
+ * The ceiling opens with age. It is generous enough that a wonderkid is still a
+ * wonderkid - eighty per cent of a very high potential at twenty is a very good player
+ * in any league - and it stops five seasons of good training from producing a finished
+ * international before he can legally drink in America.
+ */
+const MATURITY: readonly (readonly [number, number])[] = [
+  [14, 0.50], [16, 0.62], [18, 0.72], [20, 0.80], [22, 0.87], [24, 0.93], [26, 0.98], [28, 1],
+];
+
+export function maturity(age: number): number {
+  return clamp(interpolate(MATURITY, age), 0.5, 1);
+}
+
+/**
+ * The best he is allowed to be at this age.
+ *
+ * Talent arrives early as well as high: the boys who end up at ninety are the ones who
+ * were already worth watching at eighteen, so a very high ceiling opens faster than an
+ * ordinary one. It is still a ceiling - nobody is finished at nineteen - but a generational
+ * teenager is not held to the same line as a squad player who will peak at sixty-five.
+ */
+export function ageCeiling(potential: number, age: number): number {
+  const early = clamp((potential - 75) / 120, 0, 0.16);
+  const open = maturity(age);
+  return potential * clamp(open + (1 - open) * early, 0.4, 1);
+}
+
 /** How much room is left before the ceiling. Collapses to zero at potential. */
-export function headroom(ovr: number, potential: number): number {
-  const gap = potential - ovr;
+export function headroom(ovr: number, potential: number, age = 28): number {
+  const ceiling = ageCeiling(potential, age);
+  const gap = ceiling - ovr;
   if (gap <= 0) return 0;
   if (gap >= 25) return 1;
   return clamp(gap / 25, 0, 1) ** 0.6;
@@ -169,7 +206,7 @@ export function developWeek(
   const ovrBefore = overall(player.attributes, player.primaryPos, player.secondaryPos);
 
   const aF = ageFactor(age, player.primaryPos);
-  const hR = headroom(ovrBefore, player.potential);
+  const hR = headroom(ovrBefore, player.potential, age);
 
   /*
    * Where he trains, and it matters.
