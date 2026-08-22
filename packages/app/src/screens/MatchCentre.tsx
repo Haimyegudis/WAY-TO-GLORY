@@ -222,6 +222,25 @@ export function MatchCentre() {
               <Stat label={t('match.shots')} value={line.shots} />
               <Stat label={line.saves > 0 ? t('match.saves') : t('match.keyPasses')} value={line.saves > 0 ? line.saves : line.keyPasses} />
             </div>
+            {/*
+              * What the week's work was worth.
+              *
+              * He picked a job on Thursday and then the match said nothing about it, so
+              * the choice felt like it went nowhere. It says so now: the job, and
+              * whether it was the right one for them.
+              */}
+            {match.plan && (
+              <p style={{ fontSize: 13, marginBlockStart: 10 }}>
+                {t('match.plan', { plan: `plan.${match.plan.id}` })}
+                <span
+                  className="faint"
+                  style={{ color: match.plan.fit > 0.1 ? 'var(--green)' : match.plan.fit < -0.1 ? 'var(--red)' : undefined }}
+                >
+                  {' · '}
+                  {t(match.plan.fit > 0.1 ? 'match.plan.read' : match.plan.fit < -0.1 ? 'match.plan.wrong' : 'match.plan.neutral')}
+                </span>
+              </p>
+            )}
             {/* The man he actually spent the afternoon against, and who won it. */}
             {line.duel && (
               <p style={{ fontSize: 13, marginBlockStart: 10 }} className={line.duel.won ? undefined : 'faint'}>

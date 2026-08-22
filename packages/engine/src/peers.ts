@@ -307,6 +307,48 @@ export interface PeerLine {
  * The table he cannot stop looking at: the boys from his year, where they ended up, and
  * whether they are ahead of him.
  */
+/**
+ * What one of them has done so far this season.
+ *
+ * A career was only added up in the summer, so from August to May the table said every
+ * boy he came through with had played nothing - and in his first year, that everybody
+ * including him had a career of zeros. Where his division is modelled the goals are the
+ * real ones; where it is not, it is the arithmetic a supporter does: he is playing this
+ * often at that level, so by March it is about this many.
+ */
+function liveSeason(state: CareerState, player: Player): { apps: number; goals: number; assists: number } {
+  const club = player.clubId ? state.world.clubs[player.clubId] : undefined;
+  if (!club) return { apps: 0, goals: 0, assists: 0 };
+
+  const modelled = state.world.competitions[club.competitionId]
+    ?? state.world.youth?.competitions[state.world.youth.membership[club.id] ?? ''];
+  const played = (modelled?.fixtures ?? []).filter(
+    (fixture) => fixture.played && (fixture.homeClubId === club.id || fixture.awayClubId === club.id),
+  ).length;
+  const ovr = ratingAt(player.attributes, player.primaryPos);
+  const share = clamp(0.3 + (ovr - clubBaseOvr(club)) / 22, 0.05, 0.95);
+
+  if (modelled) {
+    return {
+      apps: Math.round(share * played),
+      goals: modelled.scorers[player.id] ?? 0,
+      assists: modelled.assists?.[player.id] ?? 0,
+    };
+  }
+
+  // Nobody is watching his league. Count the weeks instead of the matches.
+  const rounds = clamp(Math.round((state.world.week - 3) * 0.8), 0, 34);
+  const apps = Math.round(share * rounds);
+  const group = positionGroup(player.primaryPos);
+  const per90 = group === 'ATT' ? 0.42 : group === 'MID' ? 0.16 : group === 'DEF' ? 0.05 : 0;
+  const quality = 0.6 + ovr / 120;
+  return {
+    apps,
+    goals: Math.round(apps * per90 * quality),
+    assists: Math.round(apps * per90 * 0.6 * quality),
+  };
+}
+
 export function peerTable(state: CareerState): PeerLine[] {
   const season = state.world.season;
   const mine = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
@@ -321,6 +363,10 @@ export function peerTable(state: CareerState): PeerLine[] {
     .map((player) => {
       const club = player.clubId ? state.world.clubs[player.clubId] : undefined;
       const career = player.career ?? emptyCareer(season);
+      // The season nobody has filed yet counts too - his does.
+      const now = player.retired ? { apps: 0, goals: 0, assists: 0 } : liveSeason(state, player);
+      const apps = career.apps + now.apps;
+      const goals = career.goals + now.goals;
       return {
         playerId: player.id,
         name: `${player.firstName} ${player.lastName}`,
@@ -328,11 +374,11 @@ export function peerTable(state: CareerState): PeerLine[] {
         clubId: club?.id ?? null,
         clubName: club?.name ?? '',
         ovr: ratingAt(player.attributes, player.primaryPos),
-        apps: career.apps,
-        goals: career.goals,
+        apps,
+        goals,
         trophies: career.trophies,
         retired: Boolean(player.retired),
-        aheadOfYou: career.apps + career.goals * 3 > myScore,
+        aheadOfYou: apps + goals * 3 > myScore,
         sameYear: Math.abs(player.birthYear - state.player.birthYear) <= 1,
       };
     })

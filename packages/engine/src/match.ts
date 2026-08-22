@@ -97,6 +97,8 @@ export interface UserMatchContext {
   atmosphere?: Atmosphere;
   /** How well the week's plan read this opponent, -1 to 1. Worth a mark either way. */
   planFit?: number;
+  /** Which job it was, so the report can name it afterwards. */
+  planId?: string;
 }
 
 /** Weight of a player being the one at the end of a chance. */
@@ -392,6 +394,7 @@ function buildResult(
     awayGoals,
     detailLevel: 1,
     importance,
+    ...(ctx.planId ? { plan: { id: ctx.planId, fit: ctx.planFit ?? 0 } } : {}),
     ...(ctx.atmosphere
       ? {
         attendance: ctx.atmosphere.attendance,

@@ -3991,7 +3991,7 @@ function playUserMatch(
     minutes,
     importance,
     matchId,
-    ...(planMods ? { plan: planMods, planFit: readOfThem } : {}),
+    ...(planMods ? { plan: planMods, planFit: readOfThem, planId: chosenPlan?.id } : {}),
     ...(marker ? { duel: { name: marker.name, rating: marker.rating } } : {}),
     atmosphere,
   };
@@ -6226,18 +6226,29 @@ export interface CareerSummary {
 }
 
 export function careerSummary(state: CareerState): CareerSummary {
+  /*
+   * A career includes the season he is in the middle of.
+   *
+   * Seasons were only added up when they were filed away in May, so a boy in his first
+   * year opened his own career page and read zero matches, zero goals, no rating - while
+   * the match report from Saturday was two screens away. What he has done this season is
+   * still what he has done.
+   */
   const h = state.seasonHistory;
-  const matches = h.reduce((s, r) => s + r.apps, 0);
-  const goals = h.reduce((s, r) => s + r.goals, 0);
-  const assists = h.reduce((s, r) => s + r.assists, 0);
-  const ratedApps = h.reduce((s, r) => s + r.ratedApps, 0);
-  const ratingSum = h.reduce((s, r) => s + r.ratingSum, 0);
-  const peakOvr = h.reduce((m, r) => Math.max(m, r.ovrEnd), 0);
-  const peakValue = h.reduce((m, r) => Math.max(m, r.valueEnd), 0);
+  const live = state.world.seasonStats[state.player.id];
+  const running = live && !h.some((record) => record.season === live.season) ? live : undefined;
+  const matches = h.reduce((s, r) => s + r.apps, 0) + (running?.apps ?? 0);
+  const goals = h.reduce((s, r) => s + r.goals, 0) + (running?.goals ?? 0);
+  const assists = h.reduce((s, r) => s + r.assists, 0) + (running?.assists ?? 0);
+  const ratedApps = h.reduce((s, r) => s + r.ratedApps, 0) + (running?.ratedApps ?? 0);
+  const ratingSum = h.reduce((s, r) => s + r.ratingSum, 0) + (running?.ratingSum ?? 0);
+  const ovrNow = currentOvr(state);
+  const peakOvr = Math.max(h.reduce((m, r) => Math.max(m, r.ovrEnd), 0), ovrNow);
+  const peakValue = Math.max(h.reduce((m, r) => Math.max(m, r.valueEnd), 0), state.marketValue);
   const score = state.careerScore ?? computeCareerScore(state);
 
   return {
-    seasons: h.length,
+    seasons: h.length + (running ? 1 : 0),
     matches,
     goals,
     assists,

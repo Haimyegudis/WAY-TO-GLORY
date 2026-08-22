@@ -1,5 +1,5 @@
 import { Rng, clamp } from './rng.js';
-import { DIET_INJURY } from './development.js';
+import { DIET_INJURY, FOCUS_LOAD } from './development.js';
 import type { Injury, InjurySeverity, Player, TrainingPlan } from './types.js';
 
 interface InjuryType {
@@ -135,8 +135,8 @@ export function trainingInjuryChance(player: Player, plan: TrainingPlan, season:
   const durability = (player.attributes.strength + player.attributes.balance + player.attributes.agility) / 3;
   const proFactor = 1.15 - player.personality.professionalism / 400;
   return clamp(
-    0.0034 * intensityFactor[plan.intensity] * ageFactor * fatigueFactor * proFactor * DIET_INJURY[plan.diet] *
-      (1.3 - durability / 200),
+    0.0034 * intensityFactor[plan.intensity] * ageFactor * fatigueFactor * proFactor * DIET_INJURY[plan.diet]
+      * FOCUS_LOAD[plan.focus].injury * (1.3 - durability / 200),
     0.0003,
     0.2,
   );

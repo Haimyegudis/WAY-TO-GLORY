@@ -424,6 +424,8 @@ export interface MatchResult {
   instructionChanges?: LiveInstructionChange[];
   /** Only present for detail level 1 (matches the user was involved in). */
   userLine?: UserMatchLine;
+  /** The job he picked for the afternoon, and whether it suited them. */
+  plan?: { id: string; fit: number };
   /** How many were there, what the sky was doing, and who had the whistle. */
   attendance?: number;
   weather?: 'clear' | 'rain' | 'heavyRain' | 'wind' | 'heat' | 'cold';

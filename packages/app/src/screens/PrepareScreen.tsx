@@ -1,4 +1,4 @@
-import { MATCH_PLANS, type MatchPlanId, type MatchPreparation } from '@fc/engine';
+import { MATCH_PLANS, type MatchPlanId, type MatchPreparation, type OpponentReport } from '@fc/engine';
 import { useT } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
 import { Card } from '../components/ui.js';
@@ -65,6 +65,20 @@ export function PrepareCard({ preparation }: { preparation: MatchPreparation }) 
               <span className="faint" style={{ display: 'block', fontSize: 12.5, marginBlockStart: 4 }}>
                 {t(`plan.${option.id}.detail`)}
               </span>
+              {/*
+                * Why this one, against these. The fit was a single word - "ideal",
+                * "wrong" - with nothing tying it to the report above it, so the report
+                * and the choice read like two unrelated cards.
+                */}
+              {reasons(option.id as MatchPlanId, report).map((reason) => (
+                <span
+                  key={reason.key}
+                  className="faint"
+                  style={{ display: 'block', fontSize: 11.5, marginBlockStart: 3, color: reason.good ? 'var(--green)' : 'var(--red)' }}
+                >
+                  {t(reason.key, { what: reason.what })}
+                </span>
+              ))}
             </button>
           );
         })}
@@ -80,6 +94,22 @@ export function PrepareCard({ preparation }: { preparation: MatchPreparation }) 
       </p>
     </Card>
   );
+}
+
+/** The line between the scouting report and this job: what it uses, and what it risks. */
+function reasons(id: MatchPlanId, report: OpponentReport): { key: string; what: string; good: boolean }[] {
+  const plan = MATCH_PLANS[id];
+  const out: { key: string; what: string; good: boolean }[] = [];
+  if (report.weakness !== 'none' && plan.punishes.includes(report.weakness)) {
+    out.push({ key: 'prepare.because.punishes', what: `scout.weakness.${report.weakness}`, good: true });
+  }
+  if (plan.counters.includes(report.threat)) {
+    out.push({ key: 'prepare.because.counters', what: `scout.threat.${report.threat}`, good: true });
+  }
+  if (plan.exposedTo.includes(report.threat)) {
+    out.push({ key: 'prepare.because.exposed', what: `scout.threat.${report.threat}`, good: false });
+  }
+  return out;
 }
 
 function fitKey(fit: number): string {

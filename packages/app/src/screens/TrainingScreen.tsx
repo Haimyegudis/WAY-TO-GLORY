@@ -1,5 +1,6 @@
 import {
   ATTRIBUTE_KEYS,
+  FOCUS_LOAD,
   MENTAL_ATTRS,
   PHYSICAL_ATTRS,
   skillProfile,
@@ -75,7 +76,38 @@ function planEffects(plan: { intensity: TrainingIntensity; diet: DietLevel; focu
     nutritionist: { key: 'train.effect.recovery', arrow: '↑↑', tone: 'good' },
   };
 
-  return [...byIntensity[plan.intensity], byDiet[plan.diet], { key: `train.focus.${plan.focus}`, arrow: '↑', tone: 'good' }];
+  /*
+   * And what the focus itself costs the body.
+   *
+   * It used to print "recovery ↑" for every focus, which was true of none of them: the
+   * focus decided which attributes grew and nothing else. Now a week in the pool empties
+   * the legs and costs development, and the card says so before he picks it.
+   */
+  const load = FOCUS_LOAD[plan.focus];
+  const focusLines: PlanEffect[] = [];
+  const fatigueShift = load.fatigue - (load.recovery - 1) * 8;
+  if (Math.abs(fatigueShift) > 0.5) {
+    focusLines.push({
+      key: 'train.effect.fatigue',
+      arrow: fatigueShift <= -4 ? '↓↓' : fatigueShift < 0 ? '↓' : fatigueShift >= 1.5 ? '↑' : '–',
+      tone: fatigueShift < 0 ? 'good' : 'bad',
+    });
+  }
+  if (load.injury !== 1) {
+    focusLines.push({
+      key: 'train.effect.injury',
+      arrow: load.injury <= 0.7 ? '↓↓' : load.injury < 1 ? '↓' : '↑',
+      tone: load.injury < 1 ? 'good' : 'bad',
+    });
+  }
+  if (load.growth !== 1) {
+    focusLines.push({
+      key: 'train.effect.development',
+      arrow: load.growth <= 0.5 ? '↓↓' : '↓',
+      tone: 'bad',
+    });
+  }
+  return [...byIntensity[plan.intensity], byDiet[plan.diet], ...focusLines];
 }
 
 /**

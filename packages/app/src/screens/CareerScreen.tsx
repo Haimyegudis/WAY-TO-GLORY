@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { careerBreakdown, careerLegacy, careerSummary, peers, type MatchCategory } from '@fc/engine';
+import { careerBreakdown, careerLegacy, careerSummary, currentOvr, peers, type MatchCategory } from '@fc/engine';
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubName, clubShortName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
@@ -133,6 +133,25 @@ export function CareerScreen() {
   const myClubName = myClub ? clubShortName(myClub, lang) : '—';
   const [view, setView] = useState<'numbers' | 'seasons' | 'honours'>('numbers');
   const breakdown = careerBreakdown(state);
+  /*
+   * Season by season, including the one being played.
+   *
+   * The table was built from the seasons already filed away in May, so from August a
+   * player looked at his own career and the year he was in the middle of was not in it.
+   */
+  const live = state.world.seasonStats[state.player.id];
+  const history = live && !state.seasonHistory.some((record) => record.season === live.season)
+    ? [...state.seasonHistory, {
+      ...live,
+      age: state.world.season - state.player.birthYear,
+      ovrStart: Number(state.flags['seasonStartOvr'] ?? currentOvr(state)),
+      ovrEnd: currentOvr(state),
+      valueStart: state.marketValue,
+      valueEnd: state.marketValue,
+      leaguePosition: null,
+      trophies: [] as string[],
+    }]
+    : state.seasonHistory;
 
   return (
     <div className="screen stack">
@@ -251,23 +270,23 @@ export function CareerScreen() {
         * one measure each - a rating out of ten and three thousand minutes have no
         * business sharing an axis.
         */}
-      {state.seasonHistory.length >= 2 && (
+      {history.length >= 2 && (
         <Card title={t('career.shape')}>
           <SeasonChart
             label={t('career.ovrBySeason')}
-            points={state.seasonHistory.map((r) => ({ season: r.season, value: r.ovrEnd }))}
+            points={history.map((r) => ({ season: r.season, value: r.ovrEnd }))}
             format={(v: number) => String(Math.round(v))}
             seasonLabel={formatSeason}
           />
           <SeasonChart
             label={t('career.minutesBySeason')}
-            points={state.seasonHistory.map((r) => ({ season: r.season, value: r.minutes }))}
+            points={history.map((r) => ({ season: r.season, value: r.minutes }))}
             format={(v: number) => String(Math.round(v))}
             seasonLabel={formatSeason}
           />
           <SeasonChart
             label={t('career.ratingBySeason')}
-            points={state.seasonHistory.map((r) => ({
+            points={history.map((r) => ({
               season: r.season,
               value: r.ratedApps > 0 ? r.ratingSum / r.ratedApps : 0,
             }))}
@@ -283,7 +302,7 @@ export function CareerScreen() {
       {view === 'seasons' && (
         <>
       <Card title={t('career.history')}>
-        {state.seasonHistory.length === 0 ? (
+        {history.length === 0 ? (
           <Empty>—</Empty>
         ) : (
           <div className="scroll-x">
@@ -300,7 +319,7 @@ export function CareerScreen() {
                 </tr>
               </thead>
               <tbody>
-                {[...state.seasonHistory].reverse().map((record) => (
+                {[...history].reverse().map((record) => (
                   <tr key={record.season}>
                     <td className="n">
                       <span className="age-pill" style={{ background: ageColor(record.age), color: '#06111f' }}>

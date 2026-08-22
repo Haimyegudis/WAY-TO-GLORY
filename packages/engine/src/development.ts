@@ -102,6 +102,39 @@ const FOCUS_ATTRS: Record<TrainingFocus, AttributeKey[]> = {
   recovery: [],
 };
 
+/**
+ * What a week of each focus does to the body, on top of the load he chose.
+ *
+ * A focus used to decide only which attributes grew. Choosing recovery cost nothing and
+ * did nothing: the same development as a balanced week, the same fatigue, the same risk -
+ * a rest week that was not a rest. A focus is a week of a footballer's life and the
+ * body knows the difference between a morning of finishing drills and a morning in the
+ * pool.
+ *
+ * fatigue is points added on top of the intensity's own; recovery multiplies what the
+ * week gives back; injury multiplies the risk of the week; sharpness is points of match
+ * sharpness; growth scales what the week is worth in development.
+ */
+export const FOCUS_LOAD: Record<TrainingFocus, {
+  fatigue: number;
+  recovery: number;
+  injury: number;
+  sharpness: number;
+  growth: number;
+}> = {
+  balanced: { fatigue: 0, recovery: 1, injury: 1, sharpness: 0, growth: 1 },
+  physical: { fatigue: 1.7, recovery: 1, injury: 1.15, sharpness: 0, growth: 1 },
+  technical: { fatigue: -0.4, recovery: 1, injury: 0.95, sharpness: 0.6, growth: 1 },
+  mental: { fatigue: -0.9, recovery: 1.05, injury: 0.88, sharpness: 0, growth: 1 },
+  finishing: { fatigue: 0.3, recovery: 1, injury: 1, sharpness: 1.2, growth: 1 },
+  defending: { fatigue: 0.7, recovery: 1, injury: 1.05, sharpness: 0.6, growth: 1 },
+  goalkeeping: { fatigue: 0.2, recovery: 1, injury: 1, sharpness: 1.2, growth: 1 },
+  // The week he takes when his legs are gone: the pool, the bike, the physio's table.
+  // It costs most of the week's development and it is the only thing that empties a
+  // player's legs before a run of fixtures.
+  recovery: { fatigue: -4, recovery: 1.55, injury: 0.55, sharpness: -1.6, growth: 0.4 },
+};
+
 export interface DevelopmentContext {
   training: TrainingPlan;
   coachQuality: number;      // 0-100
@@ -173,6 +206,8 @@ export function developWeek(
     0.185 * aF * trainingF * playingF * proF * moraleF * fitnessF * levelF * injuredPenalty * rng.range(0.75, 1.3);
 
   if (aF > 0) total *= hR;
+  // A week in the pool is a week not spent getting better.
+  total *= FOCUS_LOAD[ctx.training.focus].growth;
 
   applyGrowth(rng, player, total, ctx.training.focus, age);
 
@@ -315,13 +350,14 @@ export function updateCondition(
 /** Monday-to-Friday load, applied before selection and the weekend fixture. */
 export function applyTrainingCondition(player: Player, plan: TrainingPlan): void {
   const cond = player.condition;
-  const recovery = DIET_RECOVERY[plan.diet];
+  const load = FOCUS_LOAD[plan.focus];
+  const recovery = DIET_RECOVERY[plan.diet] * load.recovery;
   const stamina = player.attributes.stamina;
-  const trainingFatigue = INTENSITY_FATIGUE[plan.intensity];
+  const trainingFatigue = INTENSITY_FATIGUE[plan.intensity] + load.fatigue;
   const naturalRecovery = (6 + stamina / 14) * recovery;
 
   cond.fatigue = clamp(cond.fatigue + trainingFatigue - naturalRecovery, 0, 100);
-  cond.sharpness = clamp(cond.sharpness + INTENSITY_SHARPNESS[plan.intensity], 0, 100);
+  cond.sharpness = clamp(cond.sharpness + INTENSITY_SHARPNESS[plan.intensity] + load.sharpness, 0, 100);
 
   const ceiling = INTENSITY_FITNESS_CEILING[plan.intensity] * (0.94 + DIET_FACTOR[plan.diet] * 0.06);
   const targetFitness = Math.min(ceiling, 100 - cond.fatigue * 0.75);

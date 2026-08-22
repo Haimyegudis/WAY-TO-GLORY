@@ -17,7 +17,8 @@ import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById, milestoneCopyVariant } from '../src/milestones.js';
 import { buildTeamOfTheWeek } from '../src/totw.js';
 import { estimatedScorers } from '../src/charts.js';
-import { careerBreakdown } from '../src/career.js';
+import { careerBreakdown, careerSummary } from '../src/career.js';
+import { applyTrainingCondition } from '../src/development.js';
 import { matchCategory } from '../src/category.js';
 import {
   MENTORS,
@@ -4104,5 +4105,106 @@ describe('what kind of football it was', () => {
     const seasons = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
       + (state.world.seasonStats[state.player.id]?.apps ?? 0);
     expect(official - national).toBe(seasons);
+  });
+});
+
+describe('the week before the match', () => {
+  it('does not say the same thing about every side in the division', () => {
+    const threats = new Set<string>();
+    const weaknesses = new Set<string>();
+    let reports = 0;
+    for (const seed of [11, 55]) {
+      const { state, index } = startedCareer({ seed });
+      for (let i = 0; i < 53 * 2 && !state.retired; i++) {
+        const prep = matchPreparation(state, index);
+        if (prep) {
+          reports++;
+          threats.add(prep.report.threat);
+          weaknesses.add(prep.report.weakness);
+        }
+        playWeek(state, index);
+        state.pendingDecisions = [];
+      }
+    }
+    expect(reports, 'he was never given a report').toBeGreaterThan(20);
+    // Their pace, their pressing, their set pieces: a division is not one team.
+    expect(threats.size, `every opponent had the same threat: ${[...threats]}`).toBeGreaterThan(2);
+    expect(weaknesses.size, `every opponent had the same weakness: ${[...weaknesses]}`).toBeGreaterThan(2);
+  });
+
+  it('offers jobs that are not all equally right', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    let spread = 0;
+    for (let i = 0; i < 80 && !state.retired; i++) {
+      const prep = matchPreparation(state, index);
+      if (prep && prep.options.length > 1) {
+        spread = Math.max(spread, prep.options[0]!.fit - prep.options[prep.options.length - 1]!.fit);
+      }
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    expect(spread, 'every plan fitted every opponent the same').toBeGreaterThan(0.4);
+  });
+});
+
+describe('the week itself', () => {
+  it('a recovery week actually empties his legs', () => {
+    const tired = () => {
+      const { state } = startedCareer({ seed: 11 });
+      const player = state.player;
+      player.condition.fatigue = 60;
+      player.condition.sharpness = 70;
+      return player;
+    };
+
+    const resting = tired();
+    applyTrainingCondition(resting, { intensity: 'normal', focus: 'recovery', diet: 'normal' });
+    const working = tired();
+    applyTrainingCondition(working, { intensity: 'normal', focus: 'balanced', diet: 'normal' });
+
+    expect(resting.condition.fatigue).toBeLessThan(working.condition.fatigue - 5);
+    // And it costs him: a week in the pool is not a week of football.
+    expect(resting.condition.sharpness).toBeLessThan(working.condition.sharpness);
+  });
+
+  it('eating better recovers more than eating badly', () => {
+    const at = (diet: 'poor' | 'nutritionist') => {
+      const { state } = startedCareer({ seed: 55 });
+      state.player.condition.fatigue = 60;
+      applyTrainingCondition(state.player, { intensity: 'normal', focus: 'balanced', diet });
+      return state.player.condition.fatigue;
+    };
+    expect(at('nutritionist')).toBeLessThan(at('poor') - 3);
+  });
+});
+
+describe('a career that has not finished yet', () => {
+  it('counts the season he is in the middle of', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    for (let i = 0; i < 40; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    expect(state.seasonHistory.length, 'the first season is already filed').toBe(0);
+    const summary = careerSummary(state);
+    const played = state.world.seasonStats[state.player.id]?.apps ?? 0;
+    expect(played, 'he has not played yet').toBeGreaterThan(0);
+    expect(summary.matches, 'his own career page says he has played nothing').toBe(played);
+    expect(summary.seasons).toBe(1);
+    expect(summary.peakOvr).toBeGreaterThan(0);
+  });
+
+  it('shows the other boys playing too, before any season is over', () => {
+    const { state, index } = startedCareer({ seed: 11 });
+    for (let i = 0; i < 40; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const table = peers(state);
+    expect(table.length, 'nobody is being followed').toBeGreaterThan(3);
+    expect(
+      table.some((peer) => peer.apps > 0),
+      'every boy he came through with has played nothing all year',
+    ).toBe(true);
   });
 });

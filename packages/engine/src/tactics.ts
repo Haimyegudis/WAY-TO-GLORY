@@ -174,6 +174,34 @@ export function plansFor(group: PositionGroup): MatchPlan[] {
  * scouting report on a side nobody has seen is exactly that thin - and the report says
  * so by having no danger man in it.
  */
+/*
+ * The five families do not sit at the same height in a generated squad: a side's passing
+ * and vision read a couple of points above its strength and balance in every squad in
+ * the game. These are the measured averages, so "what is this side good at" means what
+ * it is good at compared with other sides rather than which attribute the generator
+ * happens to write highest. Forwards also run about eight points faster than the team
+ * they play in, which is normal and not a warning.
+ */
+/*
+ * The same for the soft spots. A back four reads a couple of points quicker than the
+ * side it plays in once a goalkeeper is in the average, and a midfield reads slightly
+ * under the club's rating in every squad. A weakness is a line that is worse than that.
+ */
+const WEAKNESS_BASELINE: Record<Exclude<OpponentWeakness, 'none'>, number> = {
+  slowDefence: -2.7,
+  openMidfield: 1.7,
+  lightUpFront: 1.3,
+  shakyKeeper: 0.9,
+};
+
+const FAMILY_BASELINE: Record<OpponentThreat, number> = {
+  pace: -0.5,
+  possession: 2,
+  pressing: -0.6,
+  setPieces: 0.1,
+  physical: -1.2,
+};
+
 export function readOpponent(input: {
   club: Club;
   squad: Player[];
@@ -194,7 +222,6 @@ export function readOpponent(input: {
   const mean = (entries: typeof rated) =>
     entries.length === 0 ? rating : entries.reduce((sum, entry) => sum + entry.ovr, 0) / entries.length;
 
-  const defence = mean(byGroup('DEF'));
   const midfield = mean(byGroup('MID'));
   const attack = mean(byGroup('ATT'));
   const keeper = byGroup('GK')[0]?.ovr ?? rating;
@@ -203,29 +230,59 @@ export function readOpponent(input: {
   const avg = (pick: (p: Player) => number, pool = rated) =>
     pool.length === 0 ? 55 : pool.reduce((sum, entry) => sum + pick(entry.player), 0) / pool.length;
 
-  // What they will actually do to him, decided by what they are made of.
+  /*
+   * What they will actually do to him, decided by what they are made of.
+   *
+   * Every side has a highest attribute and it was almost always the same one: strength
+   * and work rate sit higher than vision in every squad ever generated, so the report
+   * read the same against everybody. What matters is not which number is biggest but
+   * which one is bigger than the rest of this side - a team that presses is a team whose
+   * legs are ahead of the rest of it.
+   */
+  const teamPace = avg((p) => (p.attributes.pace + p.attributes.acceleration) / 2);
+  const measures: [OpponentThreat, number][] = [
+    ['pace', teamPace],
+    ['possession', avg((p) => (p.attributes.passing + p.attributes.vision) / 2)],
+    ['pressing', avg((p) => (p.attributes.workRate + p.attributes.stamina) / 2)],
+    ['setPieces', avg((p) => (p.attributes.heading + p.attributes.jumping) / 2)],
+    ['physical', avg((p) => (p.attributes.strength + p.attributes.balance) / 2)],
+  ];
+  const across = measures.reduce((sum, [, value]) => sum + value, 0) / measures.length;
+  // Every measure is read the same way, off the whole side, so none of them wins by
+  // being measured somewhere flattering. A quick front three then counts for something
+  // on top: it is the thing an opposing defender is actually warned about.
+  const frontPace = attackers.length > 0
+    ? avg((p) => (p.attributes.pace + p.attributes.acceleration) / 2, attackers) - teamPace
+    : 0;
+  const deviation = (entry: [OpponentThreat, number]) =>
+    entry[1] - across - FAMILY_BASELINE[entry[0]] + (entry[0] === 'pace' ? (frontPace - 8) * 0.25 : 0);
   const threat: OpponentThreat = squad.length < 6
     ? 'physical'
-    : (() => {
-      const scores: [OpponentThreat, number][] = [
-        ['pace', avg((p) => (p.attributes.pace + p.attributes.acceleration) / 2, attackers.length > 0 ? attackers : rated)],
-        ['possession', avg((p) => (p.attributes.passing + p.attributes.vision) / 2)],
-        ['pressing', avg((p) => (p.attributes.workRate + p.attributes.stamina) / 2)],
-        ['setPieces', avg((p) => (p.attributes.heading + p.attributes.jumping) / 2)],
-        ['physical', avg((p) => (p.attributes.strength + p.attributes.balance) / 2)],
-      ];
-      return scores.sort((a, b) => b[1] - a[1])[0]![0];
-    })();
+    : measures.slice().sort((a, b) => deviation(b) - deviation(a))[0]![0];
 
-  const lines: [OpponentWeakness, number][] = [
-    ['slowDefence', 100 - avg((p) => p.attributes.pace, byGroup('DEF'))],
-    ['openMidfield', 100 - midfield],
-    ['lightUpFront', 100 - attack],
-    ['shakyKeeper', 100 - keeper],
+  /*
+   * And where they are soft, on the same terms.
+   *
+   * This compared a back four's pace - a number that is naturally in the forties -
+   * against three whole-team ratings in the sixties, so "their back line is slow" won
+   * every week against every opponent in the game. Each line is now measured against
+   * what this side is elsewhere, which is what a scout means by a weak link.
+   */
+  const squadPace = avg((p) => (p.attributes.pace + p.attributes.acceleration) / 2);
+  const defencePace = avg((p) => (p.attributes.pace + p.attributes.acceleration) / 2, byGroup('DEF'));
+  const lines: [Exclude<OpponentWeakness, 'none'>, number][] = [
+    ['slowDefence', squadPace - defencePace],
+    ['openMidfield', rating - midfield],
+    ['lightUpFront', rating - attack],
+    ['shakyKeeper', rating - keeper],
   ];
-  const softest = squad.length < 6 ? null : lines.sort((a, b) => b[1] - a[1])[0]!;
+  const softest = squad.length < 6
+    ? null
+    : lines
+      .map(([line, value]) => [line, value - WEAKNESS_BASELINE[line]] as const)
+      .sort((a, b) => b[1] - a[1])[0]!;
   // A weakness is only worth naming when the line is genuinely behind the rest of them.
-  const weakness: OpponentWeakness = softest && softest[1] > 100 - rating + 4 ? softest[0] : 'none';
+  const weakness: OpponentWeakness = softest && softest[1] >= 2.5 ? softest[0] : 'none';
 
   const dangerMan = rated.length > 0
     ? rated.slice().sort((a, b) => b.ovr - a.ovr)[0]!
@@ -302,14 +359,14 @@ export function planFit(plan: MatchPlan, report: OpponentReport): number {
  */
 export function planEffect(plan: MatchPlan, fit: number): HalfTimeEffect {
   const read = clamp(fit, -1, 1);
-  const sharpen = 1 + read * 0.25;
+  const sharpen = 1 + read * 0.4;
   const scale = (value: number) => 1 + (value - 1) * sharpen;
   // Being right about them is not only a sharper version of the same job: it is being in
   // the right place before the ball gets there, which is worth chances and touches on its
   // own. Being wrong about them is the same amount of running for less.
-  const edge = 1 + read * 0.1;
+  const edge = 1 + read * 0.16;
   return {
-    involvement: scale(plan.effect.involvement) * (1 + read * 0.08),
+    involvement: scale(plan.effect.involvement) * (1 + read * 0.12),
     shooting: scale(plan.effect.shooting),
     conversion: scale(plan.effect.conversion) * edge,
     creating: scale(plan.effect.creating) * edge,
