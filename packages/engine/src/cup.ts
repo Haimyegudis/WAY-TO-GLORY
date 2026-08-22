@@ -14,6 +14,20 @@ export function youthCupId(cupId: string): string {
 /** Weeks the cup rounds are played on. Later rounds sit in the second half of the season. */
 export const CUP_ROUND_WEEKS = [7, 12, 17, 22, 29, 35, 40, 44];
 
+/**
+ * The shortest gap the calendar allows between two rounds of the same knockout.
+ *
+ * A cup built in the middle of a season - a boy who signs for a club in January and is
+ * put into its age group - had every round week already behind it, so the whole
+ * competition was played out in consecutive weeks: five ties, five weeks, a trophy by
+ * February. A round is never scheduled in the past now, and never on top of the one
+ * before it.
+ */
+export const MIN_ROUND_GAP = 3;
+
+/** The last week of the season a cup tie can be squeezed into. */
+const LAST_CUP_WEEK = 50;
+
 export interface CupTie {
   round: number;
   week: number;
@@ -60,11 +74,13 @@ export function createCup(
   };
 }
 
-export function drawRound(rng: Rng, cup: CupState): CupTie[] {
+export function drawRound(rng: Rng, cup: CupState, fromWeek = 0): CupTie[] {
   if (cup.finished || cup.alive.length < 2) return [];
   const schedule = cup.roundWeeks ?? CUP_ROUND_WEEKS;
   const weekIndex = Math.min(cup.round, schedule.length - 1);
-  const week = schedule[weekIndex]!;
+  // Whichever is later: the week the calendar wanted, or far enough after today that
+  // somebody has to travel to it. A round drawn in the past is a round played instantly.
+  const week = Math.min(LAST_CUP_WEEK, Math.max(schedule[weekIndex]!, fromWeek + MIN_ROUND_GAP));
   const shuffled = rng.shuffle(cup.alive);
   const ties: CupTie[] = [];
 

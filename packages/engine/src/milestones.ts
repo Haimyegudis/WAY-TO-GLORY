@@ -26,6 +26,8 @@ import type {
 export type MilestoneId =
   | 'debut'
   | 'firstGoal'
+  | 'firstAssist'
+  | 'hundredthApp'
   | 'derby'
   // Same city is a derby. A famous rivalry that spans two cities is not - and calling
   // it one in front of a microphone is exactly the sort of thing a supporter notices.
@@ -177,6 +179,67 @@ export const MILESTONES: MilestoneQuestion[] = [
         relationships: { media: 6, fans: 5 },
         fame: 3,
         backsItUp: { attribute: 'finishing', swing: 1.8 },
+      },
+    ],
+  },
+  {
+    // The first one he made rather than scored: a different question, and a different
+    // kind of player answering it.
+    id: 'firstAssist',
+    answers: [
+      {
+        id: 'thatIsMyGame',
+        risk: 'low',
+        // Casting himself as the man who makes them is also casting himself as the man
+        // who does not score them.
+        attributes: { vision: 1, finishing: -0.5 },
+        personality: { professionalism: 0.6, ambition: -0.4 },
+        relationships: { teammates: 7, manager: 3 },
+      },
+      {
+        id: 'iWantGoalsToo',
+        risk: 'medium',
+        attributes: { finishing: 0.8, composure: -0.4 },
+        personality: { ambition: 1.1 },
+        relationships: { media: 4, teammates: -3 },
+        fame: 2,
+      },
+      {
+        id: 'easyPass',
+        risk: 'low',
+        personality: { professionalism: 0.8, ambition: -0.5 },
+        relationships: { teammates: 5, media: -2 },
+        morale: 1,
+      },
+    ],
+  },
+  {
+    // A hundred games. Nobody plays a hundred games by accident.
+    id: 'hundredthApp',
+    answers: [
+      {
+        id: 'longWay',
+        risk: 'low',
+        // A hundred games is a milestone or a ceiling, depending who is listening.
+        personality: { professionalism: 1, determination: 0.8, ambition: -0.5 },
+        relationships: { fans: 6, media: 3, board: -2 },
+        morale: 4,
+      },
+      {
+        id: 'onlyTheStart',
+        risk: 'high',
+        personality: { ambition: 1.4 },
+        relationships: { media: 7, fans: 4 },
+        fame: 4,
+        backsItUp: { attribute: 'composure', swing: 1.6 },
+      },
+      {
+        id: 'thankThePeople',
+        risk: 'low',
+        // The crowd loves it. A club that might sell him hears a man who will not go.
+        personality: { loyalty: 1.2, ambition: -0.8 },
+        relationships: { fans: 11, teammates: 5, board: 3, media: -2 },
+        morale: 3,
       },
     ],
   },

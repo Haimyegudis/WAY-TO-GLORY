@@ -142,7 +142,154 @@ export function trainingInjuryChance(player: Player, plan: TrainingPlan, season:
   );
 }
 
-export type TreatmentChoice = 'surgery' | 'conservative' | 'playThrough';
+/**
+ * What the medical room offers him, and what each of them is really a bet on.
+ *
+ * A footballer does not choose how long he is out; he chooses which risk he takes and
+ * then finds out. Surgery is the long, safe road and it is the only road for some of
+ * these. An injection gets him on the pitch on Saturday and lies to his body about what
+ * is wrong with it. Conservative treatment is what a club does when nobody wants to
+ * gamble. And a proper rest is longer than it needs to be on purpose, because coming
+ * back properly is worth more than coming back early.
+ *
+ * Every one of them is rolled: the same choice on the same injury can come back early,
+ * on time, or worse than it started, and the odds are what separates the four options.
+ */
+export type TreatmentChoice = 'surgery' | 'injection' | 'conservative' | 'longRest' | 'playThrough';
+
+export interface TreatmentProfile {
+  id: TreatmentChoice;
+  /** Multiplier on the weeks he was told, before the roll. */
+  weeks: [number, number];
+  /** Chance the recovery goes better than anybody expected. */
+  goodChance: number;
+  /** Chance it goes wrong and the weeks get longer. */
+  setbackChance: number;
+  /** How much of it he carries with him afterwards. */
+  aggravationRisk: number;
+  /** What comes back with him: 1 is everything. */
+  quality: [number, number];
+}
+
+export const TREATMENTS: Record<TreatmentChoice, TreatmentProfile> = {
+  surgery: {
+    id: 'surgery',
+    weeks: [1.15, 1.5],
+    goodChance: 0.18,
+    setbackChance: 0.08,
+    aggravationRisk: 0.05,
+    quality: [0.99, 1],
+  },
+  injection: {
+    id: 'injection',
+    weeks: [0.3, 0.55],
+    goodChance: 0.3,
+    setbackChance: 0.42,
+    aggravationRisk: 0.5,
+    quality: [0.93, 0.985],
+  },
+  conservative: {
+    id: 'conservative',
+    weeks: [0.7, 0.95],
+    goodChance: 0.22,
+    setbackChance: 0.22,
+    aggravationRisk: 0.24,
+    quality: [0.965, 0.995],
+  },
+  longRest: {
+    id: 'longRest',
+    weeks: [1.1, 1.35],
+    goodChance: 0.26,
+    setbackChance: 0.05,
+    aggravationRisk: 0.02,
+    quality: [1, 1.01],
+  },
+  // Kept for the pack event that offers it: no treatment at all, straight back out.
+  playThrough: {
+    id: 'playThrough',
+    weeks: [0, 0],
+    goodChance: 0,
+    setbackChance: 0.62,
+    aggravationRisk: 0.62,
+    quality: [0.9, 0.97],
+  },
+};
+
+/**
+ * Which of them a doctor would actually put in front of him for this injury.
+ *
+ * Nobody operates on a dead leg and nobody injects a cruciate. The list is the injury's
+ * list, not a menu that is the same every time.
+ */
+export function treatmentsFor(injury: Injury): TreatmentChoice[] {
+  const severe = injury.severity === 'major' || injury.severity === 'careerThreatening';
+  const structural = injury.type === 'acl' || injury.type === 'metatarsal' || injury.type === 'shoulder';
+
+  if (severe || (structural && injury.severity === 'serious')) {
+    // A knee or a broken bone: an operation, or the long way round with a specialist.
+    return ['surgery', 'conservative', 'longRest'];
+  }
+  if (injury.severity === 'minor') {
+    // A knock. Nobody is opening him up for this.
+    return ['injection', 'conservative', 'longRest'];
+  }
+  return structural
+    ? ['surgery', 'conservative', 'longRest']
+    : ['injection', 'conservative', 'longRest'];
+}
+
+export interface TreatmentResult {
+  choice: TreatmentChoice;
+  weeksBefore: number;
+  weeksAfter: number;
+  /** better, expected or worse than the room told him. */
+  outcome: 'better' | 'expected' | 'setback';
+  aggravationRisk: number;
+  recoveryQuality: number;
+}
+
+/**
+ * Taking the treatment. The profile decides the shape of the bet; the roll decides how
+ * this one went, and the club's medical people tilt it a little in his favour.
+ */
+export function treatInjury(
+  rng: Rng,
+  injury: Injury,
+  choice: TreatmentChoice,
+  /** How good the medical room is, 0-100. A big club heals people faster. */
+  facilities = 50,
+): TreatmentResult {
+  const profile = TREATMENTS[choice];
+  const weeksBefore = injury.weeksOut;
+  const care = clamp((facilities - 50) / 200, -0.12, 0.12);
+
+  const roll = rng.next();
+  const good = clamp(profile.goodChance + care, 0.02, 0.6);
+  const bad = clamp(profile.setbackChance - care, 0.01, 0.7);
+  const outcome: TreatmentResult['outcome'] = roll < good ? 'better' : roll > 1 - bad ? 'setback' : 'expected';
+
+  const band = rng.range(profile.weeks[0], profile.weeks[1]);
+  const swing = outcome === 'better' ? rng.range(0.45, 0.7) : outcome === 'setback' ? rng.range(1.35, 1.9) : 1;
+  const weeks = Math.max(0, Math.round(weeksBefore * band * swing));
+
+  injury.treatment = choice;
+  injury.weeksOut = weeks;
+  injury.weeksRemaining = weeks;
+
+  const quality = clamp(
+    rng.range(profile.quality[0], profile.quality[1]) - (outcome === 'setback' ? 0.02 : 0),
+    0.85,
+    1.01,
+  );
+  return {
+    choice,
+    weeksBefore,
+    weeksAfter: weeks,
+    outcome,
+    aggravationRisk: clamp(profile.aggravationRisk * (outcome === 'setback' ? 1.4 : 1) - care, 0, 0.85),
+    recoveryQuality: quality,
+  };
+}
 
 export interface TreatmentOutcome {
   weeksOut: number;
@@ -150,27 +297,14 @@ export interface TreatmentOutcome {
   recoveryQuality: number; // multiplier applied to attributes on return, 1 = full
 }
 
-/** Treatment choices are presented as risk, never as percentages. */
+/** The old three-way call, kept for the pack event that still asks it. */
 export function applyTreatment(rng: Rng, injury: Injury, choice: TreatmentChoice): TreatmentOutcome {
-  injury.treatment = choice;
-  switch (choice) {
-    case 'surgery': {
-      const weeks = Math.round(injury.weeksOut * rng.range(1.15, 1.5));
-      injury.weeksRemaining = weeks;
-      injury.weeksOut = weeks;
-      return { weeksOut: weeks, aggravationRisk: 0.06, recoveryQuality: rng.range(0.985, 1.0) };
-    }
-    case 'conservative': {
-      const weeks = Math.round(injury.weeksOut * rng.range(0.6, 0.85));
-      injury.weeksRemaining = weeks;
-      injury.weeksOut = weeks;
-      return { weeksOut: weeks, aggravationRisk: 0.28, recoveryQuality: rng.range(0.955, 0.995) };
-    }
-    case 'playThrough': {
-      injury.weeksRemaining = 0;
-      return { weeksOut: 0, aggravationRisk: 0.62, recoveryQuality: rng.range(0.9, 0.97) };
-    }
-  }
+  const result = treatInjury(rng, injury, choice);
+  return {
+    weeksOut: result.weeksAfter,
+    aggravationRisk: result.aggravationRisk,
+    recoveryQuality: result.recoveryQuality,
+  };
 }
 
 /** Advance active injuries one week. Returns the injuries that healed. */

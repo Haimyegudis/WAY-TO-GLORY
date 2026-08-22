@@ -32,11 +32,14 @@ import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/na
 import { appointManager, sackingChance } from '../src/manager.js';
 import { MATCH_PLANS, planEffect, planFit, type OpponentReport } from '../src/tactics.js';
 import { TRACKED_LIMIT, TRACKED_PEERS, emptyCareer, recordSeason } from '../src/peers.js';
+import { TREATMENTS, treatInjury, treatmentsFor } from '../src/injury.js';
+import { MIN_ROUND_GAP, createCup, drawRound } from '../src/cup.js';
 import {
   SCHEMA_VERSION,
   applyLiveInstruction,
   advanceWeek,
   answerContractRenewal,
+  answerTreatment,
   answerMedia,
   answerOffer,
   careerStatus,
@@ -3587,10 +3590,17 @@ describe('nobody rings a first-team player about a step down', () => {
     const pack = loadPack();
     const compById = new Map(pack.competitions.map((competition) => [competition.id, competition]));
     let offers = 0;
-    for (const seed of [55, 123, 233]) {
+    for (const seed of [55, 123, 233, 11, 96, 4242]) {
       const { state, index } = startedCareer({ seed });
       for (let i = 0; i < 53 * 8 && !state.retired; i++) {
         playWeek(state, index);
+        // A career that turns every move down never becomes established, and the rule
+        // being tested only applies to a player who is. He moves like a real one.
+        for (const pending of [...state.pendingDecisions]) {
+          if (pending.kind !== 'transfer') continue;
+          const best = [...state.transferOffers].sort((a, b) => b.interestLevel - a.interestLevel)[0];
+          answerOffer(state, index, pending.id, best?.id ?? null);
+        }
         const club = state.player.clubId ? state.world.clubs[state.player.clubId] : undefined;
         const comp = club ? compById.get(club.competitionId) : undefined;
         // A club that has told him he can leave is allowed to be the last one calling.
@@ -3739,5 +3749,214 @@ describe('the order things arrive in', () => {
       expect(count, `two letters share the id ${id}`).toBe(1);
     }
     expect(ids.size).toBeGreaterThan(50);
+  });
+});
+
+
+describe('a season played in two shirts', () => {
+  it('files every appearance under the club he actually played it for', () => {
+    const { state, index } = startedCareer({ seed: 233 });
+    let guard = 0;
+    while (!state.retired && guard < 53 * 8) {
+      guard++;
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      const stats = state.world.seasonStats[state.player.id];
+      if (state.world.week === 29 && state.player.squadRole !== 'academy' && (stats?.apps ?? 0) >= 8) break;
+    }
+    const first = state.player.clubId!;
+    const before = { ...state.world.seasonStats[state.player.id]! };
+    expect(before.apps).toBeGreaterThan(0);
+    expect(before.spells?.length).toBe(1);
+    expect(before.spells![0]!.clubId).toBe(first);
+
+    const rng = new Rng(3);
+    const offers = generateOffers({ state, index, rng, minutesPct: 0.6, maxOffers: 6 });
+    if (offers.length === 0) return;   // nobody came in for him on this seed
+    state.transferOffers = offers;
+    acceptOffer(state, index, offers[0]!.id);
+    const second = state.player.clubId!;
+    expect(second).not.toBe(first);
+
+    for (let i = 0; i < 12; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const after = state.world.seasonStats[state.player.id]!;
+    const spells = after.spells ?? [];
+    // The season total is still the season, and it is now also broken down honestly.
+    expect(spells.reduce((sum, spell) => sum + spell.apps, 0)).toBe(after.apps);
+    expect(spells.reduce((sum, spell) => sum + spell.goals, 0)).toBe(after.goals);
+    const old = spells.find((spell) => spell.clubId === first)!;
+    expect(old.apps, 'the old club lost the football he played for it').toBe(before.apps);
+    expect(old.goals).toBe(before.goals);
+  });
+});
+
+
+describe('the medical room', () => {
+  it('offers the treatments that fit the injury and no others', () => {
+    const knock = { id: 'a', type: 'knock', severity: 'minor' as const, weeksOut: 2, weeksRemaining: 2, season: 2026 };
+    expect(treatmentsFor(knock)).not.toContain('surgery');
+    expect(treatmentsFor(knock)).toContain('injection');
+
+    const cruciate = { id: 'b', type: 'acl', severity: 'major' as const, weeksOut: 30, weeksRemaining: 30, season: 2026 };
+    expect(treatmentsFor(cruciate)).toContain('surgery');
+    expect(treatmentsFor(cruciate), 'nobody injects a cruciate and sends him out').not.toContain('injection');
+  });
+
+  it('is a bet: the same call on the same injury comes back differently', () => {
+    const outcomes = new Set<string>();
+    let quickest = 99;
+    let longest = 0;
+    for (let seed = 0; seed < 60; seed++) {
+      const injury = { id: 'x', type: 'hamstring', severity: 'moderate' as const, weeksOut: 6, weeksRemaining: 6, season: 2026 };
+      const result = treatInjury(new Rng(seed), injury, 'injection');
+      outcomes.add(result.outcome);
+      quickest = Math.min(quickest, result.weeksAfter);
+      longest = Math.max(longest, result.weeksAfter);
+      expect(injury.weeksRemaining).toBe(result.weeksAfter);
+    }
+    expect(outcomes.size, 'an injection always did the same thing').toBeGreaterThan(1);
+    expect(quickest, 'a needle never got him back early').toBeLessThan(3);
+    expect(longest, 'a needle never went wrong').toBeGreaterThan(3);
+
+    // And the shape of the four bets is different from each other.
+    const rest = TREATMENTS.longRest;
+    const needle = TREATMENTS.injection;
+    expect(needle.weeks[1]).toBeLessThan(rest.weeks[0]);
+    expect(needle.aggravationRisk).toBeGreaterThan(rest.aggravationRisk * 5);
+  });
+
+  it('tells him what happened to him and asks what he wants done', () => {
+    const { state, index } = startedCareer({ seed: 11 });
+    let asked = 0;
+    let told = 0;
+    const seen = new Set<string>();
+    for (let i = 0; i < 53 * 6 && asked === 0; i++) {
+      playWeek(state, index);
+      for (const message of state.inbox) {
+        if (seen.has(message.id)) continue;
+        seen.add(message.id);
+        if (message.titleKey.startsWith('inbox.injury.')) {
+          told++;
+          // The diagnosis names the injury, how bad it is and how long.
+          expect(message.args?.['type']).toBeTruthy();
+          expect(message.args?.['severity']).toBeTruthy();
+          expect(Number(message.args?.['weeks'])).toBeGreaterThan(0);
+        }
+      }
+      for (const decision of state.pendingDecisions) {
+        if (decision.eventId !== 'treatmentChoice') continue;
+        asked++;
+        expect(decision.blocking).toBe(true);
+        expect(decision.options.length).toBeGreaterThan(1);
+        const result = answerTreatment(state, decision.id, decision.options[0]!.id);
+        expect(result, 'the medical room could not be answered').toBeTruthy();
+      }
+      state.pendingDecisions = state.pendingDecisions.filter((d) => d.eventId !== 'treatmentChoice');
+    }
+    expect(told, 'he was hurt and nobody told him what it was').toBeGreaterThan(0);
+    expect(asked, 'he was hurt and nobody asked him anything').toBeGreaterThan(0);
+  });
+});
+
+
+describe('the cup calendar', () => {
+  it('spreads the rounds through the season instead of playing them back to back', () => {
+    const { state, index } = startedCareer({ seed: 233 });
+    let guard = 0;
+    while (!state.retired && state.world.season - 2026 < 5 && guard < 53 * 8) {
+      guard++;
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const byWeek = new Map<string, number>();
+    const perSeason = new Map<number, number[]>();
+    for (const match of state.matchLog) {
+      if (!match.competitionId.includes('cup') || !match.userLine) continue;
+      const key = `${match.season}w${match.week}`;
+      byWeek.set(key, (byWeek.get(key) ?? 0) + 1);
+      const list = perSeason.get(match.season) ?? [];
+      list.push(match.week);
+      perSeason.set(match.season, list);
+    }
+    expect(byWeek.size, 'he played no cup football at all').toBeGreaterThan(0);
+    for (const [week, count] of byWeek) {
+      // Two on one date is a congested week. Five is a competition being flushed.
+      expect(count, `${count} cup ties in ${week}`).toBeLessThanOrEqual(2);
+    }
+    const gaps: number[] = [];
+    for (const [, weeks] of perSeason) {
+      const sorted = [...weeks].sort((a, b) => a - b);
+      for (let i = 1; i < sorted.length; i++) gaps.push(sorted[i]! - sorted[i - 1]!);
+    }
+    if (gaps.length > 3) {
+      const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+      expect(mean, 'his cup ties are bunched together').toBeGreaterThan(2.5);
+    }
+  });
+
+  it('never draws a round into a week that has already gone', () => {
+    const cup = createCup(new Rng(1), 'ISR', Array.from({ length: 16 }, (_, i) => ({
+      id: `c${i}`, name: `C${i}`, country: 'ISR', competitionId: 'il.1', tier: 1,
+      reputation: 50, strength: 50, finances: 50, academy: 50, training: 50, prestige: 50,
+    })) as never[], 2026);
+    // A knockout built in the middle of a season: every week in its table is behind it.
+    drawRound(new Rng(2), cup, 30);
+    expect(Math.min(...cup.ties.map((tie) => tie.week))).toBeGreaterThanOrEqual(30 + MIN_ROUND_GAP);
+    const first = cup.ties[0]!.week;
+    for (const tie of cup.ties) tie.played = true;
+    cup.alive = cup.ties.map((tie) => tie.homeClubId);
+    drawRound(new Rng(3), cup, first);
+    const second = cup.ties.filter((tie) => !tie.played)[0]!.week;
+    expect(second - first, 'two rounds in the same fortnight').toBeGreaterThanOrEqual(MIN_ROUND_GAP);
+  });
+});
+
+
+describe('the voices around a bad run', () => {
+  it('takes turns: the manager, the crowd, then the press', () => {
+    const heard: string[] = [];
+    for (const seed of [11, 48, 85]) {
+      const { state, index } = startedCareer({ seed });
+      const seen = new Set<string>();
+      for (let i = 0; i < 53 * 8 && !state.retired; i++) {
+        playWeek(state, index);
+        for (const decision of state.pendingDecisions) {
+          if (decision.eventId === 'milestone:badRun') heard.push('press');
+        }
+        state.pendingDecisions = [];
+        for (const message of state.inbox) {
+          if (seen.has(message.id)) continue;
+          seen.add(message.id);
+          if (message.titleKey === 'inbox.badRun.manager') heard.push('manager');
+          if (message.titleKey === 'inbox.badRun.fans') heard.push('fans');
+        }
+      }
+    }
+    expect(heard.length, 'nobody ever said anything about a bad run').toBeGreaterThan(3);
+    const counts = new Map<string, number>();
+    for (const who of heard) counts.set(who, (counts.get(who) ?? 0) + 1);
+    expect(counts.size, `only ${[...counts.keys()].join(' and ')} ever spoke`).toBe(3);
+    const most = Math.max(...counts.values());
+    expect(most, 'one voice drowned out the others').toBeLessThan(heard.length * 0.7);
+  });
+
+  it('asks him about the moments a career is measured in', () => {
+    const asked = new Set<string>();
+    for (const seed of [11, 48, 85, 122]) {
+      const { state, index } = startedCareer({ seed });
+      for (let i = 0; i < 53 * 10 && !state.retired; i++) {
+        playWeek(state, index);
+        for (const decision of state.pendingDecisions) {
+          if (decision.eventId.startsWith('milestone:')) asked.add(decision.eventId.replace('milestone:', ''));
+        }
+        state.pendingDecisions = [];
+      }
+    }
+    for (const moment of ['debut', 'firstGoal', 'firstAssist', 'hundredthApp']) {
+      expect(asked.has(moment), `nobody asked him about his ${moment}`).toBe(true);
+    }
   });
 });

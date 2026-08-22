@@ -46,6 +46,7 @@ import {
   matchPreparation,
   setMatchPlan as engineSetMatchPlan,
   answerRetirement,
+  answerTreatment,
   retire as engineRetire,
   serialize,
   setTraining as engineSetTraining,
@@ -242,6 +243,9 @@ interface GameStore {
   dismissNews: () => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
+  /** A trophy or an award to stop everything for. */
+  celebration: { kind: CelebrationKind; titleKey: string; args?: Record<string, string | number> } | null;
+  clearCelebration: () => void;
   /** The week's homework: who they are, and the job he has decided to do about it. */
   preparation: () => MatchPreparation | null;
   setMatchPlan: (plan: MatchPlanId) => void;
@@ -255,6 +259,36 @@ async function loadPackData(): Promise<DataPack> {
   packPromise ??= import('@fc/data/pack').then((module) => module.default as unknown as DataPack);
   loadedPack = await packPromise;
   return loadedPack;
+}
+
+export type CelebrationKind = 'trophy' | 'award';
+
+/**
+ * Something worth stopping the game for.
+ *
+ * A trophy and an individual honour are the only two things in a career that are pure
+ * reward, and both of them used to arrive as a line of text between a sponsor offer and
+ * a fixture announcement.
+ */
+function celebrationFor(
+  state: CareerState,
+  trophiesBefore: number,
+  awardsBefore: number,
+): { kind: CelebrationKind; titleKey: string; args?: Record<string, string | number> } | null {
+  const awards = state.awards ?? [];
+  if (awards.length > awardsBefore) {
+    const won = awards[awards.length - 1]!;
+    return { kind: 'award', titleKey: `award.${won.award}` };
+  }
+  if (state.trophies.length > trophiesBefore) {
+    const won = state.trophies[state.trophies.length - 1]!;
+    return {
+      kind: 'trophy',
+      titleKey: `celebrate.${won.kind}`,
+      args: { competition: `competition.${won.competitionId}` },
+    };
+  }
+  return null;
 }
 
 function requirePack(): DataPack {
@@ -305,6 +339,7 @@ export const useGame = create<GameStore>((set, get) => ({
   draft: null,
   state: null,
   index: null,
+  celebration: null,
   academyOffers: [],
   hasSave: false,
   saves: [],
@@ -496,11 +531,18 @@ export const useGame = create<GameStore>((set, get) => ({
     });
   },
 
+  clearCelebration() {
+    set({ celebration: null });
+  },
+
   advance(weeks = 1) {
     const { state, index } = get();
     if (!state || !index || state.retired) return;
     set({ busy: true });
     const before = new Set(state.inbox.map((message) => message.id));
+    // What he had won before this week, so anything new can be celebrated properly.
+    const trophiesBefore = state.trophies.length;
+    const awardsBefore = (state.awards ?? []).length;
 
     let result: TickResult | null = null;
     for (let i = 0; i < weeks; i++) {
@@ -534,6 +576,7 @@ export const useGame = create<GameStore>((set, get) => ({
     set({
       state: { ...state },
       busy: false,
+      celebration: celebrationFor(state, trophiesBefore, awardsBefore) ?? get().celebration,
       lastTick: result?.stopped ?? null,
       // A match always opens the match screen, from any tab.
       screen: result?.stopped === 'match' || atTheBreak ? 'match' : get().screen,
@@ -638,6 +681,22 @@ export const useGame = create<GameStore>((set, get) => ({
         pendingNews: newsAfterDecision(),
       });
       return;
+    }
+    // The medical room.
+    if (decisionId.startsWith('treatment_')) {
+      const treatmentResult = answerTreatment(state, decisionId, optionId);
+      if (treatmentResult) {
+        const treatmentSlot = get().activeSaveId;
+        if (treatmentSlot) persistTo(treatmentSlot, state, (saves) => set({ saves }));
+        set({
+          state: { ...state },
+          result: treatmentResult,
+          resultDecision: answeredDecision,
+          openMessageId: null,
+          pendingNews: newsAfterDecision(),
+        });
+        return;
+      }
     }
     // His own contract, which the engine negotiates the same way it negotiates anybody
     // else's offer.

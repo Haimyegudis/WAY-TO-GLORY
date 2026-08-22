@@ -123,6 +123,9 @@ export function CareerScreen() {
   const age = state.world.season - state.player.birthYear;
   const canRetire = age >= 30 && !state.retired;
   const hisYear = peers(state);
+  // Seasons he played in more than one shirt, which is the only case where a season
+  // total on its own is misleading.
+  const splitSeasons = state.seasonHistory.filter((record) => (record.spells?.length ?? 0) > 1);
   const myClub = state.player.clubId ? state.world.clubs[state.player.clubId] : undefined;
   const myClubName = myClub ? clubShortName(myClub, lang) : '—';
 
@@ -269,6 +272,40 @@ export function CareerScreen() {
         * he can see exactly who from his own year is at Fulham and who stopped at
         * twenty-two, and where that leaves him.
         */}
+      {splitSeasons.length > 0 && (
+        <Card title={t('career.splitSeasons')}>
+          {/* A season played at two clubs is two seasons as far as anybody reading it is
+              concerned: eleven goals is a wonderful record and a poor one depending on
+              which shirt they were scored in. */}
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('career.season')}</th>
+                  <th>{t('career.hisYear.club')}</th>
+                  <th className="num">{t('career.apps')}</th>
+                  <th className="num">{t('match.goals')}</th>
+                  <th className="num">{t('match.rating')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {splitSeasons.flatMap((record) => (record.spells ?? []).map((spell, i) => (
+                  <tr key={`${record.season}-${spell.clubId}`}>
+                    <td>{i === 0 ? formatSeason(record.season) : ''}</td>
+                    <td>{clubShortName(club(state, spell.clubId), lang) || spell.clubId}</td>
+                    <td className="num">{spell.apps}</td>
+                    <td className="num">{spell.goals}</td>
+                    <td className="num">
+                      {spell.ratedApps > 0 ? (spell.ratingSum / spell.ratedApps).toFixed(2) : '—'}
+                    </td>
+                  </tr>
+                )))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
       <Card title={t('career.hisYear')}>
         {hisYear.length === 0 ? (
           <Empty>{t('career.hisYear.none')}</Empty>

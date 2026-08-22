@@ -220,10 +220,37 @@ export function advanceTrackedPlayers(rng: Rng, state: CareerState, index: PackI
     // gets moved on - and either way he is still somebody the world knows about.
     const moved = maybeMove(rng, state, player);
     if (moved) player.clubId = moved.id;
+    /*
+     * And nobody is left standing in the street.
+     *
+     * A tracked player sold out of the modelled world had his club set to nothing and
+     * waited for the next summer to roll a move, so the table could show a
+     * thirty-four year old at no club who had not retired either. Without a club he
+     * either signs for somebody now or that is his career.
+     */
+    if (!player.clubId) {
+      const home = maybeMove(rng, state, player) ?? nearestClub(state, player);
+      if (home) player.clubId = home.id;
+      else {
+        player.retired = true;
+        player.career = player.career ?? emptyCareer(season);
+        player.career.retiredSeason = player.career.retiredSeason ?? season;
+      }
+    }
     alive.push(id);
   }
 
   state.world.tracked = alive;
+}
+
+/** The club in this world closest to the level he is playing at. */
+function nearestClub(state: CareerState, player: Player): Club | null {
+  const ovr = ratingAt(player.attributes, player.primaryPos);
+  const clubs = Object.values(state.world.clubs);
+  if (clubs.length === 0) return null;
+  return clubs
+    .slice()
+    .sort((a, b) => Math.abs(clubBaseOvr(a) - ovr) - Math.abs(clubBaseOvr(b) - ovr))[0]!;
 }
 
 /**

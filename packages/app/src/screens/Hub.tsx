@@ -158,7 +158,7 @@ export function Hub() {
         </div>
       )}
 
-      <Card>
+      <Card title={club ? t('hub.seasonAt', { club: clubShortName(club, lang) }) : undefined}>
         <div className="statrow">
           <Stat label={t('career.apps')} value={season.apps} />
           <Stat label={t('match.goals')} value={season.goals} />

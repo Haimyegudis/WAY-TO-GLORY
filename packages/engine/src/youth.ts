@@ -189,7 +189,7 @@ export function buildYouthCups(
   const national = createCup(
     rng, country, entrants, state.world.season, YOUTH_CUP_WEEKS, youthCupId(`${country.toLowerCase()}_cup`),
   );
-  drawRound(rng, national);
+  drawRound(rng, national, state.world.week);
   cups[national.id] = national;
 
   const details = index.countryByCode.get(country);
@@ -200,7 +200,7 @@ export function buildYouthCups(
         rng, country, topTwo, state.world.season, YOUTH_LEAGUE_CUP_WEEKS,
         youthCupId(`${country.toLowerCase()}_leaguecup`),
       );
-      drawRound(rng, leagueCup);
+      drawRound(rng, leagueCup, state.world.week);
       cups[leagueCup.id] = leagueCup;
     }
   }
@@ -210,7 +210,8 @@ export function buildYouthCups(
 
 /** Sunday mornings, spread across the season the boys actually play. */
 const YOUTH_CUP_WEEKS = [9, 14, 19, 24, 31, 37, 42, 46];
-const YOUTH_LEAGUE_CUP_WEEKS = [8, 13, 18, 23, 28, 33];
+// Between the national cup's rounds, never on top of them.
+const YOUTH_LEAGUE_CUP_WEEKS = [11, 16, 21, 27, 34, 39];
 
 /** The clubs in one youth division, read off the membership map. */
 export function youthMembers(youth: YouthWorld, competitionId: string): string[] {

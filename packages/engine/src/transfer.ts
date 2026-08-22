@@ -522,7 +522,13 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     const clubLevel = clubBaseOvr(candidate.club);
     const role = candidate.role;
     // A boy joining another academy is not loaned out on his first day.
+    /*
+     * A club that signs a boy it cannot play yet lends him out. It does not do that to a
+     * man who is already somebody's first-choice: buying a starter and farming him out in
+     * the same summer is not a transfer anybody would accept, and it was being offered.
+     */
     const isLoan = candidate.joinAs !== 'academy'
+      && !seniorShirt
       && (Boolean(state.flags['wantsLoan']) || (age <= 21 && ovr < clubLevel - 4 && rng.chance(0.35)));
 
     const joiningAcademy = candidate.joinAs === 'academy';

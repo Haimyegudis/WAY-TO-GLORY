@@ -1493,3 +1493,59 @@ select:focus-visible,
 .season-chart-crosshair { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; stroke-dasharray: 2 3; }
 
 /* The figure on the creation screen: his own patch of grass, and a finger turns him. */
+/* ------------------------------------------------------------------ winning */
+/* Five seconds of paper. The only thing in a career that is purely a reward should
+   stop the screen and make a mess of it. */
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 35%, rgba(242, 193, 78, 0.22), rgba(6, 8, 12, 0.86) 60%);
+  animation: fade-in 0.25s ease both;
+}
+.celebration-card {
+  text-align: center;
+  padding: 22px 26px;
+  border-radius: 20px;
+  background: var(--surface-2);
+  border: 1px solid rgba(242, 193, 78, 0.5);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  animation: trophy-in 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  max-inline-size: min(86vw, 360px);
+}
+.celebration-trophy { font-size: 58px; line-height: 1; animation: trophy-bob 1.8s ease-in-out infinite; }
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.confetto {
+  position: absolute;
+  inset-block-start: -14px;
+  inline-size: 8px;
+  block-size: 14px;
+  border-radius: 2px;
+  opacity: 0.9;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+  8% { opacity: 0.95; }
+  100% { transform: translateY(105vh) rotate(720deg); opacity: 0.9; }
+}
+@keyframes trophy-in {
+  0% { transform: scale(0.7) translateY(18px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes trophy-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-6px) rotate(3deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetto { display: none; }
+  .celebration-card, .celebration-trophy { animation: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

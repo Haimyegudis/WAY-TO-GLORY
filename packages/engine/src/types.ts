@@ -97,7 +97,7 @@ export interface Injury {
   weeksRemaining: number;
   season: number;
   recurrenceOf?: string;    // type of a previous injury this one repeats
-  treatment?: 'surgery' | 'conservative' | 'playThrough';
+  treatment?: 'surgery' | 'injection' | 'conservative' | 'longRest' | 'playThrough';
   aggravated?: boolean;
 }
 
@@ -268,6 +268,26 @@ export interface Country {
   leagueCupNameHe?: string;
 }
 
+/**
+ * What he did in one shirt, inside one season.
+ *
+ * A season record carries a single clubId, and a mid-season move overwrites it - so
+ * eleven goals scored at two clubs were all filed under whichever badge he happened to
+ * be wearing in May, and every screen reading that record credited the new club with the
+ * old club's football. The season total is still the season; this is the same season broken
+ * down by the shirt it was played in.
+ */
+export interface SeasonSpell {
+  clubId: string;
+  competitionId: string | null;
+  apps: number;
+  goals: number;
+  assists: number;
+  minutes: number;
+  ratingSum: number;
+  ratedApps: number;
+}
+
 export interface SeasonStats {
   season: number;
   clubId: string | null;
@@ -284,6 +304,8 @@ export interface SeasonStats {
   motm: number;
   ratingSum: number;
   ratedApps: number;
+  /** The same season, split by the club he was at. One entry unless he moved. */
+  spells?: SeasonSpell[];
 }
 
 /**

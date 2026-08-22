@@ -23,6 +23,7 @@ const MentorScreen = lazy(() => import('./screens/MentorScreen.js').then((module
 const LifeScreen = lazy(() => import('./screens/LifeScreen.js').then((module) => ({ default: module.LifeScreen })));
 const ResultSheet = lazy(() => import('./screens/ResultSheet.js').then((module) => ({ default: module.ResultSheet })));
 const NewsPopup = lazy(() => import('./screens/NewsPopup.js').then((module) => ({ default: module.NewsPopup })));
+const Celebration = lazy(() => import('./screens/Celebration.js').then((module) => ({ default: module.Celebration })));
 
 /**
  * One stadium photograph carries the whole game; each screen only shifts how far
@@ -99,6 +100,7 @@ function Game() {
   // While a match is being watched, nothing else may advance the week from under it.
   // Which match that is comes from the id being followed, not from whichever match the
   // engine wrote last: a youth match and a cup tie can land in the same week.
+  const celebration = useGame((s) => s.celebration);
   const watchingMatch = screen === 'match' && liveMatchId !== null;
   // The dressing room at the interval counts as being in the match: he is standing
   // there in his kit, and the game has not finished. Only while he is actually on the
@@ -146,6 +148,10 @@ function Game() {
               has actually stopped the week. */}
           {!result && !pending && !inTheMatch && <NewsPopup />}
           {!result && pending && <DecisionSheet decision={pending} />}
+          {/* A trophy comes over everything, including the sheet that announced it. */}
+          {celebration && (
+            <Celebration kind={celebration.kind} titleKey={celebration.titleKey} args={celebration.args} />
+          )}
         </Suspense>
         <Toast />
       </div>

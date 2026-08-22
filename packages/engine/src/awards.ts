@@ -164,9 +164,20 @@ function userCandidate(state: CareerState, index: PackIndex): Candidate {
     trophyScore += trophy.competitionId === 'ucl' ? 9 : trophy.competitionId === 'uel' ? 5 : 4;
   }
 
+  /*
+   * His league goals, and only his league goals.
+   *
+   * Everybody else in the race is scored from the division's own chart. He was scored
+   * from his season total - cup ties, European nights, Sunday mornings in the age group -
+   * so he was running in a league race carrying goals from three other competitions.
+   */
+  const leagueGoals = club
+    ? state.world.competitions[club.competitionId]?.scorers[player.id] ?? 0
+    : 0;
+
   return {
     player,
-    goals: stats?.goals ?? 0,
+    goals: leagueGoals,
     competitionId: club?.competitionId ?? null,
     leagueReputation: competition?.reputation ?? 30,
     trophyScore,
@@ -210,6 +221,24 @@ function rank(rng: Rng, candidates: Candidate[], score: (c: Candidate) => number
  * Decides every award for the season just finished. The user's own league gets its
  * own honours; the global awards are argued across every league we simulate.
  */
+/**
+ * Whether this division's scoring chart is worth handing a trophy out of.
+ *
+ * Goals are only attributed player by player in the division the user is playing in, so
+ * a division he joined in January has a chart with three weeks of football in it - and
+ * he wins its golden boot with ten goals while somebody nobody has heard of has scored
+ * thirty. If most of the goals in a league have no name on them, that league does not
+ * get to name a top scorer or a player of the season this year.
+ */
+function chartIsCredible(state: CareerState, competitionId: string): boolean {
+  const comp = state.world.competitions[competitionId];
+  if (!comp) return false;
+  const scored = Object.values(comp.table).reduce((sum, row) => sum + row.goalsFor, 0);
+  if (scored < 40) return false;
+  const named = Object.values(comp.scorers).reduce((sum, goals) => sum + goals, 0);
+  return named >= scored * 0.6;
+}
+
 export function decideAwards(rng: Rng, state: CareerState, index: PackIndex): AwardResult[] {
   const local = [...buildCandidates(state, index), userCandidate(state, index)];
   const candidates = [...local, ...worldCandidates(rng, state, index)];
@@ -221,7 +250,7 @@ export function decideAwards(rng: Rng, state: CareerState, index: PackIndex): Aw
     : null;
 
   // ---- the user's league
-  if (userCompetition) {
+  if (userCompetition && chartIsCredible(state, userCompetition)) {
     const inLeague = local.filter((c) => c.competitionId === userCompetition);
     if (inLeague.length >= 3) {
       const best = rank(rng, inLeague, (c) => seasonScore(c, false));

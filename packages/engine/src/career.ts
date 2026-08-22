@@ -118,7 +118,7 @@ import {
   type EuroState,
   type EuroTier,
 } from './europe.js';
-import { isInjured, rollInjury, tickInjuries, trainingInjuryChance } from './injury.js';
+import { isInjured, rollInjury, tickInjuries, trainingInjuryChance, treatInjury, treatmentsFor, TREATMENTS, type TreatmentChoice } from './injury.js';
 import { marketValue } from './value.js';
 import {
   deservesCallUp,
@@ -208,6 +208,8 @@ import type {
   MatchImportance,
   MatchResult,
   NewsItem,
+  AttributeKey,
+  Injury,
   Player,
   Position,
   SeasonStats,
@@ -332,7 +334,7 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     const cupWeeks = Array.from({ length: 8 }, (_, round) =>
       Math.round(first + ((last - first) * round) / 7));
     const cup = createCup(rng, country.code, clubs, season, cupWeeks);
-    drawRound(rng, cup);
+    drawRound(rng, cup, state.world.week);
     state.world.cups[cup.id] = cup;
 
     /*
@@ -345,13 +347,21 @@ function initSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     if (country.leagueCupName) {
       const entrants = clubs.filter((entry) => entry.tier <= 2);
       if (entrants.length >= 8) {
+        /*
+         * A midweek of its own.
+         *
+         * Both knockouts counted their rounds from the first week of the season, so the
+         * national cup and the Toto kept landing on the same date - two cup ties in one
+         * week, twice a season, and then a month of nothing. The league cup sits between
+         * the national cup's rounds instead.
+         */
         const lastRound = Math.round(first + (last - first) * 0.55);
         const leagueCupWeeks = Array.from({ length: 6 }, (_, round) =>
-          Math.round(first + ((lastRound - first) * round) / 5));
+          Math.round(first + 3 + ((lastRound - first) * round) / 5));
         const leagueCup = createCup(
           rng, country.code, entrants, season, leagueCupWeeks, leagueCupId(country.code),
         );
-        drawRound(rng, leagueCup);
+        drawRound(rng, leagueCup, state.world.week);
         state.world.cups[leagueCup.id] = leagueCup;
       }
     }
@@ -1377,8 +1387,8 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
         player.condition.injuries.push(again);
         injuriesAddedThisWeek.add(again.id);
         state.flags['aggravationWeeks'] = 0;
-        pushInbox(state, 'medical', 'inbox.injuryAggravated', { type: `injury.${again.type}`, weeks: again.weeksOut });
         pushNews(state, 'news.injured', { weeks: again.weeksOut }, 'high');
+        reportInjury(state, again, 'aggravated');
       }
     }
 
@@ -1402,8 +1412,8 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
       const injury = rollInjury(rng, player, season);
       player.condition.injuries.push(injury);
       injuriesAddedThisWeek.add(injury.id);
-      pushInbox(state, 'medical', 'inbox.injuredTraining', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
       pushNews(state, 'news.injured', { weeks: injury.weeksOut }, 'high');
+      reportInjury(state, injury, 'training');
     }
     state.flags['trainingResolvedWeek'] = absoluteWeek;
   }
@@ -1678,7 +1688,10 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // he is the one who starts the conversation, and what he asks is the awkward question.
   raiseMentorPrompt(state, rng);
 
-  // 7b. The press, on the weeks the press cares.
+  // 7b. The people who have something to say about a bad month, one at a time.
+  reactToBadRun(state, index);
+
+  // 7c. The press, on the weeks the press cares.
   if (club) {
     // Match-specific press reactions belong only to a match the player actually played.
     // The senior side's occasion must never be presented as an academy player's story.
@@ -2157,9 +2170,6 @@ function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | nul
   }
 
   const appearances = recentAppearances(state, 5);
-  if (appearances.length >= 4 && appearances.slice(0, 4).every((line) => line.rating < 6.3)) {
-    return 'badRun';
-  }
 
   /*
    * A forward who is not scoring.
@@ -2251,6 +2261,54 @@ function upcomingImportance(state: CareerState, index: PackIndex): MatchImportan
   );
   if (!fixture) return 'normal';
   return matchImportanceFor(state, index, club.competitionId, fixture.homeClubId, fixture.awayClubId);
+}
+
+/**
+ * A bad run, and the three people who have something to say about it.
+ *
+ * Four afternoons under six and a half is the point at which a football club starts
+ * talking about a player, and it is never the same voice twice: the manager has a word
+ * on the training ground, the crowd lets him know at the ground, and the press asks him
+ * about it in front of a camera. They take turns, a fortnight apart, so a bad month is
+ * three different kinds of pressure rather than one message repeated.
+ */
+function reactToBadRun(state: CareerState, index: PackIndex): void {
+  const club = userClub(state);
+  if (!club || state.retired) return;
+  const recent = recentAppearances(state, 4);
+  const badRun = recent.length >= 4 && recent.every((line) => line.rating < 6.5);
+  // The rota is not reset when the run ends: the next bad month is somebody else's turn,
+  // so a career hears from all three rather than from the manager every time.
+  if (!badRun) return;
+  const absolute = state.world.season * 52 + state.world.week;
+  if (absolute - Number(state.flags['badRunSpoke'] ?? -99) < 4) return;
+  state.flags['badRunSpoke'] = absolute;
+
+  const average = recent.reduce((sum, line) => sum + line.rating, 0) / recent.length;
+  const voice = Number(state.flags['badRunVoice'] ?? 0) % 3;
+  state.flags['badRunVoice'] = voice + 1;
+
+  if (voice === 0) {
+    // The manager, on the training ground, on the Monday.
+    adjustRelationship(state, 'manager', -3);
+    pushInbox(state, 'manager', 'inbox.badRun.manager', {
+      games: recent.length,
+      rating: average.toFixed(1),
+    });
+    return;
+  }
+  if (voice === 1) {
+    // The ground. Nobody says it to his face and everybody says it.
+    adjustRelationship(state, 'fans', -4);
+    state.player.morale = clamp(state.player.morale - 3, 0, 100);
+    pushInbox(state, 'media', 'inbox.badRun.fans', { club: club.name });
+    return;
+  }
+  // And the press, who would like him to say something about it.
+  if (!raiseMilestone(state, 'badRun', { force: true, key: `asked:badRun:${absolute}` })) {
+    pushInbox(state, 'media', 'inbox.badRun.press', { games: recent.length });
+  }
+  void index;
 }
 
 /**
@@ -3212,7 +3270,7 @@ function simulateYouthCupWeek(
       }
     }
 
-    if (!cup.finished && cup.ties.every((tie) => tie.played)) drawRound(rng, cup);
+    if (!cup.finished && cup.ties.every((tie) => tie.played)) drawRound(rng, cup, week);
   }
 
   return userResult;
@@ -3540,6 +3598,8 @@ function simulateCupWeek(state: CareerState, index: PackIndex, rng: Rng, club: C
           state.trophies.push({ season: state.world.season, competitionId: cup.id, kind: 'cup' });
           unlock(state, 'cupWinner', { cup: cup.id });
           pushNews(state, 'news.cupWon', { club: club.name }, 'high');
+          // A cup is a trophy night too. Only the league used to get the microphone.
+          raiseMilestone(state, 'trophyNight', { force: true, key: `asked:trophyNight:${cup.id}:${state.world.season}` });
         }
       } else {
         const [hg, ag] = simulateQuickResult(rng, { homeRating: clubRating(home), awayRating: clubRating(away) });
@@ -3550,7 +3610,7 @@ function simulateCupWeek(state: CareerState, index: PackIndex, rng: Rng, club: C
     // Draw the next round once every tie in this round is settled.
     const currentRoundTies = cup.ties.filter((t) => t.round === cup.round);
     if (currentRoundTies.every((t) => t.played) && cup.alive.length > 1) {
-      drawRound(rng, cup);
+      drawRound(rng, cup, week);
     } else if (currentRoundTies.every((t) => t.played) && cup.alive.length === 1) {
       cup.finished = true;
       cup.winner = cup.alive[0]!;
@@ -4058,7 +4118,7 @@ function applyFriendlyToPlayer(
     if (injuryRolled) {
       const injury = rollInjury(rng, player, state.world.season, 1.05);
       player.condition.injuries.push(injury);
-      pushInbox(state, 'medical', 'inbox.injuredMatch', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
+      reportInjury(state, injury, 'match');
     }
   }
 
@@ -4372,6 +4432,8 @@ function applyMatchToPlayer(
     stats.ratingSum += line.rating;
     stats.ratedApps++;
     if (line.motm) stats.motm++;
+    // And the same ninety minutes against the shirt he was actually wearing.
+    recordSpell(stats, player.clubId, competitionId, line);
 
     // Forty-five minutes chasing every lost cause costs more than forty-five minutes of
     // keeping the ball. Whatever he was told at the break is paid for in his legs.
@@ -4391,7 +4453,16 @@ function applyMatchToPlayer(
 
     if (stats.goals >= 1 && !state.achievements.some((a) => a.id === 'firstGoal')) {
       unlock(state, 'firstGoal');
-      raiseMilestone(state, 'firstGoal');
+      raiseMilestone(state, 'firstGoal', { force: true });
+    }
+    // The first one he made rather than scored, and the hundredth time he walked out.
+    if (line.assists >= 1 && !state.achievements.some((a) => a.id === 'firstAssist')) {
+      unlock(state, 'firstAssist');
+      raiseMilestone(state, 'firstAssist', { force: true });
+    }
+    if (careerApps(state) >= 100 && !state.achievements.some((a) => a.id === 'apps100')) {
+      unlock(state, 'apps100');
+      raiseMilestone(state, 'hundredthApp', { force: true });
     }
     if (line.goals >= 3) unlock(state, 'hatTrick');
 
@@ -4431,7 +4502,7 @@ function applyMatchToPlayer(
     if (injuryRolled) {
       const injury = rollInjury(rng, player, state.world.season, 1.2);
       player.condition.injuries.push(injury);
-      pushInbox(state, 'medical', 'inbox.injuredMatch', { type: `injury.${injury.type}`, weeks: injury.weeksOut });
+      reportInjury(state, injury, 'match');
     }
 
     // Going against the manager at the break is settled the same way everything else
@@ -4466,6 +4537,162 @@ function applyMatchToPlayer(
     const expected = expectedMinutesFor(player.squadRole);
     player.morale = clamp(player.morale - expected * 3.5, 0, 100);
   }
+}
+
+/**
+ * File the afternoon under the club he played it for.
+ *
+ * Everything that reads a season - the hub card, the career page, the club he is at now -
+ * was reading one number for a season that may have been played in two shirts.
+ */
+function recordSpell(
+  stats: SeasonStats,
+  clubId: string | null,
+  competitionId: string,
+  line: UserMatchLine,
+): void {
+  if (!clubId) return;
+  stats.spells = stats.spells ?? [];
+  let spell = stats.spells.find((entry) => entry.clubId === clubId);
+  if (!spell) {
+    spell = {
+      clubId,
+      competitionId,
+      apps: 0,
+      goals: 0,
+      assists: 0,
+      minutes: 0,
+      ratingSum: 0,
+      ratedApps: 0,
+    };
+    stats.spells.push(spell);
+  }
+  // A league is what he mostly played in that shirt, not the last cup tie he was in.
+  if (!competitionId.startsWith('friendly') && !competitionId.includes('cup')) {
+    spell.competitionId = competitionId;
+  }
+  spell.apps++;
+  spell.minutes += line.minutes;
+  spell.goals += line.goals;
+  spell.assists += line.assists;
+  if (line.rating > 0) {
+    spell.ratingSum += line.rating;
+    spell.ratedApps++;
+  }
+}
+
+/**
+ * Telling him what has happened to him, and asking what he wants done about it.
+ *
+ * An injury used to be one line in the mailbox with a number of weeks in it. What a
+ * player actually gets is a diagnosis - what it is, how bad it is, roughly how long -
+ * and then a conversation with the medical room in which somebody offers him a choice
+ * that is really a choice about risk. That conversation is here, and the answer is
+ * rolled rather than scripted: the same call on the same injury can have him back early,
+ * on time, or worse off than he started.
+ */
+function reportInjury(state: CareerState, injury: Injury, how: 'match' | 'training' | 'aggravated'): void {
+  pushInbox(state, 'medical', `inbox.injury.${how}`, {
+    type: `injury.${injury.type}`,
+    severity: `severity.${injury.severity}`,
+    weeks: injury.weeksOut,
+  });
+  openTreatmentDecision(state, injury);
+}
+
+function openTreatmentDecision(state: CareerState, injury: Injury): void {
+  if (state.pendingDecisions.some((decision) => decision.eventId === 'treatmentChoice')) return;
+  const options = treatmentsFor(injury);
+  if (options.length === 0) return;
+  const absoluteWeek = state.world.season * 52 + state.world.week;
+  state.flags['treatingInjury'] = injury.id;
+  const decisionId = `treatment_${injury.id}`;
+  state.pendingDecisions.push({
+    id: decisionId,
+    kind: 'event',
+    eventId: 'treatmentChoice',
+    category: 'medical',
+    blocking: true,
+    textKey: 'treatment.ask',
+    textArgs: {
+      type: `injury.${injury.type}`,
+      severity: `severity.${injury.severity}`,
+      weeks: injury.weeksOut,
+    },
+    options: options.map((id) => ({
+      id,
+      labelKey: `treatment.${id}`,
+      riskKey: id === 'surgery' ? 'risk.low' : id === 'longRest' ? 'risk.low' : id === 'conservative' ? 'risk.medium' : 'risk.high',
+      effects: [],
+    })),
+    expiresWeek: absoluteWeek + 2,
+  });
+  pushInbox(state, 'medical', 'inbox.treatmentAsked', {
+    type: `injury.${injury.type}`,
+    weeks: injury.weeksOut,
+  }, decisionId);
+}
+
+/**
+ * His answer to the medical room. What it costs him in weeks, what it leaves behind, and
+ * how much of the injury he is still carrying when he comes back.
+ */
+export function answerTreatment(
+  state: CareerState,
+  decisionId: string,
+  optionId: string,
+): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex(
+    (decision) => decision.id === decisionId && decision.eventId === 'treatmentChoice',
+  );
+  if (at === -1) return null;
+  const choice = optionId as TreatmentChoice;
+  if (!TREATMENTS[choice]) return null;
+  state.pendingDecisions.splice(at, 1);
+
+  const injuryId = String(state.flags['treatingInjury'] ?? '');
+  const injury = state.player.condition.injuries.find((entry) => entry.id === injuryId)
+    ?? state.player.condition.injuries[0];
+  if (!injury) return null;
+
+  const rng = mainRng(state);
+  const club = userClub(state);
+  const result = treatInjury(rng, injury, choice, club?.academy ?? 50);
+  state.flags['treatingInjury'] = '';
+  state.flags['aggravationRisk'] = result.aggravationRisk;
+  state.flags['aggravationWeeks'] = AGGRAVATION_SPREAD;
+
+  const changes: AppliedChange[] = [];
+  track(changes, 'change.weeksOut', result.weeksBefore, result.weeksAfter, false);
+
+  // What he does not get back. A leg that was rushed is a slower leg.
+  if (result.recoveryQuality < 1) {
+    const legs: AttributeKey[] = ['pace', 'acceleration', 'agility', 'stamina'];
+    for (const key of legs) {
+      const before = state.player.attributes[key];
+      state.player.attributes[key] = clamp(before * result.recoveryQuality, 1, 99);
+      track(changes, `change.attr.${key}`, before, state.player.attributes[key]);
+    }
+  }
+  // And a proper rest can send him back out sharper than he came off.
+  if (choice === 'longRest') {
+    const before = state.player.condition.fatigue;
+    state.player.condition.fatigue = clamp(before - 18, 0, 100);
+    track(changes, 'change.fatigue', before, state.player.condition.fatigue, false);
+  }
+
+  pushInbox(state, 'medical', `inbox.treatment.${result.outcome}`, {
+    treatment: `treatment.${choice}`,
+    weeks: result.weeksAfter,
+  });
+  commitRng(state, rng);
+
+  return {
+    changes,
+    consequences: [],
+    narrativeKey: `treatment.${choice}.${result.outcome}`,
+    answerKey: `treatment.${choice}`,
+  };
 }
 
 function nationalContextFor(state: CareerState, index: PackIndex, club: Club): CallUpContext {
@@ -4761,6 +4988,7 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   // Career record for the season.
   const record: CareerSeasonRecord = {
     ...stats,
+    ...(stats.spells && stats.spells.length > 1 ? { spells: stats.spells.map((spell) => ({ ...spell })) } : {}),
     age: season - player.birthYear,
     ovrStart,
     ovrEnd,
