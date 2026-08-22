@@ -84,6 +84,20 @@ let nameIndex: Map<string, Club> | null = null;
  */
 const MONEY_ARGS = new Set(['weekly', 'cost', 'amount', 'fee', 'wage', 'bonus', 'value', 'clause']);
 
+/**
+ * Values that are somebody's name.
+ *
+ * A team-mate who was sold, the manager who took the job, the boy bought to play in his
+ * position - the engine writes all of them the way it stores them, and in Hebrew they
+ * were the only Latin words on the screen. Players generated for a Hebrew league already
+ * carry Hebrew names, so this only touches the ones that need it.
+ */
+const PERSON_ARGS = new Set([
+  'player', 'manager', 'name', 'scorer', 'rival', 'teammate', 'agent', 'coach', 'captain',
+]);
+
+const LATIN = /[A-Za-z]/;
+
 let countries: Map<string, string> | null = null;
 
 /** Every country the pack knows, by the name the engine writes, in Hebrew. */
@@ -108,6 +122,23 @@ function competitionIndex(): Map<string, string> {
     }
   }
   return competitions;
+}
+
+/**
+ * The same job, for callers that only have the message. Every `t()` in the game goes
+ * through this, so a name is in the right language wherever it is printed.
+ */
+export function localiseMessageArgs(
+  args: Record<string, string | number | undefined> | undefined,
+  lang: Lang,
+): Record<string, string | number | undefined> | undefined {
+  if (!args) return args;
+  const defined: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(args)) {
+    if (value !== undefined) defined[key] = value;
+  }
+  const localised = localiseArgs(defined, (packJson as { clubs: Club[] }).clubs, lang);
+  return localised === defined ? args : localised;
 }
 
 export function localiseArgs(
@@ -163,10 +194,31 @@ export function localiseArgs(
         changed = true;
         continue;
       }
+      // Anybody else with a name: written the way it is said.
+      if (PERSON_ARGS.has(key) && LATIN.test(value) && !value.includes('.')) {
+        out[key] = toHebrew(value);
+        changed = true;
+        continue;
+      }
     }
     out[key] = value;
   }
   return changed ? out : args;
+}
+
+/**
+ * A club the game only kept the name of - a save file's headline, a message from before
+ * the club index existed. Looked up if we know it, said aloud if we do not.
+ */
+export function clubNameFromLabel(raw: string | undefined, lang: Lang): string {
+  if (!raw) return '';
+  if (lang !== 'he') return raw;
+  const clubs = (packJson as { clubs: Club[] }).clubs;
+  if (!nameIndex || nameIndex.size !== clubs.length) {
+    nameIndex = new Map(clubs.map((entry) => [entry.name.toLowerCase(), entry]));
+  }
+  const club = nameIndex.get(raw.toLowerCase());
+  return club ? clubShortName(club, lang) : toHebrew(raw);
 }
 
 /** The town a club plays in, written the way the rest of the screen is written. */

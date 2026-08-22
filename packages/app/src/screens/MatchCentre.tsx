@@ -4,7 +4,7 @@ import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubShortName, localiseArgs } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, openHalfTime, recentMatches } from '../state/selectors.js';
-import { competitionLabel, countryName, findPlayer, playerName } from '../lib/names.js';
+import { competitionLabel, countryName, findPlayer, personName, playerName } from '../lib/names.js';
 import { Card, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 import { LiveMatch } from '../components/LiveMatch.js';
 import { HalfTimeSheet } from './HalfTimeSheet.js';
@@ -207,7 +207,7 @@ export function MatchCentre() {
                     : null,
                   match.weather ? t(`weather.${match.weather}`) : null,
                   match.referee
-                    ? `${t('match.referee')} ${match.referee.name} · ${t(
+                    ? `${t('match.referee')} ${personName(match.referee.name, lang)} · ${t(
                       match.referee.strictness >= 68 ? 'match.refWhistle.strict'
                         : match.referee.strictness <= 34 ? 'match.refWhistle.lenient'
                         : 'match.refWhistle.even',

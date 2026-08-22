@@ -149,6 +149,7 @@ import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { agentCommission, generateAgentOffers } from './agents.js';
 import { attendanceFor, pickReferee, pickWeather, type Atmosphere } from './atmosphere.js';
 import { buildTeamOfTheWeek } from './totw.js';
+import { matchCategory, type MatchCategory } from './category.js';
 import { appointManager, generateManager, sackingChance } from './manager.js';
 import { advanceTrackedPlayers, followPlayer, isTracked, peerTable, trackHisYear } from './peers.js';
 import {
@@ -198,6 +199,7 @@ import type {
   Achievement,
   Agent,
   AppliedChange,
+  CategoryTally,
   DecisionResult,
   PendingDecision,
   CareerSeasonRecord,
@@ -452,6 +454,7 @@ function playQualifiers(state: CareerState, index: PackIndex, rng: Rng, calledUp
         const nt = state.nationalTeam;
         nt.caps++;
         nt.goals += outcome.goals;
+        tallyNational(state, outcome);
         if (!nt.capturedBySenior) commitToCountry(nt, campaign.countryCode);
         state.player.reputation = clamp(state.player.reputation + 0.8 + outcome.goals * 0.9, 0, 100);
         state.player.fame = clamp(state.player.fame + 1 + outcome.goals * 1.2, 0, 100);
@@ -3687,6 +3690,51 @@ function matchSeedFor(matchId: string): number {
   return (hashString(matchId) % 2_000_000) + 1;
 }
 
+/**
+ * A cap, on the same record as his club football.
+ *
+ * International matches never touched the season's numbers - they are not the club's
+ * football and must never move a domestic table - but a year in which he played eight
+ * times for his country is a year with eight matches in it, and the breakdown is the
+ * one place that can say so without pretending they were league games.
+ */
+function tallyNational(
+  state: CareerState,
+  outcome: { minutes: number; goals: number; rating: number },
+): void {
+  const player = state.player;
+  const stats = state.world.seasonStats[player.id]
+    ?? (state.world.seasonStats[player.id] = emptySeasonStats(state.world.season, player.clubId, null));
+  tally(stats, 'national', outcome.minutes, outcome.goals, 0, outcome.rating);
+}
+
+/**
+ * One appearance, filed under the kind of football it was.
+ *
+ * The season total is still the season total, but a player who is asked how his year went answers
+ * in competitions, not in a single number.
+ */
+function tally(
+  stats: SeasonStats,
+  category: MatchCategory,
+  minutes: number,
+  goals: number,
+  assists: number,
+  rating: number,
+): void {
+  stats.byCategory = stats.byCategory ?? {};
+  const row = stats.byCategory[category]
+    ?? (stats.byCategory[category] = { apps: 0, goals: 0, assists: 0, minutes: 0, ratingSum: 0, ratedApps: 0 });
+  row.apps += 1;
+  row.minutes += minutes;
+  row.goals += goals;
+  row.assists += assists;
+  if (rating > 0) {
+    row.ratingSum += rating;
+    row.ratedApps += 1;
+  }
+}
+
 /** How the first half has gone for him, read off what he has actually done in it. */
 function ratingSoFar(events: MatchEvent[], playerId: string): number {
   let rating = 6.4;
@@ -4500,6 +4548,8 @@ function applyMatchToPlayer(
     if (line.motm) stats.motm++;
     // And the same ninety minutes against the shirt he was actually wearing.
     recordSpell(stats, player.clubId, competitionId, line);
+    // And under the competition it was played in.
+    tally(stats, matchCategory(competitionId), line.minutes, line.goals, line.assists, line.rating);
 
     // Forty-five minutes chasing every lost cause costs more than forty-five minutes of
     // keeping the ball. Whatever he was told at the break is paid for in his legs.
@@ -4859,6 +4909,7 @@ function handleInternationalWeek(
       player.reputation = clamp(player.reputation + 0.6 + outcome.goals * 0.8, 0, 100);
       player.fame = clamp(player.fame + 0.8 + outcome.goals * 1.1, 0, 100);
       player.condition.fatigue = clamp(player.condition.fatigue + outcome.minutes / 9, 0, 100);
+      tallyNational(state, outcome);
     }
 
     const opponent = rng.pick(opponents.length > 0 ? opponents : fallback);
@@ -6202,6 +6253,35 @@ export function careerSummary(state: CareerState): CareerSummary {
   };
 }
 
+
+/**
+ * A whole career, competition by competition.
+ *
+ * Every season carries its own breakdown, and the current one is still being written, so
+ * both go in. Camp friendlies are not in any of it: they never were on his record and
+ * they should not be in the numbers he judges himself by.
+ */
+export function careerBreakdown(state: CareerState): Partial<Record<MatchCategory, CategoryTally>> {
+  const out: Partial<Record<MatchCategory, CategoryTally>> = {};
+  const seasons: (SeasonStats | undefined)[] = [
+    ...state.seasonHistory,
+    state.world.seasonStats[state.player.id],
+  ];
+  for (const season of seasons) {
+    for (const [category, row] of Object.entries(season?.byCategory ?? {})) {
+      if (category === 'friendly' || !row) continue;
+      const into = out[category as MatchCategory]
+        ?? (out[category as MatchCategory] = { apps: 0, goals: 0, assists: 0, minutes: 0, ratingSum: 0, ratedApps: 0 });
+      into.apps += row.apps;
+      into.goals += row.goals;
+      into.assists += row.assists;
+      into.minutes += row.minutes;
+      into.ratingSum += row.ratingSum;
+      into.ratedApps += row.ratedApps;
+    }
+  }
+  return out;
+}
 
 /** What a club meant to him, and he to it. */
 export interface ClubSpell {

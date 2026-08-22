@@ -141,14 +141,21 @@ function Game() {
 
           {!pending && !result && !state?.retired && !inTheMatch && <ContinueDock />}
           <Tabs />
-          {result && resultDecision
+          {/*
+            * A trophy has the screen to itself.
+            *
+            * It used to be raised over a question sheet that was already open, which
+            * covered it: confetti behind a dialog, five seconds of nothing to see. The
+            * question has waited this long and can wait six seconds more - the sheets,
+            * the news and the result all hold until the paper has come down.
+            */}
+          {!celebration && (result && resultDecision
             ? <DecisionSheet decision={resultDecision} result={result} />
-            : result && <ResultSheet result={result} />}
+            : result && <ResultSheet result={result} />)}
           {/* News comes up. It is read and dismissed one at a time, behind anything that
               has actually stopped the week. */}
-          {!result && !pending && !inTheMatch && <NewsPopup />}
-          {!result && pending && <DecisionSheet decision={pending} />}
-          {/* A trophy comes over everything, including the sheet that announced it. */}
+          {!celebration && !result && !pending && !inTheMatch && <NewsPopup />}
+          {!celebration && !result && pending && <DecisionSheet decision={pending} />}
           {celebration && (
             <Celebration kind={celebration.kind} titleKey={celebration.titleKey} args={celebration.args} />
           )}

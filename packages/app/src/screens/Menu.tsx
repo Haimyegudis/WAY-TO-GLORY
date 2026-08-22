@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LANG_LABEL, formatSeason, useLang, useT, type Lang } from '../i18n/index.js';
 import { useGame } from '../state/store.js';
+import { clubNameFromLabel } from '../lib/club.js';
 
 /**
  * Title screen. If the artwork is present it carries the screen on its own; if it
@@ -94,7 +95,7 @@ export function Menu() {
                         {save.retired && <span className="chip"> {t('home.retired')}</span>}
                       </span>
                       <span className="save-meta faint">
-                        {save.clubName || t('hub.freeAgent')} · {formatSeason(save.season)} ·{' '}
+                        {clubNameFromLabel(save.clubName, lang) || t('hub.freeAgent')} · {formatSeason(save.season)} ·{' '}
                         {t('home.saveLine', { age: save.age, ovr: save.ovr })}
                       </span>
                     </button>

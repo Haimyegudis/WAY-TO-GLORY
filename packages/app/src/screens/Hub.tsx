@@ -11,7 +11,7 @@ import { getPack, useGame } from '../state/store.js';
 import { PrepareCard } from './PrepareScreen.js';
 import { campSchedule, inTrainingCamp, myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, clubShortName, localiseArgs } from '../lib/club.js';
-import { competitionName, countryName } from '../lib/names.js';
+import { competitionName, countryName, personName } from '../lib/names.js';
 import { Card, Chip, ClubLine, Crest, Gauge, RatingBadge, Stat } from '../components/ui.js';
 import { DecisionOptions } from './DecisionSheet.js';
 
@@ -148,41 +148,6 @@ export function Hub() {
         </div>
       )}
 
-      <Card title={club ? t('hub.seasonAt', { club: clubShortName(club, lang) }) : undefined}>
-        <div className="statrow">
-          <Stat label={t('career.apps')} value={season.apps} />
-          <Stat label={t('match.goals')} value={season.goals} />
-          <Stat label={t('match.assists')} value={season.assists} />
-          <Stat label={t('match.rating')} value={season.rating > 0 ? season.rating.toFixed(2) : '—'} />
-        </div>
-        {/* Half a season somewhere else does not belong on this card, but he should know
-            it is not being counted here - and where it is counted. */}
-        {season.partial && (
-          <button
-            className="faint"
-            style={{ fontSize: 11.5, marginBlockStart: 8, textAlign: 'start' }}
-            onClick={() => goto('career')}
-          >
-            {t('hub.atThisClubOnly', { club: clubName(club, lang) })} ›
-          </button>
-        )}
-      </Card>
-
-      {state.world.youth && state.world.youth.form.apps > 0 && (
-        <Card title={t('hub.youth')}>
-          <p style={{ fontSize: 13.5 }}>
-            {t('hub.youthLine', {
-              apps: state.world.youth.form.apps,
-              goals: state.world.youth.form.goals,
-              assists: state.world.youth.form.assists,
-              rating: (state.world.youth.form.ratingSum / Math.max(1, state.world.youth.form.apps)).toFixed(2),
-            })}
-          </p>
-          <YouthStanding />
-          <p className="faint" style={{ fontSize: 11.5, marginBlockStart: 6 }}>{t('hub.youthHint')}</p>
-        </Card>
-      )}
-
       {inCamp && (
         <Card title={t('camp.title')}>
           <p className="muted" style={{ fontSize: 12.5, marginBlockEnd: 10 }}>
@@ -261,16 +226,12 @@ export function Hub() {
         * that says the same thing three times is not telling him more, it is making him
         * read more to find out less.
         */}
-      <Card title={t('status.title')}>
-        <div className="stack" style={{ gap: 12 }}>
-          <div className="row" style={{ gap: 14 }}>
-            <Gauge label={t('hub.form')} value={player.form} tone={player.form < 40 ? 'red' : 'green'} />
-            <Gauge label={t('hub.fitness')} value={player.fitness} tone={player.fitness < 60 ? 'red' : 'blue'} />
-          </div>
-          <div className="row" style={{ gap: 14 }}>
-            <Gauge label={t('hub.morale')} value={player.morale} tone={player.morale < 40 ? 'amber' : 'green'} />
-            <Gauge label={t('train.fatigue')} value={player.condition.fatigue} tone={player.condition.fatigue > 55 ? 'red' : 'amber'} />
-          </div>
+      <Card>
+        <div className="row" style={{ gap: 12 }}>
+          <Gauge label={t('hub.form')} value={player.form} tone={player.form < 40 ? 'red' : 'green'} />
+          <Gauge label={t('hub.fitness')} value={player.fitness} tone={player.fitness < 60 ? 'red' : 'blue'} />
+          <Gauge label={t('hub.morale')} value={player.morale} tone={player.morale < 40 ? 'amber' : 'green'} />
+          <Gauge label={t('train.fatigue')} value={player.condition.fatigue} tone={player.condition.fatigue > 55 ? 'red' : 'amber'} />
         </div>
         {recentAverage > 0 && (
           <div className="row-between" style={{ marginBlockStart: 12 }}>
@@ -278,34 +239,6 @@ export function Hub() {
             <span className="num">{recentAverage.toFixed(2)}</span>
           </div>
         )}
-        <div className="stack" style={{ gap: 7, marginBlockStart: 12 }}>
-          <p style={{ fontSize: 13 }}>{t(`status.form.${formBand}`)}</p>
-          <p style={{ fontSize: 13 }}>{t(`status.selection.${selectionOutlook}`)}</p>
-          {player.squadRole !== 'academy' && (
-            <p style={{ fontSize: 13 }} className={rival?.ahead ? 'faint' : undefined}>
-              {rival
-                ? t(rival.ahead ? 'club.shirtRival.ahead' : 'club.shirtRival.behind', { name: rival.name })
-                : t('club.shirtRival.none')}
-            </p>
-          )}
-          {state.manager && (
-            <p style={{ fontSize: 13 }} className="faint">
-              {t('club.manager')}: {state.manager.name} · {t(`manager.style.${state.manager.style}`)}
-            </p>
-          )}
-          {player.squadRole === 'academy' && youthForm && (
-            <p style={{ fontSize: 13 }}>
-              {t('status.youthPath', {
-                apps: youthForm.apps,
-                rating: youthAverage > 0 ? youthAverage.toFixed(2) : '—',
-                interest: nationalInterest,
-              })}
-            </p>
-          )}
-        </div>
-        <button className="btn btn-block" style={{ marginBlockStart: 12 }} onClick={() => goto(player.form < 56 ? 'social' : 'train')}>
-          {t(player.form < 56 ? 'status.openActions' : 'status.openTraining')}
-        </button>
       </Card>
 
       {/* The week's homework comes before the fixture card: he reads the report, picks

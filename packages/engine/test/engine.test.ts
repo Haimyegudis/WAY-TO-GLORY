@@ -17,6 +17,8 @@ import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById, milestoneCopyVariant } from '../src/milestones.js';
 import { buildTeamOfTheWeek } from '../src/totw.js';
 import { estimatedScorers } from '../src/charts.js';
+import { careerBreakdown } from '../src/career.js';
+import { matchCategory } from '../src/category.js';
 import {
   MENTORS,
   MENTOR_COOLDOWN_WEEKS,
@@ -4069,5 +4071,38 @@ describe('the leagues he does not play in', () => {
         `${competitionId} has never been won by anybody`,
       ).toBe(true);
     }
+  });
+});
+
+describe('what kind of football it was', () => {
+  it('tells a league cup tie from a cup tie', () => {
+    expect(matchCategory('isr_leaguecup')).toBe('leagueCup');
+    expect(matchCategory('isr_cup')).toBe('cup');
+    expect(matchCategory('isr_cup.youth')).toBe('cup');
+    expect(matchCategory('ucl')).toBe('europe');
+    expect(matchCategory('national.qualifier')).toBe('national');
+    // A cap is a cap, even when the fixture is a friendly.
+    expect(matchCategory('friendly.national')).toBe('national');
+    expect(matchCategory('friendly')).toBe('friendly');
+    expect(matchCategory('friendly.youth')).toBe('friendly');
+    expect(matchCategory('il.1')).toBe('league');
+  });
+
+  it('splits a career by competition and leaves camp out of it', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    for (let i = 0; i < 53 * 4 && !state.retired; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const breakdown = careerBreakdown(state);
+    expect(breakdown.league?.apps ?? 0, 'no league football on his record').toBeGreaterThan(10);
+    expect(Object.keys(breakdown), 'camp friendlies are on his record').not.toContain('friendly');
+
+    // The parts cannot add up to more than the seasons they came from.
+    const official = Object.values(breakdown).reduce((sum, row) => sum + (row?.apps ?? 0), 0);
+    const national = breakdown.national?.apps ?? 0;
+    const seasons = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
+      + (state.world.seasonStats[state.player.id]?.apps ?? 0);
+    expect(official - national).toBe(seasons);
   });
 });

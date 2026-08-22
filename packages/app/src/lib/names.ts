@@ -33,6 +33,17 @@ export function playerName(player: Player | null | undefined, lang: Lang = 'en')
 }
 
 /**
+ * A person the engine names as a plain string: a manager, a referee, one of the boys he
+ * came up with. There is no player record to read a birth country off, so the general
+ * rules apply - and a name already written in Hebrew is left alone.
+ */
+export function personName(name: string | null | undefined, lang: Lang): string {
+  if (!name) return '';
+  if (lang !== 'he') return name;
+  return /[֐-׿]/.test(name) ? name : toHebrew(name);
+}
+
+/**
  * Any competition id the engine can hand us: a league from the pack, a domestic cup
  * ("eng_cup"), or one of the three European competitions. Leagues and cups carry
  * their real names; Europe is named in the dictionary.

@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { careerLegacy, careerSummary, peers } from '@fc/engine';
+import { careerBreakdown, careerLegacy, careerSummary, peers, type MatchCategory } from '@fc/engine';
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubName, clubShortName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
 import { club } from '../state/selectors.js';
-import { competitionLabel } from '../lib/names.js';
+import { competitionLabel, personName } from '../lib/names.js';
 import { Card, Chip, Crest, Empty, RatingBadge, Stat } from '../components/ui.js';
 import { SeasonChart } from '../components/SeasonChart.js';
+
+/** The order a player reads his own record in. */
+const BREAKDOWN_ORDER: MatchCategory[] = ['league', 'cup', 'leagueCup', 'europe', 'national'];
 
 /** Age pill colour: youth, prime, veteran - the shape of a career at a glance. */
 
@@ -129,6 +132,7 @@ export function CareerScreen() {
   const myClub = state.player.clubId ? state.world.clubs[state.player.clubId] : undefined;
   const myClubName = myClub ? clubShortName(myClub, lang) : '—';
   const [view, setView] = useState<'numbers' | 'seasons' | 'honours'>('numbers');
+  const breakdown = careerBreakdown(state);
 
   return (
     <div className="screen stack">
@@ -198,6 +202,46 @@ export function CareerScreen() {
           <span className="num">{formatMoney(summary.careerEarnings, lang)}</span>
         </div>
       </Card>
+
+      {/*
+        * The same career, competition by competition.
+        *
+        * "Thirty-seven matches, one goal" is a number a player cannot do anything with.
+        * Twenty-nine in the league, four in the cup, two in the Toto and a night in
+        * Europe is the year he actually had - and camp friendlies are in none of it.
+        */}
+      {BREAKDOWN_ORDER.some((category) => (breakdown[category]?.apps ?? 0) > 0) && (
+        <Card title={t('career.byCompetition')}>
+          <div className="scroll-x">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>{t('career.competition')}</th>
+                  <th className="num">{t('career.apps')}</th>
+                  <th className="num">{t('match.goals')}</th>
+                  <th className="num">{t('match.assists')}</th>
+                  <th className="num">{t('match.rating')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {BREAKDOWN_ORDER.filter((category) => (breakdown[category]?.apps ?? 0) > 0).map((category) => {
+                  const row = breakdown[category]!;
+                  return (
+                    <tr key={category}>
+                      <td className="start">{t(`matches.filter.${category}`)}</td>
+                      <td className="num">{row.apps}</td>
+                      <td className="num">{row.goals}</td>
+                      <td className="num">{row.assists}</td>
+                      <td className="num">{row.ratedApps > 0 ? (row.ratingSum / row.ratedApps).toFixed(2) : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="faint" style={{ fontSize: 11, marginBlockStart: 8 }}>{t('career.officialOnly')}</p>
+        </Card>
+      )}
 
       {/*
         * The shape of the career, before the table of it.
@@ -349,11 +393,11 @@ export function CareerScreen() {
                 {hisYear.map((peer) => (
                   <tr key={peer.playerId} className={peer.aheadOfYou ? undefined : 'faint'}>
                     <td>
-                      {peer.name}
+                      {personName(peer.name, lang)}
                       {!peer.sameYear && <span className="faint"> · {t('career.hisYear.rival')}</span>}
                       {peer.retired && <span className="faint"> · {t('career.hisYear.finished')}</span>}
                     </td>
-                    <td>{peer.clubName || '—'}</td>
+                    <td>{clubShortName(club(state, peer.clubId ?? ''), lang) || peer.clubName || '—'}</td>
                     <td className="num">{peer.apps}</td>
                     <td className="num">{peer.goals}</td>
                   </tr>

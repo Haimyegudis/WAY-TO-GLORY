@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MatchResult } from '@fc/engine';
+import { matchCategory, type MatchCategory, type MatchResult } from '@fc/engine';
 import { formatSeason, useLang, useT } from '../i18n/index.js';
 import { competitionLabel, competitionName, countryName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
@@ -8,18 +8,20 @@ import { Card, Crest, Empty, RatingBadge, ResultDot, Stat } from '../components/
 import { RoundScreen } from './RoundScreen.js';
 
 type MatchKind = 'official' | 'friendly';
-type OfficialCategory = 'all' | 'league' | 'cup' | 'europe' | 'national';
+type OfficialCategory = 'all' | Exclude<MatchCategory, 'friendly'>;
 
+/*
+ * What kind of football a match was is the engine's answer now, not this screen's. The
+ * two used to disagree in one place that matters: a league cup tie was filed under the
+ * national cup, so a run to the Toto final and a run to the cup final were one number.
+ */
 function matchKind(match: MatchResult): MatchKind {
-  return match.competitionId.startsWith('friendly') ? 'friendly' : 'official';
+  return matchCategory(match.competitionId) === 'friendly' ? 'friendly' : 'official';
 }
 
 function officialCategory(match: MatchResult): Exclude<OfficialCategory, 'all'> {
-  const id = match.competitionId.toLowerCase();
-  if (id === 'ucl' || id === 'uel' || id === 'uecl' || id.startsWith('europe.')) return 'europe';
-  if (/_(cup|leaguecup)(\.youth)?$/.test(id) || id.startsWith('cup.')) return 'cup';
-  if (id.startsWith('national.') || id.startsWith('international.') || id.startsWith('qualifier.')) return 'national';
-  return 'league';
+  const category = matchCategory(match.competitionId);
+  return category === 'friendly' ? 'league' : category;
 }
 
 /**
@@ -60,7 +62,7 @@ export function MatchesScreen() {
   const shownKind: MatchKind = kind === 'official' && !hasOfficial && hasFriendlies
     ? 'friendly'
     : kind === 'friendly' && !hasFriendlies && hasOfficial ? 'official' : kind;
-  const availableOfficial = (['league', 'cup', 'europe', 'national'] as const).filter((category) =>
+  const availableOfficial = (['league', 'cup', 'leagueCup', 'europe', 'national'] as const).filter((category) =>
     sideMatches.some(
       (match) => match.userLine?.played && matchKind(match) === 'official' && officialCategory(match) === category,
     ),

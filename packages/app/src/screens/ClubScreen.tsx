@@ -16,6 +16,7 @@ import { getPack, useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
 import { Card, ClubLine, Crest, Empty, Meter } from '../components/ui.js';
 import { YouthScreen } from './YouthScreen.js';
+import { SelectionCard } from './SelectionCard.js';
 import { clubColor } from '../lib/club.js';
 
 type Tab = 'table' | 'squad' | 'scorers' | 'europe' | 'youth';
@@ -112,6 +113,9 @@ export function ClubScreen() {
           </div>
         </Card>
       )}
+
+      {/* Where he stands here: whether he is playing, who is ahead of him, who picks. */}
+      <SelectionCard />
 
       <div className="seg">
         <button aria-pressed={tab === 'table'} onClick={() => setTab('table')}>{t('club.table')}</button>

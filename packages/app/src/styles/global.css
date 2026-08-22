@@ -505,12 +505,32 @@ button.eyebrow {
   align-items: center;
   gap: 10px;
 }
+/*
+ * Two sides and a score. The columns were 22px wide because both sides used to be
+ * crests; the national team puts country names in the same row, and a country in 22px
+ * is one letter. The sides take whatever room is going and lean in towards the score.
+ */
 .fixture-row .score-row {
   display: grid;
-  grid-template-columns: 22px 46px 22px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
   gap: 8px;
+}
+.fixture-row .score-row > :first-child {
+  justify-self: end;
+  text-align: end;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fixture-row .score-row > :last-child {
+  justify-self: start;
+  text-align: start;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fixture-row .score-row .num { text-align: center; }
 .fixture-row .fixture-rating {
@@ -1498,16 +1518,24 @@ select:focus-visible,
    stop the screen and make a mess of it. */
 .celebration {
   position: fixed;
-  inset: 0;
-  z-index: 90;
+  /* Inside the phone, like everything else: confetti has no business in the margins. */
+  inset-block: 0;
+  inset-inline: 0;
+  max-width: var(--frame);
+  margin: 0 auto;
+  overflow: hidden;
+  /* Over the sheets, the dock and the tabs. Nothing shares the screen with a trophy. */
+  z-index: 160;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at 50% 35%, rgba(242, 193, 78, 0.22), rgba(6, 8, 12, 0.86) 60%);
+  background: radial-gradient(circle at 50% 40%, rgba(242, 193, 78, 0.26), rgba(4, 6, 10, 0.97) 62%);
+  backdrop-filter: blur(6px);
   animation: fade-in 0.25s ease both;
 }
 .celebration-card {
   text-align: center;
-  padding: 22px 26px;
+  padding: 26px 28px;
+  inline-size: min(84%, 340px);
   border-radius: 20px;
   background: var(--surface-2);
   border: 1px solid rgba(242, 193, 78, 0.5);

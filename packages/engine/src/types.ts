@@ -2,6 +2,7 @@
 import type { QualifyingCampaign } from './qualifying.js';
 import type { MentorState } from './mentor.js';
 import type { LifeState } from './life.js';
+import type { MatchCategory } from './category.js';
 
 export type Position =
   | 'GK'
@@ -288,6 +289,16 @@ export interface SeasonSpell {
   ratedApps: number;
 }
 
+/** One competition's worth of a season, kept alongside the season's totals. */
+export interface CategoryTally {
+  apps: number;
+  goals: number;
+  assists: number;
+  minutes: number;
+  ratingSum: number;
+  ratedApps: number;
+}
+
 export interface SeasonStats {
   season: number;
   clubId: string | null;
@@ -306,6 +317,12 @@ export interface SeasonStats {
   ratedApps: number;
   /** The same season, split by the club he was at. One entry unless he moved. */
   spells?: SeasonSpell[];
+  /**
+   * And split by what kind of football it was: the league, the cup, the league cup,
+   * Europe, his country. Thirty-one appearances says less than "twenty-six, four and
+   * a run to the quarter-final".
+   */
+  byCategory?: Partial<Record<MatchCategory, CategoryTally>>;
 }
 
 /**
