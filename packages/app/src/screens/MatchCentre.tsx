@@ -198,6 +198,24 @@ export function MatchCentre() {
               {' · '}
               {t('match.minutesPlayed', { minutes: line.minutes })}
             </p>
+            {/* Who was there, what the sky was doing, and who had the whistle. */}
+            {(match.attendance !== undefined || match.weather || match.referee) && (
+              <p className="faint" style={{ fontSize: 12, marginBlockEnd: 8 }}>
+                {[
+                  match.attendance !== undefined
+                    ? `${t('match.attendance')} ${match.attendance.toLocaleString(lang === 'he' ? 'he-IL' : 'en-GB')}`
+                    : null,
+                  match.weather ? t(`weather.${match.weather}`) : null,
+                  match.referee
+                    ? `${t('match.referee')} ${match.referee.name} · ${t(
+                      match.referee.strictness >= 68 ? 'match.refWhistle.strict'
+                        : match.referee.strictness <= 34 ? 'match.refWhistle.lenient'
+                        : 'match.refWhistle.even',
+                    )}`
+                    : null,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            )}
             <div className="statrow">
               <Stat label={t('match.goals')} value={line.goals} />
               <Stat label={t('match.assists')} value={line.assists} />

@@ -97,6 +97,19 @@ function countryIndex(): Map<string, string> {
   return countries;
 }
 
+let competitions: Map<string, string> | null = null;
+
+/** Every division the pack knows, by the name the engine writes, in Hebrew. */
+function competitionIndex(): Map<string, string> {
+  if (!competitions) {
+    competitions = new Map();
+    for (const competition of (packJson as { competitions: { name: string; nameHe?: string }[] }).competitions) {
+      if (competition.nameHe) competitions.set(competition.name.toLowerCase(), competition.nameHe);
+    }
+  }
+  return competitions;
+}
+
 export function localiseArgs(
   args: Record<string, string | number> | undefined,
   clubs: Club[],
@@ -133,6 +146,13 @@ export function localiseArgs(
       const club = nameIndex.get(value.toLowerCase());
       if (club) {
         out[key] = clubName(club, lang);
+        changed = true;
+        continue;
+      }
+      // A division has a Hebrew name too, and a message that names one should use it.
+      const competition = competitionIndex().get(value.toLowerCase());
+      if (competition) {
+        out[key] = competition;
         changed = true;
         continue;
       }

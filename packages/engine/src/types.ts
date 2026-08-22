@@ -407,6 +407,10 @@ export interface MatchResult {
   instructionChanges?: LiveInstructionChange[];
   /** Only present for detail level 1 (matches the user was involved in). */
   userLine?: UserMatchLine;
+  /** How many were there, what the sky was doing, and who had the whistle. */
+  attendance?: number;
+  weather?: 'clear' | 'rain' | 'heavyRain' | 'wind' | 'heat' | 'cold';
+  referee?: { name: string; strictness: number };
   /**
    * The club he played this one for. A season can be played at two clubs, and once he
    * has moved there is nothing in the fixture itself that says which side he was on.
@@ -892,6 +896,12 @@ export interface PendingHalfTime {
   rating: number;
   /** Locked at kick-off so a half-time relationship change cannot rewrite the first half. */
   mental?: number;
+  /** The crowd, the sky and the referee, held so the second half is the same afternoon. */
+  atmosphere?: {
+    attendance: number;
+    weather: 'clear' | 'rain' | 'heavyRain' | 'wind' | 'heat' | 'cold';
+    referee: { name: string; strictness: number };
+  };
   /** Penalty duty as it stood at kick-off. */
   penaltyTaker?: boolean;
   /** What the manager wants, or null when it is left to the player. */

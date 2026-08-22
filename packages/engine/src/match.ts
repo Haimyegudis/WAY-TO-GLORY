@@ -2,6 +2,7 @@ import { Rng, clamp, logistic } from './rng.js';
 import { isInvertedWinger, isNaturalWideMan, positionGroup, ratingAt } from './positions.js';
 import { NO_INSTRUCTION, halfTimeEffect, type HalfTimeEffect, type HalfTimeInstructionId } from './halftime.js';
 import { combineEffects } from './tactics.js';
+import { atmosphereEffect, type Atmosphere } from './atmosphere.js';
 import type { Lineup, MinutesOutcome } from './selection.js';
 import type {
   Club,
@@ -92,6 +93,8 @@ export interface UserMatchContext {
   plan?: HalfTimeEffect;
   /** The man marking him, when the world knows who that is. */
   duel?: { name: string; rating: number };
+  /** The crowd, the weather and the referee. All three change the afternoon. */
+  atmosphere?: Atmosphere;
   /** How well the week's plan read this opponent, -1 to 1. Worth a mark either way. */
   planFit?: number;
 }
@@ -291,9 +294,24 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
   const duelEdge = ctx.duel
     ? clamp(1 + (ratingAt(ctx.user.attributes, ctx.minutes.slot ?? ctx.user.primaryPos) - ctx.duel.rating) / 90, 0.86, 1.14)
     : 1;
-  const planMods: HalfTimeEffect = ctx.plan
+  const base: HalfTimeEffect = ctx.plan
     ? { ...ctx.plan, involvement: ctx.plan.involvement * duelEdge, conversion: ctx.plan.conversion * (0.5 + duelEdge / 2) }
     : { ...NO_INSTRUCTION, involvement: duelEdge, conversion: 0.5 + duelEdge / 2 };
+  /*
+   * The afternoon itself: the crowd behind him or against him, the state of the pitch,
+   * and a man with a whistle who either lets it go or does not.
+   */
+  const around = ctx.atmosphere ? atmosphereEffect(ctx.atmosphere, userHome) : null;
+  const planMods: HalfTimeEffect = around
+    ? {
+      ...base,
+      conversion: base.conversion * around.conversion * around.crowd,
+      variance: base.variance * around.variance,
+      fatigue: base.fatigue * around.fatigue,
+      cardRisk: base.cardRisk * around.cardRisk,
+      involvement: base.involvement * around.crowd,
+    }
+    : base;
 
   playHalf(rng, ctx, setup, half, 1, chances.filter((c) => c.minute <= 45), planMods);
   const halfTimeScore: [number, number] = userHome
@@ -374,6 +392,13 @@ function buildResult(
     awayGoals,
     detailLevel: 1,
     importance,
+    ...(ctx.atmosphere
+      ? {
+        attendance: ctx.atmosphere.attendance,
+        weather: ctx.atmosphere.weather,
+        referee: ctx.atmosphere.referee,
+      }
+      : {}),
     ...(ctx.instruction ? { instruction: ctx.instruction } : {}),
     userLine: half.line,
     events: timeline(half.events, setup.userHome),
@@ -775,7 +800,7 @@ function resolveUserChance(
   const shooter = userOnPitch
     && rng.chance(
       userInvolvementChance(ctx.user, ctx.minutes.slot, ctx.mental) * mods.involvement
-      * shootingBias(ctx) * mods.shooting,
+      * shootingBias(ctx) * mods.shooting * finishingPull(ctx.user),
     )
     ? { player: ctx.user, slot: ctx.minutes.slot ?? ctx.user.primaryPos }
     : picked;
@@ -787,7 +812,7 @@ function resolveUserChance(
     ? shooter.player.attributes.heading * 0.55 + shooter.player.attributes.jumping * 0.25 + composure * 0.2
     : source === 'freeKick'
       ? shooter.player.attributes.shooting * 0.55 + finishing * 0.2 + composure * 0.25
-      : finishing * 0.6 + composure * 0.25 + shooter.player.attributes.shooting * 0.15;
+      : finishing * 0.72 + composure * 0.16 + shooter.player.attributes.shooting * 0.12;
   // Confidence is worth a few points of finishing either way.
   const quality = isUser ? rawQuality * (0.88 + ctx.mental * 0.12) : rawQuality;
   const resistance = setup.oppDefenceRating * 0.68 + setup.oppGoalkeeperRating * 0.32;
@@ -1201,6 +1226,19 @@ function creatingBias(ctx: UserMatchContext): number {
   if (isNaturalWideMan(ctx.user.foot, slot) && (slot === 'RW' || slot === 'LW' || slot === 'RM' || slot === 'LM' || slot === 'RB' || slot === 'LB' || slot === 'RWB' || slot === 'LWB')) return 1.35;
   if (isInvertedWinger(ctx.user.foot, slot)) return 0.85;
   return 1;
+}
+
+/**
+ * How often the ball finds him in the box rather than anywhere else.
+ *
+ * A season of finishing work used to be worth almost nothing: seventeen points of it
+ * moved a player from eighty goals in three hundred matches to ninety-three, because he
+ * was still taking one shot a game and the conversion curve barely noticed it. Team-mates
+ * look for the man who scores - that is most of what being a scorer is - so the work now
+ * shows up in how many chances he is on the end of as well as in what he does with them.
+ */
+function finishingPull(user: Player): number {
+  return clamp(0.85 + (user.attributes.finishing - 45) / 55, 0.85, 1.6);
 }
 
 /** How often the ball finds the user, given where they play. */

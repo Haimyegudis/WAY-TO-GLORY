@@ -147,6 +147,7 @@ import {
 import { decideAwards, awardFame, awardReputation, type AwardResult } from './awards.js';
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { agentCommission, generateAgentOffers } from './agents.js';
+import { attendanceFor, pickReferee, pickWeather, type Atmosphere } from './atmosphere.js';
 import { appointManager, generateManager, sackingChance } from './manager.js';
 import { advanceTrackedPlayers, followPlayer, isTracked, peerTable, trackHisYear } from './peers.js';
 import {
@@ -460,6 +461,7 @@ function playQualifiers(state: CareerState, index: PackIndex, rng: Rng, calledUp
       // for a club match; if he plays, it opens the full live view with instructions.
       recordNationalAppearance(state, nationalMatchResult(
         state,
+        index,
         rng,
         `national.qualifier.${campaign.season}.${fixture.week}.${fixture.homeCountry}.${fixture.awayCountry}`,
         'national.qualifier',
@@ -818,6 +820,7 @@ function recordNationalAppearance(state: CareerState, result: MatchResult): Matc
 
 function nationalMatchResult(
   state: CareerState,
+  index: PackIndex,
   rng: Rng,
   id: string,
   competitionId: string,
@@ -895,6 +898,9 @@ function nationalMatchResult(
     { minute: 90, type: 'fullTime', byUser: false, ambient: true, detailKey: 'match.live.fullTime' },
   );
   events.sort((a, b) => a.minute - b.minute);
+  // A country's night has a crowd and a man in the middle like anything else.
+  const nightRng = new Rng(hashString(id) % 2_000_000 + 1);
+  const nationalCrowd = Math.round((22_000 + nightRng.int(0, 38_000)) / 500) * 500;
   // Score snapshots are assigned only after both teams' goals are in chronological
   // order. Assigning each side separately produced impossible broadcasts such as 2-0
   // becoming 1-1 a minute later.
@@ -919,6 +925,9 @@ function nationalMatchResult(
     detailLevel: 1,
     userClubId: userCountry,
     importance: 'normal',
+    attendance: nationalCrowd,
+    weather: pickWeather(nightRng, state.world.week, competitionId),
+    referee: pickReferee(nightRng, index, homeCountry),
     userLine: line,
     events,
   };
@@ -3635,6 +3644,11 @@ class HalfTimeInterrupt extends Error {
   }
 }
 
+/** A stable seed for one fixture, so its crowd and its weather never change. */
+function matchSeedFor(matchId: string): number {
+  return (hashString(matchId) % 2_000_000) + 1;
+}
+
 /** How the first half has gone for him, read off what he has actually done in it. */
 function ratingSoFar(events: MatchEvent[], playerId: string): number {
   let rating = 6.4;
@@ -3860,6 +3874,18 @@ function playUserMatch(
   const planMods = chosenPlan && scouted ? planEffect(chosenPlan, readOfThem) : undefined;
   const marker = scouted?.marker ?? null;
 
+  /*
+   * The afternoon around the football, rolled from the match's own seed so the report
+   * says the same thing every time it is opened, and so a half-time replay does not
+   * change the weather.
+   */
+  const atmosphereRng = new Rng(matchSeedFor(matchId));
+  const atmosphere: Atmosphere = held?.atmosphere ?? {
+    attendance: attendanceFor(atmosphereRng, state.world.clubs[homeClubId]!, state.world.clubs[awayClubId]!, importance, competitionId),
+    weather: pickWeather(atmosphereRng, state.world.week, competitionId),
+    referee: pickReferee(atmosphereRng, index, club.country),
+  };
+
   const matchSeed = held?.matchSeed ?? rng.int(1, 2 ** 30);
   const baseCtx = {
     mental: held?.mental
@@ -3881,6 +3907,7 @@ function playUserMatch(
     matchId,
     ...(planMods ? { plan: planMods, planFit: readOfThem } : {}),
     ...(marker ? { duel: { name: marker.name, rating: marker.rating } } : {}),
+    atmosphere,
   };
 
   // The break is only worth having when he is on the pitch to be told something, and
@@ -3916,6 +3943,7 @@ function playUserMatch(
       score: [firstHalf.result.homeGoals, firstHalf.result.awayGoals],
       rating: soFar,
       mental: baseCtx.mental,
+      atmosphere,
       penaltyTaker: baseCtx.penaltyTaker,
       demand,
       options,
@@ -4803,6 +4831,7 @@ function handleInternationalWeek(
     const score: [number, number] = [Math.max(quick[0], outcome.goals), quick[1]];
     recordNationalAppearance(state, nationalMatchResult(
       state,
+      index,
       rng,
       `friendly.national.${season}.${state.world.week}.${callUp.level}.${i}.${country.code}.${opponent.code}`,
       'friendly.national',
@@ -4982,6 +5011,29 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
     stats.competitionId = youthDivision;
   }
 
+  /*
+   * The season is over, and somebody says it out loud.
+   *
+   * A year of football used to end with the calendar quietly rolling over: the last
+   * fixture was played, the next screen was pre-season, and nothing in between marked
+   * that anything had finished. What he did, where the club came, and the name of the
+   * thing that just ended.
+   */
+  const finishedIn = club ? index.competitionById.get(club.competitionId) : undefined;
+  pushInbox(state, 'club', 'inbox.seasonOver', {
+    season: `${season}/${String((season + 1) % 100).padStart(2, '0')}`,
+    competition: finishedIn?.name ?? '',
+    club: club?.name ?? '',
+    position: leaguePosition ?? 0,
+    apps: stats.apps,
+    goals: stats.goals,
+    assists: stats.assists,
+  });
+  pushNews(state, 'news.seasonOver', {
+    season: `${season}/${String((season + 1) % 100).padStart(2, '0')}`,
+    club: club?.name ?? '',
+  }, 'high');
+
   // What the summer's conversation was worth, before the season is filed away.
   settleSeasonGoal(state, leaguePosition);
 
@@ -5072,6 +5124,20 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   state.world.seasonStats[player.id] = emptySeasonStats(state.world.season, player.clubId, userClub(state)?.competitionId ?? null);
   state.flags['seasonStartOvr'] = overall(player.attributes, player.primaryPos, player.secondaryPos);
   state.seasonStartAttributes = { ...player.attributes };
+
+  // A new season, named, with the division he is about to play in.
+  const newClub = userClub(state);
+  const newCompetition = newClub ? index.competitionById.get(newClub.competitionId) : undefined;
+  pushInbox(state, 'club', 'inbox.seasonBegins', {
+    season: `${state.world.season}/${String((state.world.season + 1) % 100).padStart(2, '0')}`,
+    competition: newCompetition?.name ?? '',
+    club: newClub?.name ?? '',
+    age: state.world.season - player.birthYear,
+  });
+  pushNews(state, 'news.seasonBegins', {
+    season: `${state.world.season}/${String((state.world.season + 1) % 100).padStart(2, '0')}`,
+    competition: newCompetition?.name ?? '',
+  }, 'high');
 
   checkRetirement(state, rng);
 }
