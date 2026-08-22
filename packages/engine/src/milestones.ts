@@ -704,6 +704,20 @@ export const MILESTONES: MilestoneQuestion[] = [
 export function milestoneFor(importance: MatchImportance, ctx: { weeksAtNewClub: number; rumoured: boolean }): MilestoneId | null {
   const occasion = occasionMilestone(importance);
   if (occasion) return occasion;
+  return backgroundMilestone(ctx);
+}
+
+/**
+ * The questions that are not about a fixture at all.
+ *
+ * Everything an occasion asks - what the derby means to him, what it is like to go back
+ * to the club that sold him - belongs to the week before the match, and the build-up
+ * raises it there. This is what is left for the pass that runs after the football has
+ * been played: he has just signed somewhere, or his name is in the paper. Asking an
+ * occasion question here is how a player ended up being asked what the big match meant
+ * to him on the Sunday after he had played it.
+ */
+export function backgroundMilestone(ctx: { weeksAtNewClub: number; rumoured: boolean }): MilestoneId | null {
   if (ctx.weeksAtNewClub >= 0 && ctx.weeksAtNewClub <= 2) return 'firstAfterTransfer';
   if (ctx.rumoured) return 'transferRumour';
   return null;

@@ -82,6 +82,22 @@ export function isTracked(state: CareerState, playerId: string): boolean {
   return (state.world.tracked ?? []).includes(playerId);
 }
 
+/**
+ * The ceiling on how many people the world carries. His own year is eight; the rest of
+ * the room is for the men a career runs into - the one they bought to replace him, most
+ * of all - and past sixteen it is a database rather than a story.
+ */
+export const TRACKED_LIMIT = 16;
+
+/** Follow somebody the career has run into: a rival for his shirt, a name in the paper. */
+export function followPlayer(state: CareerState, playerId: string): boolean {
+  const player = state.world.players[playerId];
+  if (!player || player.isUser) return false;
+  if ((state.world.tracked ?? []).length >= TRACKED_LIMIT) return false;
+  trackPlayer(state, player, state.world.season);
+  return true;
+}
+
 export function trackPlayer(state: CareerState, player: Player, season: number): void {
   state.world.tracked = state.world.tracked ?? [];
   if (state.world.tracked.includes(player.id)) return;
@@ -256,6 +272,8 @@ export interface PeerLine {
   retired: boolean;
   /** True when his career is ahead of the player's on the only measure that travels. */
   aheadOfYou: boolean;
+  /** One of the boys he came through with, rather than somebody he ran into later. */
+  sameYear: boolean;
 }
 
 /**
@@ -288,6 +306,7 @@ export function peerTable(state: CareerState): PeerLine[] {
         trophies: career.trophies,
         retired: Boolean(player.retired),
         aheadOfYou: career.apps + career.goals * 3 > myScore,
+        sameYear: Math.abs(player.birthYear - state.player.birthYear) <= 1,
       };
     })
     .sort((a, b) => b.apps + b.goals * 3 - (a.apps + a.goals * 3));

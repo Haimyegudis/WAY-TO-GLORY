@@ -472,3 +472,140 @@ this pass and 119 when the audit started.
 his year, their careers adding up, and spells merging), 11 Playwright tests, both packages
 typecheck, a production build, and the invariant probe clean over seven twenty-season
 careers.
+
+---
+
+## 9. Re-audit after everything
+
+Same tools, run again on the finished game, plus two new ones: a chronology probe that
+walks a career one interruption at a time and checks the order things arrive in, and the
+market probe from the loan investigation.
+
+    tsx test/coverage.probe.ts 10 30     tsx test/chronology.probe.ts 6 8
+    tsx test/stats.probe.ts 12 25        tsx test/tactics.probe.ts 8 6
+    tsx test/levers.probe.ts 10 7        tsx test/peers.probe.ts
+    tsx test/audit.probe.ts 7 3          node scratchpad dead-export + flag sweeps
+
+### 9.1 Where it stands
+
+| | Audit day one | Now |
+|---|---|---|
+| Events reachable | 119 / 144 | **144 / 144** |
+| Milestones reachable | 19 / 21 | **21 / 21** |
+| Dead exported symbols | 19 | **0** |
+| Flags written and never read | 0 | 0 |
+| Copy keys produced but missing (non-event) | 1 | **0** |
+| Hebrew keys missing that English has | 0 | 0 |
+| Injuries per season | 2.0 | **1.58** |
+| Club matches missed injured | 24.2% | **17.0%** |
+| Goals per match, his vs everyone else's | 2.47 vs 2.99 | **2.70 vs 2.99** |
+| Careers graded world class or better | 12 / 12 | **3 / 12** |
+| Career grades observed | 74-100 | **33-95** |
+| Invariant probe | clean | clean (7 careers x 20 seasons) |
+| Engine tests | 155 | **180** |
+| Speed / save | 1.18 ms/week, 2.0 MB | 2.4 ms/week, 1.8 MB |
+
+Availability now reads: **played 63.5%, injured 17.0%, not selected 17.6%, suspended 1.9%**.
+
+### 9.2 What this pass found
+
+Eight more real defects, all fixed:
+
+1. **Occasion questions were being asked after the match.** The post-match media pass fell
+   through to `milestoneFor`, which starts by returning the *fixture* question - so a
+   player was asked what the big match meant to him on the Sunday after he had played it.
+   The post-match pass now only raises what belongs to the week rather than the fixture.
+2. **A pre-season friendly counted as a big night.** `importance: 'friendly'` is not
+   `'normal'`, so a poor afternoon in a July kickabout triggered "the pundits are on you",
+   and three goals in it counted as a hat-trick. Only competitive football is asked about.
+3. **Inbox message ids collided.** The id was season, week and *the length of the mailbox* -
+   and once the mailbox is full that length stops changing, so two letters written in the
+   same week shared an id. The screen keys on it, the read marker uses it, a decision hangs
+   off it. A manager could be sacked and replaced in one week with only one of the two
+   letters existing as far as anything reading the inbox was concerned. It is a counter now.
+4. **The mailbox threw away unread post.** A hard cap of eighty, and the last week of a
+   season pushes more than that in one tick. Read post goes first now, and the cap is 140.
+5. **Managers were never sacked.** One in fifty seasons. The rule wanted the club a clear
+   eighth of a division below where its money says it belongs, measured against the exact
+   strength ranking - which the table mostly follows. Now: a background rate under
+   everything, real pressure when a season is going wrong, relegation nearly always, and a
+   manager who wildly overachieves leaving for a better job. Roughly one change every four
+   to seven seasons at a club, on top of a new manager with every transfer.
+6. **Coming back from loan invented a manager silently** and carried the trust he had built
+   at the loan club back with him. He now meets the parent club's manager properly, with
+   that manager's own opinion of him, and is told so.
+7. **A tournament squad place counted as an appearance.** Being named for a World Cup match
+   he then watched from the bench credited a cap, nought minutes and a rating of zero,
+   which went into his average and into his record. The invariant probe caught it.
+8. **`followPlayer` was dead code** - written in the persistent-careers pass and wired to
+   nothing. It now follows the man a club signs to take his place, so the rival for his
+   shirt gets a career the player can watch.
+
+### 9.3 The order things arrive in
+
+The chronology probe walks a career one interruption at a time - not one week at a time,
+because a week stops several times and the order inside it is the whole question - and
+checks seven rules:
+
+- build-up copy never lands in the same breath as the result;
+- the occasion question is asked before kick-off, never after;
+- a reaction has a match to react to;
+- nobody is shown a shortlist of agents before being told agents are interested;
+- nobody is told a club wants him after he has signed for them;
+- a new manager arrives after the old one leaves, not before;
+- a contract is offered before it is signed.
+
+Over six careers and 4,400 interruptions: **clean**. Two regression tests hold it there.
+
+### 9.4 What each choice is worth now
+
+Ten careers, seven seasons, one lever changed at a time (standard error about +/-1.8):
+
+| Lever | OVR vs baseline | Apps | Injuries |
+|---|---:|---:|---:|
+| intensity: light | −9.2 | 166 | 5.7 |
+| intensity: intensive | **+3.4** | 141 | 10.5 |
+| intensity: extreme | +1.9 | **92** | 11.6 |
+| diet: poor | −7.6 | 145 | 12.3 |
+| diet: professional | **+5.5** | 197 | 11.1 |
+| diet: nutritionist | +2.6 | 185 | **7.8** |
+| focus: physical | +4.5 | 203 | 11.9 |
+| focus: technical | −1.5 | 160 | 11.2 |
+| academy: strongest offer | +5.7 | 169 | 9.7 |
+| academy: weakest offer | −4.7 | 130 | 8.0 |
+| an action every week | +1.9 | 164 | 9.5 |
+| everything at once | **+12.4** | 174 | 13.6 |
+
+Reading the opponent right is worth **+0.22 of a rating point a match** over reading him
+wrong, measured across roughly 1,200 matches an arm.
+
+Two honest residuals. **Professional and nutritionist diets are level on rating** within
+the noise; what separates them is that the nutritionist keeps him fit - eight injuries
+against eleven over seven seasons - for nearly three times the money. And **the physical
+training block is still the strongest**, by four to six rating points over technical,
+because conditioning buys appearances and appearances buy development. Conditioning is
+already the floor under every block; closing the rest of that gap means changing what
+position weightings value, which is a bigger change than a balance pass.
+
+### 9.5 Against the other games, now
+
+| Axis | Football Manager | EA FC Player Career | New Star Soccer | WAY TO GLORY |
+|---|---|---|---|---|
+| Preparation | Full opposition scouting and tactics | Objectives per match | None | **Opposition report - shape, threat, soft spot, danger man, your direct opponent - and nine jobs to choose between, scored against what they do** |
+| In-match agency | Full tactical control | You play it | You play the moment | Half-time and live instructions, plus the plan you committed to on Thursday |
+| The people around you | Deep: staff, board, dynamics | Agent, some events | Girlfriend, agent, lifestyle | **A named manager with a style and a tenure who is sacked and replaced, a named rival for your shirt, eight boys from your year with careers of their own, six mentors** |
+| Your own contract | You negotiate everything | Simplified | Wage demands | **Sign, push for more, or run it down - and pushing can lose you the offer** |
+| Rest of football | Persistent world, every player has a career | Static outside your club | None | **Eight tracked peers plus anyone signed to replace you: real spells, apps, goals, trophies, and careers that end at 22** |
+| Youth football | Youth teams exist as squads | Absent | Absent | **A full pyramid: divisions, cups, tables, scoring charts, three honours, and a market that tells you whether an offer is the academy or the first team** |
+| Grading | Reputation and job offers | Rating and objectives | Star rating | Career score 1-100 that now spreads 33 to 95 across twelve careers |
+
+What is still true: this is not Football Manager and should not try to be. It has no team
+selection, no formation of your own, no staff, no board meetings, no transfer market you
+operate. What it has, and what none of the others has, is a single footballer's week
+simulated end to end - the training block, the diet bill, the man marking him, the
+questions before the fixture and after it, the boy from his year who went to Fulham - in
+Hebrew, offline, deterministic, at about two milliseconds a week.
+
+Where it still lags: he cannot pick the shape, he cannot prepare a *team*, and the world
+outside his own division is a strength number rather than a league of people. Those are
+the next systems, not the next fixes.

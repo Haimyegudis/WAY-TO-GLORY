@@ -24,6 +24,8 @@ interface Variant {
   academyIndex?: number;
   plan?: Partial<TrainingPlan>;
   mentor?: boolean;
+  /** Talks to him, but does not hand the brief to his agent. */
+  ignoreAdvice?: boolean;
   social?: boolean;
 }
 
@@ -40,6 +42,7 @@ const VARIANTS: Variant[] = [
   { name: 'academy: strongest offer', academyIndex: 0 },
   { name: 'academy: weakest offer', academyIndex: 4 },
   { name: 'mentor: chosen and asked weekly', mentor: true },
+  { name: 'mentor: talked to, advice not acted on', mentor: true, ignoreAdvice: true },
   { name: 'social: an action every week', social: true },
   { name: 'everything: best academy, pro diet, intensive, mentor, social', academyIndex: 0, plan: { intensity: 'intensive', diet: 'professional' }, mentor: true, social: true },
 ];
@@ -71,7 +74,7 @@ function run(seed: number, variant: Variant) {
         const topic = topics[rng.int(0, topics.length - 1)] as MentorTopic | undefined;
         if (topic) {
           const reply = askMentor(state, topic);
-          if (reply?.brief) takeMentorAdvice(state, reply);
+          if (reply?.brief && !variant.ignoreAdvice) takeMentorAdvice(state, reply);
         }
       }
     }

@@ -288,6 +288,7 @@ export function CareerScreen() {
                   <tr key={peer.playerId} className={peer.aheadOfYou ? undefined : 'faint'}>
                     <td>
                       {peer.name}
+                      {!peer.sameYear && <span className="faint"> · {t('career.hisYear.rival')}</span>}
                       {peer.retired && <span className="faint"> · {t('career.hisYear.finished')}</span>}
                     </td>
                     <td>{peer.clubName || '—'}</td>

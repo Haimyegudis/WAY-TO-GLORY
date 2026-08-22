@@ -20,7 +20,7 @@ export function compact(state: CareerState): CareerState {
     ...state,
     matchLog: recentMatches.map((m) => (m.season < season ? { ...m, events: undefined } : m)),
     news: state.news.slice(0, 40),
-    inbox: state.inbox.slice(0, 50),
+    inbox: state.inbox.slice(0, 90),
     world: {
       ...state.world,
       ...(state.world.youth ? { youth: compactYouth(state.world.youth, season) } : {}),

@@ -68,6 +68,7 @@ import { runAbstractMarket, runSquadWindow, type SquadMove } from './market.js';
 import { negotiate, type ContractAsk, type NegotiationOutcome } from './negotiate.js';
 import {
   applyMilestoneAnswer,
+  backgroundMilestone,
   milestoneById,
   milestoneCopyVariant,
   milestoneFor,
@@ -147,7 +148,7 @@ import { decideAwards, awardFame, awardReputation, type AwardResult } from './aw
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { agentCommission, generateAgentOffers } from './agents.js';
 import { appointManager, generateManager, sackingChance } from './manager.js';
-import { advanceTrackedPlayers, isTracked, peerTable, trackHisYear, trackPlayer } from './peers.js';
+import { advanceTrackedPlayers, followPlayer, isTracked, peerTable, trackHisYear } from './peers.js';
 import {
   MATCH_PLANS,
   planEffect,
@@ -1127,6 +1128,12 @@ function pushNews(state: CareerState, key: string, args: Record<string, string |
   if (state.news.length > 60) state.news.length = 60;
 }
 
+/**
+ * How much post he keeps. Big enough that the busiest week of the year - the last day of
+ * a season - cannot bury a letter he has not read yet.
+ */
+const INBOX_LIMIT = 140;
+
 function pushInbox(
   state: CareerState,
   category: InboxMessage['category'],
@@ -1135,8 +1142,20 @@ function pushInbox(
   decisionId?: string,
   action?: InboxMessage['action'],
 ): void {
+  /*
+   * A letter needs an identity of its own.
+   *
+   * The id was the season, the week and the length of the mailbox - and once the mailbox
+   * is full that length stops changing, so two letters written in the same week were
+   * given the same id. The screen uses that id as a key, the read marker uses it, and a
+   * decision is attached to it: a manager could be sacked and replaced in one week and
+   * only one of the two letters would exist as far as anything reading the inbox was
+   * concerned. It is a counter now, and counters do not repeat.
+   */
+  const serial = Number(state.flags['inboxSerial'] ?? 0) + 1;
+  state.flags['inboxSerial'] = serial;
   state.inbox.unshift({
-    id: `msg_${state.world.season}_${state.world.week}_${state.inbox.length}`,
+    id: `msg_${state.world.season}_${state.world.week}_${serial}`,
     season: state.world.season,
     week: state.world.week,
     category,
@@ -1146,7 +1165,21 @@ function pushInbox(
     ...(decisionId ? { decisionId } : {}),
     ...(action ? { action } : {}),
   });
-  if (state.inbox.length > 80) state.inbox.length = 80;
+  /*
+   * Making room, without throwing away the post he has not opened.
+   *
+   * The mailbox was a hard eighty and the end of a season pushes far more than eighty
+   * messages in a single tick - awards, the window, the summer's business, the new
+   * campaign - so the ones written first were shoved off the end before he ever saw
+   * them. That is how a manager could be sacked and appointed in the same week without
+   * the player being told either thing. Read post goes first now, and only if there is
+   * none of that does the oldest letter fall off.
+   */
+  while (state.inbox.length > INBOX_LIMIT) {
+    const oldestRead = [...state.inbox].reverse().find((message) => message.read);
+    const drop = oldestRead ?? state.inbox[state.inbox.length - 1]!;
+    state.inbox = state.inbox.filter((message) => message.id !== drop.id);
+  }
 }
 
 function unlock(state: CareerState, id: string, args?: Record<string, string | number>): void {
@@ -2087,9 +2120,20 @@ function recentAppearances(state: CareerState, count: number): UserMatchLine[] {
 function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | null {
   const player = state.player;
   const club = userClub(state);
-  const last = state.lastMatch?.userLine;
+  /*
+   * Only real football counts as something to be asked about.
+   *
+   * A camp friendly carries the importance 'friendly', which is not 'normal' - so a poor
+   * afternoon in a pre-season kickabout in week six read as a poor afternoon on a big
+   * night, and the pundits were on him about a match nobody watched. Three goals in a
+   * friendly is not a hat-trick either.
+   */
+  const competitive = state.lastMatch
+    && !state.lastMatch.competitionId.startsWith('friendly')
+    && state.lastMatch.season === state.world.season;
+  const last = competitive ? state.lastMatch?.userLine : undefined;
 
-  if (last?.played && state.lastMatch?.season === state.world.season) {
+  if (last?.played) {
     if (last.goals >= 3) return 'hatTrick';
     if (last.red > 0) return 'sentOff';
   }
@@ -2137,13 +2181,13 @@ function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | nul
     return 'goalDrought';
   }
 
-  // A poor night on a big night is the one they replay.
-  const lastResult = state.lastMatch;
+  // A poor night on a big night is the one they replay. A poor night in July is not.
+  const lastResult = competitive ? state.lastMatch : null;
   if (
     lastResult?.userLine?.played &&
-    lastResult.season === state.world.season &&
     lastResult.importance &&
     lastResult.importance !== 'normal' &&
+    lastResult.importance !== 'friendly' &&
     lastResult.userLine.rating < 6.0
   ) {
     return 'punditCriticism';
@@ -2250,7 +2294,9 @@ function askTheMedia(state: CareerState, index: PackIndex, importance: MatchImpo
     });
     if (raised) return;
   }
-  const fallbackId = milestoneFor(importance, { weeksAtNewClub, rumoured });
+  // Only the questions that belong to the week rather than to the fixture: the occasion
+  // has already been put to him, before he played it.
+  const fallbackId = backgroundMilestone({ weeksAtNewClub, rumoured });
   if (fallbackId) raiseMilestone(state, fallbackId);
 }
 
@@ -4670,12 +4716,24 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
    * who picks the side in August is not always the man who picked it in May.
    */
   if (club && state.manager?.clubId === club.id) {
-    const relegated = leaguePosition !== null
-      && leaguePosition >= Math.max(1, Object.keys(state.world.competitions[club.competitionId]?.table ?? {}).length - 2);
+    const size = Object.keys(state.world.competitions[club.competitionId]?.table ?? {}).length;
+    const relegated = leaguePosition !== null && leaguePosition >= Math.max(1, size - 2);
+    // A man who takes a club well past where its money says it belongs is a man other
+    // clubs ring in May. Losing a manager to a better job is not the same story as
+    // losing one to the sack, but the player wakes up to the same new voice in August.
+    const expected = size > 1
+      ? Object.keys(state.world.competitions[club.competitionId]!.table)
+        .map((id) => state.world.clubs[id])
+        .filter((entry): entry is Club => Boolean(entry))
+        .sort((a, b) => b.strength - a.strength)
+        .findIndex((entry) => entry.id === club.id) + 1
+      : null;
+    const overachieved = expected !== null && leaguePosition !== null && expected - leaguePosition >= Math.max(3, size * 0.25);
     const tenure = season - state.manager.since;
-    if (relegated ? rng.chance(0.72) : rng.chance(clamp(0.06 + tenure * 0.035, 0.06, 0.3))) {
-      state.flags['managerSacked'] = true;
-    }
+    const chance = relegated ? 0.72
+      : overachieved ? 0.3
+      : clamp(0.2 + tenure * 0.09, 0.2, 0.5);
+    if (rng.chance(chance)) state.flags['managerSacked'] = true;
   }
 
   // Eighteen: the youth team is finished with him one way or the other.
@@ -5315,6 +5373,9 @@ function reportWindow(state: CareerState, index: PackIndex, moves: SquadMove[]):
         fee: move.fee,
       });
       pushNews(state, 'news.rivalSigned', { player: move.playerName, club: club.name }, 'high');
+      // Somebody bought to play in his position is a career he will be compared with for
+      // as long as they are at the same club, so the world starts keeping this one too.
+      followPlayer(state, move.playerId);
       // He is not dropped by decree, but he is behind somebody now.
       state.managerTrust = clamp(state.managerTrust - 4, 0, 100);
     } else if (move.fee > 0) {
@@ -5424,6 +5485,20 @@ function handleContractEnd(
       };
       player.squadRole = 'rotation';
       pushInbox(state, 'club', 'inbox.loanEnded', { club: parent.name });
+      /*
+       * Coming back is meeting a stranger.
+       *
+       * A loan return moves him between clubs without going through the signing that
+       * would give him a manager, so the man who picks the side at his parent club was
+       * being conjured silently the following week - and the trust he had built with the
+       * manager he had just spent a season impressing came back with him, which is not
+       * how walking into somebody else's dressing room works.
+       */
+      const homeManager = appointManager(rng, state, index, parent);
+      pushInbox(state, 'manager', 'inbox.manager.backFromLoan', {
+        manager: homeManager.name,
+        club: parent.name,
+      });
     }
     return;
   }
@@ -6584,14 +6659,6 @@ export function setMatchPlan(state: CareerState, index: PackIndex, plan: MatchPl
  */
 export function peers(state: CareerState) {
   return peerTable(state);
-}
-
-/** Follow somebody the career has run into: a rival, a team-mate, a name in the paper. */
-export function followPlayer(state: CareerState, playerId: string): boolean {
-  const player = state.world.players[playerId];
-  if (!player || player.isUser) return false;
-  trackPlayer(state, player, state.world.season);
-  return true;
 }
 
 export function actionsAvailableNow(state: CareerState) {

@@ -31,7 +31,7 @@ import { indexPack, validatePack } from '../src/data.js';
 import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
 import { appointManager, sackingChance } from '../src/manager.js';
 import { MATCH_PLANS, planEffect, planFit, type OpponentReport } from '../src/tactics.js';
-import { TRACKED_PEERS, emptyCareer, recordSeason } from '../src/peers.js';
+import { TRACKED_LIMIT, TRACKED_PEERS, emptyCareer, recordSeason } from '../src/peers.js';
 import {
   SCHEMA_VERSION,
   applyLiveInstruction,
@@ -3230,8 +3230,10 @@ describe('the man in the dugout', () => {
 
   it('leaves a manager alone until a season has actually gone wrong', () => {
     const settled = { weeksInCharge: 60, seasonWeek: 30, boardMood: 55 };
-    // Top of the table, where the money says he should be.
-    expect(sackingChance({ ...settled, tablePlace: 0.1, expectedPlace: 0.2 })).toBe(0);
+    // Top of the table, where the money says he should be: no pressure, but no manager
+    // is ever completely safe either.
+    const safe = sackingChance({ ...settled, tablePlace: 0.1, expectedPlace: 0.2 });
+    expect(safe).toBeLessThan(0.003);
     // August, however bad it looks.
     expect(sackingChance({ ...settled, seasonWeek: 6, tablePlace: 0.9, expectedPlace: 0.2 })).toBe(0);
     // A month in the job.
@@ -3463,6 +3465,7 @@ describe('the boys he came through with', () => {
     const { state, index } = startedCareer({ seed: 96 });
     const tracked = state.world.tracked ?? [];
     expect(tracked.length, 'nobody from his own year is being followed').toBe(TRACKED_PEERS);
+    expect(tracked.length).toBeLessThanOrEqual(TRACKED_LIMIT);
     for (const id of tracked) {
       const peer = state.world.players[id];
       expect(peer, `a tracked player who does not exist: ${id}`).toBeTruthy();
@@ -3488,7 +3491,9 @@ describe('the boys he came through with', () => {
     }
 
     const table = peers(state);
-    expect(table.length).toBe(TRACKED_PEERS);
+    // His year, plus anybody the career ran into and started following.
+    expect(table.length).toBeGreaterThanOrEqual(TRACKED_PEERS);
+    expect(table.filter((peer) => peer.sameYear).length).toBe(TRACKED_PEERS);
     expect(table.some((peer) => peer.apps > 40), 'ten seasons and nobody played 40 games').toBe(true);
     expect(table.some((peer) => peer.goals > 0)).toBe(true);
     // Sorted by what a career is worth, and every line names a real club or an ending.
@@ -3672,5 +3677,67 @@ describe('what a boy is offered', () => {
       }
     }
     expect(academy + senior, 'no boy in three careers was ever approached').toBeGreaterThan(0);
+  });
+});
+
+
+describe('the order things arrive in', () => {
+  it('asks what the fixture means before the fixture, and reacts to it afterwards', () => {
+    const OCCASION = ['derby', 'rivalMatch', 'bigMatch', 'againstOldClub'];
+    const REACTION = ['hatTrick', 'sentOff', 'punditCriticism', 'badRun', 'goalDrought'];
+    for (const seed of [11, 48]) {
+      const { state, index } = startedCareer({ seed });
+      const seenMatches = new Set<string>();
+      let played = 0;
+      // One interruption at a time rather than one week at a time: a week stops several
+      // times and the order inside it is the whole question.
+      for (let i = 0; i < 53 * 6 * 3 && !state.retired; i++) {
+        const before = played;
+        const result = advanceWeek(state, index);
+        if (result.stopped === 'halfTime' && state.pendingHalfTime) {
+          const held = state.pendingHalfTime;
+          resumeHalfTime(state, index, held.demand ?? held.options[0]!);
+        }
+        for (const match of state.matchLog) {
+          if (seenMatches.has(match.id)) continue;
+          seenMatches.add(match.id);
+          if (match.userLine?.played && !match.competitionId.startsWith('friendly')) played++;
+        }
+        const playedThisWeek = played > before;
+
+        for (const decision of state.pendingDecisions) {
+          if (!decision.eventId.startsWith('milestone:')) continue;
+          const id = decision.eventId.replace('milestone:', '');
+          if (OCCASION.includes(id) && playedThisWeek) {
+            throw new Error(`asked what the ${id} meant to him after he had played it`);
+          }
+          if (REACTION.includes(id) && played === 0) {
+            throw new Error(`asked him to react to ${id} before he had played a match`);
+          }
+        }
+        state.pendingDecisions = [];
+      }
+      expect(played, 'six seasons and no competitive football').toBeGreaterThan(0);
+    }
+  });
+
+  it('never writes two letters with the same name on them', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    const ids = new Set<string>();
+    for (let i = 0; i < 53 * 8 && !state.retired; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      for (const message of state.inbox) ids.add(message.id);
+    }
+    // Every message that has ever been in the mailbox had its own id: the screen keys on
+    // it, the read marker uses it, and a decision hangs off it.
+    const seen = new Map<string, number>();
+    for (const message of state.inbox) {
+      seen.set(message.id, (seen.get(message.id) ?? 0) + 1);
+    }
+    for (const [id, count] of seen) {
+      expect(count, `two letters share the id ${id}`).toBe(1);
+    }
+    expect(ids.size).toBeGreaterThan(50);
   });
 });

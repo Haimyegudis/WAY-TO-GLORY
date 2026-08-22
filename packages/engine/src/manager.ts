@@ -109,11 +109,21 @@ export function sackingChance(input: {
   expectedPlace: number | null;
   boardMood: number;
 }): number {
-  if (input.weeksInCharge < 18 || input.seasonWeek < 14) return 0;
+  if (input.weeksInCharge < 14 || input.seasonWeek < 12) return 0;
   if (input.tablePlace === null || input.expectedPlace === null) return 0;
+  /*
+   * How close a season has to be to going wrong.
+   *
+   * The first version wanted the club a clear eighth of a division below where its money
+   * says it belongs, and it measured that against the exact strength ranking - which the
+   * table mostly follows, so the condition was almost never met and managers were sacked
+   * once in fifty seasons. Real boardrooms are less patient and less accurate than that.
+   * There is a small background rate under everything, because managers also leave for
+   * reasons nobody outside the building hears about, and a season that is genuinely going
+   * badly costs a man his job about half the time.
+   */
   const underperformance = input.tablePlace - input.expectedPlace;
-  if (underperformance <= 0.12) return 0;
-  const pressure = clamp(underperformance * 1.6, 0, 1);
-  const boardPatience = clamp((input.boardMood - 30) / 90, 0, 1);
-  return clamp(0.012 * pressure * (1.5 - boardPatience), 0, 0.06);
+  const pressure = clamp((underperformance - 0.05) * 2.2, 0, 1);
+  const boardPatience = clamp((input.boardMood - 25) / 100, 0, 1);
+  return clamp(0.0015 + 0.028 * pressure * (1.25 - boardPatience), 0, 0.035);
 }

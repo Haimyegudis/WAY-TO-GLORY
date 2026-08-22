@@ -99,10 +99,19 @@ export function playTournament(
   };
 
   const playMatch = (stage: TournamentStage): TournamentMatch => {
-    const starts = rng.chance(clamp(minutesShare, 0.15, 0.95));
-    const outcome = starts
+    /*
+     * Being in the squad is not being on the pitch.
+     *
+     * Whether he travelled decided whether he "played": a man who was named and then sat
+     * on the bench for ninety minutes was credited with a cap, nought minutes and a
+     * rating of zero, which then went into his tournament average and into his match
+     * record as an appearance nobody could explain. Squad first, then the coach decides.
+     */
+    const inSquad = rng.chance(clamp(minutesShare, 0.15, 0.95));
+    const outcome = inSquad
       ? simulateInternationalMatch(rng, player, 'senior', countryReputation)
       : null;
+    const appeared = Boolean(outcome?.played);
 
     // The nation's result leans on its standing, with the usual tournament noise.
     const edge = (countryReputation - 70) / 26 + rng.gauss(0, 0.9);
@@ -115,13 +124,13 @@ export function playTournament(
       goalsFor,
       goalsAgainst,
       played: true,
-      userPlayed: starts,
+      userPlayed: appeared,
       userMinutes: outcome?.minutes ?? 0,
       userGoals: outcome?.goals ?? 0,
       userAssists: outcome?.assists ?? 0,
       userRating: outcome?.rating ?? 0,
     };
-    if (starts) {
+    if (appeared) {
       caps++;
       goals += match.userGoals;
       ratingSum += match.userRating;
