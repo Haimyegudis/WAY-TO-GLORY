@@ -9,7 +9,7 @@ import {
 import { formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
 import { PrepareCard } from './PrepareScreen.js';
-import { campSchedule, inTrainingCamp, myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
+import { campSchedule, inTrainingCamp, myClub, myPosition, nextFixture, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, clubShortName, localiseArgs } from '../lib/club.js';
 import { competitionName, countryName, personName } from '../lib/names.js';
 import { Card, Chip, ClubLine, Crest, Gauge, RatingBadge, Stat } from '../components/ui.js';
@@ -44,7 +44,7 @@ export function Hub() {
   const age = state.world.season - player.birthYear;
   const fixture = nextFixture(state);
   const preparation = useGame((s) => s.preparation)();
-  const season = seasonLineAtClub(state);
+  const season = state.world.seasonStats[player.id];
   const position = myPosition(state);
   const injuredWeeks = weeksInjured(state);
   const unread = state.inbox.filter((m) => !m.read);
@@ -226,6 +226,34 @@ export function Hub() {
         * that says the same thing three times is not telling him more, it is making him
         * read more to find out less.
         */}
+      {/*
+        * His season, in the four numbers he actually quotes.
+        *
+        * Official matches only - the camp friendlies are not his record - and it comes
+        * straight off the season the engine is keeping, so it counts every competition
+        * he has played in rather than only the league he is in today.
+        */}
+      {season && season.apps > 0 && (
+        <Card>
+          <div className="statrow">
+            <Stat label={t('career.apps')} value={season.apps} />
+            <Stat label={t('match.goals')} value={season.goals} />
+            <Stat label={t('match.assists')} value={season.assists} />
+            <Stat
+              label={t('chart.cards')}
+              value={season.redCards > 0 ? `${season.yellowCards}/${season.redCards}` : season.yellowCards}
+            />
+          </div>
+          <button
+            className="faint"
+            style={{ fontSize: 11.5, marginBlockStart: 8, textAlign: 'start' }}
+            onClick={() => goto('matches')}
+          >
+            {t('hub.officialOnly')} ›
+          </button>
+        </Card>
+      )}
+
       <Card>
         <div className="row" style={{ gap: 12 }}>
           <Gauge label={t('hub.form')} value={player.form} tone={player.form < 40 ? 'red' : 'green'} />
@@ -238,6 +266,17 @@ export function Hub() {
             <span className="eyebrow">{t('status.lastFive')}</span>
             <span className="num">{recentAverage.toFixed(2)}</span>
           </div>
+        )}
+        {/*
+          * How close the selectors are. It went out with the rest of the numbers and it
+          * should not have: for a young player it is the one that moves the season, and
+          * he watches it the way he watches his form.
+          */}
+        {nationalInterest > 0 && (
+          <button className="row-between" style={{ marginBlockStart: 6, width: '100%' }} onClick={() => goto('national')}>
+            <span className="eyebrow">{t('status.nationalInterest')}</span>
+            <span className="num">{nationalInterest}% ›</span>
+          </button>
         )}
       </Card>
 

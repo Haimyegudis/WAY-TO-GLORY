@@ -18,34 +18,54 @@ export function PrepareCard({ preparation }: { preparation: MatchPreparation }) 
 
   return (
     <Card title={t('prepare.title', { opponent: preparation.opponentName })}>
-      <div className="stack" style={{ gap: 8 }}>
-        <p style={{ fontSize: 13 }}>
-          {t('prepare.shape', { formation: report.formation })} ·{' '}
-          {t(report.gap >= 6 ? 'prepare.gap.stronger' : report.gap <= -6 ? 'prepare.gap.weaker' : 'prepare.gap.even')}
-        </p>
-        <p style={{ fontSize: 13 }}>{t(`prepare.threat.${report.threat}`)}</p>
-        {report.weakness !== 'none' && (
-          <p style={{ fontSize: 13, color: 'var(--amber)' }}>{t(`prepare.weakness.${report.weakness}`)}</p>
-        )}
-        {report.dangerMan && (
-          <p className="faint" style={{ fontSize: 12.5 }}>
-            {t('prepare.dangerMan', {
-              name: report.dangerMan.name,
-              pos: `position.${report.dangerMan.position}`,
-              rating: report.dangerMan.rating,
-            })}
-          </p>
-        )}
-        {report.marker && (
-          <p className="faint" style={{ fontSize: 12.5 }}>
-            {t('prepare.marker', {
-              name: report.marker.name,
-              pos: `position.${report.marker.position}`,
-              rating: report.marker.rating,
-            })}
-          </p>
-        )}
-      </div>
+      {/*
+        * The report folds away.
+        *
+        * Five lines of scouting sat open above the choice every single week, so the card
+        * was mostly reading and the decision was below the fold. It opens when he wants
+        * it. And when nobody has watched them - a cup tie against a side the world does
+        * not model - it says so instead of inventing a report.
+        */}
+      {report.scouted ? (
+        <details className="scout">
+          <summary>
+            {t('prepare.report')}
+            <span className="faint" style={{ fontSize: 12 }}>
+              {' · '}
+              {t('prepare.shape', { formation: report.formation })}
+            </span>
+          </summary>
+          <div className="stack" style={{ gap: 8, marginBlockStart: 8 }}>
+            <p style={{ fontSize: 13 }}>
+              {t(report.gap >= 6 ? 'prepare.gap.stronger' : report.gap <= -6 ? 'prepare.gap.weaker' : 'prepare.gap.even')}
+            </p>
+            <p style={{ fontSize: 13 }}>{t(`prepare.threat.${report.threat}`)}</p>
+            {report.weakness !== 'none' && (
+              <p style={{ fontSize: 13, color: 'var(--amber)' }}>{t(`prepare.weakness.${report.weakness}`)}</p>
+            )}
+            {report.dangerMan && (
+              <p className="faint" style={{ fontSize: 12.5 }}>
+                {t('prepare.dangerMan', {
+                  name: report.dangerMan.name,
+                  pos: `position.${report.dangerMan.position}`,
+                  rating: report.dangerMan.rating,
+                })}
+              </p>
+            )}
+            {report.marker && (
+              <p className="faint" style={{ fontSize: 12.5 }}>
+                {t('prepare.marker', {
+                  name: report.marker.name,
+                  pos: `position.${report.marker.position}`,
+                  rating: report.marker.rating,
+                })}
+              </p>
+            )}
+          </div>
+        </details>
+      ) : (
+        <p className="faint" style={{ fontSize: 13 }}>{t('prepare.noReport')}</p>
+      )}
 
       <div className="stack" style={{ gap: 8, marginBlockStart: 12 }}>
         {preparation.options.map((option) => {

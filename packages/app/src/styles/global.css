@@ -1577,3 +1577,22 @@ select:focus-visible,
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* The scouting report: folded away until he wants it, and it looks like a control. */
+.scout > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.scout > summary::-webkit-details-marker { display: none; }
+.scout > summary::after {
+  content: '⌄';
+  float: inline-end;
+  opacity: 0.6;
+}
+.scout[open] > summary::after { content: '⌃'; }

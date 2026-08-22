@@ -23,6 +23,7 @@ import { Rng, clamp } from './rng.js';
 import { developWeek } from './development.js';
 import { clubBaseOvr } from './generate.js';
 import { positionGroup, ratingAt } from './positions.js';
+import { YOUTH_MAX_AGE, youthClubRating } from './youth.js';
 import type { PackIndex } from './data.js';
 import type { CareerState, Club, Player, PlayerCareer } from './types.js';
 
@@ -65,9 +66,15 @@ export function recordSeason(
  * the same arithmetic a supporter does in his head: a player well above his club's level
  * plays every week and scores what his position scores, one below it does not get in.
  */
-export function estimateSeason(rng: Rng, player: Player, club: Club): { apps: number; goals: number; assists: number } {
+export function estimateSeason(
+  rng: Rng,
+  player: Player,
+  club: Club,
+  /** The level he is actually playing at. A boy is not competing with the first team. */
+  level = clubBaseOvr(club),
+): { apps: number; goals: number; assists: number } {
   const ovr = ratingAt(player.attributes, player.primaryPos);
-  const share = clamp(0.35 + (ovr - clubBaseOvr(club)) / 18, 0.04, 0.95);
+  const share = clamp(0.35 + (ovr - level) / 18, 0.04, 0.95);
   const apps = Math.round(share * rng.range(26, 36));
   const group = positionGroup(player.primaryPos);
   const per90 = group === 'ATT' ? 0.42 : group === 'MID' ? 0.16 : group === 'DEF' ? 0.05 : 0;
@@ -185,16 +192,23 @@ export function advanceTrackedPlayers(rng: Rng, state: CareerState, index: PackI
 
     if (club) {
       player.career = player.career ?? emptyCareer(season);
+      // A boy's season is the one he played in his age group, and it is already written
+      // down for the division the game models in full.
+      const boy = age <= YOUTH_MAX_AGE;
+      const filed = boy ? state.world.youth?.stats[id] : undefined;
       const modelled = state.world.competitions[club.competitionId];
       const goalsInWorld = modelled?.scorers[id];
-      const line = goalsInWorld !== undefined
-        // His division is simulated: this is what he actually did in it.
-        ? {
-          apps: Math.round(clamp(0.3 + (ratingAt(player.attributes, player.primaryPos) - clubBaseOvr(club)) / 22, 0.05, 0.95) * 34),
-          goals: goalsInWorld,
-          assists: modelled?.assists?.[id] ?? 0,
-        }
-        : estimateSeason(rng, player, club);
+      const level = boy ? youthClubRating(club, age) : clubBaseOvr(club);
+      const line = filed && filed.season === season && filed.apps > 0
+        ? { apps: filed.apps, goals: filed.goals, assists: filed.assists }
+        : goalsInWorld !== undefined && !boy
+          // His division is simulated: this is what he actually did in it.
+          ? {
+            apps: Math.round(clamp(0.3 + (ratingAt(player.attributes, player.primaryPos) - level) / 22, 0.05, 0.95) * 34),
+            goals: goalsInWorld,
+            assists: modelled?.assists?.[id] ?? 0,
+          }
+          : estimateSeason(rng, player, club, level);
       const wonIt = state.world.history.champions
         .some((record) => record.season === season && record.clubId === club.id);
       recordSeason(player.career, season, club.id, {
@@ -319,14 +333,33 @@ export interface PeerLine {
 function liveSeason(state: CareerState, player: Player): { apps: number; goals: number; assists: number } {
   const club = player.clubId ? state.world.clubs[player.clubId] : undefined;
   if (!club) return { apps: 0, goals: 0, assists: 0 };
+  const season = state.world.season;
+  const age = season - player.birthYear;
 
-  const modelled = state.world.competitions[club.competitionId]
-    ?? state.world.youth?.competitions[state.world.youth.membership[club.id] ?? ''];
+  /*
+   * A boy plays in an age group, not in the first team.
+   *
+   * His own year was measured against the senior squad of the club they are at, so a
+   * sixteen year old came out at five per cent of a first-team season - two appearances
+   * a year, every year, while he was playing thirty-six in the same age group. Where the
+   * division is modelled those numbers are already written down; where it is not, he is
+   * measured against boys his own age.
+   */
+  const boy = age <= YOUTH_MAX_AGE;
+  const filed = boy ? state.world.youth?.stats[player.id] : undefined;
+  if (filed && filed.season === season) {
+    return { apps: filed.apps, goals: filed.goals, assists: filed.assists };
+  }
+
+  const modelled = boy
+    ? state.world.youth?.competitions[state.world.youth.membership[club.id] ?? '']
+    : state.world.competitions[club.competitionId];
   const played = (modelled?.fixtures ?? []).filter(
     (fixture) => fixture.played && (fixture.homeClubId === club.id || fixture.awayClubId === club.id),
   ).length;
   const ovr = ratingAt(player.attributes, player.primaryPos);
-  const share = clamp(0.3 + (ovr - clubBaseOvr(club)) / 22, 0.05, 0.95);
+  const level = boy ? youthClubRating(club, age) : clubBaseOvr(club);
+  const share = clamp(0.3 + (ovr - level) / 22, 0.05, 0.95);
 
   if (modelled) {
     return {

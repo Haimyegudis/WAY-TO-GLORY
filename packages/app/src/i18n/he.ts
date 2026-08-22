@@ -1352,6 +1352,7 @@ export const he: Record<string, string> = {
   'train.diet.nutritionist.desc': 'מישהו בונה לך את השבוע סביב הגוף שלך. הנתונים הפיזיים הכי טובים שאפשר, אבל לחיות כך כל שבוע שוחק מנטלית והמורל יורד קצת.',
 
 
+  'hub.officialOnly': 'משחקים רשמיים העונה',
   'hub.skills': 'ציונים',
   'skill.speed': 'מהירות',
   'skill.agility': 'זריזות',
@@ -1656,6 +1657,8 @@ export const he: Record<string, string> = {
   'club.shirtRival.behind': 'אתה לפני {name} על החולצה',
   'club.shirtRival.none': 'אף אחד במועדון לא מתחרה איתך על החולצה',
   'prepare.title': 'מתכוננים ל{opponent}',
+  'prepare.report': 'דוח סקאוטינג',
+  'prepare.noReport': 'אין דוח סקאוטינג עליהם. אף אחד לא ראה אותם משחקים.',
   'prepare.shape': 'הם מסתדרים {formation}',
   'prepare.gap.stronger': 'קבוצה טובה משלכם',
   'prepare.gap.weaker': 'קבוצה שאתם אמורים לנצח',

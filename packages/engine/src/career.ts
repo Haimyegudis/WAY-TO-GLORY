@@ -3440,6 +3440,45 @@ function simulateYouthWeek(state: CareerState, index: PackIndex, rng: Rng, club:
  * A youth match he played: the goals, assists and cards in it belong to boys with names,
  * so they go on their own records and into the division's charts.
  */
+/**
+ * Who actually played in an age-group match.
+ *
+ * Every boy in the squad was credited with ninety minutes of every fixture, so an entire
+ * division finished the season on identical appearance counts - which is what made his
+ * own year look like eight boys with the same career. A youth coach picks eleven and
+ * uses three, the better ones play more often, and the same boy plays the same match
+ * however many times the fixture is read.
+ */
+function youthAppearances(state: CareerState, clubId: string, fixtureKey: string): { id: string; minutes: number }[] {
+  const squad = youthSquad(state, clubId);
+  if (squad.length === 0) return [];
+  const age = state.world.season - state.player.birthYear;
+  const club = state.world.clubs[clubId];
+  const level = club ? youthClubRating(club, age) : 55;
+
+  /*
+   * A little noise per match, fixed by the fixture, so the same eleven is not picked
+   * every single week and the same week always picks the same eleven.
+   *
+   * Seeded from the fixture and applied down the squad list rather than from each boy's
+   * id: ids come from a counter that keeps running for the life of the process, so a
+   * selection that hashed them picked a different side the second time the same career
+   * was played in the same session.
+   */
+  const rng = new Rng((hashString(fixtureKey) % 2_000_000) + 1);
+  const ranked = squad
+    .map((player) => ({
+      player,
+      score: ratingAt(player.attributes, player.primaryPos) - level + rng.gauss(0, 4.5),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  return ranked.slice(0, 14).map((entry, index) => ({
+    id: entry.player.id,
+    minutes: index < 11 ? 90 : 25,
+  }));
+}
+
 function recordYouthMatch(
   state: CareerState,
   comp: CompetitionSeasonState,
@@ -3479,13 +3518,13 @@ function recordYouthMatch(
     }
   }
 
-  // Everybody who was in it played in it, which is what makes an average rating mean
-  // something at the end of the season.
+  // The eleven who played it, and the three who came on.
+  const key = `${comp.competitionId}:${season}:${fixture?.week ?? state.world.week}:${homeClubId}:${awayClubId}`;
   for (const clubId of [homeClubId, awayClubId]) {
-    for (const playerId of youth.squads[clubId] ?? []) {
-      const stats = youthStatsFor(youth, playerId, season, clubId, comp.competitionId);
+    for (const appearance of youthAppearances(state, clubId, key)) {
+      const stats = youthStatsFor(youth, appearance.id, season, clubId, comp.competitionId);
       stats.apps += 1;
-      stats.minutes += 90;
+      stats.minutes += appearance.minutes;
     }
   }
 }
@@ -3507,10 +3546,12 @@ function spreadYouthGoals(
   const season = state.world.season;
   const squad = youthSquad(state, clubId);
 
-  for (const player of squad) {
-    const stats = youthStatsFor(youth, player.id, season, clubId, comp.competitionId);
+  const key = `${comp.competitionId}:${season}:${fixture?.week ?? state.world.week}:${clubId}`;
+  const played = youthAppearances(state, clubId, key);
+  for (const appearance of played) {
+    const stats = youthStatsFor(youth, appearance.id, season, clubId, comp.competitionId);
     stats.apps += 1;
-    stats.minutes += 90;
+    stats.minutes += appearance.minutes;
   }
   if (goals <= 0 || squad.length === 0) return;
 

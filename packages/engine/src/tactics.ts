@@ -41,6 +41,11 @@ export interface OpponentReport {
   dangerMan: { name: string; position: Position; rating: number } | null;
   /** The man in the shirt opposite his. Beating him is most of his afternoon. */
   marker: { name: string; position: Position; rating: number } | null;
+  /**
+   * Whether anybody actually watched them. Outside his own division the world does not
+   * model squads, and a report on a side nobody has seen is a made-up report.
+   */
+  scouted: boolean;
   home: boolean;
 }
 
@@ -310,6 +315,7 @@ export function readOpponent(input: {
     marker: marker
       ? { name: `${marker.player.firstName} ${marker.player.lastName}`, position: marker.player.primaryPos, rating: Math.round(marker.ovr) }
       : null,
+    scouted: squad.length >= 6,
     home,
   };
 }

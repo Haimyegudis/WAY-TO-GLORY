@@ -3404,7 +3404,7 @@ describe('the week before the match', () => {
   it('rewards a plan that counters them and punishes one that does not', () => {
     const quick: OpponentReport = {
       clubId: 'x', clubName: 'X', formation: '4-3-3', rating: 70, gap: 0,
-      threat: 'pace', weakness: 'none', dangerMan: null, marker: null, home: false,
+      threat: 'pace', weakness: 'none', dangerMan: null, marker: null, scouted: true, home: false,
     };
     // Sitting in is the answer to pace; pushing the line up is how you get run behind.
     expect(planFit(MATCH_PLANS.stayGoalside, quick)).toBeGreaterThan(0);
@@ -4192,6 +4192,23 @@ describe('a career that has not finished yet', () => {
     expect(summary.matches, 'his own career page says he has played nothing').toBe(played);
     expect(summary.seasons).toBe(1);
     expect(summary.peakOvr).toBeGreaterThan(0);
+  });
+
+
+  it('does not put a whole age group on the same number of appearances', () => {
+    const { state, index } = startedCareer({ seed: 11 });
+    for (let i = 0; i < 45; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const table = peers(state).filter((peer) => peer.sameYear && !peer.retired);
+    expect(table.length, 'nobody from his year is being followed').toBeGreaterThan(3);
+
+    const apps = table.map((peer) => peer.apps);
+    expect(Math.max(...apps), 'his year has played nothing').toBeGreaterThan(5);
+    // A squad of boys is not eleven identical careers: somebody is in the side and
+    // somebody is not.
+    expect(new Set(apps).size, `every boy has exactly ${apps[0]} appearances`).toBeGreaterThan(1);
   });
 
   it('shows the other boys playing too, before any season is over', () => {

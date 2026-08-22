@@ -1337,6 +1337,7 @@ export const en: Record<string, string> = {
   'train.diet.nutritionist.desc': 'Someone builds your week around your body. The best physical numbers you can get — but living under it every single week wears you down, so morale slips a little.',
 
 
+  'hub.officialOnly': 'Official matches this season',
   'hub.skills': 'Ratings',
   'skill.speed': 'Speed',
   'skill.agility': 'Agility',
@@ -1641,6 +1642,8 @@ export const en: Record<string, string> = {
   'club.shirtRival.behind': 'You are ahead of {name} for the shirt',
   'club.shirtRival.none': 'Nobody at the club is competing with you for the shirt',
   'prepare.title': 'Preparing for {opponent}',
+  'prepare.report': 'Scouting report',
+  'prepare.noReport': 'No scouting report on this one. Nobody has seen them.',
   'prepare.shape': 'They line up {formation}',
   'prepare.gap.stronger': 'a better side than yours',
   'prepare.gap.weaker': 'a side you should be beating',

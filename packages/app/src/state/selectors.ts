@@ -210,57 +210,6 @@ export function seasonLine(state: CareerState) {
   };
 }
 
-/**
- * His season at the club he is at now.
- *
- * A season played at two clubs is two seasons as far as a dressing room is concerned:
- * eleven goals is a wonderful record and a terrible one depending on how many of them
- * were scored in somebody else's shirt. His own screen shows the shirt he is wearing;
- * the whole season, both spells added up, belongs on the career page.
- *
- * Read off the match log rather than a counter, so it is right the moment he signs.
- */
-export function seasonLineAtClub(state: CareerState) {
-  const clubId = state.player.clubId;
-  const season = state.world.season;
-  const mine = state.matchLog.filter(
-    (match) =>
-      match.season === season
-      && match.userLine?.played
-      // Saves written before a match remembered whose shirt it was fall back to the
-      // fixture itself, which is right for everything except a mid-season move.
-      && (match.userClubId ?? (match.homeClubId === clubId || match.awayClubId === clubId ? clubId : null)) === clubId,
-  );
-
-  let goals = 0;
-  let assists = 0;
-  let minutes = 0;
-  let ratingSum = 0;
-  let rated = 0;
-  for (const match of mine) {
-    const line = match.userLine!;
-    goals += line.goals;
-    assists += line.assists;
-    minutes += line.minutes;
-    if (line.rating > 0) {
-      ratingSum += line.rating;
-      rated += 1;
-    }
-  }
-
-  return {
-    apps: mine.length,
-    goals,
-    assists,
-    minutes,
-    rating: rated > 0 ? ratingSum / rated : 0,
-    /** True when this season has football at another club in it as well. */
-    partial: state.matchLog.some(
-      (match) => match.season === season && match.userLine?.played && (match.userClubId ?? clubId) !== clubId,
-    ),
-  };
-}
-
 export function recentMatches(state: CareerState, limit = 8) {
   return state.matchLog.slice(0, limit);
 }
