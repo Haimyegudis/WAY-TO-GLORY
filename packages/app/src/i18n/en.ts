@@ -182,6 +182,7 @@ export const en: Record<string, string> = {
   'club.title': 'Club',
   'club.squad': 'Squad',
   'club.table': 'Table',
+  'club.pastChampions': 'Champions',
   'club.championshipGroup': 'Championship group',
   'club.relegationGroup': 'Relegation group',
   'club.splitPointsCarry': 'Regular-season points carry into the split.',
@@ -1548,6 +1549,7 @@ export const en: Record<string, string> = {
   'chart.goals': 'Goals',
   'chart.assists': 'Assists',
   'chart.cards': 'Cards',
+  'chart.estimated': 'Estimated - this league is followed, not played out man by man.',
   'chart.empty': 'Nothing here yet this season.',
 
 'legacy.clubs': 'Where he played',

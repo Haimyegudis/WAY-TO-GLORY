@@ -182,6 +182,7 @@ export const he: Record<string, string> = {
   'club.title': 'מועדון',
   'club.squad': 'סגל',
   'club.table': 'טבלה',
+  'club.pastChampions': 'אלופות',
   'club.championshipGroup': 'פלייאוף עליון',
   'club.relegationGroup': 'פלייאוף תחתון',
   'club.splitPointsCarry': 'הנקודות מהעונה הסדירה נשמרות לאחר הפיצול.',
@@ -1563,6 +1564,7 @@ export const he: Record<string, string> = {
   'chart.goals': 'שערים',
   'chart.assists': 'בישולים',
   'chart.cards': 'כרטיסים',
+  'chart.estimated': 'הערכה - הליגה הזו נעקבת, לא משוחקת שחקן-שחקן.',
   'chart.empty': 'אין עדיין נתונים לעונה הזו.',
 
 'legacy.clubs': 'איפה שיחק',

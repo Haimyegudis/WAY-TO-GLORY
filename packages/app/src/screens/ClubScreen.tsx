@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  estimatedScorers,
   leaguePhaseTable,
   sortedTable,
   userYouthCompetitionId,
@@ -8,6 +9,7 @@ import {
 } from '@fc/engine';
 import { useLang, useT } from '../i18n/index.js';
 import { cityName, clubName, clubShortName } from '../lib/club.js';
+import { toHebrew } from '../lib/transliterate.js';
 import { competitionLabel, competitionName, findPlayer, playerName } from '../lib/names.js';
 import { getPack, useGame } from '../state/store.js';
 import { club, myClub, myCompetitionState, squad, table, topScorers } from '../state/selectors.js';
@@ -442,6 +444,15 @@ function LeagueTable() {
 
   const compState = state.world.competitions[selected];
   const rows = compState ? sortedTable(compState) : [];
+  /*
+   * What this division has been. Every league in the game plays out a full season, and
+   * until now none of them had a past he could see - a table with no winners behind it
+   * is a fixture list, not a competition.
+   */
+  const won = state.world.history.champions
+    .filter((entry) => entry.competitionId === selected)
+    .sort((a, b) => b.season - a.season)
+    .slice(0, 3);
 
   return (
     <Card
@@ -512,6 +523,19 @@ function LeagueTable() {
             </tbody>
           </table>
           </div>
+
+          {won.length > 0 && (
+            <div className="stack" style={{ gap: 4, marginBlockStart: 10 }}>
+              <p className="eyebrow">{t('club.pastChampions')}</p>
+              {won.map((entry) => (
+                <p key={entry.season} className="faint" style={{ fontSize: 12 }}>
+                  <span dir="ltr">{`${entry.season}/${String((entry.season + 1) % 100).padStart(2, '0')}`}</span>
+                  {' · '}
+                  {clubShortName(club(state, entry.clubId), lang) || entry.clubId}
+                </p>
+              ))}
+            </div>
+          )}
         </>
       )}
     </Card>
@@ -566,6 +590,7 @@ function Scorers() {
   const t = useT();
   const lang = useLang((x) => x.lang);
   const state = useGame((s) => s.state)!;
+  const index = useGame((s) => s.index)!;
   const pack = getPack();
   const mine = state.player.clubId;
   const myCompetition = mine ? state.world.clubs[mine]?.competitionId ?? '' : '';
@@ -577,10 +602,17 @@ function Scorers() {
   const youth = state.world.youth;
   const compState = state.world.competitions[selected];
 
-  type ChartRow = { playerId: string; value: number; second?: number };
+  type ChartRow = { playerId: string; value: number; second?: number; name?: string; clubId?: string };
+  // A league nobody is simulating player by player still has somebody top of its scoring
+  // chart, and he follows it the way anybody follows the leagues he does not play in.
+  const estimated = chart === 'goals' && Object.keys(compState?.scorers ?? {}).length === 0;
   const rows: ChartRow[] = (() => {
     if (!compState) return [];
     if (chart === 'goals') {
+      if (estimated) {
+        return estimatedScorers(state, index, selected, 15)
+          .map((row) => ({ playerId: row.playerId, value: row.goals, name: row.name, clubId: row.clubId }));
+      }
       return Object.entries(compState.scorers)
         .map(([playerId, value]) => ({ playerId, value }))
         .sort((a, b) => b.value - a.value)
@@ -599,14 +631,16 @@ function Scorers() {
       .slice(0, 15);
   })();
 
-  const nameOf = (playerId: string): string => {
-    if (playerId === state.player.id) return `${state.player.firstName} ${state.player.lastName}`;
-    const player = findPlayer(state, playerId);
-    return player ? playerName(player, lang) : playerId;
+  const nameOf = (row: ChartRow): string => {
+    if (row.name) return lang === 'he' ? toHebrew(row.name) : row.name;
+    if (row.playerId === state.player.id) return `${state.player.firstName} ${state.player.lastName}`;
+    const player = findPlayer(state, row.playerId);
+    return player ? playerName(player, lang) : row.playerId;
   };
 
-  const clubOf = (playerId: string) => {
-    const player = findPlayer(state, playerId);
+  const clubOf = (row: ChartRow) => {
+    if (row.clubId) return club(state, row.clubId);
+    const player = findPlayer(state, row.playerId);
     return player?.clubId ? club(state, player.clubId) : null;
   };
 
@@ -634,6 +668,10 @@ function Scorers() {
         <button aria-pressed={chart === 'cards'} onClick={() => setChart('cards')}>{t('chart.cards')}</button>
       </div>
 
+      {estimated && rows.length > 0 && (
+        <p className="faint" style={{ fontSize: 11, marginBlockEnd: 8 }}>{t('chart.estimated')}</p>
+      )}
+
       {rows.length === 0 ? (
         <Empty>{t('chart.empty')}</Empty>
       ) : (
@@ -641,9 +679,9 @@ function Scorers() {
           {rows.map((row, i) => (
             <li key={row.playerId} className={`list-item ${row.playerId === state.player.id ? 'me' : ''}`}>
               <span className="num faint" style={{ fontSize: 11, minWidth: 18 }}>{i + 1}</span>
-              <Crest club={clubOf(row.playerId)} size="sm" />
+              <Crest club={clubOf(row)} size="sm" />
               <span className="grow" style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {nameOf(row.playerId)}
+                {nameOf(row)}
               </span>
               {chart === 'cards' ? (
                 <span className="row" style={{ gap: 5 }}>

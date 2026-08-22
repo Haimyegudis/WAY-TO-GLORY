@@ -16,6 +16,7 @@ import { HALF_TIME_INSTRUCTIONS, instructionsFor, managerDemand, managerDictates
 import { simulateUserMatch, type UserMatchContext } from '../src/match.js';
 import { MILESTONES, applyMilestoneAnswer, milestoneById, milestoneCopyVariant } from '../src/milestones.js';
 import { buildTeamOfTheWeek } from '../src/totw.js';
+import { estimatedScorers } from '../src/charts.js';
 import {
   MENTORS,
   MENTOR_COOLDOWN_WEEKS,
@@ -4027,5 +4028,46 @@ describe('the division eleven', () => {
     expect(apps, 'he never played').toBeGreaterThan(20);
     expect(times, 'never once in the eleven').toBeGreaterThan(0);
     expect(times, 'in the eleven nearly every week').toBeLessThan(apps * 0.5);
+  });
+});
+
+describe('the leagues he does not play in', () => {
+  it('has somebody top of the scoring chart in Spain', () => {
+    const { state, index } = startedCareer({ seed: 11 });
+    for (let i = 0; i < 45; i++) playWeek(state, index);
+
+    const rows = estimatedScorers(state, index, 'es.1', 15);
+    expect(rows.length, 'nobody has scored in Spain').toBeGreaterThan(8);
+    expect(rows[0]!.goals).toBeGreaterThan(rows[rows.length - 1]!.goals - 1);
+    for (const row of rows) expect(row.name.trim().length).toBeGreaterThan(2);
+
+    // The chart cannot outrun the table it is derived from.
+    const comp = state.world.competitions['es.1']!;
+    const byClub = new Map<string, number>();
+    for (const row of estimatedScorers(state, index, 'es.1', 200)) {
+      byClub.set(row.clubId, (byClub.get(row.clubId) ?? 0) + row.goals);
+    }
+    for (const [clubId, goals] of byClub) {
+      expect(goals, `${clubId} scored more than its side did`).toBeLessThanOrEqual(comp.table[clubId]!.goalsFor);
+    }
+  });
+
+  it('reads the same on every visit to the page', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    for (let i = 0; i < 45; i++) playWeek(state, index);
+    const first = estimatedScorers(state, index, 'it.1', 10);
+    expect(JSON.stringify(estimatedScorers(state, index, 'it.1', 10))).toBe(JSON.stringify(first));
+  });
+
+  it('remembers who won them', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    for (let i = 0; i < 53 * 2; i++) playWeek(state, index);
+    const champions = state.world.history.champions;
+    for (const competitionId of ['es.1', 'en.1', 'de.1', 'it.1']) {
+      expect(
+        champions.some((entry) => entry.competitionId === competitionId),
+        `${competitionId} has never been won by anybody`,
+      ).toBe(true);
+    }
   });
 });
