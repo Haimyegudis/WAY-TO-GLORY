@@ -10,6 +10,7 @@ import {
 } from '@fc/engine';
 import { formatMoney, formatSeason, hasTranslation, useLang, useT } from '../i18n/index.js';
 import { getPack, useGame } from '../state/store.js';
+import { PrepareCard } from './PrepareScreen.js';
 import { campSchedule, inTrainingCamp, myClub, myPosition, nextFixture, seasonLineAtClub, weeksInjured } from '../state/selectors.js';
 import { clubColor, clubName, clubShortName, localiseArgs } from '../lib/club.js';
 import { competitionName, countryName } from '../lib/names.js';
@@ -50,6 +51,7 @@ export function Hub() {
   );
   const age = state.world.season - player.birthYear;
   const fixture = nextFixture(state);
+  const preparation = useGame((s) => s.preparation)();
   const season = seasonLineAtClub(state);
   const position = myPosition(state);
   const injuredWeeks = weeksInjured(state);
@@ -389,6 +391,10 @@ export function Hub() {
           <RelationRow label={t('rel.board')} value={state.relationships.board} />
         </div>
       </Card>
+
+      {/* The week's homework comes before the fixture card: he reads the report, picks
+          his job, and then looks at who they are. */}
+      {preparation && <PrepareCard preparation={preparation} />}
 
       <Card title={t('hub.nextMatch')}>
         {fixture ? (

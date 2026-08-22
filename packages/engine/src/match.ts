@@ -1,6 +1,7 @@
 import { Rng, clamp, logistic } from './rng.js';
 import { isInvertedWinger, isNaturalWideMan, positionGroup, ratingAt } from './positions.js';
 import { NO_INSTRUCTION, halfTimeEffect, type HalfTimeEffect, type HalfTimeInstructionId } from './halftime.js';
+import { combineEffects } from './tactics.js';
 import type { Lineup, MinutesOutcome } from './selection.js';
 import type {
   Club,
@@ -84,6 +85,15 @@ export interface UserMatchContext {
   instruction?: HalfTimeInstructionId | null;
   /** Play the first half and stop at the whistle, leaving the rest unrolled. */
   stopAtHalfTime?: boolean;
+  /**
+   * The job he prepared for this opponent, applied to the whole ninety rather than to
+   * one half. What he is told at the interval multiplies on top of it.
+   */
+  plan?: HalfTimeEffect;
+  /** The man marking him, when the world knows who that is. */
+  duel?: { name: string; rating: number };
+  /** How well the week's plan read this opponent, -1 to 1. Worth a mark either way. */
+  planFit?: number;
 }
 
 /** Weight of a player being the one at the end of a chance. */
@@ -271,7 +281,21 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
 
   const half: HalfState = { events: [], line, userGoals: 0, oppGoals: 0 };
 
-  playHalf(rng, ctx, setup, half, 1, chances.filter((c) => c.minute <= 45), NO_INSTRUCTION);
+  /*
+   * The week's work, before anybody says anything at the interval.
+   *
+   * A plan is how he intends to play the whole match, so it is in force from the first
+   * minute; the man marking him is folded into it, because a full-back who is quicker
+   * than him is the difference between getting the ball and watching it.
+   */
+  const duelEdge = ctx.duel
+    ? clamp(1 + (ratingAt(ctx.user.attributes, ctx.minutes.slot ?? ctx.user.primaryPos) - ctx.duel.rating) / 90, 0.86, 1.14)
+    : 1;
+  const planMods: HalfTimeEffect = ctx.plan
+    ? { ...ctx.plan, involvement: ctx.plan.involvement * duelEdge, conversion: ctx.plan.conversion * (0.5 + duelEdge / 2) }
+    : { ...NO_INSTRUCTION, involvement: duelEdge, conversion: 0.5 + duelEdge / 2 };
+
+  playHalf(rng, ctx, setup, half, 1, chances.filter((c) => c.minute <= 45), planMods);
   const halfTimeScore: [number, number] = userHome
     ? [half.userGoals, half.oppGoals]
     : [half.oppGoals, half.userGoals];
@@ -289,12 +313,26 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     };
   }
 
-  const mods = halfTimeEffect(ctx.instruction);
+  const mods = combineEffects(planMods, halfTimeEffect(ctx.instruction));
   const oppGoalsAtBreak = half.oppGoals;
   playHalf(rng, ctx, setup, half, 2, chances.filter((c) => c.minute > 45), mods);
   const cleanSecondHalf = half.oppGoals === oppGoalsAtBreak;
 
   line.rating = computeRating(rng, ctx, line, half.userGoals, half.oppGoals, mods, cleanSecondHalf);
+  /*
+   * Who won the individual battle.
+   *
+   * Not a separate simulation: it is read off what he actually did in the ninety minutes
+   * he spent against this man. A forward who scored beat his centre-half; a full-back
+   * whose winger got nothing beat him back.
+   */
+  if (ctx.duel && line.played && line.minutes >= 30) {
+    const group = positionGroup(line.position ?? ctx.user.primaryPos);
+    const contribution = group === 'DEF' || group === 'GK'
+      ? line.tackles * 0.6 + line.saves * 0.4 + (half.oppGoals === 0 ? 1.5 : 0)
+      : line.goals * 1.5 + line.assists + line.keyPasses * 0.5;
+    line.duel = { name: ctx.duel.name, won: line.rating >= 6.8 && contribution >= 1 };
+  }
   if (half.userOwnGoals) {
     line.rating = clamp(Math.round((line.rating - 1.1 * half.userOwnGoals) * 10) / 10, 3, 10);
     line.ownGoals = half.userOwnGoals;
@@ -312,8 +350,8 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
     line,
     injuryRolled,
     halfTimeScore,
-    // Only the second half was played under the instruction, so it is worth half of it.
-    fatigueFactor: 1 + (mods.fatigue - 1) * 0.5,
+    // The plan was run for ninety minutes and the interval changed only forty-five.
+    fatigueFactor: planMods.fatigue * (1 + (halfTimeEffect(ctx.instruction).fatigue - 1) * 0.5),
   };
 }
 
@@ -1243,6 +1281,9 @@ function computeRating(
 
   if (teamGoals > oppGoals) rating += 0.25;
   else if (teamGoals < oppGoals) rating -= 0.2;
+
+  // A player who knew what was coming looks like a player who knew what was coming.
+  rating += (ctx.planFit ?? 0) * 0.2;
 
   rating -= line.yellow * 0.12 + line.red * 1.1;
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Rng, clamp, interpolate } from '../src/rng.js';
-import { overall, ratingAt, skillProfile, skillRating, tacticalFit } from '../src/positions.js';
+import { FORMATIONS, overall, positionGroup, ratingAt, skillProfile, skillRating, tacticalFit } from '../src/positions.js';
 import { createEuroCompetition, qualifiersFromLeaguePhase } from '../src/europe.js';
 import { playTournament, tournamentFor } from '../src/tournament.js';
 import { ageFactor, developWeek, headroom, updateCondition } from '../src/development.js';
@@ -30,6 +30,8 @@ import { clubBaseOvr } from '../src/generate.js';
 import { indexPack, validatePack } from '../src/data.js';
 import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
 import { appointManager, sackingChance } from '../src/manager.js';
+import { MATCH_PLANS, planEffect, planFit, type OpponentReport } from '../src/tactics.js';
+import { TRACKED_PEERS, emptyCareer, recordSeason } from '../src/peers.js';
 import {
   SCHEMA_VERSION,
   applyLiveInstruction,
@@ -40,6 +42,9 @@ import {
   careerStatus,
   computeCareerScore,
   createCareer,
+  matchPreparation,
+  peers,
+  setMatchPlan,
   shirtRival,
   grudgeClubId,
   resumeHalfTime,
@@ -3239,7 +3244,7 @@ describe('his own contract', () => {
    * A career walked - moving when somebody comes in for him, the way one does - until
    * the club he is at puts a new contract in front of him.
    */
-  const upForRenewal = (seed: number) => {
+  const walk = (seed: number) => {
     const { state, index } = startedCareer({ seed });
     let decision;
     for (let i = 0; i < 53 * 12 && !state.retired && !decision; i++) {
@@ -3255,15 +3260,30 @@ describe('his own contract', () => {
     return { state, index, decision };
   };
 
+  /**
+   * Not every career runs a contract down at the club he is at - most players move
+   * before it gets that far - so the first seed that does is the one the test uses.
+   */
+  const upForRenewal = (from: number) => {
+    for (let seed = from; seed < from + 8; seed++) {
+      const walked = walk(seed);
+      if (walked.decision) return walked;
+    }
+    throw new Error('no career in eight reached a contract renewal');
+  };
+
   it('puts the club\u2019s terms to him instead of signing them for him', () => {
     const { state, index, decision } = upForRenewal(77);
     expect(decision, 'twelve seasons and the club never once asked him to re-sign').toBeTruthy();
     expect(decision!.options.map((option) => option.id)).toEqual(['sign', 'pushForMore', 'runItDown']);
-    const before = state.contract!.salaryPerWeek;
+    // The terms he is shown are the terms he gets: a club that has had a bad season from
+    // him is allowed to offer less, and the question is that it is put to him at all.
+    const offered = Number(decision!.textArgs!['salary']);
+    expect(offered).toBeGreaterThan(0);
 
     const result = answerContractRenewal(state, index, decision!.id, 'sign');
     expect(result).toBeTruthy();
-    expect(state.contract!.salaryPerWeek, 'signing changed nothing').toBeGreaterThan(before);
+    expect(state.contract!.salaryPerWeek, 'he signed something other than the offer').toBe(offered);
     expect(state.contract!.endSeason).toBeGreaterThan(state.world.season);
   });
 
@@ -3335,5 +3355,161 @@ describe('what a career was worth', () => {
     const great = computeCareerScore(state);
     expect(great, `the greatest of all time scored ${great}`).toBeGreaterThan(90);
     expect(great).toBeGreaterThan(journeyman + 30);
+  });
+});
+
+
+describe('the week before the match', () => {
+  it('reads a side off the players it actually has', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    for (let i = 0; i < 53 * 4 && state.player.squadRole === 'academy'; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    let preparation = matchPreparation(state, index);
+    for (let i = 0; i < 60 && !preparation; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      preparation = matchPreparation(state, index);
+    }
+    expect(preparation, 'a season of fixtures and never a report on any of them').toBeTruthy();
+
+    const report = preparation!.report;
+    expect(report.clubName.length).toBeGreaterThan(1);
+    expect(Object.keys(FORMATIONS)).toContain(report.formation);
+    expect(report.rating).toBeGreaterThan(20);
+    // Every job on offer has to be one his position could actually do.
+    const group = positionGroup(state.player.primaryPos);
+    for (const option of preparation!.options) {
+      expect(MATCH_PLANS[option.id].groups, `${option.id} is not a job for a ${group}`).toContain(group);
+    }
+    expect(preparation!.options.length).toBeGreaterThan(1);
+    // Sorted best read first, and the staff pick agrees with the top of that list.
+    expect(preparation!.options[0]!.fit).toBeGreaterThanOrEqual(preparation!.options.at(-1)!.fit);
+    expect(preparation!.options.some((option) => option.id === preparation!.recommended)).toBe(true);
+  });
+
+  it('rewards a plan that counters them and punishes one that does not', () => {
+    const quick: OpponentReport = {
+      clubId: 'x', clubName: 'X', formation: '4-3-3', rating: 70, gap: 0,
+      threat: 'pace', weakness: 'none', dangerMan: null, marker: null, home: false,
+    };
+    // Sitting in is the answer to pace; pushing the line up is how you get run behind.
+    expect(planFit(MATCH_PLANS.stayGoalside, quick)).toBeGreaterThan(0);
+    expect(planFit(MATCH_PLANS.stepUpAndSqueeze, quick)).toBeLessThan(0);
+
+    const slow: OpponentReport = { ...quick, threat: 'possession', weakness: 'slowDefence' };
+    expect(planFit(MATCH_PLANS.runTheChannels, slow)).toBeGreaterThan(0.5);
+
+    // And being right is worth something the match engine can see.
+    const sharp = planEffect(MATCH_PLANS.runTheChannels, planFit(MATCH_PLANS.runTheChannels, slow));
+    const blunt = planEffect(MATCH_PLANS.runTheChannels, -1);
+    expect(sharp.involvement).toBeGreaterThan(blunt.involvement);
+    expect(sharp.conversion).toBeGreaterThan(blunt.conversion);
+    // The running still has to be done either way.
+    expect(sharp.fatigue).toBe(blunt.fatigue);
+  });
+
+  it('keeps a plan for the fixture it was chosen for and no longer', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    for (let i = 0; i < 53 * 4 && state.player.squadRole === 'academy'; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    let preparation = matchPreparation(state, index);
+    for (let i = 0; i < 60 && !preparation; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      preparation = matchPreparation(state, index);
+    }
+    if (!preparation) return;
+
+    const plan = preparation.options[0]!.id;
+    expect(setMatchPlan(state, index, plan)).toBe(true);
+    expect(state.matchPlan).toEqual({ key: preparation.key, plan });
+    expect(matchPreparation(state, index)!.chosen).toBe(plan);
+
+    // Play the match it belonged to. The plan is spent.
+    for (let i = 0; i < 4 && state.matchPlan; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    expect(state.matchPlan, 'a plan carried into somebody else\u2019s fixture').toBeUndefined();
+  });
+
+  it('puts a man in the opposite shirt and says who won', () => {
+    const { state, index } = startedCareer({ seed: 55 });
+    let duels = 0;
+    for (let i = 0; i < 53 * 8 && duels === 0; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      for (const match of state.matchLog) {
+        const duel = match.userLine?.duel;
+        if (!duel) continue;
+        duels++;
+        expect(duel.name.trim().length, 'a duel against nobody').toBeGreaterThan(2);
+        expect(typeof duel.won).toBe('boolean');
+      }
+    }
+    expect(duels, 'eight seasons and never a direct opponent').toBeGreaterThan(0);
+  });
+});
+
+
+describe('the boys he came through with', () => {
+  it('keeps them when everybody else in the world is thrown away', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    const tracked = state.world.tracked ?? [];
+    expect(tracked.length, 'nobody from his own year is being followed').toBe(TRACKED_PEERS);
+    for (const id of tracked) {
+      const peer = state.world.players[id];
+      expect(peer, `a tracked player who does not exist: ${id}`).toBeTruthy();
+      expect(peer!.career).toBeTruthy();
+      expect(peer!.id).not.toBe(state.player.id);
+    }
+
+    // Six seasons of squad rebuilds, summer windows and retirements.
+    for (let i = 0; i < 53 * 6 && !state.retired; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    for (const id of tracked) {
+      expect(state.world.players[id], `the world forgot ${id}`).toBeTruthy();
+    }
+  });
+
+  it('gives them careers that add up and move around', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    for (let i = 0; i < 53 * 10 && !state.retired; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+
+    const table = peers(state);
+    expect(table.length).toBe(TRACKED_PEERS);
+    expect(table.some((peer) => peer.apps > 40), 'ten seasons and nobody played 40 games').toBe(true);
+    expect(table.some((peer) => peer.goals > 0)).toBe(true);
+    // Sorted by what a career is worth, and every line names a real club or an ending.
+    for (const peer of table) {
+      expect(peer.name.trim().length).toBeGreaterThan(2);
+      expect(peer.clubName.length > 0 || peer.retired).toBe(true);
+    }
+    const moved = (state.world.tracked ?? [])
+      .map((id) => state.world.players[id]?.career?.spells.length ?? 0);
+    expect(Math.max(...moved), 'nobody in his year ever changed club').toBeGreaterThan(1);
+  });
+
+  it('writes one spell per club, not one per season', () => {
+    const career = emptyCareer(2026);
+    recordSeason(career, 2026, 'a', { apps: 30, goals: 5, assists: 2, ovr: 60 });
+    recordSeason(career, 2027, 'a', { apps: 28, goals: 7, assists: 3, ovr: 64, trophies: 1 });
+    recordSeason(career, 2028, 'b', { apps: 20, goals: 2, assists: 1, ovr: 66 });
+
+    expect(career.spells.length).toBe(2);
+    expect(career.spells[0]).toMatchObject({ clubId: 'a', fromSeason: 2026, toSeason: 2027, apps: 58, goals: 12 });
+    expect(career.apps).toBe(78);
+    expect(career.goals).toBe(14);
+    expect(career.trophies).toBe(1);
+    expect(career.peakOvr).toBe(66);
   });
 });

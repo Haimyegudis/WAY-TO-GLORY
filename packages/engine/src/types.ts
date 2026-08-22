@@ -69,6 +69,24 @@ export type SquadRole =
   | 'key'
   | 'star';
 
+/**
+ * A career the world keeps for somebody other than the player.
+ *
+ * Only a handful of people are worth this - the boys he came through with, and the ones
+ * who turn into somebody - but for those, every season is added up so that twenty years
+ * later there is something to compare a life against.
+ */
+export interface PlayerCareer {
+  firstSeason: number;
+  apps: number;
+  goals: number;
+  assists: number;
+  trophies: number;
+  peakOvr: number;
+  spells: { clubId: string; fromSeason: number; toSeason: number; apps: number; goals: number }[];
+  retiredSeason?: number;
+}
+
 export type InjurySeverity = 'minor' | 'moderate' | 'serious' | 'major' | 'careerThreatening';
 
 export interface Injury {
@@ -124,6 +142,9 @@ export interface Player {
   reputation: number;               // 0-100
   fame: number;                     // 0-100
   isUser: boolean;
+  /** The world has been told to keep this one: he has a career of his own. */
+  tracked?: boolean;
+  career?: PlayerCareer;
   isReal?: boolean;                 // came from the real-names data pack
   retired?: boolean;
 }
@@ -384,6 +405,8 @@ export interface UserMatchLine {
   played: boolean;
   started: boolean;
   minutes: number;
+  /** The man in the opposite shirt, and whether he had the better of him. */
+  duel?: { name: string; won: boolean };
   /** Into his own net. Rare, and the one line of a match report he will remember. */
   ownGoals?: number;
   position: Position | null;
@@ -706,6 +729,11 @@ export interface Achievement {
 export type { YouthWorld, YouthForm } from './youth.js';
 
 export interface WorldState {
+  /**
+   * Players the world is not allowed to forget. Everybody else is scenery that can be
+   * regenerated; these have careers attached and outlive any squad rebuild.
+   */
+  tracked?: string[];
   season: number;                    // e.g. 2026 means season 2026/27
   week: number;                      // 1-based week within the season calendar
   clubs: Record<string, Club>;
@@ -753,6 +781,11 @@ export interface CareerState {
   managerTrust: number;          // mirrors relationships.manager, kept for save compatibility
   /** The man in the dugout. Undefined on careers saved before managers had names. */
   manager?: Manager;
+  /**
+   * The job he has decided to do in this week's match, against the fixture it was
+   * chosen for. A plan belongs to one opponent: it does not carry into next Saturday.
+   */
+  matchPlan?: { key: string; plan: string };
   relationships: Relationships;
   /** Conversations and gestures cost time: a small budget refreshed every week. */
   socialActions: { used: number; perWeek: number };

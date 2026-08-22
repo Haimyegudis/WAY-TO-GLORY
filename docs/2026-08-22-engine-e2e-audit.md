@@ -378,3 +378,97 @@ rather than fix what it does. They are not in this pass.
 165 engine tests (five new: the dugout, the contract, the shirt, the grade), 11 Playwright
 tests, `tsc --noEmit` clean in both packages, a production build, and the invariant probe
 walked three twenty-season careers without tripping anything.
+
+---
+
+## 8. The two systems that were left out
+
+Section 7 closed with "the tactical layer and persistent AI careers are new systems rather
+than repairs". Both are now in.
+
+### 8.1 The week before the match
+
+A career game cannot hand the player a tactics board - he is one man in eleven - so what
+he gets is the part that is actually his: a report on the side he is about to play, and
+the job he decides to do inside somebody else's shape.
+
+**The report** (`packages/engine/src/tactics.ts`) is read off the opposition's real
+players: their formation, their level against his side's, what they will hurt him with
+(pace, possession, pressing, set pieces, physicality), where they are soft (a slow back
+line, an open midfield, nothing up front, a beatable keeper), the man they build it
+around, and the man in the shirt opposite his. Where the world does not model that
+division player by player - a cup tie abroad - the report is thin, and says so, which is
+exactly what a scouting report on an unseen side is.
+
+**The plan** is one of nine jobs, filtered to what his position could plausibly be asked
+to do: run the channels, drop into space, gamble on the shoulder, take your man on, attack
+every cross, screen the back four, stay goalside, step up and squeeze, keep it simple.
+Each is a trade in the same currency the half-time instructions use - involvement,
+shooting, conversion, creating, defending, legs, cards, variance - applied across the
+whole ninety rather than one half, with the interval multiplying on top of it.
+
+**The read** is the point. Every plan is scored against the report before he picks it, and
+the fit is shown: *exactly right for this* down to *playing into their hands*. Getting it
+right sharpens the plan and adds involvement, conversion and a mark on the rating; getting
+it wrong takes the same away, and the running still has to be done either way.
+
+Measured over ten careers and roughly 1,500 matches an arm: choosing the best-read plan is
+worth **+0.14 of a rating point per match** against choosing the worst-read one, on top of
+whatever the plan itself does. The plan belongs to one fixture and is spent when it is
+played.
+
+**The duel.** Every competitive match now has a named man on the other side of it, chosen
+by mirroring his slot. He is worth up to ±14% of the ball, and afterwards the match report
+says whether he had the better of him - read off what actually happened in the ninety
+minutes rather than rolled separately. He wins about a third of them.
+
+### 8.2 The boys he came through with
+
+Everybody else in this world was scenery: team-mates were generated, aged and deleted, a
+player sold in the summer stopped existing, and the world's stars were rows in a data pack
+with no seasons behind them. So the comparison every young footballer actually lives by -
+the lad from his own year who is now at a better club than he is - could not exist.
+
+`packages/engine/src/peers.ts` keeps eight of them. They are chosen once, on promise, from
+the boys he actually played against on Sunday mornings, and from then on the world is not
+allowed to forget them: they survive every squad rebuild, every summer window and every
+memory-saving prune. Each season they train, develop, have a season recorded and, in the
+summer, move - bought when they outgrow a club, dropped a level when they cannot get in
+the side.
+
+Where their division is simulated, their record is what actually happened in it. Where it
+is not - a boy who went abroad at nineteen - it is estimated from the level he plays at,
+which is exactly what a player back home would know about him: a number in a newspaper.
+Careers that are going nowhere end, because most of them do: a player more than eleven
+points below the worst club in this world at twenty-two stops being a professional, and
+the eleven games he did play stay on the page.
+
+The career screen shows his year as a table with him at the bottom of it. A sample after
+fourteen seasons:
+
+    אריאל קליין      29  Fulham FC          ovr 87  215 apps  106 goals   << ahead of you
+    יאיר כץ          30  Atalanta BC        ovr 85  279 apps   17 goals   << ahead of you
+    זוהר אשר         29  SV Werder Bremen   ovr 79  163 apps   92 goals   << ahead of you
+    ...
+    גלעד תורגמן      30  Hapoel Migdal      ovr 48   15 apps    0 goals
+
+Cost: eight extra people in the save. A fifteen-season career serialises at 1.8 MB and a
+week costs 2.4 ms.
+
+### 8.3 What it turned up
+
+Adding the renewal question in section 7 left one hole, and the repo's own invariant probe
+found it: a renewal that is never answered and never expires leaves a player at a club on
+a contract that ended two seasons ago. The week loop now settles it - the terms on the
+table are signed if there are any, and if there are none he is out of contract - and the
+probe answers the question rather than binning it.
+
+**Every event in the pack now fires.** 144 of 144 in ten full careers, from 142 before
+this pass and 119 when the audit started.
+
+### 8.4 Verification
+
+172 engine tests (seven new: the report, the fit, the plan's lifetime, the duel, keeping
+his year, their careers adding up, and spells merging), 11 Playwright tests, both packages
+typecheck, a production build, and the invariant probe clean over seven twenty-season
+careers.

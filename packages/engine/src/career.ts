@@ -147,6 +147,17 @@ import { decideAwards, awardFame, awardReputation, type AwardResult } from './aw
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
 import { agentCommission, generateAgentOffers } from './agents.js';
 import { appointManager, generateManager, sackingChance } from './manager.js';
+import { advanceTrackedPlayers, isTracked, peerTable, trackHisYear, trackPlayer } from './peers.js';
+import {
+  MATCH_PLANS,
+  planEffect,
+  planFit,
+  plansFor,
+  readOpponent,
+  recommendedPlan,
+  type MatchPlanId,
+  type OpponentReport,
+} from './tactics.js';
 import {
   generateLoanOffers,
   generateOffers,
@@ -481,6 +492,8 @@ function initYouth(state: CareerState, index: PackIndex, rng: Rng): void {
   state.world.youth = createYouthWorld(rng, state, index, club.country);
   const division = userYouthCompetitionId(state);
   if (division) stockYouthDivision(rng, state, index, division);
+  // His year: the best of the boys he actually plays against, followed for life.
+  trackHisYear(rng, state);
 }
 
 /**
@@ -1087,11 +1100,14 @@ export function ensureModelledSquads(state: CareerState, index: PackIndex, rng: 
     for (const p of players) state.world.players[p.id] = p;
   }
 
-  // Drop squads we no longer need so a 20-season save doesn't accumulate thousands of players.
+  // Drop squads we no longer need so a 20-season save doesn't accumulate thousands of
+  // players - except the handful the world has promised to keep, who go on existing
+  // wherever they have ended up. Forgetting them is what used to make everybody else in
+  // football scenery.
   for (const id of Object.keys(state.world.squads)) {
     if (keep.has(id)) continue;
     for (const pid of state.world.squads[id] ?? []) {
-      if (pid !== state.player.id) delete state.world.players[pid];
+      if (pid !== state.player.id && !isTracked(state, pid)) delete state.world.players[pid];
     }
     delete state.world.squads[id];
   }
@@ -1293,6 +1309,23 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // an agent stops calling, otherwise unanswered approaches pile up and quietly choke
   // off every other event in the game.
   expireDecisions(state);
+
+  /*
+   * A contract that ran out and was never settled.
+   *
+   * Renewals are a question now, and a question can be lost - a save restored mid-answer,
+   * a harness that drops decisions, a screen that never showed it. Left alone, that is a
+   * player at a club on a contract that ended two seasons ago, which is not a state
+   * football has. The terms on the table are signed if there are any, and if there are
+   * none he is out of contract and the market can have him.
+   */
+  if (club && state.contract && state.contract.endSeason < season
+    && !state.pendingDecisions.some((decision) => decision.eventId === 'contractRenewal')) {
+    const salary = Number(state.flags['renewalSalary'] ?? 0);
+    if (salary > 0) signRenewal(state, salary, Number(state.flags['renewalYears'] ?? 2));
+    else releaseFromClub(state, index, rng, 'withdrawn');
+    commitRng(state, rng);
+  }
 
   // 1. The training week happens before selection and the match it is preparing for.
   // The absolute-week marker matters at half time: resuming replays the fixture from
@@ -3644,6 +3677,34 @@ function playUserMatch(
   const opponentRating = youthOpponentRating
     ?? (opponentStars.length >= 8 ? teamRatingFromSquad(opponentStars) : clubRating(opponent));
 
+  /*
+   * The week's homework, carried onto the pitch.
+   *
+   * The plan belongs to this fixture and nothing else, so it is looked up by the same
+   * key the build-up used. How well it reads against this opponent is worked out here
+   * rather than when he chose it: he committed to a job on Thursday, and Saturday is
+   * where being right about it pays.
+   */
+  const planKey = `${state.world.season}:${state.world.week}:${competitionId}:${homeClubId}:${awayClubId}`;
+  const chosenPlan = state.matchPlan?.key === planKey
+    ? MATCH_PLANS[state.matchPlan.plan as MatchPlanId]
+    : undefined;
+  const preparedSlot = minutes.slot ?? player.primaryPos;
+  const scouted = (chosenPlan || !friendly) && minutes.played
+    ? readOpponent({
+      club: opponent,
+      squad: opponentStars,
+      rating: opponentRating,
+      ownRating: teamRatingFromSquad(squad),
+      home: userIsHome,
+      slot: preparedSlot,
+      formation: clubFormation(opponent),
+    })
+    : null;
+  const readOfThem = chosenPlan && scouted ? planFit(chosenPlan, scouted) : 0;
+  const planMods = chosenPlan && scouted ? planEffect(chosenPlan, readOfThem) : undefined;
+  const marker = scouted?.marker ?? null;
+
   const matchSeed = held?.matchSeed ?? rng.int(1, 2 ** 30);
   const baseCtx = {
     mental: held?.mental
@@ -3663,6 +3724,8 @@ function playUserMatch(
     minutes,
     importance,
     matchId,
+    ...(planMods ? { plan: planMods, planFit: readOfThem } : {}),
+    ...(marker ? { duel: { name: marker.name, rating: marker.rating } } : {}),
   };
 
   // The break is only worth having when he is on the pitch to be told something, and
@@ -3766,6 +3829,9 @@ function playUserMatch(
   } else {
     applyMatchToPlayer(state, index, rng, result, competitionId, outcome.injuryRolled, instructionFatigue);
   }
+
+  // A plan is for one opponent. It does not carry into next Saturday.
+  if (state.matchPlan?.key === planKey) state.matchPlan = undefined;
 
   // Whose shirt he was in. Needed the moment a season is played at two clubs.
   result.userClubId = club.id;
@@ -4630,6 +4696,10 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   runAbstractMarket(rng, state, index);
   reportWindow(state, index, runSquadWindow(rng, state, index));
 
+  // The careers of the people the world is keeping: a season each, recorded, and a
+  // summer in which somebody comes for them or lets them go.
+  advanceTrackedPlayers(rng, state, index);
+
   // Age the modelled world and develop it a season's worth.
   advanceModelledPlayers(state, index, rng);
 
@@ -5232,7 +5302,8 @@ function advanceModelledPlayers(state: CareerState, index: PackIndex, rng: Rng):
         // Retire and replace with a younger player at a similar level - except once in
         // a while, when a club that has no business producing one produces a player
         // far better than the level around him. Rare, and the reason scouts exist.
-        delete state.world.players[id];
+        if (isTracked(state, id)) p.retired = true;
+        else delete state.world.players[id];
         const generational = rng.chance(0.02);
         const target = generational
           ? clamp(Math.round(clubBaseOvr(club) + rng.range(8, 18)), 40, 95)
@@ -6362,6 +6433,116 @@ export function shirtRival(state: CareerState): ShirtRival | null {
     gap: Math.round((best.score - mine) * 10) / 10,
     ahead: best.score > mine,
   };
+}
+
+/**
+ * Everything he can find out about Saturday before Saturday.
+ *
+ * The report is only as good as what the world actually models - his own division man by
+ * man, his age group man by man, and everybody else as a number - which is exactly how
+ * scouting works when nobody at the club has seen the opposition.
+ */
+export interface MatchPreparation {
+  /** The fixture the plan belongs to. */
+  key: string;
+  competitionId: string;
+  opponentName: string;
+  importance: MatchImportance;
+  report: OpponentReport;
+  /** Every job he could do, with how well it reads against this side. */
+  options: { id: MatchPlanId; fit: number }[];
+  /** What the staff would pick. */
+  recommended: MatchPlanId;
+  /** What he has picked, if he has. */
+  chosen: MatchPlanId | null;
+}
+
+function opponentSquadFor(state: CareerState, opponentId: string, youth: boolean): Player[] {
+  if (youth) return youthSquad(state, opponentId);
+  return (state.world.squads[opponentId] ?? [])
+    .map((id) => state.world.players[id])
+    .filter((entry): entry is Player => Boolean(entry));
+}
+
+/** The shape he is likely to be picked in, so the report can name the man opposite him. */
+function likelySlot(state: CareerState): Position {
+  return state.player.primaryPos;
+}
+
+export function matchPreparation(state: CareerState, index: PackIndex): MatchPreparation | null {
+  const club = userClub(state);
+  if (!club || state.retired) return null;
+  const match = scheduledUserMatchThisWeek(state, index);
+  if (!match) return null;
+  if (!availableForFixture(state, match)) return null;
+
+  const opponentId = match.homeClubId === club.id ? match.awayClubId : match.homeClubId;
+  const opponent = state.world.clubs[opponentId];
+  if (!opponent) return null;
+
+  const youth = match.source === 'youth';
+  const age = state.world.season - state.player.birthYear;
+  const squad = opponentSquadFor(state, opponentId, youth);
+  const ownSquad = youth ? [...youthSquad(state, club.id), state.player] : userSquad(state);
+  const rating = squad.length >= 6
+    ? teamRatingFromSquad(squad)
+    : youth ? youthClubRating(opponent, age) : clubRating(opponent);
+
+  const slot = likelySlot(state);
+  const report = readOpponent({
+    club: opponent,
+    squad,
+    rating,
+    ownRating: ownSquad.length > 0 ? teamRatingFromSquad(ownSquad) : clubRating(club),
+    home: match.homeClubId === club.id,
+    slot,
+    formation: clubFormation(opponent),
+  });
+
+  const group = positionGroup(slot);
+  const options = plansFor(group)
+    .map((plan) => ({ id: plan.id, fit: planFit(plan, report) }))
+    .sort((a, b) => b.fit - a.fit);
+  const held = state.matchPlan?.key === match.key ? (state.matchPlan.plan as MatchPlanId) : null;
+
+  return {
+    key: match.key,
+    competitionId: match.competitionId,
+    opponentName: match.opponentName,
+    importance: match.importance,
+    report,
+    options,
+    recommended: recommendedPlan(group, report),
+    chosen: held && MATCH_PLANS[held] ? held : null,
+  };
+}
+
+/**
+ * Deciding how he is going to play it. One plan per fixture: he can change his mind up
+ * to kick-off, and it is gone the moment the match is over.
+ */
+export function setMatchPlan(state: CareerState, index: PackIndex, plan: MatchPlanId): boolean {
+  const preparation = matchPreparation(state, index);
+  if (!preparation) return false;
+  if (!preparation.options.some((option) => option.id === plan)) return false;
+  state.matchPlan = { key: preparation.key, plan };
+  return true;
+}
+
+/**
+ * The boys from his year, and where they got to. The one comparison a footballer cannot
+ * help making, and until now the one the game could not show him.
+ */
+export function peers(state: CareerState) {
+  return peerTable(state);
+}
+
+/** Follow somebody the career has run into: a rival, a team-mate, a name in the paper. */
+export function followPlayer(state: CareerState, playerId: string): boolean {
+  const player = state.world.players[playerId];
+  if (!player || player.isUser) return false;
+  trackPlayer(state, player, state.world.season);
+  return true;
 }
 
 export function actionsAvailableNow(state: CareerState) {

@@ -204,6 +204,12 @@ export function MatchCentre() {
               <Stat label={t('match.shots')} value={line.shots} />
               <Stat label={line.saves > 0 ? t('match.saves') : t('match.keyPasses')} value={line.saves > 0 ? line.saves : line.keyPasses} />
             </div>
+            {/* The man he actually spent the afternoon against, and who won it. */}
+            {line.duel && (
+              <p style={{ fontSize: 13, marginBlockStart: 10 }} className={line.duel.won ? undefined : 'faint'}>
+                {t(line.duel.won ? 'match.duel.won' : 'match.duel.lost', { name: line.duel.name })}
+              </p>
+            )}
           </Card>
 
           {campFeedback && (

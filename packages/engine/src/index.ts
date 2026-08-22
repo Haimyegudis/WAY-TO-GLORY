@@ -29,6 +29,8 @@ export * from './national.js';
 export * from './events.js';
 export * from './milestones.js';
 export * from './manager.js';
+export * from './peers.js';
+export * from './tactics.js';
 export * from './social.js';
 export * from './career.js';
 export * from './save.js';

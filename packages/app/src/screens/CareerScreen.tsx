@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { careerLegacy, careerSummary } from '@fc/engine';
+import { careerLegacy, careerSummary, peers } from '@fc/engine';
 import { formatMoney, formatSeason, useLang, useT } from '../i18n/index.js';
 import { clubName, clubShortName } from '../lib/club.js';
 import { getPack, useGame } from '../state/store.js';
@@ -122,6 +122,9 @@ export function CareerScreen() {
   const summary = careerSummary(state);
   const age = state.world.season - state.player.birthYear;
   const canRetire = age >= 30 && !state.retired;
+  const hisYear = peers(state);
+  const myClub = state.player.clubId ? state.world.clubs[state.player.clubId] : undefined;
+  const myClubName = myClub ? clubShortName(myClub, lang) : '—';
 
   return (
     <div className="screen stack">
@@ -252,6 +255,52 @@ export function CareerScreen() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/*
+        * The boys he came through with.
+        *
+        * The one comparison a footballer actually lives by, and the reason the world
+        * keeps these eight people alive when it throws everybody else away: at twenty-six
+        * he can see exactly who from his own year is at Fulham and who stopped at
+        * twenty-two, and where that leaves him.
+        */}
+      <Card title={t('career.hisYear')}>
+        {hisYear.length === 0 ? (
+          <Empty>{t('career.hisYear.none')}</Empty>
+        ) : (
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('career.hisYear.player')}</th>
+                  <th>{t('career.hisYear.club')}</th>
+                  <th className="num">{t('career.apps')}</th>
+                  <th className="num">{t('match.goals')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hisYear.map((peer) => (
+                  <tr key={peer.playerId} className={peer.aheadOfYou ? undefined : 'faint'}>
+                    <td>
+                      {peer.name}
+                      {peer.retired && <span className="faint"> · {t('career.hisYear.finished')}</span>}
+                    </td>
+                    <td>{peer.clubName || '—'}</td>
+                    <td className="num">{peer.apps}</td>
+                    <td className="num">{peer.goals}</td>
+                  </tr>
+                ))}
+                <tr style={{ borderTop: '1px solid var(--amber)' }}>
+                  <td style={{ color: 'var(--amber)' }}>{t('career.hisYear.you')}</td>
+                  <td>{myClubName}</td>
+                  <td className="num">{summary.matches}</td>
+                  <td className="num">{summary.goals}</td>
+                </tr>
               </tbody>
             </table>
           </div>

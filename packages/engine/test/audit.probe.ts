@@ -9,6 +9,8 @@
  */
 import {
   advanceWeek,
+  answerContractRenewal,
+  answerRetirement,
   answerMedia,
   answerOffer,
   answerSeasonGoal,
@@ -270,6 +272,14 @@ for (let s = 0; s < seedCount; s++) {
       if (decision.eventId === 'seasonGoal') {
         counts.goals++;
         answerSeasonGoal(state, index, decision.id, option.id);
+        continue;
+      }
+      if (decision.eventId === 'contractRenewal') {
+        answerContractRenewal(state, index, decision.id, option.id);
+        continue;
+      }
+      if (decision.eventId === 'retirement_choice') {
+        answerRetirement(state, decision.id, option.id);
         continue;
       }
       if (decision.eventId.startsWith('milestone:')) {

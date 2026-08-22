@@ -43,6 +43,8 @@ import {
   type NegotiationOutcome,
   type PendingDecision,
   answerContractRenewal,
+  matchPreparation,
+  setMatchPlan as engineSetMatchPlan,
   answerRetirement,
   retire as engineRetire,
   serialize,
@@ -56,6 +58,8 @@ import {
   type PlayerActionId,
   type DataPack,
   type PackIndex,
+  type MatchPreparation,
+  type MatchPlanId,
   type TickResult,
   type TrainingPlan,
 } from '@fc/engine';
@@ -238,6 +242,9 @@ interface GameStore {
   dismissNews: () => void;
   showToast: (message: string | null) => void;
   save: () => Promise<void>;
+  /** The week's homework: who they are, and the job he has decided to do about it. */
+  preparation: () => MatchPreparation | null;
+  setMatchPlan: (plan: MatchPlanId) => void;
 }
 
 let loadedPack: DataPack | null = null;
@@ -384,6 +391,21 @@ export const useGame = create<GameStore>((set, get) => ({
 
   cancelCreation() {
     set({ phase: 'menu' });
+  },
+
+  preparation() {
+    const { state, index } = get();
+    if (!state || !index) return null;
+    return matchPreparation(state, index);
+  },
+
+  setMatchPlan(plan) {
+    const { state, index } = get();
+    if (!state || !index) return;
+    if (!engineSetMatchPlan(state, index, plan)) return;
+    const slot = get().activeSaveId;
+    if (slot) persistTo(slot, state, (saves) => set({ saves }));
+    set({ state: { ...state } });
   },
 
   createPlayer(input) {

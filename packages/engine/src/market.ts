@@ -153,7 +153,10 @@ export function runSquadWindow(rng: Rng, state: CareerState, index: PackIndex): 
         position: player.primaryPos,
         rating: Math.round(ratingAt(player.attributes, player.primaryPos)),
       });
-      delete state.world.players[id];
+      // A player the world is following has been sold, not deleted: he turns up
+      // somewhere else in the summer and his career carries on without us watching.
+      if ((state.world.tracked ?? []).includes(id)) player.clubId = null;
+      else delete state.world.players[id];
     }
 
     // Nobody runs a season a man short. A club replaces what it sold, and a club with
