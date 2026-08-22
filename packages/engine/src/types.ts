@@ -682,6 +682,13 @@ export interface TransferOffer {
    * justifies dropping to a weaker club, so the offer has to say which it is.
    */
   joinAs?: 'academy' | 'senior';
+  /**
+   * Where this club sits against the one he is at: a step up, a move sideways, or a
+   * level below him. A boy is regularly and correctly offered first-team football at a
+   * smaller club - that is how a career starts - but he is entitled to see, before he
+   * answers, that the badge on the shirt is a smaller one than the badge he has.
+   */
+  levelStep?: 'up' | 'sideways' | 'down';
   /** Terms won at the table, and how many times he has been back to it. */
   signingBonus?: number;
   releaseClause?: number | null;

@@ -220,6 +220,11 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
               <span className="offer-sub">
                 {t(offer.joinAs === 'academy' ? 'market.joinsAcademy' : 'market.joinsSenior')}
               </span>
+              {offer.levelStep && (
+                <Chip tone={offer.levelStep === 'up' ? 'green' : offer.levelStep === 'down' ? 'red' : 'blue'}>
+                  {t(`market.level.${offer.levelStep}`)}
+                </Chip>
+              )}
               <span className="offer-sub num">{formatMoney(offer.salaryPerWeek, lang)} / {t('market.week')}</span>
               <span className="offer-sub">{t('market.expectedMinutes')}: {minutes}%</span>
             </button>

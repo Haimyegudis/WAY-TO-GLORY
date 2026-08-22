@@ -74,6 +74,11 @@ export function MarketScreen() {
                           ? <Chip tone="blue">{t('market.seniorFirstTeam')}</Chip>
                           : null}
                       {offer.isLoan ? <Chip tone="blue">{t('market.loan')}</Chip> : <Chip tone="amber">{t(`role.${offer.squadRole}`)}</Chip>}
+                      {offer.levelStep && (
+                        <Chip tone={offer.levelStep === 'up' ? 'green' : offer.levelStep === 'down' ? 'red' : 'blue'}>
+                          {t(`market.level.${offer.levelStep}`)}
+                        </Chip>
+                      )}
                     </span>
                   </div>
                   {offer.joinAs && (

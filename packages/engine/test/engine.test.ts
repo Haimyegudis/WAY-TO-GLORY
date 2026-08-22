@@ -3631,3 +3631,46 @@ describe('nobody rings a first-team player about a step down', () => {
     }
   });
 });
+
+
+describe('what a boy is offered', () => {
+  it('never offers him a worse academy, and never sells him at sixteen', () => {
+    let academy = 0;
+    let senior = 0;
+    for (const seed of [11, 4242, 96]) {
+      const { state, index } = startedCareer({ seed });
+      for (let i = 0; i < 53 * 5 && !state.retired; i++) {
+        playWeek(state, index);
+        if (state.player.squadRole === 'academy' && state.transferOffers.length > 0) {
+          const club = state.world.clubs[state.player.clubId!]!;
+          const age = state.world.season - state.player.birthYear;
+          for (const offer of state.transferOffers) {
+            const to = state.world.clubs[offer.clubId]!;
+            // Every offer says which team is signing him and how it compares.
+            expect(offer.joinAs, 'an offer to a boy that does not say which side').toBeTruthy();
+            expect(offer.levelStep, 'an offer that does not say what level it is').toBeTruthy();
+
+            if (offer.joinAs === 'academy') {
+              academy++;
+              const step = (to.academy - club.academy) * 0.6 + (clubBaseOvr(to) - clubBaseOvr(club)) * 0.4;
+              expect(step, `${to.name} is a worse academy than ${club.name}`).toBeGreaterThanOrEqual(0);
+              expect(to.tier, 'an academy a division below his own').toBeLessThanOrEqual(club.tier);
+            } else {
+              senior++;
+              // Men's football is a real move for a boy, but not at sixteen, and not
+              // while his own first team has already asked to see him.
+              expect(age, 'a sixteen year old was offered a senior move').toBeGreaterThanOrEqual(17);
+              if (age < 18) {
+                expect(Boolean(state.flags['calledUpToSeniors']), 'sold down a division while the first team was looking at him').toBe(false);
+              }
+              expect(offer.expectedMinutesPct, 'a senior move that is not even for minutes').toBeGreaterThanOrEqual(0.4);
+            }
+          }
+          state.transferOffers = [];
+        }
+        state.pendingDecisions = [];
+      }
+    }
+    expect(academy + senior, 'no boy in three careers was ever approached').toBeGreaterThan(0);
+  });
+});

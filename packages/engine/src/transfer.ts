@@ -194,6 +194,23 @@ function academyInterest(input: {
   return clamp(raw * agentReach(input.agent, input.club, input.playerCountry), 0, 100);
 }
 
+/**
+ * How a move reads against where he is now: the division first, then the standing of the
+ * league, then the strength of the squad. Deliberately blunt, because it is shown to the
+ * player as three words rather than a number.
+ */
+export function levelStepFor(from: Club | undefined, fromComp: Competition | undefined, to: Club, toComp: Competition): 'up' | 'sideways' | 'down' {
+  if (!from || !fromComp) return 'up';
+  if (to.tier < from.tier) return 'up';
+  if (to.tier > from.tier) return 'down';
+  const reputation = toComp.reputation - fromComp.reputation;
+  const strength = clubBaseOvr(to) - clubBaseOvr(from);
+  const gap = reputation * 0.6 + strength * 0.8;
+  if (gap >= 4) return 'up';
+  if (gap <= -4) return 'down';
+  return 'sideways';
+}
+
 function roleForOvr(ovr: number, clubLevel: number, age: number): SquadRole {
   const gap = ovr - clubLevel;
   // Age describes patience, not the team. A sixteen-year-old who is already above a
@@ -385,8 +402,21 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       if (betterAcademy) {
         joinAs = 'academy';
       } else {
-        // Not a better academy, so this is a senior offer or it is nothing.
-        if (age < SENIOR_MIN_AGE) continue;
+        /*
+         * Not a better academy, so this is a senior offer or it is nothing.
+         *
+         * Every senior offer a boy gets is from a smaller club - a top-flight first team
+         * does not sign a sixteen year old to play - and that is a real and often correct
+         * move: men's football two divisions down is how a career starts. It is not a
+         * move anybody puts to a boy who is doing well at a good academy and has already
+         * been called up by the first team, though, and it was being put to
+         * sixteen-year-olds tearing up their age group. From seventeen, and only when
+         * the club he is at is not already taking him upstairs.
+         */
+        if (age < SENIOR_MIN_AGE + 1) continue;
+        // If the first team has already asked to have a look at him, nobody is selling
+        // him to the third division at seventeen.
+        if (Boolean(state.flags['calledUpToSeniors']) && age < 18) continue;
         if (expectedMinutesFor(offeredRole) < expectedMinutesFor('rotation')) continue;
         if (club.tier > currentTier + 2) continue;
         joinAs = 'senior';
@@ -524,6 +554,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       // Always stated, never inferred. An offer that does not say whether it is the
       // first team or the academy is an offer a player cannot answer honestly.
       joinAs: candidate.joinAs ?? 'senior',
+      levelStep: levelStepFor(currentClub, currentComp, candidate.club, candidate.comp),
       // The old flag, kept because saves and screens read it: it means exactly what it
       // says now, which is that he is leaving academy football behind.
       ...(academyPlayer && candidate.joinAs !== 'academy' ? { seniorPathway: true } : {}),
@@ -676,6 +707,7 @@ export function offerFromWatchingClub(input: {
     interestLevel: Math.round(clamp(weighted, 0, 100)),
     competitionId: club.competitionId,
     joinAs,
+    levelStep: levelStepFor(currentClub, currentComp, club, comp),
     ...(academyPlayer && joinAs !== 'academy' ? { seniorPathway: true } : {}),
   };
 }
@@ -770,6 +802,7 @@ export function generateLoanOffers(input: {
       week: state.world.week,
       interestLevel: Math.round(clamp(candidate.fit, 40, 99)),
       competitionId: candidate.club.competitionId,
+      levelStep: levelStepFor(currentClub, index.competitionById.get(currentClub.competitionId), candidate.club, candidate.comp),
       // A loan is first-team football somewhere else, always. That is what it is for.
       joinAs: 'senior' as const,
       ...(player.squadRole === 'academy' ? { seniorPathway: true } : {}),
