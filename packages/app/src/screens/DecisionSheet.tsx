@@ -215,6 +215,11 @@ function OfferSheet({ decision }: { decision: PendingDecision }) {
                   ? <Chip tone="blue">{t('market.seniorFirstTeam')}</Chip>
                   : null}
               <Chip tone={roleTone}>{t(`role.${offer.squadRole}`)}</Chip>
+              {/* Said in words as well as in a chip: which football he would be playing
+                  is the one thing about an offer he must not be able to misread. */}
+              <span className="offer-sub">
+                {t(offer.joinAs === 'academy' ? 'market.joinsAcademy' : 'market.joinsSenior')}
+              </span>
               <span className="offer-sub num">{formatMoney(offer.salaryPerWeek, lang)} / {t('market.week')}</span>
               <span className="offer-sub">{t('market.expectedMinutes')}: {minutes}%</span>
             </button>

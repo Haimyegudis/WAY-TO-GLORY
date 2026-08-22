@@ -3085,6 +3085,9 @@ export function recentMinutesShare(state: CareerState): number {
   if (played >= 4) return minutesPct(state);
   const last = state.seasonHistory[state.seasonHistory.length - 1];
   if (!last || last.apps === 0) return minutesPct(state);
+  // A season filed under an age group is not senior football, however many matches are
+  // in it. Thirty Sunday mornings must not read as a first-team regular's year.
+  if (last.competitionId?.endsWith('.youth')) return minutesPct(state);
   // Thirty-four matches is a league season, near enough for a question this coarse.
   return clamp(last.minutes / (34 * 90), 0, 1);
 }

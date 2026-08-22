@@ -303,7 +303,20 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   const desperate = listed || lowerLeague || playingShare < 0.12;
   // Greed minus career planning: positive pushes him up the ladder, negative toward games.
   const pressure = agentMovePressure(state.agent);
-  const regularStarter = playingShare >= 0.55;
+  /*
+   * Established, which is not only a minutes column.
+   *
+   * A man who plays half his club's football, or holds a first-team role above rotation,
+   * is not somebody a club a division down rings about - he is somebody they would have
+   * to outbid. The old test was a bare 55% of minutes, which a top-flight starter fails
+   * every August and after every mid-season move, and August is exactly when a smaller
+   * club turned up on his phone offering him a level below the one he already had.
+   */
+  const seniorShirt = player.squadRole === 'starter'
+    || player.squadRole === 'important'
+    || player.squadRole === 'key'
+    || player.squadRole === 'star';
+  const regularStarter = !desperate && (playingShare >= 0.45 || seniorShirt);
   /*
    * A free agent takes what he can get.
    *
@@ -609,6 +622,28 @@ export function offerFromWatchingClub(input: {
    * it had already paid to look at. That discount has been spent: this club is in the
    * room. What remains is the judgement itself, and the week he actually had.
    */
+  /*
+   * Even a club that flew him out cannot offer him a step backwards.
+   *
+   * This path skips the whole market scan, so none of its rules applied to it: a scout
+   * could watch a first-team regular in the top division and come back with an academy
+   * place or a club two divisions below him. What they have seen decides how much they
+   * want him; it does not decide whether the move is one a player in his position would
+   * ever take.
+   */
+  const established = !state.flags['transferListed']
+    && !state.flags['openToLowerLeague']
+    && (input.minutesPct >= 0.45 || player.squadRole === 'starter' || player.squadRole === 'important'
+      || player.squadRole === 'key' || player.squadRole === 'star');
+  if (established && currentClub && currentComp) {
+    const stepDown = club.tier > currentClub.tier
+      || comp.reputation < currentComp.reputation - 2
+      || clubBaseOvr(club) < clubBaseOvr(currentClub) - 2;
+    if (stepDown) return null;
+    // And nobody takes a first-team player and puts him in an age group.
+    if (joinAs === 'academy' && !academyPlayer) return null;
+  }
+
   const reach = agentReach(state.agent, club, player.birthCountry);
   const weighted = interest / clamp(reach, 0.15, 1.35) + input.impression * 14;
   // What it takes to be signed, which is not a fixed number: an academy with a name has
@@ -686,8 +721,12 @@ export function generateLoanOffers(input: {
   if (!currentClub) return [];
 
   const parentLevel = clubBaseOvr(currentClub);
-  // He has to be young, short of minutes, and behind the standard of his own club.
-  if (age > 24 || input.minutesPct > 0.3 || parentLevel - ovr < 4) return [];
+  // He has to be young, short of minutes, and behind the standard of his own club. A
+  // first-team role is itself the answer to the question a loan asks, whatever the
+  // minutes column happens to say in the week somebody looks at it.
+  const firstTeam = player.squadRole === 'starter' || player.squadRole === 'important'
+    || player.squadRole === 'key' || player.squadRole === 'star';
+  if (age > 24 || input.minutesPct > 0.3 || parentLevel - ovr < 4 || firstTeam) return [];
 
   const candidates: { club: Club; comp: Competition; fit: number }[] = [];
   for (const club of Object.values(state.world.clubs)) {

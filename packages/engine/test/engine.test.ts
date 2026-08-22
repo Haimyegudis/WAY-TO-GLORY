@@ -3575,3 +3575,59 @@ describe('senior football stays senior football', () => {
     expect(offers, 'eight seasons and nobody came in for him').toBeGreaterThan(0);
   });
 });
+
+
+describe('nobody rings a first-team player about a step down', () => {
+  it('offers a regular nothing below the level he already has', () => {
+    const pack = loadPack();
+    const compById = new Map(pack.competitions.map((competition) => [competition.id, competition]));
+    let offers = 0;
+    for (const seed of [55, 123, 233]) {
+      const { state, index } = startedCareer({ seed });
+      for (let i = 0; i < 53 * 8 && !state.retired; i++) {
+        playWeek(state, index);
+        const club = state.player.clubId ? state.world.clubs[state.player.clubId] : undefined;
+        const comp = club ? compById.get(club.competitionId) : undefined;
+        // A club that has told him he can leave is allowed to be the last one calling.
+        const free = Boolean(state.flags['transferListed']) || Boolean(state.flags['openToLowerLeague']);
+        const established = state.player.squadRole !== 'academy'
+          && (recentMinutesShare(state) >= 0.45
+            || ['starter', 'important', 'key', 'star'].includes(state.player.squadRole));
+        if (club && comp && established && !free) {
+          for (const offer of state.transferOffers) {
+            offers++;
+            const to = state.world.clubs[offer.clubId]!;
+            const toComp = compById.get(to.competitionId);
+            expect(
+              to.tier <= club.tier,
+              `a regular at ${club.name} (tier ${club.tier}) was offered ${to.name} (tier ${to.tier})`,
+            ).toBe(true);
+            expect(
+              (toComp?.reputation ?? 0) >= comp.reputation - 2,
+              `a regular in ${comp.name} was offered a move to ${toComp?.name}`,
+            ).toBe(true);
+            // And never into somebody's age group.
+            expect(offer.joinAs).toBe('senior');
+          }
+        }
+        state.transferOffers = [];
+        state.pendingDecisions = [];
+      }
+    }
+    expect(offers, 'no offers were made to an established player at all').toBeGreaterThan(0);
+  });
+
+  it('does not offer a loan to a player who is already in the first team', () => {
+    const { state, index } = startedCareer({ seed: 233 });
+    for (let i = 0; i < 53 * 8 && !state.retired; i++) {
+      playWeek(state, index);
+      const firstTeam = ['starter', 'important', 'key', 'star'].includes(state.player.squadRole);
+      for (const offer of state.transferOffers) {
+        if (!offer.isLoan) continue;
+        expect(firstTeam, `a ${state.player.squadRole} was offered a loan to ${offer.clubId}`).toBe(false);
+      }
+      state.transferOffers = [];
+      state.pendingDecisions = [];
+    }
+  });
+});
