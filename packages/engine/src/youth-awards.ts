@@ -209,19 +209,3 @@ function decideYouthAwards(
   return winners;
 }
 
-/** Human-readable division name for the messages, e.g. "isr.1.youth". */
-export function youthDivisionLabel(competitionId: string): string {
-  return seniorCompetitionId(competitionId);
-}
-
-/** Everything one boy did this season, for the squad screen. */
-export function youthSeasonLine(stats: SeasonStats): string {
-  const rating = stats.ratedApps > 0 ? stats.ratingSum / stats.ratedApps : 0;
-  return `${stats.apps}/${stats.goals}/${stats.assists}/${clamp(rating, 0, 10).toFixed(1)}`;
-}
-
-/** The clubs in a division after the summer's exchange, for rebuilding its fixtures. */
-export function divisionMembers(state: CareerState, competitionId: string): string[] {
-  const youth = state.world.youth;
-  return youth ? youthMembers(youth, competitionId) : [];
-}

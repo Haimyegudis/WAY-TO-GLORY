@@ -39,6 +39,7 @@ import {
   isAvailable,
   pickBestLineup,
   resolveMinutes,
+  selectionScore,
   type MinutesOutcome,
   type SelectionContext,
 } from './selection.js';
@@ -144,7 +145,8 @@ import {
 } from './youth-squads.js';
 import { decideAwards, awardFame, awardReputation, type AwardResult } from './awards.js';
 import { playTournament, tournamentFame, tournamentFor } from './tournament.js';
-import { generateAgentOffers } from './agents.js';
+import { agentCommission, generateAgentOffers } from './agents.js';
+import { appointManager, generateManager, sackingChance } from './manager.js';
 import {
   generateLoanOffers,
   generateOffers,
@@ -195,6 +197,7 @@ import type {
   MatchResult,
   NewsItem,
   Player,
+  Position,
   SeasonStats,
   SquadRole,
   TickResult,
@@ -718,6 +721,10 @@ export function joinClub(
   state.relationships.teammates = clamp(48 + rng.int(-8, 8), 20, 70);
   state.relationships.fans = clamp(50 + rng.int(-6, 10), 25, 75);
   state.relationships.board = clamp(52 + rng.int(-6, 8), 25, 78);
+  // The man who wanted him. A signing is somebody's decision, and that somebody has a
+  // name, a way of seeing players and a length of service the player can watch running
+  // down when results go badly.
+  state.manager = generateManager(rng, index, club, season);
   state.flags['transferListed'] = false;
   state.flags['replacementSought'] = false;
   state.flags['benchedUntilWeek'] = 0;
@@ -1440,7 +1447,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   if (state.contract) {
     // The agent's commission is real money, taken off the wage every week he is signed.
     const gross = state.contract.salaryPerWeek;
-    const commission = state.agent ? Math.round(gross * state.agent.commissionPct) : 0;
+    const commission = agentCommission(state.agent, gross);
     state.finances.balance += gross - commission;
     state.finances.careerEarnings += gross - commission;
     if (commission > 0) state.flags['agentFeesPaid'] = Number(state.flags['agentFeesPaid'] ?? 0) + commission;
@@ -1669,6 +1676,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
 
   // 9. The people around him react to the week just played.
   state.socialActions.used = 0;
+  if (club) resolveManagerChange(state, index, rng, club);
   driftMorale(state);
   // Form must include today's match before the manager reacts to it. Previously this
   // ran after consequences, so a collapse or recovery reached the team sheet one week
@@ -2076,11 +2084,22 @@ function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | nul
     return 'badRun';
   }
 
-  const group = positionGroup(player.primaryPos);
+  /*
+   * A forward who is not scoring.
+   *
+   * This asked for five straight blanks from a man whose position group is ATT, and in
+   * ten full careers it never once came up: five is most of a drought that a striker in
+   * this engine simply does not have, and a wide midfielder who is picked as the number
+   * ten all season is never in the group at all. Four matches without a goal or an
+   * assist is a drought anybody at the club would have mentioned by now, and the
+   * question is asked of whoever is being played up there.
+   */
+  const group = positionGroup(last?.position ?? player.primaryPos);
+  const attacking = group === 'ATT' || positionGroup(player.primaryPos) === 'ATT';
   if (
-    group === 'ATT' &&
-    appearances.length >= 5 &&
-    appearances.every((line) => line.goals === 0 && line.assists === 0)
+    attacking &&
+    appearances.length >= 4 &&
+    appearances.slice(0, 4).every((entry) => entry.goals === 0 && entry.assists === 0)
   ) {
     return 'goalDrought';
   }
@@ -2122,11 +2141,23 @@ function mediaMomentFor(state: CareerState, index: PackIndex): MilestoneId | nul
     return 'contractStandoff';
   }
 
-  // Somebody from the other lot had something to say before a derby.
+  /*
+   * Somebody from the other lot had something to say.
+   *
+   * It used to need a derby still ahead of him on the league fixture list, and the
+   * occasion question already asked this season - two rare things at once, in a list
+   * that only looks at the league, so it never happened. A rivalry is a rivalry the week
+   * before it and the week after it, and the one they played on Sunday counts.
+   */
   const nextImportance = upcomingImportance(state, index);
+  const lastImportance = state.lastMatch?.season === state.world.season
+    ? state.lastMatch.importance ?? 'normal'
+    : 'normal';
+  const rivalry = (value: MatchImportance) => value === 'derby' || value === 'rival' || value === 'vsFormerClub';
   const alreadyAsked = state.flags[`asked:derby:${state.world.season}`]
-    || state.flags[`asked:rivalMatch:${state.world.season}`];
-  if ((nextImportance === 'derby' || nextImportance === 'rival') && alreadyAsked) {
+    || state.flags[`asked:rivalMatch:${state.world.season}`]
+    || state.flags[`asked:againstOldClub:${state.world.season}`];
+  if ((rivalry(nextImportance) || rivalry(lastImportance)) && alreadyAsked) {
     return 'rivalDig';
   }
 
@@ -2210,6 +2241,8 @@ export function answerMedia(
 
   state.pendingDecisions.splice(at, 1);
   const result = applyMilestoneAnswer(state, answer);
+  // What he said, so the result sheet can print it back at him.
+  result.answerKey = decision.options.find((entry) => entry.id === optionId)?.labelKey;
 
   // Once he has answered the rumour, the concrete terms can be presented. This keeps
   // the two interactions in chronological order without making the player advance an
@@ -2439,14 +2472,18 @@ function raisePostMatchEvent(
   }
   if (line.shots >= 3 && line.goals === 0 && line.rating < 6.35) ids.push('missed_sitter');
   if (line.goals > 0 && state.player.fame >= 20) ids.push('goal_celebration_controversy');
-  if (ids.length === 0 || !rng.chance(0.55)) return;
+  // He put one in his own net. Nobody has to roll for whether that is worth a word.
+  const ownGoal = (line.ownGoals ?? 0) > 0;
+  if (ownGoal) ids.unshift('own_goal');
+  if (ids.length === 0 || (!ownGoal && !rng.chance(0.55))) return;
 
   const ctx = buildEventContext(state, index);
   const eligible = ids
     .map((id) => index.pack.events.find((event) => event.id === id))
     .filter((event): event is NonNullable<typeof event> => Boolean(event))
     .filter((event) => isEligible(event, ctx, state));
-  const def = rng.weighted(eligible, (event) => event.weight);
+  const def = eligible.find((event) => event.id === 'own_goal')
+    ?? rng.weighted(eligible, (event) => event.weight);
   if (!def) return;
   const decision = toPendingDecision(def, ctx.absoluteWeek);
   decision.blocking = false;
@@ -4391,6 +4428,63 @@ function handleInternationalWeek(
   return callUp.isSenior;
 }
 
+/**
+ * Who is picking the side this week.
+ *
+ * Three ways the answer changes: a career saved before managers had names gets one
+ * quietly, the story in the pack about a sacking now actually sacks him, and a season
+ * going badly enough gets him sacked without any story at all. In every case the trust
+ * the player had built is mostly gone, and the new man's opinion of him has to be earned
+ * from what he does next.
+ */
+function resolveManagerChange(state: CareerState, index: PackIndex, rng: Rng, club: Club): void {
+  // A career from before the dugout was modelled, or a club change that predates it.
+  if (!state.manager || state.manager.clubId !== club.id) {
+    state.manager = generateManager(rng, index, club, state.world.season);
+    return;
+  }
+
+  const told = Boolean(state.flags['managerSacked']);
+  if (!told) {
+    const compState = state.world.competitions[club.competitionId];
+    const rows = compState ? sortedTable(compState) : [];
+    const size = rows.length;
+    const place = size > 1 ? rows.findIndex((row) => row.clubId === club.id) : -1;
+    const byStrength = size > 1
+      ? Object.keys(compState!.table)
+        .map((id) => state.world.clubs[id])
+        .filter((entry): entry is Club => Boolean(entry))
+        .sort((a, b) => b.strength - a.strength)
+        .findIndex((entry) => entry.id === club.id)
+      : -1;
+    const chance = sackingChance({
+      weeksInCharge: (state.world.season - state.manager.since) * 52 + state.world.week,
+      seasonWeek: state.world.week,
+      tablePlace: place >= 0 ? place / Math.max(1, size - 1) : null,
+      expectedPlace: byStrength >= 0 ? byStrength / Math.max(1, size - 1) : null,
+      boardMood: state.relationships.board,
+    });
+    if (chance <= 0 || !rng.chance(chance)) return;
+  }
+  state.flags['managerSacked'] = false;
+
+  const outgoing = state.manager;
+  const trustBefore = state.managerTrust;
+  const arrival = appointManager(rng, state, index, club);
+  pushInbox(state, 'club', 'inbox.manager.sacked', { manager: outgoing.name, club: club.name });
+  pushInbox(state, 'manager', `inbox.manager.arrived.${arrival.style}`, {
+    manager: arrival.name,
+    club: club.name,
+  });
+  pushNews(state, 'news.manager.arrived', { club: club.name, manager: arrival.name }, 'high');
+  // He is not being told a number, but he is being told which way it went.
+  if (state.managerTrust < trustBefore - 6) {
+    pushInbox(state, 'manager', 'inbox.manager.startingAgain', { manager: arrival.name });
+  } else if (state.managerTrust > trustBefore + 6) {
+    pushInbox(state, 'manager', 'inbox.manager.likesYou', { manager: arrival.name });
+  }
+}
+
 /** Season rollover: tables settle, contracts run out, everyone gets a year older. */
 function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   const season = state.world.season;
@@ -4452,6 +4546,22 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   decideEuropeanQualification(state, index);
 
   applyPromotionRelegation(state, index, outcomes);
+
+  /*
+   * The summer in the dugout.
+   *
+   * Relegation is nearly always the end of a manager, a long stay ends of its own accord
+   * eventually - a better job, a board that wants a new voice - and either way the man
+   * who picks the side in August is not always the man who picked it in May.
+   */
+  if (club && state.manager?.clubId === club.id) {
+    const relegated = leaguePosition !== null
+      && leaguePosition >= Math.max(1, Object.keys(state.world.competitions[club.competitionId]?.table ?? {}).length - 2);
+    const tenure = season - state.manager.since;
+    if (relegated ? rng.chance(0.72) : rng.chance(clamp(0.06 + tenure * 0.035, 0.06, 0.3))) {
+      state.flags['managerSacked'] = true;
+    }
+  }
 
   // Eighteen: the youth team is finished with him one way or the other.
   handleComingOfAge(state, index, rng);
@@ -5210,16 +5320,18 @@ function handleContractEnd(
   state.flags['holdingOut'] = false;
 
   if (intent === 'extend') {
-    const comp = index.competitionById.get(club.competitionId);
+    /*
+     * The club wants to keep him. Nobody used to ask him about it.
+     *
+     * A renewal was applied to the save and announced afterwards - the one contract in a
+     * career the player could not negotiate was his own, while every offer from a rival
+     * club came with a table and three ways to answer it. The terms are put to him now,
+     * and pushing for more is a real bet: they can improve it, they can hold, and a club
+     * that was lukewarm can decide it has better uses for the wage.
+     */
     const raise = 1 + clamp(performanceScore, -0.2, 0.8);
-    state.contract = {
-      ...contract,
-      salaryPerWeek: Math.round(contract.salaryPerWeek * raise * rng.range(1.05, 1.4) * (heldOut ? 1.35 : 1)),
-      startSeason: season + 1,
-      endSeason: season + rng.int(2, 4),
-      squadRole: player.squadRole,
-    };
-    pushInbox(state, 'club', 'inbox.contractExtended', { club: club.name, comp: comp?.name ?? '' });
+    const offered = Math.round(contract.salaryPerWeek * raise * rng.range(1.05, 1.4) * (heldOut ? 1.35 : 1));
+    openRenewalDecision(state, offered, rng.int(2, 4), actualMinutes);
   } else {
     state.contract = null;
     // Where he was, so the market still knows what level of player it is looking at
@@ -5243,6 +5355,149 @@ function handleContractEnd(
  * it might come at 31, it might not come until 38 - and he decides. The game only
  * decides for him at 41, or when he has been without a club for a year.
  */
+/**
+ * The terms his own club has put on the table, and the three ways a player answers.
+ *
+ * The contract he has runs to the end of this season either way, so nothing is decided
+ * by leaving it a week - but the club does not wait for ever, and a renewal nobody
+ * answered is taken as a signature rather than as an insult.
+ */
+function openRenewalDecision(state: CareerState, salary: number, years: number, minutes: number): void {
+  const club = userClub(state);
+  if (!club || state.pendingDecisions.some((decision) => decision.eventId === 'contractRenewal')) return;
+  const absoluteWeek = state.world.season * 52 + state.world.week;
+  state.flags['renewalSalary'] = salary;
+  state.flags['renewalYears'] = years;
+  state.flags['renewalMinutes'] = Math.round(minutes * 100);
+  const decisionId = `renewal_${state.world.season}`;
+  state.pendingDecisions.push({
+    id: decisionId,
+    kind: 'event',
+    eventId: 'contractRenewal',
+    category: 'club',
+    blocking: true,
+    textKey: 'contract.renewal',
+    textArgs: { club: club.name, salary, years },
+    options: [
+      { id: 'sign', labelKey: 'contract.renewal.sign', riskKey: 'risk.low', effects: [] },
+      { id: 'pushForMore', labelKey: 'contract.renewal.pushForMore', riskKey: 'risk.medium', effects: [] },
+      { id: 'runItDown', labelKey: 'contract.renewal.runItDown', riskKey: 'risk.high', effects: [] },
+    ],
+    expiresWeek: absoluteWeek + 4,
+  });
+  pushInbox(state, 'club', 'inbox.contractOffered', { club: club.name, salary, years }, decisionId);
+}
+
+/** Sign the terms currently on the table, whoever decided it: him, or the clock. */
+function signRenewal(state: CareerState, salary: number, years: number): void {
+  const contract = state.contract;
+  if (!contract || salary <= 0) return;
+  state.contract = {
+    ...contract,
+    salaryPerWeek: salary,
+    startSeason: state.world.season + 1,
+    endSeason: state.world.season + years,
+    squadRole: state.player.squadRole,
+  };
+  state.flags['renewalSalary'] = 0;
+  state.flags['renewalYears'] = 0;
+  pushInbox(state, 'club', 'inbox.contractExtended', { club: userClub(state)?.name ?? '', comp: '' });
+}
+
+/** Being let go, from either end of the conversation. */
+function releaseFromClub(state: CareerState, index: PackIndex, rng: Rng, reason: 'refused' | 'withdrawn'): void {
+  const club = userClub(state);
+  if (!club) return;
+  state.flags['lastClubLevel'] = clubBaseOvr(club);
+  state.flags['lastLeagueReputation'] = index.competitionById.get(club.competitionId)?.reputation ?? 40;
+  state.flags['lastTier'] = club.tier;
+  state.contract = null;
+  state.player.clubId = null;
+  state.player.squadRole = 'fringe';
+  pushInbox(state, 'club', reason === 'refused' ? 'inbox.contractRefused' : 'inbox.contractWithdrawn', {
+    club: club.name,
+  });
+  pushNews(state, 'news.released', { club: club.name }, 'high');
+  state.transferOffers = generateOffers({ state, index, rng, minutesPct: 0.3, maxOffers: 5 });
+}
+
+/**
+ * His answer to his own club.
+ *
+ * Signing is signing. Pushing for more is worth something when he has had a season worth
+ * pushing on and the manager rates him, and it costs him the offer when he has not.
+ * Running it down is the oldest play in football: he leaves in the summer for nothing,
+ * and everything after that is somebody else's decision.
+ */
+export function answerContractRenewal(
+  state: CareerState,
+  index: PackIndex,
+  decisionId: string,
+  optionId: string,
+): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex(
+    (decision) => decision.id === decisionId && decision.eventId === 'contractRenewal',
+  );
+  if (at === -1) return null;
+  state.pendingDecisions.splice(at, 1);
+
+  const rng = mainRng(state);
+  const changes: AppliedChange[] = [];
+  const salary = Number(state.flags['renewalSalary'] ?? state.contract?.salaryPerWeek ?? 0);
+  const years = Number(state.flags['renewalYears'] ?? 2);
+  const minutes = Number(state.flags['renewalMinutes'] ?? 0) / 100;
+
+  if (optionId === 'sign') {
+    signRenewal(state, salary, years);
+    commitRng(state, rng);
+    return {
+      changes: [{ key: 'change.contractSigned', delta: 1, before: 0, after: salary, tone: 'good' }],
+      consequences: [],
+      answerKey: 'contract.renewal.sign',
+    };
+  }
+
+  if (optionId === 'runItDown') {
+    adjustRelationship(state, 'board', -12, changes);
+    adjustRelationship(state, 'fans', -6, changes);
+    adjustRelationship(state, 'manager', -8, changes);
+    releaseFromClub(state, index, rng, 'refused');
+    const consequences = evaluateConsequences(rng, state);
+    commitRng(state, rng);
+    return { changes, consequences, answerKey: 'contract.renewal.runItDown' };
+  }
+
+  // Pushing for more. What he is worth to them is the case he has: games played, the
+  // manager's opinion, and a name they would have to replace.
+  const leverage = clamp(
+    (minutes - 0.4) * 1.4 + (state.managerTrust - 50) / 60 + (state.player.reputation - 45) / 70,
+    -1,
+    1,
+  );
+  const roll = rng.next() + leverage * 0.35;
+  if (roll > 0.72) {
+    const improved = Math.round(salary * rng.range(1.15, 1.4));
+    signRenewal(state, improved, Math.max(years, 3));
+    adjustRelationship(state, 'board', -3, changes);
+    changes.push({ key: 'change.money', delta: improved - salary, before: salary, after: improved, tone: 'good' });
+    commitRng(state, rng);
+    return { changes, consequences: [], answerKey: 'contract.renewal.pushForMore' };
+  }
+  if (roll < 0.18) {
+    adjustRelationship(state, 'board', -8, changes);
+    releaseFromClub(state, index, rng, 'withdrawn');
+    const consequences = evaluateConsequences(rng, state);
+    commitRng(state, rng);
+    return { changes, consequences, answerKey: 'contract.renewal.pushForMore' };
+  }
+  // They held. The same terms, and a board that remembers being asked.
+  signRenewal(state, salary, years);
+  adjustRelationship(state, 'board', -5, changes);
+  pushInbox(state, 'club', 'inbox.contractHeld', { club: userClub(state)?.name ?? '' });
+  commitRng(state, rng);
+  return { changes, consequences: [], answerKey: 'contract.renewal.pushForMore' };
+}
+
 function checkRetirement(state: CareerState, rng: Rng): void {
   const player = state.player;
   const age = state.world.season - player.birthYear;
@@ -5296,6 +5551,46 @@ function checkRetirement(state: CareerState, rng: Rng): void {
     expiresWeek: absoluteWeek + 6,
   });
   pushInbox(state, 'club', 'inbox.retirementThought', { age });
+}
+
+/**
+ * Answering the one question the event engine cannot answer.
+ *
+ * Retiring applies no stat change, so `resolveDecision` had nothing to do with it and
+ * the app store carried the logic instead: a headless run - a test, a probe, a scheduled
+ * career - could put the question in front of him and had no way to answer it. It lives
+ * here now, and the screen calls it like every other answer.
+ */
+export function answerRetirement(
+  state: CareerState,
+  decisionId: string,
+  optionId: string,
+): DecisionResult | null {
+  const at = state.pendingDecisions.findIndex(
+    (decision) => decision.id === decisionId && decision.eventId === 'retirement_choice',
+  );
+  if (at === -1) return null;
+  state.pendingDecisions.splice(at, 1);
+
+  if (optionId === 'retire') {
+    retire(state);
+    return {
+      changes: [],
+      consequences: [],
+      answerKey: 'decision.retirement.retire',
+    };
+  }
+
+  // One more season is a decision too: he has to mean it, and the club can see he does.
+  const changes: AppliedChange[] = [];
+  const before = state.player.personality.determination;
+  state.player.personality.determination = clamp(before + 1.2, 1, 99);
+  track(changes, 'change.personality.determination', before, state.player.personality.determination);
+  const moraleBefore = state.player.morale;
+  state.player.morale = clamp(moraleBefore + 4, 0, 100);
+  track(changes, 'change.morale', moraleBefore, state.player.morale);
+  pushInbox(state, 'club', 'inbox.playingOn', { age: state.world.season - state.player.birthYear });
+  return { changes, consequences: [], answerKey: 'decision.retirement.continue' };
 }
 
 export function retire(state: CareerState): void {
@@ -5497,6 +5792,20 @@ export function careerLegacy(state: CareerState): CareerLegacy {
   };
 }
 
+/**
+ * What the career was worth, on a scale that can tell two careers apart.
+ *
+ * The old one paid fifty-five points of a hundred for peak rating alone, flat, from the
+ * first point: an ordinary professional who peaked at sixty-two banked thirty-four of
+ * them before he had kicked a ball, and twelve careers out of twelve came out as "world
+ * class" or better with seven of them "one of the greatest". A grade everybody gets is
+ * not a grade.
+ *
+ * Ability is now paid on a curve that starts at the level of a first-team regular and
+ * only reaches full marks at the very top, and the other five terms are capped low
+ * enough that a long, decent, honest career lands where it belongs - a professional, or
+ * a club legend - and a hundred has to be earned in every column at once.
+ */
 export function computeCareerScore(state: CareerState): number {
   const h = state.seasonHistory;
   const matches = h.reduce((s, r) => s + r.apps, 0);
@@ -5505,14 +5814,18 @@ export function computeCareerScore(state: CareerState): number {
   const peakOvr = h.reduce((m, r) => Math.max(m, r.ovrEnd), 0);
   const trophies = state.trophies.length;
   const caps = state.nationalTeam.caps;
+  const awards = (state.awards ?? []).length;
+
+  // 55 is a first-team footballer; 95 is the best player in the world.
+  const ability = clamp((peakOvr - 55) / 40, 0, 1) ** 1.35;
 
   const score =
-    peakOvr * 0.55 +
-    Math.min(20, matches / 30) +
-    Math.min(14, (goals + assists) / 22) +
-    Math.min(14, trophies * 1.6) +
-    Math.min(10, caps / 9) +
-    Math.min(6, state.player.fame / 18);
+    46 * ability +
+    Math.min(14, matches / 45) +
+    Math.min(12, (goals + assists) / 30) +
+    Math.min(14, trophies * 1.1) +
+    Math.min(8, caps / 12) +
+    Math.min(6, awards * 1.5 + state.player.fame / 30);
 
   return clamp(Math.round(score), 1, 100);
 }
@@ -5541,6 +5854,11 @@ function expireDecisions(state: CareerState): void {
   state.pendingDecisions = state.pendingDecisions.filter((d) => !expiredIds.has(d.id));
 
   for (const decision of expired) {
+    if (decision.eventId === 'contractRenewal') {
+      // The club took silence for agreement rather than tearing the offer up, which is
+      // what a club does with a player it has just decided it wants to keep.
+      signRenewal(state, Number(state.flags['renewalSalary'] ?? 0), Number(state.flags['renewalYears'] ?? 2));
+    }
     if (decision.kind === 'transfer' && decision.offers) {
       const gone = new Set(decision.offers.map((o) => o.id));
       state.transferOffers = state.transferOffers.filter((o) => !gone.has(o.id));
@@ -5954,7 +6272,11 @@ export function answerMentor(state: CareerState, decisionId: string, optionId: s
     track(changes, `change.attr.${attribute}`, before.attributes[attribute], player.attributes[attribute]);
   }
 
-  const result: DecisionResult = { changes, consequences: [] };
+  const result: DecisionResult = {
+    changes,
+    consequences: [],
+    answerKey: decision.options.find((entry) => entry.id === optionId)?.labelKey,
+  };
   return result;
 }
 
@@ -5984,23 +6306,62 @@ export function setTraining(state: CareerState, plan: Partial<CareerState['train
   state.training = { ...state.training, ...plan };
 }
 
-export interface WeekPlan {
-  /** Stop as soon as one of these happens. */
-  stopOn?: TickResult['stopped'][];
-  maxWeeks?: number;
+
+/**
+ * The man he is actually competing with.
+ *
+ * Selection was decided by a score with nobody's name on it, so a player could lose his
+ * place all season and never learn who to. The manager's list is not secret: everyone in
+ * a dressing room knows exactly who is ahead of them and by how much. This is that man,
+ * scored by the same formula the team sheet uses, so what the player is told is what the
+ * engine actually does on Saturday.
+ */
+export interface ShirtRival {
+  playerId: string;
+  name: string;
+  position: Position;
+  ovr: number;
+  /** His score minus the player's. Positive means the shirt is currently not his. */
+  gap: number;
+  ahead: boolean;
 }
 
-/** Run weeks until something interesting happens or the budget runs out. */
-export function advanceUntil(state: CareerState, index: PackIndex, plan: WeekPlan = {}): TickResult {
-  const stopOn = new Set(plan.stopOn ?? ['decision', 'match', 'seasonEnd', 'retired']);
-  const maxWeeks = plan.maxWeeks ?? 60;
-  let last: TickResult = { state, stopped: 'week', log: [] };
-  for (let i = 0; i < maxWeeks; i++) {
-    last = advanceWeek(state, index);
-    if (stopOn.has(last.stopped)) return last;
-    if (state.retired) return last;
+export function shirtRival(state: CareerState): ShirtRival | null {
+  const club = userClub(state);
+  if (!club || isAcademyPlayer(state)) return null;
+  const player = state.player;
+  const squad = userSquad(state).filter((mate) => mate.id !== player.id);
+  if (squad.length === 0) return null;
+
+  const ctx: SelectionContext = {
+    formation: clubFormation(club),
+    managerTrust: state.managerTrust,
+    userId: player.id,
+    rotationPressure: 0.3,
+    importantMatch: false,
+  };
+  const slot = player.primaryPos;
+  const mine = selectionScore(player, slot, ctx);
+
+  let best: { mate: Player; score: number } | null = null;
+  for (const mate of squad) {
+    // Only men who could actually take this shirt: his own position, or one they play.
+    const plays = mate.primaryPos === slot || mate.secondaryPos.includes(slot);
+    if (!plays) continue;
+    if (!isAvailable(mate)) continue;
+    const score = selectionScore(mate, slot, ctx);
+    if (!best || score > best.score) best = { mate, score };
   }
-  return last;
+  if (!best) return null;
+
+  return {
+    playerId: best.mate.id,
+    name: `${best.mate.firstName} ${best.mate.lastName}`,
+    position: slot,
+    ovr: ratingAt(best.mate.attributes, slot),
+    gap: Math.round((best.score - mine) * 10) / 10,
+    ahead: best.score > mine,
+  };
 }
 
 export function actionsAvailableNow(state: CareerState) {

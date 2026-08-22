@@ -41,9 +41,18 @@ export function DecisionResultContent({ result }: { result: DecisionResult }) {
   return (
     <div className="stack" style={{ gap: 0 }}>
       <p className="eyebrow" style={{ color: 'var(--amber)' }}>{t('result.title')}</p>
-      {result.narrativeKey && hasTranslation(lang, result.narrativeKey) && (
-        <h2 className="headline" style={{ marginBlock: '8px 14px' }}>{t(result.narrativeKey)}</h2>
-      )}
+      {/* The written outcome where a story has one, and otherwise the answer he gave -
+          a decision should never end with a column of numbers and no sentence. */}
+      {(() => {
+        const headline = result.narrativeKey && hasTranslation(lang, result.narrativeKey)
+          ? result.narrativeKey
+          : result.answerKey && hasTranslation(lang, result.answerKey)
+            ? result.answerKey
+            : null;
+        return headline && (
+          <h2 className="headline" style={{ marginBlock: '8px 14px' }}>{t(headline)}</h2>
+        );
+      })()}
 
       {result.changes.length > 0 ? (
         <div className="card" style={{ padding: '4px 14px' }}>

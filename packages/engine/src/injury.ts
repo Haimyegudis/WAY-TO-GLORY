@@ -48,7 +48,7 @@ const TYPES: InjuryType[] = [
   },
   {
     type: 'metatarsal',
-    severities: ['serious', 'major'],
+    severities: ['moderate', 'serious', 'major'],
     weeks: { minor: [2, 4], moderate: [5, 9], serious: [9, 16], major: [16, 26], careerThreatening: [30, 52] },
     recurrenceProne: false,
   },
@@ -66,12 +66,21 @@ const TYPES: InjuryType[] = [
   },
 ];
 
+/*
+ * How bad it usually is.
+ *
+ * Measured over twelve careers the old spread cost him eleven weeks of every season and
+ * a quarter of his club's matches - roughly twice what a fit professional loses. Most of
+ * what football does to a body is a fortnight, and the weights say so now; the serious
+ * end still exists, and an ACL still ends a year, they are simply as rare as they are in
+ * life rather than as common as a knock.
+ */
 const SEVERITY_WEIGHT: Record<InjurySeverity, number> = {
-  minor: 56,
-  moderate: 26,
-  serious: 12,
-  major: 5,
-  careerThreatening: 1,
+  minor: 64,
+  moderate: 24,
+  serious: 8,
+  major: 3,
+  careerThreatening: 0.6,
 };
 
 let injuryCounter = 0;
@@ -83,7 +92,7 @@ export function rollInjury(rng: Rng, player: Player, season: number, contextRisk
 
   const type = rng.weighted(TYPES, (t) => {
     const priorSame = player.condition.injuryHistory.filter((i) => i.type === t.type).length;
-    return (t.recurrenceProne ? 1 + priorSame * 0.6 : 1) * (t.type === 'acl' ? 0.35 : 1);
+    return (t.recurrenceProne ? 1 + priorSame * 0.6 : 1) * (t.type === 'acl' ? 0.2 : 1);
   })!;
 
   // Dividing every weight by the same number changes nothing once the weights are
@@ -118,7 +127,7 @@ export function rollInjury(rng: Rng, player: Player, season: number, contextRisk
 /** Weekly chance of picking up an injury in training. */
 export function trainingInjuryChance(player: Player, plan: TrainingPlan, season: number): number {
   const intensityFactor: Record<TrainingPlan['intensity'], number> = {
-    light: 0.35, normal: 1, intensive: 1.9, extreme: 3.6,
+    light: 0.35, normal: 1, intensive: 1.55, extreme: 2.5,
   };
   const age = season - player.birthYear;
   const ageFactor = age > 30 ? 1 + (age - 30) * 0.07 : age < 18 ? 1.15 : 1;
@@ -126,9 +135,9 @@ export function trainingInjuryChance(player: Player, plan: TrainingPlan, season:
   const durability = (player.attributes.strength + player.attributes.balance + player.attributes.agility) / 3;
   const proFactor = 1.15 - player.personality.professionalism / 400;
   return clamp(
-    0.006 * intensityFactor[plan.intensity] * ageFactor * fatigueFactor * proFactor * DIET_INJURY[plan.diet] *
+    0.0034 * intensityFactor[plan.intensity] * ageFactor * fatigueFactor * proFactor * DIET_INJURY[plan.diet] *
       (1.3 - durability / 200),
-    0.0005,
+    0.0003,
     0.2,
   );
 }
@@ -194,6 +203,3 @@ export function isInjured(player: Player): boolean {
   return player.condition.injuries.length > 0;
 }
 
-export function totalDaysOut(player: Player): number {
-  return player.condition.injuryHistory.reduce((sum, i) => sum + i.weeksOut * 7, 0);
-}

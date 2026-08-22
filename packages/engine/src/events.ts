@@ -538,6 +538,7 @@ export function resolveDecision(
     narrativeKey: branchKey
       ? `${decision.textKey}.${option.id}.${branchKey}`
       : `${decision.textKey}.${option.id}.outcome`,
+    answerKey: option.labelKey || `${decision.textKey}.${option.id}`,
   };
   state.lastResult = result;
   return result;

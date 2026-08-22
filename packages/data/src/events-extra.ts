@@ -101,9 +101,11 @@ export const EVENTS_EXTRA: CareerEventDef[] = [
     opt('assistant_coach_conflict', 'smooth', [e('relationship', 4, 'manager'), e('personality', 2, 'adaptability')]),
     opt('assistant_coach_conflict', 'escalate', [e('relationship', -7, 'manager'), e('custom', 1, 'incidentWithManager')], 'risk.high'),
   ]),
+  // A sacking is a fact before it is a conversation: the flag makes the change real, so
+  // whoever picks the side next week is a different man with his own opinion of him.
   ev('manager_sacked', 'manager', 14, 60, { ageRange: [17, 38] }, [
-    opt('manager_sacked', 'stay_professional', [e('relationship', 4, 'board'), e('personality', 2, 'professionalism')]),
-    opt('manager_sacked', 'praise_him_publicly', [e('relationship', 6, 'fans'), e('relationship', -4, 'board')], 'risk.medium'),
+    opt('manager_sacked', 'stay_professional', [e('custom', 1, 'managerSacked'), e('relationship', 4, 'board'), e('personality', 2, 'professionalism')]),
+    opt('manager_sacked', 'praise_him_publicly', [e('custom', 1, 'managerSacked'), e('relationship', 6, 'fans'), e('relationship', -4, 'board')], 'risk.medium'),
   ]),
   ev('training_ground_test', 'manager', 22, 36, { ageRange: [17, 30] }, [
     opt('training_ground_test', 'go_hard', [e('relationship', 6, 'manager'), e('fatigue', 10), e('injuryRisk', 10)], 'risk.medium'),

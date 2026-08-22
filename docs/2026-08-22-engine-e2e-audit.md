@@ -73,7 +73,7 @@ Every number below is from the source, not inferred.
 ```
 weekly OVR gain = 0.185 × ageFactor × trainingF × playingF × proF × moraleF × fitnessF × levelF
                   × injuredPenalty × rng(0.75,1.3) × headroom
-trainingF  = intensity(0.55 / 1.0 / 1.3 / 1.6) × diet(0.8 / 1.0 / 1.12 / 1.2)
+trainingF  = intensity(0.6 / 1.0 / 1.5 / 1.95) × diet(0.8 / 1.0 / 1.12 / 1.2)   [§7]
              × (0.3 + coach/150 + facilities/190)
 playingF   = 0.22 + min(1, minutes% × 1.6) × 1.05      (0.6 out of season)
 proF       = 0.7 + professionalism/170     moraleF = 0.82 + morale/550
@@ -93,7 +93,7 @@ reputation×0.08 + (morale−50)×0.04 + pressure bonus − fatigue×(0.18+rotat
 Trust is the single biggest non-ability term (a 30-point trust swing ≈ 9 rating points).
 
 ### Match (`simulateUserMatch`)
-Chances = `(userXg + oppXg) × 6.2`, conversion `0.086 × (0.5 + logistic((quality−resistance)/12) × 1.6)`
+Chances = `(userXg + oppXg) × 6.2`, conversion `0.104 × (0.5 + logistic((quality−resistance)/12) × 1.6)` [§7]
 modified by score state, red cards, set-piece type, bench energy, half-time instruction.
 Involvement by position group: ATT 0.44 / MID 0.30 / DEF 0.10 / GK 0.01, scaled by quality, form
 and the `mental` multiplier (morale, sharpness, fans, dressing room, manager, pressure, fatigue —
@@ -290,3 +290,91 @@ opponent to prepare for, no negotiation over his own contract, and a match he ca
 7. Write the missing event outcome lines, or drop the mechanism (§4.12).
 8. A manager entity with a tenure and an opinion, and trust that resets when he is sacked (§4.16) —
    the highest-value new simulation for this game, and the cheapest of the P3 items.
+
+---
+
+## 7. Fixed, same day
+
+Everything in sections 4 and 6 was implemented and re-measured with the same probes. The
+numbers below are the after, run on the same seeds as the before.
+
+### Balance
+
+| | Before | After |
+|---|---|---|
+| Injuries per season | 2.0 | 1.78 |
+| Weeks out, mean / median | 5.6 / 4 | 4.7 / 3 |
+| Weeks lost per season | 11.2 | 8.3 |
+| Club matches missed injured | **24.2%** | **18.4%** |
+| Club matches played | 57.5% | 62.1% |
+| Goals per match, his matches vs everyone else's | 2.47 vs 2.99 | **2.68 vs 2.99** |
+| Match ratings, p90 | 8.8 | 8.7 |
+| Careers graded "world class" or better | **12 of 12** | **3 of 12** |
+
+Training intensity is a ladder again — light −8.7 OVR, normal 0, intensive +2.8, extreme
++5.4 with 49 fewer appearances and five more injuries over seven seasons — where before
+intensive bought +0.5 and extreme +0.2. The diet tiers now order properly: poor −9.8,
+professional +5.2, nutritionist +5.3 with a full injury fewer per career for nearly three
+times the money. Training focus is symmetric: physical and technical both sit within a
+rating point of balanced, where physical used to win by seven and a half points and fifty
+appearances, because conditioning is no longer something only the physical block does. An
+action every week is worth about +3 OVR — real, and no longer the best lever in the game.
+
+Career grades now spread across the whole scale: from 34 (a local hero) to 91 (a legend),
+with nobody in twelve careers reaching "one of the greatest".
+
+### Dead paths
+
+- `own_goal` is a real event in the match engine: a defender or keeper can put one into
+  his own net, it costs him 1.1 of a rating point, it appears in his line as `ownGoals`,
+  and the story is raised straight afterwards rather than rolled for. Seventeen of them
+  across ten careers.
+- `drop_down_league` fires: the trigger was a man of thirty-two playing under 30% of the
+  football, which almost nobody is; it is twenty-nine and 52% now.
+- `goalDrought` fires: four blank matches rather than five, and it asks whoever is being
+  played up front rather than only a man whose registered position group is ATT.
+- `rivalDig` fires: a rivalry counts the week after the fixture as well as the week
+  before, and the fixture no longer has to be in the league table to exist.
+- Every decision now ends with a sentence. Where a story has no written outcome line —
+  279 of them — the result sheet prints the answer he actually gave instead of showing a
+  column of numbers under a blank space.
+- `news.buildUp.vsFormerClub`, its youth variant and the matching inbox line are written
+  in both languages; no key produced anywhere in ten careers is missing from either
+  dictionary.
+- Nineteen dead exports: seventeen deleted, two wired up. `agentCommission` now takes the
+  agent's cut out of the weekly wage, and `agentMovePressure` finally does something -
+  a greedy agent pushes clubs above the player's level and a career-planner brings back
+  the ones where he would play, so the man on the phone is a choice rather than a
+  commission rate.
+- Retiring is answered by the engine (`answerRetirement`), not by the UI store.
+
+### The simulations that were missing
+
+- **There is a manager.** He has a name, a way of seeing players, and a length of service
+  (`packages/engine/src/manager.ts`). He is appointed when the player signs, he is sacked
+  when a season goes badly enough - relegation nearly always, a run below where the money
+  says the club belongs sometimes - and the pack's own sacking story now sacks him too.
+  When he goes, seven tenths of the trust the player built goes with him and the new man
+  arrives with his own opinion, formed from the shirt he inherited and the reputation
+  attached to it. About twenty-one spells across a twenty-season career.
+- **He negotiates his own contract.** A renewal is a decision with three answers - sign,
+  push for more, refuse and leave in the summer - rather than a line in the inbox after
+  the fact. Pushing works on games played, the manager's opinion and his name; it can
+  improve the deal, it can hold, and a club that was lukewarm can take the offer off the
+  table. Silence signs it, so nobody loses a club by not reading his mail.
+- **The rival for his shirt has a name.** `shirtRival` scores the best team-mate who plays
+  his position with the same formula the team sheet uses and says whether that man is
+  ahead of him. The hub shows it under the selection outlook, next to the manager's name.
+
+### Still open, and why
+
+The tactical layer (choosing a shape, preparing for an opponent, in-match agency beyond
+the interval) and persistent AI careers - other footballers with arcs the player can
+follow - are new systems rather than repairs, and both would change what the game is
+rather than fix what it does. They are not in this pass.
+
+### Verification
+
+165 engine tests (five new: the dugout, the contract, the shirt, the grade), 11 Playwright
+tests, `tsc --noEmit` clean in both packages, a production build, and the invariant probe
+walked three twenty-season careers without tripping anything.

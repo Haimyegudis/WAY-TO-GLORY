@@ -59,10 +59,6 @@ export function adjustRelationship(
   if (changes) track(changes, `change.${key}`, before, after);
 }
 
-/** Keeps the legacy managerTrust field and the relationship map in step. */
-export function syncManagerTrust(state: CareerState): void {
-  state.relationships.manager = state.managerTrust;
-}
 
 export interface ConsequenceOutcome {
   id: ConsequenceId;

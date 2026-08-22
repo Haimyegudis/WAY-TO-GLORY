@@ -343,7 +343,7 @@ export const EVENTS: CareerEventDef[] = [
     opt('farewell_season_offer', 'accept', [e('morale', 12), e('fame', 6), e('custom', 1, 'farewellSeason')]),
     opt('farewell_season_offer', 'decline', []),
   ]),
-  ev('drop_down_league', 'transfer', 16, 60, { ageRange: [32, 42], maxMinutesSeasonPct: 0.3 }, [
+  ev('drop_down_league', 'transfer', 16, 60, { ageRange: [29, 42], maxMinutesSeasonPct: 0.52 }, [
     opt('drop_down_league', 'consider', [e('custom', 1, 'openToLowerLeague'), e('morale', -3)]),
     opt('drop_down_league', 'refuse', [e('morale', 3)]),
   ]),

@@ -31,7 +31,7 @@ import type {
  * play him.
  */
 
-export const YOUTH_MIN_AGE = 14;
+
 export const YOUTH_MAX_AGE = 19;
 
 /** Two up, two down, decided on the youth table alone. */

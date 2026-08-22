@@ -329,8 +329,3 @@ export function driftClubStrength(rng: Rng, club: Club, finishPct: number): void
   club.reputation = Math.round(clamp(club.reputation + reputationDrift, 5, 99));
 }
 
-export function tierStrengthBand(tier: number): [number, number] {
-  if (tier <= 1) return [58, 92];
-  if (tier === 2) return [42, 68];
-  return [28, 52];
-}

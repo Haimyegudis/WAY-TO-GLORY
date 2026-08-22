@@ -110,7 +110,7 @@ function run(seed: number, variant: Variant) {
 
 const results: { name: string; ovr: number; apps: number; minutes: number; injuries: number; value: number }[] = [];
 for (const variant of VARIANTS) {
-  const runs = [];
+  const runs: ReturnType<typeof run>[] = [];
   for (let s = 0; s < seeds; s++) runs.push(run(4242 + s * 97, variant));
   const mean = (pick: (r: ReturnType<typeof run>) => number) =>
     runs.reduce((sum, r) => sum + pick(r), 0) / runs.length;

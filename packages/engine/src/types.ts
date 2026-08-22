@@ -69,10 +69,6 @@ export type SquadRole =
   | 'key'
   | 'star';
 
-export const SQUAD_ROLES: readonly SquadRole[] = [
-  'academy', 'futureProspect', 'prospect', 'fringe', 'bench', 'rotation', 'starter', 'important', 'key', 'star',
-];
-
 export type InjurySeverity = 'minor' | 'moderate' | 'serious' | 'major' | 'careerThreatening';
 
 export interface Injury {
@@ -388,6 +384,8 @@ export interface UserMatchLine {
   played: boolean;
   started: boolean;
   minutes: number;
+  /** Into his own net. Rare, and the one line of a match report he will remember. */
+  ownGoals?: number;
   position: Position | null;
   goals: number;
   assists: number;
@@ -516,6 +514,26 @@ export interface DecisionResult {
   changes: AppliedChange[];
   consequences: { id: ConsequenceId; args?: Record<string, string | number> }[];
   narrativeKey?: string;
+  /**
+   * What he actually said or did, as a copy key.
+   *
+   * Most stories have no written outcome line - there are three hundred of them and ten
+   * lines - and the result sheet quietly showed a list of numbers with nothing above it.
+   * The answer he gave is a sentence the game already owns, so it stands in as the
+   * headline and every decision ends with something in words.
+   */
+  answerKey?: string;
+}
+
+/** How a manager sees players before he has seen this one. */
+export type ManagerStyle = 'trusting' | 'demanding' | 'youthBuilder' | 'pragmatist';
+
+export interface Manager {
+  name: string;
+  style: ManagerStyle;
+  /** The season he took the job, so the game can say how long he has been there. */
+  since: number;
+  clubId: string;
 }
 
 export interface NationalTeamState {
@@ -733,6 +751,8 @@ export interface CareerState {
   agentOffers: Agent[];
   training: TrainingPlan;
   managerTrust: number;          // mirrors relationships.manager, kept for save compatibility
+  /** The man in the dugout. Undefined on careers saved before managers had names. */
+  manager?: Manager;
   relationships: Relationships;
   /** Conversations and gestures cost time: a small budget refreshed every week. */
   socialActions: { used: number; perWeek: number };

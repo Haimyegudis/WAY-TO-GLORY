@@ -1,4 +1,5 @@
 import { Rng, clamp, logistic } from './rng.js';
+import { agentMovePressure } from './agents.js';
 import { overall } from './positions.js';
 import { clubBaseOvr } from './generate.js';
 import { SENIOR_MIN_AGE } from './selection.js';
@@ -300,6 +301,8 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   const lowerLeague = Boolean(state.flags['openToLowerLeague']);
   const exploring = Boolean(state.flags['exploringMove']);
   const desperate = listed || lowerLeague || playingShare < 0.12;
+  // Greed minus career planning: positive pushes him up the ladder, negative toward games.
+  const pressure = agentMovePressure(state.agent);
   const regularStarter = playingShare >= 0.55;
   /*
    * A free agent takes what he can get.
@@ -406,6 +409,24 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       minutesPct: playingShare,
     });
     let weighted = interest;
+    /*
+     * The man on the phone, and what he is really selling.
+     *
+     * An agent's greed and his interest in the career were generated, saved and never
+     * read, so every agent behaved identically and the only thing separating a super
+     * agent from a local one was his commission. One who is paid on the size of the deal
+     * pushes the biggest name that will take the call, whether or not there is a shirt
+     * in it; one who plans a career walks past those and brings back the club where the
+     * boy plays. It is worth a few points of interest either way, which is enough to
+     * change which clubs actually ring.
+     */
+    if (pressure !== 0) {
+      const stepUp = clubBaseOvr(club) - currentLevel;
+      const room = ovr - clubBaseOvr(club);
+      weighted += pressure > 0
+        ? clamp(stepUp, -6, 14) * pressure * 1.6
+        : clamp(room, -10, 10) * -pressure * 1.4;
+    }
     // Aiming high: only clubs that are a real step up are worth his agent's time.
     if (aimHigh) {
       const stepUp = clubBaseOvr(club) - currentLevel;

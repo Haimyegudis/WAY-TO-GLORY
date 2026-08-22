@@ -10,6 +10,7 @@
  */
 import {
   advanceWeek,
+  answerContractRenewal,
   answerMedia,
   answerMentor,
   answerOffer,
@@ -66,6 +67,9 @@ const narrativeKeys = new Map<string, number>();
 const optionKeys = new Map<string, number>();
 const competitionsPlayed = new Map<string, number>();
 
+const managerSpells = new Map<string, number>();
+const ownGoals: number[] = [];
+const renewals = new Map<string, number>();
 const careers: Record<string, number | string>[] = [];
 const matchRatings: number[] = [];
 const bothGoals: number[] = [];
@@ -166,7 +170,11 @@ for (let s = 0; s < seeds; s++) {
         state.pendingDecisions = state.pendingDecisions.filter((d) => d.id !== decision.id);
         continue;
       }
-      if (decision.eventId === 'seasonGoal') {
+      if (decision.eventId === 'contractRenewal') {
+        const pick = ['sign', 'pushForMore', 'runItDown'][rng.int(0, 2)]!;
+        count(renewals, pick);
+        answerContractRenewal(state, index, decision.id, pick);
+      } else if (decision.eventId === 'seasonGoal') {
         answerSeasonGoal(state, index, decision.id, option.id);
       } else if (decision.eventId.startsWith('milestone:')) {
         count(milestones, decision.eventId.replace('milestone:', ''));
@@ -202,6 +210,7 @@ for (let s = 0; s < seeds; s++) {
     }
 
     count(squadRoles, state.player.squadRole);
+    if (state.manager) count(managerSpells, `${state.manager.clubId}:${state.manager.name}:${state.manager.since}`);
     for (const injury of state.player.condition.injuries) {
       if (seenInjuries.has(injury.id)) continue;
       seenInjuries.add(injury.id);
@@ -238,6 +247,7 @@ for (let s = 0; s < seeds; s++) {
         played++;
         matchRatings.push(line.rating);
         bothGoals.push(match.homeGoals + match.awayGoals);
+        if (line.ownGoals) ownGoals.push(line.ownGoals);
       } else if (line.reasonNotPlayed) {
         count(notPlayedReasons, line.reasonNotPlayed);
         if (line.reasonNotPlayed === 'injured') missedInjury++;
@@ -309,6 +319,9 @@ dump('half-time instructions', halfTimeInstructions);
 dump('sponsors', sponsorKinds);
 dump('end states', endStates);
 dump('achievements', achievements);
+dump('contract renewals answered', renewals);
+console.log(`manager spells across all careers: ${managerSpells.size}`);
+console.log(`own goals: ${ownGoals.length}`);
 
 line('match realism');
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);

@@ -29,13 +29,18 @@ import { generateOffers, isTransferWindow, offerFromWatchingClub } from '../src/
 import { clubBaseOvr } from '../src/generate.js';
 import { indexPack, validatePack } from '../src/data.js';
 import { initNationalTeam, levelForAge, updateNationalInterest } from '../src/national.js';
+import { appointManager, sackingChance } from '../src/manager.js';
 import {
   SCHEMA_VERSION,
   applyLiveInstruction,
   advanceWeek,
+  answerContractRenewal,
   answerMedia,
   answerOffer,
+  careerStatus,
+  computeCareerScore,
   createCareer,
+  shirtRival,
   grudgeClubId,
   resumeHalfTime,
   currentOvr,
@@ -3188,5 +3193,147 @@ describe('the old player', () => {
       expect(Math.min(...bonds), `${prompt.id} has no answer that costs anything`).toBeLessThan(5);
       expect(Math.max(...bonds), `${prompt.id} has no answer worth giving`).toBeGreaterThan(3);
     }
+  });
+});
+
+
+describe('the man in the dugout', () => {
+  it('gives a new manager his own opinion of an inherited player', () => {
+    const { state, index } = startedCareer({ seed: 501 });
+    for (let i = 0; i < 20; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const first = state.manager;
+    expect(first, 'a club without a manager').toBeTruthy();
+    expect(first!.name.trim().length, 'a manager with no name').toBeGreaterThan(2);
+
+    // A settled player, and then the man who settled him is gone.
+    state.managerTrust = 88;
+    state.relationships.manager = 88;
+    state.flags['incidentWithManager'] = true;
+    const club = state.world.clubs[state.player.clubId!]!;
+    appointManager(new Rng(9), state, index, club);
+
+    expect(state.manager!.name, 'the same man walked back in').not.toBe(first!.name);
+    expect(state.managerTrust, 'the new man inherited the old one\u2019s opinion').toBeLessThan(80);
+    expect(state.relationships.manager).toBe(state.managerTrust);
+    expect(state.flags['incidentWithManager'], 'a row with a manager who has left').toBe(false);
+  });
+
+  it('leaves a manager alone until a season has actually gone wrong', () => {
+    const settled = { weeksInCharge: 60, seasonWeek: 30, boardMood: 55 };
+    // Top of the table, where the money says he should be.
+    expect(sackingChance({ ...settled, tablePlace: 0.1, expectedPlace: 0.2 })).toBe(0);
+    // August, however bad it looks.
+    expect(sackingChance({ ...settled, seasonWeek: 6, tablePlace: 0.9, expectedPlace: 0.2 })).toBe(0);
+    // A month in the job.
+    expect(sackingChance({ ...settled, weeksInCharge: 4, tablePlace: 0.9, expectedPlace: 0.2 })).toBe(0);
+    // Bottom four with a squad built for Europe, and a board that has run out of patience.
+    expect(sackingChance({ ...settled, tablePlace: 0.92, expectedPlace: 0.15, boardMood: 20 })).toBeGreaterThan(0);
+  });
+});
+
+describe('his own contract', () => {
+  /**
+   * A career walked - moving when somebody comes in for him, the way one does - until
+   * the club he is at puts a new contract in front of him.
+   */
+  const upForRenewal = (seed: number) => {
+    const { state, index } = startedCareer({ seed });
+    let decision;
+    for (let i = 0; i < 53 * 12 && !state.retired && !decision; i++) {
+      playWeek(state, index);
+      for (const pending of [...state.pendingDecisions]) {
+        if (pending.eventId === 'contractRenewal') { decision = pending; break; }
+        if (pending.kind === 'transfer') {
+          answerOffer(state, index, pending.id, state.transferOffers[0]?.id ?? null);
+        }
+      }
+      if (!decision) state.pendingDecisions = [];
+    }
+    return { state, index, decision };
+  };
+
+  it('puts the club\u2019s terms to him instead of signing them for him', () => {
+    const { state, index, decision } = upForRenewal(77);
+    expect(decision, 'twelve seasons and the club never once asked him to re-sign').toBeTruthy();
+    expect(decision!.options.map((option) => option.id)).toEqual(['sign', 'pushForMore', 'runItDown']);
+    const before = state.contract!.salaryPerWeek;
+
+    const result = answerContractRenewal(state, index, decision!.id, 'sign');
+    expect(result).toBeTruthy();
+    expect(state.contract!.salaryPerWeek, 'signing changed nothing').toBeGreaterThan(before);
+    expect(state.contract!.endSeason).toBeGreaterThan(state.world.season);
+  });
+
+  it('lets him walk away, and then he is somebody else\u2019s problem', () => {
+    const { state, index, decision } = upForRenewal(96);
+    expect(decision).toBeTruthy();
+    answerContractRenewal(state, index, decision!.id, 'runItDown');
+    expect(state.contract, 'he refused and is still under contract').toBeNull();
+    expect(state.player.clubId).toBeNull();
+  });
+
+  it('signs the offer for him if he never answers it, rather than losing him a club', () => {
+    const { state, index, decision } = upForRenewal(77);
+    expect(decision).toBeTruthy();
+    const club = state.player.clubId;
+    // He leaves it in the inbox. The club takes silence for a signature.
+    for (let i = 0; i < 8 && state.pendingDecisions.some((d) => d.id === decision!.id); i++) {
+      playWeek(state, index);
+    }
+    expect(state.pendingDecisions.some((d) => d.id === decision!.id), 'the question never expired').toBe(false);
+    expect(state.player.clubId, 'silence cost him his club').toBe(club);
+    expect(state.contract!.endSeason).toBeGreaterThanOrEqual(state.world.season);
+  });
+});
+
+describe('the shirt he is fighting for', () => {
+  it('names the man ahead of him rather than a hidden number', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    for (let i = 0; i < 90 && state.player.squadRole === 'academy'; i++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    if (state.player.squadRole === 'academy') return;   // still a boy on this seed
+
+    const rival = shirtRival(state);
+    if (!rival) return;                                  // nobody else plays there
+    const squad = userSquad(state);
+    expect(squad.some((mate) => mate.id === rival.playerId), 'a rival who is not at the club').toBe(true);
+    expect(rival.name.trim().length).toBeGreaterThan(2);
+    expect(rival.position).toBe(state.player.primaryPos);
+  });
+});
+
+describe('what a career was worth', () => {
+  it('does not call an ordinary professional one of the greatest', () => {
+    const { state } = startedCareer({ seed: 12 });
+    const season = (ovr: number, apps: number, goals: number) => ({
+      season: 2030, clubId: 'x', competitionId: 'y', apps, starts: apps, subApps: 0,
+      minutes: apps * 80, goals, assists: goals, cleanSheets: 0, yellowCards: 0, redCards: 0,
+      motm: 0, ratingSum: apps * 6.8, ratedApps: apps, age: 26, ovrStart: ovr, ovrEnd: ovr,
+      valueStart: 0, valueEnd: 0, leaguePosition: 8, trophies: [],
+    });
+
+    // Fifteen honest seasons in a modest league, no trophies, no caps.
+    state.seasonHistory = Array.from({ length: 15 }, () => season(63, 32, 4));
+    state.trophies = [];
+    state.nationalTeam.caps = 0;
+    state.player.fame = 30;
+    const journeyman = computeCareerScore(state);
+    expect(journeyman, `an ordinary career scored ${journeyman}`).toBeLessThan(60);
+    expect(careerStatus(journeyman)).not.toBe('goatCandidate');
+
+    // And the other end of it: the best player in the world, everywhere, for a decade.
+    state.seasonHistory = Array.from({ length: 18 }, () => season(93, 45, 30));
+    state.trophies = Array.from({ length: 20 }, () => ({ season: 2030, competitionId: 'x', kind: 'league' as const }));
+    state.nationalTeam.caps = 120;
+    state.awards = Array.from({ length: 6 }, () => ({ season: 2030, award: 'ballonDOr' }));
+    state.player.fame = 99;
+    const great = computeCareerScore(state);
+    expect(great, `the greatest of all time scored ${great}`).toBeGreaterThan(90);
+    expect(great).toBeGreaterThan(journeyman + 30);
   });
 });

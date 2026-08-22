@@ -225,9 +225,6 @@ const MIGRATIONS: Record<number, Migration> = {
   },
 };
 
-export function isSameCareer(a: CareerState, b: CareerState): boolean {
-  return a.careerSeed === b.careerSeed && a.createdAt === b.createdAt;
-}
 
 /** UTF-8 byte length without depending on TextEncoder, so this also runs in bare Node. */
 export function saveSizeBytes(state: CareerState): number {

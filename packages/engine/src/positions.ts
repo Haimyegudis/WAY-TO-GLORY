@@ -86,9 +86,6 @@ export function positionGroup(pos: Position): PositionGroup {
   return 'ATT';
 }
 
-export function isGoalkeeper(pos: Position): boolean {
-  return pos === 'GK';
-}
 
 /** Rating for a player in a specific position. */
 export function ratingAt(attributes: Attributes, pos: Position): number {
@@ -193,7 +190,6 @@ export const FORMATIONS: Record<string, Position[]> = {
   '5-3-2': ['GK', 'RWB', 'CB', 'CB', 'CB', 'LWB', 'CDM', 'CM', 'CM', 'ST', 'ST'],
 };
 
-export const FORMATION_NAMES = Object.keys(FORMATIONS);
 
 
 /**

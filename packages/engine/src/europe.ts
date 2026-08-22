@@ -88,8 +88,6 @@ export interface EuroState {
   winner?: string;
 }
 
-/** Reputation a competition lends a club that plays in it, used for the money and the fame. */
-export const EURO_PRESTIGE: Record<EuroTier, number> = { ucl: 96, uel: 78, uecl: 62 };
 
 const GROUP_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
@@ -192,7 +190,7 @@ export function qualifiedField(state: EuroState, groupPlaces: number): string[] 
 
 /** How many clubs the league phase is built for, and how many each of them plays. */
 export const LEAGUE_PHASE_SIZE = 36;
-export const MATCHES_EACH = 8;
+
 
 /**
  * The league phase draw. The field is split into four pots by strength and every club
@@ -584,6 +582,3 @@ export function euroPrize(tier: EuroTier, stage: EuroStage, champion: boolean): 
   return Math.round(base[tier] * multiplier[stage] * (champion ? 1.35 : 1));
 }
 
-export function euroClubStrength(club: Club): number {
-  return club.strength;
-}

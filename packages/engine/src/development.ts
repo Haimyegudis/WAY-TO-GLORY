@@ -33,11 +33,20 @@ export function headroom(ovr: number, potential: number): number {
   return clamp(gap / 25, 0, 1) ** 0.6;
 }
 
+/*
+ * What a week of work is worth, and what it takes out of him.
+ *
+ * Measured over eight careers the old ladder was two real settings and two traps:
+ * intensive bought two tenths of a rating point and extreme bought nothing at all, both
+ * of them paying for it in fatigue, lost minutes and injuries. Hard weeks are worth
+ * something now and cost a little less in the legs - a boy chasing a ceiling has a
+ * reason to work, and the bill still arrives.
+ */
 const INTENSITY_DEV: Record<TrainingPlan['intensity'], number> = {
-  light: 0.55, normal: 1.0, intensive: 1.3, extreme: 1.6,
+  light: 0.6, normal: 1.0, intensive: 1.5, extreme: 1.95,
 };
 const INTENSITY_FATIGUE: Record<TrainingPlan['intensity'], number> = {
-  light: -3.5, normal: 1.2, intensive: 4.5, extreme: 9,
+  light: -3.5, normal: 1.2, intensive: 3.4, extreme: 6.4,
 };
 export const DIET_FACTOR: Record<TrainingPlan['diet'], number> = {
   poor: 0.8, normal: 1.0, professional: 1.12, nutritionist: 1.2,
@@ -79,7 +88,7 @@ export const DIET_INJURY: Record<TrainingPlan['diet'], number> = {
 };
 
 export const DIET_MORALE: Record<TrainingPlan['diet'], number> = {
-  poor: 0.4, normal: 0, professional: -0.3, nutritionist: -0.85,
+  poor: 0.4, normal: 0, professional: -0.2, nutritionist: -0.25,
 };
 
 const FOCUS_ATTRS: Record<TrainingFocus, AttributeKey[]> = {
@@ -198,7 +207,17 @@ function applyGrowth(rng: Rng, player: Player, points: number, focus: TrainingFo
       // Attributes the position does not ask for still improve, just slower - otherwise
       // a player becomes unplayable anywhere except his exact slot.
       const posW = weights[key] ?? 0.035;
-      const focusW = focusSet.has(key) ? 2.2 : focusSet.size === 0 ? 1 : 0.55;
+      /*
+       * A professional does his running whatever the block is about.
+       *
+       * Everything outside the focus was cut to just over half, which quietly included
+       * the engine - so a season of technical work left him unable to finish matches,
+       * and the physical block won by three and a half rating points and fifty
+       * appearances. Conditioning is not a training focus, it is the floor under all of
+       * them.
+       */
+      const conditioning = key === 'stamina' || key === 'strength';
+      const focusW = focusSet.has(key) ? 2.2 : focusSet.size === 0 ? 1 : conditioning ? 1 : 0.55;
       const w = posW * focusW;
       share[key] = w;
       totalWeight += w;
@@ -346,13 +365,6 @@ export function updateForm(player: Player, recentRatings: number[]): void {
   player.form = clamp(player.form + (target - player.form) * (0.25 + consistency * 0.2), 0, 100);
 }
 
-export function playerAge(player: Player, season: number): number {
-  return season - player.birthYear;
-}
-
-export function positionalGroupOf(player: Player) {
-  return positionGroup(player.primaryPos);
-}
 
 /**
  * What eating that way actually does, in the engine's own numbers.

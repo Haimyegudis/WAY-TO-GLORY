@@ -42,6 +42,8 @@ import {
   type ContractAsk,
   type NegotiationOutcome,
   type PendingDecision,
+  answerContractRenewal,
+  answerRetirement,
   retire as engineRetire,
   serialize,
   setTraining as engineSetTraining,
@@ -615,15 +617,29 @@ export const useGame = create<GameStore>((set, get) => ({
       });
       return;
     }
-    // Hanging them up is his own decision, so it is answered here rather than by the
-    // event system, which only knows how to apply stat changes.
-    const retiring = state.pendingDecisions.some(
-      (decision) => decision.id === decisionId && decision.eventId === 'retirement_choice',
-    );
+    // His own contract, which the engine negotiates the same way it negotiates anybody
+    // else's offer.
+    if (decisionId.startsWith('renewal_')) {
+      const renewalResult = answerContractRenewal(state, index, decisionId, optionId);
+      if (renewalResult) {
+        const renewalSlot = get().activeSaveId;
+        if (renewalSlot) persistTo(renewalSlot, state, (saves) => set({ saves }));
+        set({
+          state: { ...state },
+          result: renewalResult,
+          resultDecision: answeredDecision,
+          openMessageId: null,
+          pendingNews: newsAfterDecision(),
+        });
+        return;
+      }
+    }
+    // Hanging them up is his own decision and the engine owns it, the same as every
+    // other answer he gives.
+    const retirementResult = answerRetirement(state, decisionId, optionId);
     const rng = Rng.fromState(state.rngState);
-    const result = resolveDecision(rng, state, decisionId, optionId, requirePack().events);
+    const result = retirementResult ?? resolveDecision(rng, state, decisionId, optionId, requirePack().events);
     state.rngState = rng.getState();
-    if (retiring && optionId === 'retire') engineRetire(state);
     const slot = get().activeSaveId;
     if (slot) persistTo(slot, state, (saves) => set({ saves }));
     set({

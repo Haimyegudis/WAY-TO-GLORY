@@ -149,6 +149,8 @@ interface HalfState {
   userInjuredAt?: number;
   /** A dismissal changes both eligibility and the strength of his ten-man team. */
   userSentOffAt?: number;
+  /** Goals he put into his own net, which is a different afternoon from conceding one. */
+  userOwnGoals?: number;
   /** Earliest unplanned exit; planned substitutions remain in MatchSetup. */
   userUnavailableAt?: number;
   /** Dismissals elsewhere on the pitch alter every later chance. */
@@ -165,7 +167,15 @@ type MatchMoment =
   | { minute: number; order: number; kind: 'yellow' | 'secondYellow' | 'straightRed' | 'injury' }
   | { minute: number; order: number; kind: 'teamYellow' | 'opponentYellow' | 'teamRed' | 'opponentRed' | 'teamInjury' | 'opponentInjury' | 'teamSub' | 'opponentSub' };
 
-const CONVERSION_BASE = 0.086;
+/*
+ * How often a chance becomes a goal.
+ *
+ * His matches are resolved chance by chance and everybody else's by the same expected
+ * goals put through a Poisson draw, and the two disagreed: 2.47 goals in his matches
+ * against 2.99 in the rest of his division, so his club's results were quietly the
+ * lowest-scoring in the league. This is the number that reconciles them.
+ */
+const CONVERSION_BASE = 0.104;
 
 /**
  * Chance-based simulation, used only for matches the user is involved in.
@@ -285,6 +295,10 @@ export function simulateUserMatch(rng: Rng, ctx: UserMatchContext): UserMatchOut
   const cleanSecondHalf = half.oppGoals === oppGoalsAtBreak;
 
   line.rating = computeRating(rng, ctx, line, half.userGoals, half.oppGoals, mods, cleanSecondHalf);
+  if (half.userOwnGoals) {
+    line.rating = clamp(Math.round((line.rating - 1.1 * half.userOwnGoals) * 10) / 10, 3, 10);
+    line.ownGoals = half.userOwnGoals;
+  }
   line.motm = line.played && line.rating >= 8.3 && (half.userGoals > half.oppGoals || line.goals >= 2);
 
   const result = buildResult(ctx, half, setup, ctx.importance);
@@ -946,6 +960,28 @@ function resolveOpponentChance(
 
   if (rng.chance(p)) {
     half.oppGoals++;
+    /*
+     * Somebody has to have put it in, and once in a long while it is him.
+     *
+     * A cross he tried to cut out, a deflection off his shin. It only happens to a man
+     * on the pitch defending the goal, it is his name on the scoresheet, and the game
+     * asks him about it afterwards - which is the whole point of it existing.
+     */
+    const ownGoal = userOnPitch
+      && (group === 'DEF' || group === 'GK')
+      && (source !== 'openPlay' ? rng.chance(0.05) : rng.chance(0.028));
+    if (ownGoal) {
+      half.userOwnGoals = (half.userOwnGoals ?? 0) + 1;
+      half.events.push({
+        minute,
+        type: 'concede',
+        playerId: ctx.user.id,
+        byUser: true,
+        detailKey: 'match.event.userOwnGoal',
+        score: setup.userHome ? [half.userGoals, half.oppGoals] : [half.oppGoals, half.userGoals],
+      });
+      return;
+    }
     const scorer = ctx.opponentStars.length > 0
       ? rng.weighted(ctx.opponentStars, (s) => attackWeight(s, s.primaryPos))
       : null;
@@ -1183,7 +1219,7 @@ function computeRating(
 
   // Baseline drifts with quality relative to the level of the game.
   // 6.5 is a competent, unremarkable afternoon; everything else moves from there.
-  let rating = 6.5 + (ovr - ctx.opponentRating) / 40 + (ctx.user.form - 50) / 160;
+  let rating = 6.5 + (ovr - ctx.opponentRating) / 55 + (ctx.user.form - 50) / 160;
   rating += rng.gauss(0, 0.42) * (1.4 - ctx.user.personality.consistency / 140) * mods.variance;
 
 
@@ -1223,6 +1259,11 @@ function computeRating(
   // The big ones count for more, in both directions.
   const occasion = occasionWeight(ctx.importance);
   if (occasion > 1) rating = 6.4 + (rating - 6.4) * occasion;
+
+  // The top of the scale is not a place a good player lives. Nines were being handed out
+  // to one match in ten; above eight the marks tighten, so the ones that survive it are
+  // the afternoons somebody would actually talk about.
+  if (rating > 8) rating = 8 + (rating - 8) * 0.62;
 
   return clamp(Math.round(rating * 10) / 10, 3.0, 10.0);
 }

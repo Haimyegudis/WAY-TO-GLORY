@@ -3,6 +3,7 @@ import {
   potentialLabel,
   relationshipLabel,
   scoringRank,
+  shirtRival,
   skillProfile,
   sortedTable,
   userYouthCompetition,
@@ -100,6 +101,9 @@ export function Hub() {
           : ['starter', 'important', 'key', 'star'].includes(player.squadRole)
             ? 'starting'
             : 'competing';
+  // Who is actually keeping him out of the side, by name. The manager's list is not a
+  // secret in a dressing room, and a player who cannot see it cannot do anything about it.
+  const rival = shirtRival(state);
   const nationalInterest = Math.round(Math.max(0, ...Object.values(state.nationalTeam.interest)));
   const youthForm = state.world.youth?.form;
   const youthAverage = youthForm && youthForm.apps > 0 ? youthForm.ratingSum / youthForm.apps : 0;
@@ -267,6 +271,18 @@ export function Hub() {
         <div className="stack" style={{ gap: 7, marginBlockStart: 12 }}>
           <p style={{ fontSize: 13 }}>{t(`status.form.${formBand}`)}</p>
           <p style={{ fontSize: 13 }}>{t(`status.selection.${selectionOutlook}`)}</p>
+          {player.squadRole !== 'academy' && (
+            <p style={{ fontSize: 13 }} className={rival?.ahead ? 'faint' : undefined}>
+              {rival
+                ? t(rival.ahead ? 'club.shirtRival.ahead' : 'club.shirtRival.behind', { name: rival.name })
+                : t('club.shirtRival.none')}
+            </p>
+          )}
+          {state.manager && (
+            <p style={{ fontSize: 13 }} className="faint">
+              {t('club.manager')}: {state.manager.name} · {t(`manager.style.${state.manager.style}`)}
+            </p>
+          )}
           {player.squadRole === 'academy' && youthForm && (
             <p style={{ fontSize: 13 }}>
               {t('status.youthPath', {
