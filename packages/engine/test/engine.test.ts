@@ -4069,6 +4069,21 @@ describe('the division eleven', () => {
     expect(JSON.stringify(again)).toBe(JSON.stringify(first));
   });
 
+  it('counts a round once, however many times the week is walked', () => {
+    const { state, index } = startedCareer({ seed: 96 });
+    for (let i = 0; i < 53 * 2 && !state.retired; i++) {
+      // playWeek resumes half time, which walks the same week's fixtures again - and
+      // that is exactly the pass that used to count him a second time.
+      playWeek(state, index);
+      state.pendingDecisions = [];
+    }
+    const apps = state.seasonHistory.reduce((sum, record) => sum + record.apps, 0)
+      + (state.world.seasonStats[state.player.id]?.apps ?? 0);
+    const times = Number(state.flags['totwCount'] ?? 0);
+    expect(apps, 'he never played').toBeGreaterThan(10);
+    expect(times, `in the eleven ${times} times in ${apps} matches`).toBeLessThanOrEqual(apps);
+  });
+
   it('puts him in it sometimes, and not every week', () => {
     const { state, index } = startedCareer({ seed: 11 });
     for (let i = 0; i < 53 * 5 && !state.retired; i++) {

@@ -1575,12 +1575,21 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 5. National team. Scouting interest is live every week, not only when an
   // international window happens to open. Injuries, recovery sharpness, minutes and
   // form therefore change the number the player sees as they change.
-  const nationalCtx = club ? nationalContextFor(state, index, club) : null;
+  /*
+   * Once a week, however many times the week is walked.
+   *
+   * A match stopped at the interval replays the whole week when he comes out for the
+   * second half, and this section is not idempotent: it was rolling a second call-up,
+   * playing a second set of internationals and adding the caps from both.
+   */
+  const nationalDone = Number(state.flags['nationalResolvedWeek'] ?? -1) === absoluteWeek;
+  const nationalCtx = club && !nationalDone ? nationalContextFor(state, index, club) : null;
   if (nationalCtx) updateNationalInterest(nationalCtx);
   // And the other federation, if there is one, picks up the phone.
   if (nationalCtx) openAssociationApproach(state, index, rng);
   // The squad for next week's window is named this week, the way squads are.
   if (nationalCtx) announceCallUp(state, index, rng, nationalCtx);
+  if (!nationalDone) state.flags['nationalResolvedWeek'] = absoluteWeek;
   let nationalMatchThisWeek: MatchResult | null = null;
   if (INTERNATIONAL_WEEKS.includes(week)) {
     const qualifierDue = Boolean(state.campaign?.fixtures.some((fixture) => (
@@ -1593,7 +1602,7 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
       : false;
     // Qualifiers run whether or not he is in the squad: his country plays either way,
     // and a table he is not in is still the table that decides his summer.
-    playQualifiers(state, index, rng, seniorCallUp);
+    if (!nationalDone) playQualifiers(state, index, rng, seniorCallUp);
     const nationalMatchId = String(state.flags['nationalMatchId'] ?? '');
     if (Number(state.flags['nationalMatchThisWeek'] ?? -1) === absoluteWeek) {
       nationalMatchThisWeek = state.matchLog.find((match) => match.id === nationalMatchId) ?? null;
@@ -2935,8 +2944,21 @@ function recordTeamOfTheWeek(
   week: number,
   youth: boolean,
 ): void {
+  /*
+   * Once per round, whatever happens to the week.
+   *
+   * A week is walked more than once - a match stopped at the interval replays the whole
+   * fixture list when he comes out for the second half, and every one of those passes
+   * came through here. Five matches into a career he was being told he had been in the
+   * team of the week for the twenty-fourth time.
+   */
+  const marker = `totwAt:${competitionId}`;
+  const stamp = state.world.season * WEEKS_PER_SEASON + week;
+  if (Number(state.flags[marker] ?? -1) === stamp) return;
+
   const eleven = buildTeamOfTheWeek(state, competitionId, week, youth);
   if (!eleven) return;
+  state.flags[marker] = stamp;
 
   const his = eleven.entries.find((entry) => entry.isUser);
   if (!his) return;
