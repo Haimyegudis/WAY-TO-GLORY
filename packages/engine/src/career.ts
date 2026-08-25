@@ -153,6 +153,7 @@ import { buildTeamOfTheWeek } from './totw.js';
 import { matchCategory, type MatchCategory } from './category.js';
 import { appointManager, generateManager, sackingChance } from './manager.js';
 import { advanceTrackedPlayers, followPlayer, isTracked, peerTable, trackHisYear } from './peers.js';
+import { runStoryWeek, runStorySeasonEnd } from './story.js';
 import {
   MATCH_PLANS,
   planEffect,
@@ -1808,6 +1809,11 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // 7a3. The coaching staff, on what to actually work on. Professional, periodic,
   // and only for a man who has coaches.
   if (club) raiseCoachReview(state);
+
+  // 7a4. The people his career is lived with: the rival from his own year, the friends
+  // in the squad, the family at home, the manager's promise, the stands, the crown.
+  // On its own stream, so a story beat never re-deals anybody else's cards.
+  runStoryWeek({ state, index, rng: rngFrom(state, 'story'), club: club ?? undefined, userMatch: userMatch ?? undefined, hooks: { pushInbox, pushNews } });
 
   // 7b. The people who have something to say about a bad month, one at a time.
   reactToBadRun(state, index);
@@ -5558,6 +5564,10 @@ function endSeason(state: CareerState, index: PackIndex, rng: Rng): void {
   // The careers of the people the world is keeping: a season each, recorded, and a
   // summer in which somebody comes for them or lets them go.
   advanceTrackedPlayers(rng, state, index);
+
+  // The summer of the people around him: the rival's season is compared with his,
+  // and the year the old king goes, the crown is handed to somebody.
+  runStorySeasonEnd(state, rngFrom(state, 'storySummer'), { pushInbox, pushNews });
 
   // Age the modelled world and develop it a season's worth.
   advanceModelledPlayers(state, index, rng);

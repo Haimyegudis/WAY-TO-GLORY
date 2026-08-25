@@ -840,6 +840,33 @@ export interface WorldState {
   };
 }
 
+/**
+ * The people a career is lived with: the rival from his own year, the friends in the
+ * squad, the family at home, the manager's promise, the stands, and the old king whose
+ * crown will fall. Owned by story.ts; optional so every saved career predating it
+ * simply starts its stories the week it is loaded.
+ */
+export interface StoryState {
+  /** The tracked peer this career is measured against, for as long as both play. */
+  rivalId?: string;
+  /** How hot the rivalry is burning, 0-100. Heat rises when their paths cross. */
+  rivalHeat?: number;
+  /** The two men in the squad who are actually his friends. */
+  friends?: { id: string; clubId: string | null; role: 'captain' | 'prospect'; bond: number }[];
+  /** Partner and children. A career decision is a family decision from here on. */
+  family?: { partner: 'none' | 'dating' | 'engaged' | 'married'; kids: number; parentsSeen?: boolean };
+  /** What the manager said he would get, and what he has to do for it. */
+  promise?: { kind: 'goals'; target: number; deadline: number; baseline: number };
+  /** The old king whose retirement leaves a crown lying on the grass. */
+  legend?: { name: string; group: string; retireSeason: number; settled?: boolean };
+  /** The stands have a song with his name in it. That only happens once. */
+  chant?: boolean;
+  /** The club he was at last week, so a move is noticed the week it happens. */
+  clubId?: string | null;
+  /** The season he joined the club he is at, for how long a goodbye has been. */
+  joinedSeason?: number;
+}
+
 export interface CareerState {
   schemaVersion: number;
   gameVersion: string;
@@ -874,6 +901,8 @@ export interface CareerState {
   nationalTeam: NationalTeamState;
   /** The old player who took an interest in him, if he has asked one to. */
   mentor?: MentorState;
+  /** The rival, the friends, the family, the promise, the stands and the crown. */
+  story?: StoryState;
   /** The qualifying campaign his country is playing for the next tournament, if any. */
   campaign?: QualifyingCampaign;
   /** Campaigns already settled, so a career remembers the summers it missed. */
