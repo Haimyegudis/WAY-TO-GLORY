@@ -588,6 +588,123 @@ function clutchWeek(input: StoryWeekInput): void {
 
 
 
+
+/* --------------------------------------------------------------- twilight */
+
+const ROLE_RANK: Record<string, number> = {
+  academy: 0, futureProspect: 1, prospect: 2, fringe: 3, bench: 4,
+  rotation: 5, starter: 6, important: 7, key: 8, star: 9,
+};
+
+/**
+ * The long descent, lived rather than announced. After thirty the body starts sending
+ * letters; after that a kid with his old number starts taking his old minutes; and
+ * somewhere in there are the two conversations every player schedules too late: what
+ * this season is, and what the day after the last day looks like.
+ */
+function twilightWeek(input: StoryWeekInput): void {
+  const { state, rng, club, hooks } = input;
+  const s = story(state);
+  const age = state.world.season - state.player.birthYear;
+  if (!s.twilight) s.twilight = {};
+  const tw = s.twilight;
+
+  // The best shirt he ever held is remembered even before there is anything to mourn.
+  const rank = ROLE_RANK[state.player.squadRole] ?? 0;
+  tw.peakRole = Math.max(tw.peakRole ?? 0, rank);
+
+  if (age < 30) return;
+
+  // The body's letters: never a crisis, always a fact. They rotate so a career hears
+  // each of them once in a while rather than the same one forever.
+  if (inSeason(state) && rng.chance(0.02 + (age - 30) * 0.004)) {
+    tw.bodyBeat = ((tw.bodyBeat ?? 0) % 3) + 1;
+    state.player.condition.fatigue = clamp(state.player.condition.fatigue + 2, 0, 100);
+    hooks.pushInbox(state, 'medical', `story.twilight.body.${tw.bodyBeat}`, { age });
+  }
+
+  // The kid. The week the fall from the best role is big enough to have a face, it
+  // gets one: the youngest of his own kind in the building.
+  if (!tw.kidNamed && age >= 31 && club && (tw.peakRole ?? 0) >= 6 && rank <= 5) {
+    const group = positionGroup(state.player.primaryPos);
+    const kid = (state.world.squads[club.id] ?? [])
+      .map((id) => state.world.players[id])
+      .filter((p): p is Player => Boolean(p && !p.isUser && !p.retired && positionGroup(p.primaryPos) === group))
+      .sort((a, b) => b.birthYear - a.birthYear)[0];
+    if (kid) {
+      tw.kidNamed = true;
+      state.player.morale = clamp(state.player.morale - 4, 0, 100);
+      hooks.pushInbox(state, 'club', 'story.twilight.kid', { name: fullName(kid) });
+    }
+  }
+
+  // The day after the last day, planned while there is still a career around it.
+  if (!tw.planAsked && age >= 33 && !state.flags['coachingBadges'] && !state.flags['noFallbackPlan']
+    && rng.chance(0.05)) {
+    tw.planAsked = true;
+    openStoryDecision(state, 'afterlife', {
+      category: 'personal',
+      textKey: 'story.twilight.plan',
+      options: [
+        {
+          id: 'badges',
+          labelKey: 'story.twilight.plan.badges',
+          effects: [
+            { kind: 'custom', key: 'coachingBadges', value: 1 },
+            { kind: 'money', value: -25_000 },
+            { kind: 'personality', key: 'professionalism', value: 2 },
+          ],
+        },
+        {
+          id: 'pundit',
+          labelKey: 'story.twilight.plan.pundit',
+          effects: [
+            { kind: 'custom', key: 'storyPunditPlan', value: 1 },
+            { kind: 'relationship', key: 'media', value: 4 },
+          ],
+        },
+        {
+          id: 'later',
+          labelKey: 'story.twilight.plan.later',
+          effects: [{ kind: 'custom', key: 'noFallbackPlan', value: 1 }],
+        },
+      ],
+      blocking: false,
+      expiresWeek: absoluteWeek(state) + 3,
+    }, hooks, 'personal');
+  }
+
+  // The farewell question. Asked once, when the descent is real, and answering it out
+  // loud turns the season into a tour: the engine retires him when it ends.
+  if (!tw.announceAsked && age >= 33 && rank <= (tw.peakRole ?? 0) - 1
+    && inSeason(state) && state.world.week <= 20 && rng.chance(0.05)) {
+    tw.announceAsked = true;
+    openStoryDecision(state, 'farewell', {
+      category: 'personal',
+      textKey: 'story.twilight.farewell',
+      textArgs: { age },
+      options: [
+        {
+          id: 'announce',
+          labelKey: 'story.twilight.farewell.announce',
+          effects: [
+            { kind: 'custom', key: 'farewellSeason', value: 1 },
+            { kind: 'relationship', key: 'fans', value: 8 },
+            { kind: 'morale', value: 5 },
+          ],
+        },
+        {
+          id: 'playOn',
+          labelKey: 'story.twilight.farewell.playOn',
+          effects: [{ kind: 'personality', key: 'determination', value: 2 }],
+        },
+      ],
+      blocking: false,
+      expiresWeek: absoluteWeek(state) + 3,
+    }, hooks, 'personal');
+  }
+}
+
 /* ------------------------------------------------------------- journalist */
 
 /**
@@ -1207,6 +1324,7 @@ export function runStoryWeek(input: StoryWeekInput): void {
   familyWeek(input);
   friendsWeek(input, movedThisWeek);
   journalistWeek(input);
+  twilightWeek(input);
   if (club) {
     rivalWeek(input);
     promiseWeek(input);

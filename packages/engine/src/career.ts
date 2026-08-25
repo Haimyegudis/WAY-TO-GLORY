@@ -6633,6 +6633,9 @@ export function retire(state: CareerState): void {
   if (state.flags['coachingBadges']) {
     pushInbox(state, 'personal', 'inbox.retirementCoaching', {});
     unlock(state, 'coachingBadges');
+  } else if (state.flags['storyPunditPlan']) {
+    // The media training paid for itself: a studio chair was waiting.
+    pushInbox(state, 'personal', 'inbox.retirementPundit', {});
   } else if (state.flags['noFallbackPlan']) {
     pushInbox(state, 'personal', 'inbox.retirementNoPlan', {});
   }

@@ -861,6 +861,16 @@ export interface StoryState {
   legend?: { name: string; group: string; retireSeason: number; settled?: boolean };
   /** The stands have a song with his name in it. That only happens once. */
   chant?: boolean;
+  /** The long descent, kept honestly: the body's letters, the kid, the plans. */
+  twilight?: {
+    /** The best role he ever held, so losing it can be noticed as a loss. */
+    peakRole?: number;
+    kidNamed?: boolean;
+    announceAsked?: boolean;
+    planAsked?: boolean;
+    /** Which of the body's letters arrived last, so they rotate. */
+    bodyBeat?: number;
+  };
   /** The one reporter whose byline follows this career, and how he currently sees it. */
   journalist?: {
     name: string;
