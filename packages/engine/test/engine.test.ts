@@ -20,7 +20,7 @@ import { estimatedScorers } from '../src/charts.js';
 import { generateSquad } from '../src/generate.js';
 import { simulateQuickResult } from '../src/match.js';
 import { errandOptions, runErrand } from '../src/errands.js';
-import { signAgent } from '../src/career.js';
+import { chooseMentor, signAgent } from '../src/career.js';
 import { careerBreakdown, careerSummary } from '../src/career.js';
 import { applyTrainingCondition } from '../src/development.js';
 import { matchCategory } from '../src/category.js';
@@ -4408,6 +4408,81 @@ describe('what a very good player looks like', () => {
         const ovr = overall(state.player.attributes, state.player.primaryPos, state.player.secondaryPos);
         expect(ovr, `a ${age} year old was already a ${ovr}`).toBeLessThan(74);
       }
+    }
+  });
+});
+
+describe('a player with no club', () => {
+  function releasedTwentyYearOld(seed: number) {
+    const { state, index } = startedCareer({ seed });
+    const club = state.world.clubs[state.player.clubId!]!;
+    const comp = index.competitionById.get(club.competitionId)!;
+    state.player.birthYear = state.world.season - 20;
+    state.flags['lastClubLevel'] = clubBaseOvr(club);
+    state.flags['lastLeagueReputation'] = comp.reputation;
+    state.flags['lastTier'] = club.tier;
+    state.contract = null;
+    state.player.clubId = null;
+    state.player.squadRole = 'fringe';
+    state.transferOffers = [];
+    state.pendingDecisions = [];
+    return { state, index, lastReputation: comp.reputation };
+  }
+
+  it('always hears from somebody when the market is scanned', () => {
+    for (let seed = 1; seed <= 8; seed++) {
+      const { state, index } = releasedTwentyYearOld(400 + seed);
+      const offers = generateOffers({ state, index, rng: new Rng(seed), minutesPct: 0 });
+      expect(offers.length, `seed ${seed} left him with nobody`).toBeGreaterThan(0);
+    }
+  });
+
+  it('hears from lower leagues when he is not good enough for his old level', () => {
+    const { state, index, lastReputation } = releasedTwentyYearOld(470);
+    // A modest player nobody at his old level would ring.
+    for (const key of Object.keys(state.player.attributes) as (keyof typeof state.player.attributes)[]) {
+      state.player.attributes[key] = Math.min(state.player.attributes[key], 48);
+    }
+    const offers = Array.from({ length: 6 }, (_, seed) =>
+      generateOffers({ state, index, rng: new Rng(30 + seed), minutesPct: 0 })).flat();
+    expect(offers.length).toBeGreaterThan(0);
+    const fromBelow = offers.some((offer) => {
+      const comp = index.competitionById.get(offer.competitionId!)!;
+      return comp.reputation <= lastReputation;
+    });
+    expect(fromBelow, 'no club from a lower or equal league rang a released journeyman').toBe(true);
+  });
+
+  it('is offered a way back within a couple of months of being released', () => {
+    const { state, index } = releasedTwentyYearOld(555);
+    let heard = false;
+    for (let week = 0; week < 10 && !heard; week++) {
+      playWeek(state, index);
+      if (state.transferOffers.length > 0) heard = true;
+      state.pendingDecisions = [];
+    }
+    expect(heard).toBe(true);
+  });
+
+  it('hears nothing from coaches, mentors or the press while he has no club', () => {
+    const { state, index } = releasedTwentyYearOld(556);
+    chooseMentor(state, MENTORS[0]!.id);
+    const before = state.inbox.length;
+    for (let week = 0; week < 16; week++) {
+      playWeek(state, index);
+      expect(
+        state.pendingDecisions.every((decision) => decision.kind !== 'event'),
+        `week ${week} raised ${state.pendingDecisions.map((d) => d.eventId).join(',')}`,
+      ).toBe(true);
+      state.pendingDecisions = [];
+      state.transferOffers = [];
+    }
+    const arrived = state.inbox.slice(0, state.inbox.length - before);
+    for (const message of arrived) {
+      expect(
+        message.category === 'manager' || message.category === 'media' || message.category === 'sponsor',
+        `a man with no club was written to: ${message.category} / ${message.titleKey}`,
+      ).toBe(false);
     }
   });
 });

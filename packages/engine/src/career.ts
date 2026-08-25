@@ -1528,7 +1528,8 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   for (const deal of life.expired) {
     pushInbox(state, 'sponsor', 'inbox.sponsorEnded', { kind: `life.sponsor.${deal.kind}` });
   }
-  if (!state.retired) {
+  // Sponsors put players on posters, not free agents: no shirt, no campaign.
+  if (!state.retired && club) {
     const offers = raiseSponsorOffers(rng, state);
     if (offers.length > 0) {
       pushInbox(state, 'sponsor', 'inbox.sponsorOffer', {
@@ -1695,7 +1696,9 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
     const absolute = season * 52 + week;
     if (clublessSince === 0) state.flags['clublessSince'] = absolute;
     const lastCall = Number(state.flags['freeAgentCall'] ?? 0);
-    if (state.transferOffers.length === 0 && absolute - lastCall >= 4) {
+    // An agent sent out to find him a club reports back in a fortnight, not a month.
+    const callGap = hunting ? 2 : 4;
+    if (state.transferOffers.length === 0 && absolute - lastCall >= callGap) {
       state.flags['freeAgentCall'] = absolute;
       // Without a club he has no minutes to show and no level to be measured against,
       // so this is the market at its most generous: whoever needs a player.
@@ -1703,12 +1706,20 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
         ? generateOffers({ state, index, rng, minutesPct: 0, maxOffers: 4 })
         : [];
       if (offers.length > 0) {
+        state.flags['agentHunting'] = 0;
+        state.flags['agentAbroad'] = 0;
         state.transferOffers = offers;
         openOfferDecision(state, offers);
         pushInbox(state, 'club', 'inbox.freeAgentInterest', {
           club: state.world.clubs[offers[0]!.clubId]?.name ?? '',
           count: offers.length,
         });
+      } else if (hunting) {
+        // He sent his man out, so his man answers - even when the answer is that the
+        // clubs are waiting for him to be fit before anybody signs anything.
+        state.flags['agentHunting'] = 0;
+        state.flags['agentAbroad'] = 0;
+        pushInbox(state, 'agent', 'inbox.agentStillLooking', {});
       }
     }
   } else if (club && clublessSince !== 0) {
@@ -1742,7 +1753,9 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
 
   // 7a2. The old player, on the weeks he has a reason. He is not a help page: sometimes
   // he is the one who starts the conversation, and what he asks is the awkward question.
-  raiseMentorPrompt(state, rng);
+  // Not to a man with no club: everything he would ask about - minutes, form, the
+  // dressing room - belongs to a shirt the player does not currently have.
+  if (club) raiseMentorPrompt(state, rng);
 
   // 7b. The people who have something to say about a bad month, one at a time.
   reactToBadRun(state, index);
@@ -1769,7 +1782,9 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   const colourPending = state.pendingDecisions.filter((d) => d.kind === 'event' && d.blocking === false).length;
   const storiesThisSeason = Number(state.flags['storiesThisSeason'] ?? 0);
 
-  if (!storyPending && colourPending < 2 && rng.chance(0.36)) {
+  // A man with no club has no training ground for these weeks to happen at. Until
+  // somebody gives him one, the only people in his life are his agent and the market.
+  if (club && !storyPending && colourPending < 2 && rng.chance(0.36)) {
     const ctx = buildEventContext(state, index);
     const def = pickEvent(rng, index.pack.events.filter((event) => !FIXTURE_BOUND_EVENTS.has(event.id)), ctx, state);
     if (def) {

@@ -575,6 +575,7 @@ export const he: Record<string, string> = {
   'inbox.agentSigned': '{name} הוא הסוכן שלך.',
   'inbox.contractExtended': '{club} האריכו את החוזה שלך.',
   'inbox.freeAgentInterest': 'אתה חופשי מחוזה, ו-{count} מועדונים מעוניינים. {club} הראשון שהתקשר.',
+  'inbox.agentStillLooking': 'הסוכן: עדיין אין מועדון. אני מרחיב את החיפוש לליגות נמוכות יותר - נמצא לך בית.',
   'inbox.released': 'שוחררת מ{club}.',
   'inbox.loanEnded': 'ההשאלה הסתיימה. חוזרים ל{club}.',
   'inbox.calledUp': 'אתה בסגל {country} לחלון {level} בשבוע הבא.',

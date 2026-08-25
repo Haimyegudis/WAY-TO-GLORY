@@ -521,6 +521,50 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
     }
   }
 
+  /*
+   * The rescue scan.
+   *
+   * A released player can fall between every stool: the clubs at his old level do not
+   * want him, and the floors above were built for a man with a club to be measured
+   * against. When a scan of the whole market comes back with nobody, the leagues below
+   * the one he fell from are asked directly - rebuilding a career from a division down
+   * is exactly what a free agent does, and a save where his phone simply never rings
+   * again is not a hard year, it is a dead career.
+   */
+  if (clubless && candidates.length === 0) {
+    for (const club of Object.values(state.world.clubs)) {
+      if (club.id === player.clubId) continue;
+      const comp = index.competitionById.get(club.competitionId);
+      if (!comp) continue;
+      // Less prestigious football only: the way back starts below where he fell from.
+      if (comp.reputation > currentReputation) continue;
+      const interest = transferInterest({
+        club,
+        competition: comp,
+        ovr,
+        potential: player.potential,
+        age,
+        form: player.form,
+        reputation: player.reputation,
+        value,
+        agent: state.agent,
+        playerCountry: player.birthCountry,
+        currentClubStrength: lastLevel || 40,
+        currentLeagueReputation: currentReputation,
+        minutesPct: playingShare,
+        lookingAbroad: Boolean(state.flags['agentAbroad']),
+      });
+      // Nobody here is filtered out for being too small - too small is the point -
+      // but a club he would actually play for sorts above one collecting bodies.
+      candidates.push({
+        club,
+        comp,
+        interest: Math.max(interest, 20) + clamp(6 - Math.abs(ovr - clubBaseOvr(club)) * 0.5, 0, 6),
+        role: roleForOvr(ovr, clubBaseOvr(club), age),
+      });
+    }
+  }
+
   candidates.sort((a, b) => b.interest - a.interest);
   const shortlist = candidates.slice(0, 16);
   const chosen: TransferOffer[] = [];
@@ -528,12 +572,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
   // hears from fewer people.
   const maxOffers = Math.max(1, (input.maxOffers ?? 4) + (exploring ? 2 : 0) - (aimHigh ? 1 : 0));
 
-  for (const candidate of rng.shuffle(shortlist)) {
-    if (chosen.length >= maxOffers) break;
-    // Interest is not the same as actually bidding.
-    const floorForChance = candidate.joinAs === 'academy' ? 28 : clubless ? 14 : 40;
-    if (!rng.chance(clamp((candidate.interest - floorForChance) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
-
+  const buildOffer = (candidate: (typeof candidates)[number]): TransferOffer => {
     const clubLevel = clubBaseOvr(candidate.club);
     const role = candidate.role;
     // A boy joining another academy is not loaned out on his first day.
@@ -557,7 +596,7 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       ? Math.round(clamp(150 + candidate.club.finances * 12 + candidate.club.reputation * 6, 150, 2_500))
       : expectedWage(player, ovr, candidate.club.finances, candidate.comp, age);
 
-    chosen.push({
+    return {
       id: `offer_${season}_${state.world.week}_${candidate.club.id}`,
       clubId: candidate.club.id,
       fee,
@@ -579,7 +618,24 @@ export function generateOffers(input: OfferGenInput): TransferOffer[] {
       // The old flag, kept because saves and screens read it: it means exactly what it
       // says now, which is that he is leaving academy football behind.
       ...(academyPlayer && candidate.joinAs !== 'academy' ? { seniorPathway: true } : {}),
-    });
+    };
+  };
+
+  for (const candidate of rng.shuffle(shortlist)) {
+    if (chosen.length >= maxOffers) break;
+    // Interest is not the same as actually bidding.
+    const floorForChance = candidate.joinAs === 'academy' ? 28 : clubless ? 14 : 40;
+    if (!rng.chance(clamp((candidate.interest - floorForChance) / 90, 0.05, 0.75) * (exploring ? 1.4 : 1))) continue;
+    chosen.push(buildOffer(candidate));
+  }
+
+  /*
+   * A free agent's monthly call ends with at least one name on the table. The whole
+   * market has already said how interested it is; when every coin toss above still came
+   * up empty, the most interested club stops tossing coins and rings.
+   */
+  if (clubless && chosen.length === 0 && shortlist.length > 0) {
+    chosen.push(buildOffer(shortlist[0]!));
   }
 
   return chosen;
