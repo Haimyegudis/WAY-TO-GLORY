@@ -618,7 +618,7 @@ export interface DecisionResult {
 }
 
 /** How a manager sees players before he has seen this one. */
-export type ManagerStyle = 'trusting' | 'demanding' | 'youthBuilder' | 'pragmatist';
+export type ManagerStyle = 'trusting' | 'demanding' | 'youthBuilder' | 'pragmatist' | 'gambler';
 
 export interface Manager {
   name: string;
@@ -856,7 +856,7 @@ export interface StoryState {
   /** Partner and children. A career decision is a family decision from here on. */
   family?: { partner: 'none' | 'dating' | 'engaged' | 'married'; kids: number; parentsSeen?: boolean };
   /** What the manager said he would get, and what he has to do for it. */
-  promise?: { kind: 'goals'; target: number; deadline: number; baseline: number };
+  promise?: { kind: 'goals'; target: number; deadline: number; baseline: number; manager?: string };
   /** The old king whose retirement leaves a crown lying on the grass. */
   legend?: { name: string; group: string; retireSeason: number; settled?: boolean };
   /** The stands have a song with his name in it. That only happens once. */

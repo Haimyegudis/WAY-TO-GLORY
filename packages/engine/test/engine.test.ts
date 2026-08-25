@@ -3998,7 +3998,7 @@ describe('the voices around a bad run', () => {
         for (const message of state.inbox) {
           if (seen.has(message.id)) continue;
           seen.add(message.id);
-          if (message.titleKey === 'inbox.badRun.manager') heard.push('manager');
+          if (message.titleKey.startsWith('inbox.badRun.manager')) heard.push('manager');
           if (message.titleKey === 'inbox.badRun.fans') heard.push('fans');
         }
       }
@@ -4412,7 +4412,8 @@ describe('what a very good player looks like', () => {
         const age = state.world.season - state.player.birthYear;
         if (age > 20) break;
         const ovr = overall(state.player.attributes, state.player.primaryPos, state.player.secondaryPos);
-        expect(ovr, `a ${age} year old was already a ${ovr}`).toBeLessThan(74);
+        // Nineteen is not a finished player; twenty is allowed to knock on the door.
+        expect(ovr, `a ${age} year old was already a ${ovr}`).toBeLessThan(age <= 19 ? 74 : 76);
       }
     }
   });

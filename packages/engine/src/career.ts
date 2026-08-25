@@ -2429,9 +2429,12 @@ function reactToBadRun(state: CareerState, index: PackIndex): void {
   state.flags['badRunVoice'] = voice + 1;
 
   if (voice === 0) {
-    // The manager, on the training ground, on the Monday.
-    adjustRelationship(state, 'manager', -3);
-    pushInbox(state, 'manager', 'inbox.badRun.manager', {
+    // The manager, on the training ground, on the Monday - in his own voice. The
+    // demanding man makes it cost more; the trusting one absorbs most of it himself.
+    const style = state.manager?.style ?? 'pragmatist';
+    const cost = style === 'demanding' ? -5 : style === 'gambler' ? -4 : style === 'trusting' ? -2 : -3;
+    adjustRelationship(state, 'manager', cost);
+    pushInbox(state, 'manager', `inbox.badRun.manager.${style}`, {
       games: recent.length,
       rating: average.toFixed(1),
     });

@@ -19,7 +19,7 @@ import { pickName } from './generate.js';
 import type { PackIndex } from './data.js';
 import type { CareerState, Club, Manager, ManagerStyle, Player, SquadRole } from './types.js';
 
-const STYLES: ManagerStyle[] = ['trusting', 'demanding', 'youthBuilder', 'pragmatist'];
+const STYLES: ManagerStyle[] = ['trusting', 'demanding', 'youthBuilder', 'pragmatist', 'gambler'];
 
 /** How much of what the last man thought survives him. Not much. */
 const INHERITED_TRUST = 0.3;
@@ -66,7 +66,9 @@ export function openingTrust(manager: Manager, player: Player, role: SquadRole, 
     : manager.style === 'youthBuilder' ? (young ? 56 : 42)
     : 45;
   const standing = (player.reputation - 40) * 0.22 + (ROLE_STANDING[role] ?? 0);
-  return clamp(base + standing + rng.int(-6, 7), 12, 88);
+  // A gambler's first read is a hunch, and a hunch can land anywhere.
+  const noise = manager.style === 'gambler' ? rng.int(-16, 17) : rng.int(-6, 7);
+  return clamp(base + standing + noise, 12, 88);
 }
 
 /**

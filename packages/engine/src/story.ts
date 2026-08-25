@@ -324,20 +324,31 @@ function promiseWeek(input: StoryWeekInput): void {
   const { state, rng, club, hooks } = input;
   const s = story(state);
   const stats = state.world.seasonStats[state.player.id];
+  const style = state.manager?.style ?? 'pragmatist';
 
   if (s.promise) {
+    // A promise belongs to the mouth that made it. Sacked, it dies with the job.
+    if (s.promise.manager && state.manager && s.promise.manager !== state.manager.name) {
+      hooks.pushInbox(state, 'manager', 'story.promise.void', { manager: s.promise.manager });
+      s.promise = undefined;
+      return;
+    }
     if (absoluteWeek(state) >= s.promise.deadline) {
       const scored = (stats?.goals ?? 0) - s.promise.baseline;
       const kept = scored >= s.promise.target;
       if (kept) {
-        state.relationships.manager = clamp(state.relationships.manager + 10, 0, 100);
+        // How much a kept word is worth depends on whose word it was: everything to a
+        // gambler who staked his judgement on you, table stakes to a pragmatist.
+        const gain = style === 'gambler' ? 16 : style === 'trusting' ? 12 : 10;
+        state.relationships.manager = clamp(state.relationships.manager + gain, 0, 100);
         state.managerTrust = state.relationships.manager;
         state.player.morale = clamp(state.player.morale + 8, 0, 100);
-        hooks.pushInbox(state, 'manager', 'story.promise.kept', { goals: scored, target: s.promise.target });
+        hooks.pushInbox(state, 'manager', `story.promise.kept.${style}`, { goals: scored, target: s.promise.target });
       } else {
-        state.relationships.manager = clamp(state.relationships.manager - 6, 0, 100);
+        const loss = style === 'gambler' ? 12 : style === 'demanding' ? 10 : style === 'trusting' ? 4 : 6;
+        state.relationships.manager = clamp(state.relationships.manager - loss, 0, 100);
         state.managerTrust = state.relationships.manager;
-        hooks.pushInbox(state, 'manager', 'story.promise.missed', { goals: scored, target: s.promise.target });
+        hooks.pushInbox(state, 'manager', `story.promise.missed.${style}`, { goals: scored, target: s.promise.target });
       }
       s.promise = undefined;
     }
@@ -347,20 +358,25 @@ function promiseWeek(input: StoryWeekInput): void {
   // Only a striker's promise for now: goals are the one currency nobody argues with.
   const attacking = positionGroup(state.player.primaryPos) === 'ATT'
     || positionGroup(state.player.primaryPos) === 'MID';
+  const offerChance = style === 'gambler' ? 0.06 : style === 'demanding' ? 0.05 : 0.04;
   if (
     club && attacking && inSeason(state) && state.world.week <= LAST_MATCH_WEEK - 14
     && state.player.squadRole !== 'academy'
     && state.relationships.manager >= 35 && state.relationships.manager <= 70
-    && rng.chance(0.04)
+    && rng.chance(offerChance)
   ) {
-    const target = positionGroup(state.player.primaryPos) === 'ATT' ? rng.int(4, 6) : rng.int(2, 3);
+    const base = positionGroup(state.player.primaryPos) === 'ATT' ? rng.int(4, 6) : rng.int(2, 3);
+    // The demanding man asks for more; the trusting one sets a bar you can see over;
+    // the gambler names a number that makes the room go quiet.
+    const target = Math.max(1, base + (style === 'demanding' ? 1 : style === 'gambler' ? 2 : style === 'trusting' ? -1 : 0));
     s.promise = {
       kind: 'goals',
       target,
       deadline: absoluteWeek(state) + 12,
       baseline: stats?.goals ?? 0,
+      manager: state.manager?.name,
     };
-    hooks.pushInbox(state, 'manager', 'story.promise.made', { target });
+    hooks.pushInbox(state, 'manager', `story.promise.made.${style}`, { target });
   }
 }
 
