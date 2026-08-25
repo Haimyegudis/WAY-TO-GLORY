@@ -585,6 +585,175 @@ function clutchWeek(input: StoryWeekInput): void {
 
 
 
+
+/* ------------------------------------------------------------------- saga */
+
+/**
+ * A big move as a story with acts, not a letter with a deadline. A hint in a paper, a
+ * question at a press conference, a meeting that should not leak, a market that has
+ * heard everything, and an ultimatum from the club he is still contracted to. The
+ * engine's own transfer machinery does the actual business at the end - the saga's job
+ * is to make the month before the bid feel like the month it is.
+ */
+function sagaWeek(input: StoryWeekInput, movedThisWeek: boolean): void {
+  const { state, rng, club, hooks } = input;
+  const s = story(state);
+  const week = absoluteWeek(state);
+
+  // Decisions taken in earlier acts, applied.
+  if (state.flags['storySagaDenied']) { state.flags['storySagaDenied'] = 0; if (s.saga) s.saga.denied = true; }
+  if (state.flags['storySagaMet']) { state.flags['storySagaMet'] = 0; if (s.saga) s.saga.met = true; }
+  if (state.flags['storySagaRefused']) {
+    state.flags['storySagaRefused'] = 0;
+    if (s.saga && rng.chance(0.5)) {
+      hooks.pushInbox(state, 'agent', 'story.saga.faded', { club: state.world.clubs[s.saga.clubId]?.name ?? '' });
+      s.saga = undefined;
+    }
+  }
+
+  const saga = s.saga;
+  if (saga) {
+    const admirer = state.world.clubs[saga.clubId];
+    if (!admirer || !club) { s.saga = undefined; return; }
+
+    // The move happened - to anywhere. The saga is over and the goodbye owns the week.
+    if (movedThisWeek) {
+      hooks.pushInbox(state, 'agent', 'story.saga.moved', { club: admirer.name });
+      s.saga = undefined;
+      return;
+    }
+
+    // Act 2: the microphone. Days after the hint, somebody asks him to his face.
+    if (saga.stage === 1 && week - saga.startedWeek >= 1) {
+      saga.stage = 2;
+      openStoryDecision(state, 'sagaPress', {
+        category: 'media',
+        textKey: 'story.saga.press',
+        textArgs: { club: admirer.name },
+        options: [
+          {
+            id: 'deny',
+            labelKey: 'story.saga.press.deny',
+            effects: [
+              { kind: 'relationship', key: 'fans', value: 4 },
+              { kind: 'relationship', key: 'board', value: 3 },
+              { kind: 'custom', key: 'storySagaDenied', value: 1 },
+            ],
+          },
+          {
+            id: 'noComment',
+            labelKey: 'story.saga.press.noComment',
+            effects: [{ kind: 'relationship', key: 'media', value: -2 }],
+          },
+          {
+            id: 'stoke',
+            labelKey: 'story.saga.press.stoke',
+            riskKey: 'risk.medium',
+            effects: [
+              { kind: 'relationship', key: 'fans', value: -5 },
+              { kind: 'relationship', key: 'board', value: -4 },
+              { kind: 'agentRelationship', value: 4 },
+            ],
+          },
+        ],
+        blocking: false,
+        expiresWeek: week + 2,
+      }, hooks, 'media');
+      return;
+    }
+
+    // Act 3: the meeting. A hotel out of town, an agreed story if anyone asks.
+    if (saga.stage === 2 && week - saga.startedWeek >= 3) {
+      saga.stage = 3;
+      openStoryDecision(state, 'sagaMeeting', {
+        category: 'agent',
+        textKey: 'story.saga.meeting',
+        textArgs: { club: admirer.name },
+        options: [
+          {
+            id: 'meet',
+            labelKey: 'story.saga.meeting.meet',
+            riskKey: 'risk.medium',
+            effects: [{ kind: 'custom', key: 'storySagaMet', value: 1 }],
+            outcomes: [
+              { key: 'quiet', weight: 65, effects: [{ kind: 'morale', value: 3 }] },
+              {
+                key: 'leaked',
+                weight: 35,
+                effects: [
+                  { kind: 'relationship', key: 'fans', value: -6 },
+                  { kind: 'relationship', key: 'board', value: -5 },
+                  { kind: 'relationship', key: 'manager', value: -4 },
+                ],
+              },
+            ],
+          },
+          {
+            id: 'refuse',
+            labelKey: 'story.saga.meeting.refuse',
+            effects: [
+              { kind: 'relationship', key: 'board', value: 3 },
+              { kind: 'custom', key: 'storySagaRefused', value: 1 },
+            ],
+          },
+        ],
+        blocking: false,
+        expiresWeek: week + 2,
+      }, hooks, 'agent');
+      return;
+    }
+
+    // Act 4: the market hears everything. The agent is sent hunting; the engine's own
+    // machinery takes it from here, and the saga waits for the bid to land.
+    if (saga.stage === 3 && week - saga.startedWeek >= 5) {
+      saga.stage = 4;
+      state.flags['agentHunting'] = 1;
+      hooks.pushNews(state, 'story.saga.marketNews', {
+        player: fullName(state.player), club: admirer.name,
+      }, 'medium');
+      return;
+    }
+
+    // Act 5: a real offer is on the table while the saga is hot - the club he is still
+    // contracted to wants an answer before the window shuts on their planning.
+    if (saga.stage === 4 && state.transferOffers.length > 0) {
+      saga.stage = 5;
+      hooks.pushInbox(state, 'club', 'story.saga.ultimatum', { club: club.name });
+      return;
+    }
+
+    // The saga starves: no bid ever lands, the papers move on.
+    if (saga.stage >= 4 && week - saga.startedWeek >= 14 && state.transferOffers.length === 0) {
+      if (saga.denied) {
+        state.relationships.fans = clamp(state.relationships.fans + 3, 0, 100);
+        hooks.pushInbox(state, 'agent', 'story.saga.stayed.meant', { club: admirer.name });
+      } else {
+        hooks.pushInbox(state, 'agent', 'story.saga.faded', { club: admirer.name });
+      }
+      s.saga = undefined;
+    }
+    return;
+  }
+
+  // Act 1: a name and a paragraph on a slow Tuesday. Only for a player worth one.
+  if (!club || state.player.reputation < 45 || !inSeason(state)) return;
+  const sinceMove = week - Number(state.flags['lastTransferWeek'] ?? -999);
+  const lastSaga = Number(state.flags['storySagaLast'] ?? -999);
+  if (sinceMove < 40 || week - lastSaga < 45 || !rng.chance(0.03)) return;
+  const here = state.world.clubs[state.player.clubId ?? ''];
+  if (!here) return;
+  const admirers = Object.values(state.world.clubs).filter((candidate) =>
+    candidate.id !== here.id
+    && candidate.tier <= here.tier
+    && (candidate.prestige ?? 0) > (here.prestige ?? 0) + 5);
+  if (admirers.length === 0) return;
+  const admirer = rng.pick(admirers.sort((a, b) => (b.prestige ?? 0) - (a.prestige ?? 0)).slice(0, 6));
+  state.flags['storySagaLast'] = week;
+  s.saga = { clubId: admirer.id, stage: 1, startedWeek: week };
+  hooks.pushNews(state, 'story.saga.hint', { player: fullName(state.player), club: admirer.name }, 'medium');
+  hooks.pushInbox(state, 'agent', 'story.saga.hintAgent', { club: admirer.name });
+}
+
 /* ---------------------------------------------------------------- the room */
 
 /**
@@ -916,6 +1085,7 @@ export function runStoryWeek(input: StoryWeekInput): void {
   if (club) {
     rivalWeek(input);
     promiseWeek(input);
+    sagaWeek(input, movedThisWeek);
     derbyWeek(input);
     roomWeek(input);
     fansWeek(input, movedThisWeek, leftClub);

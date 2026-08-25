@@ -861,6 +861,17 @@ export interface StoryState {
   legend?: { name: string; group: string; retireSeason: number; settled?: boolean };
   /** The stands have a song with his name in it. That only happens once. */
   chant?: boolean;
+  /** A big move as a month of weather rather than one letter: the saga's state. */
+  saga?: {
+    /** The admirer the papers have him linked with. */
+    clubId: string;
+    /** 1 hint printed, 2 press asked, 3 meeting offered, 4 market hot, 5 bid landed. */
+    stage: number;
+    startedWeek: number;
+    /** He looked into the cameras and said he was staying. That is kept. */
+    denied?: boolean;
+    met?: boolean;
+  };
   /** The dressing room as a weather system: its mood, and who is poisoning it. */
   room?: {
     /** 0 is a room nobody wants to walk into, 100 is a title-winning bus. */
