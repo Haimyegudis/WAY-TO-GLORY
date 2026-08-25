@@ -15,6 +15,7 @@
  * gambles - so the app needed no new plumbing to ask any of these questions.
  */
 import { Rng, clamp } from './rng.js';
+import { pickName } from './generate.js';
 import { positionGroup, ratingAt } from './positions.js';
 import { FIRST_MATCH_WEEK, LAST_MATCH_WEEK } from './league.js';
 import type { PackIndex } from './data.js';
@@ -586,6 +587,129 @@ function clutchWeek(input: StoryWeekInput): void {
 
 
 
+
+/* ------------------------------------------------------------- journalist */
+
+/**
+ * The byline that follows him. Every career gets one reporter who made it his beat
+ * early and never gave it up: his praise opens doors and his knife stays sharp for
+ * twenty years, and which one is out this week depends on a stance the player has
+ * spent his whole career moving - three points at a time, in both directions.
+ */
+function journalistWeek(input: StoryWeekInput): void {
+  const { state, index, rng, userMatch, hooks } = input;
+  const s = story(state);
+
+  // The adoption: a mid-table Thursday profile, "the most interesting player nobody
+  // is writing about". From then on, somebody always is.
+  if (!s.journalist) {
+    if (state.player.reputation < 40 || !rng.chance(0.06)) return;
+    const country = index.countryByCode.get(state.player.birthCountry);
+    const pool = index.namesByLocale.get(country?.nameLocale ?? 'en') ?? index.namesByLocale.get('en');
+    if (!pool) return;
+    const { firstName, lastName } = pickName(rng, pool);
+    s.journalist = { name: `${firstName} ${lastName}`, stance: 10, since: state.world.season };
+    hooks.pushInbox(state, 'media', 'story.press.adopted', { journalist: s.journalist.name });
+    return;
+  }
+  const press = s.journalist;
+
+  // What he watched this weekend moves what he thinks. Slowly. He has seen too many
+  // one-match wonders to turn on one match, in either direction.
+  const line = userMatch?.userLine;
+  if (line?.played) {
+    if (line.motm || line.rating >= 7.8) press.stance = clamp(press.stance + 3, -100, 100);
+    else if (line.rating >= 7.2) press.stance = clamp(press.stance + 1, -100, 100);
+    else if (line.rating < 5.8) press.stance = clamp(press.stance - 3, -100, 100);
+    else if (line.rating < 6.4) press.stance = clamp(press.stance - 1, -100, 100);
+  }
+  // And the paper's general goodwill seeps into his copy, a little.
+  press.stance = clamp(press.stance + (state.relationships.media > 60 ? 0.3 : state.relationships.media < 35 ? -0.3 : 0), -100, 100);
+
+  // The column. A few times a season his byline lands on this career specifically.
+  if (inSeason(state) && rng.chance(0.05)) {
+    const tone = press.stance >= 35 ? 'warm' : press.stance <= -30 ? 'cold' : 'measured';
+    hooks.pushNews(state, `story.press.column.${tone}`, {
+      journalist: press.name, player: fullName(state.player),
+    }, tone === 'measured' ? 'low' : 'medium');
+    if (tone === 'warm') {
+      state.player.fame = clamp(state.player.fame + 1, 0, 100);
+    } else if (tone === 'cold') {
+      state.player.morale = clamp(state.player.morale - 2, 0, 100);
+    }
+  }
+
+  // The advocate, when it matters: the stands have turned and the one voice with a
+  // column defends him in print. That is what twenty years of access buys.
+  if (press.stance >= 45 && state.relationships.fans <= 30
+    && !state.flags[`storyPressDefended:${state.world.season}`]) {
+    state.flags[`storyPressDefended:${state.world.season}`] = 1;
+    state.relationships.fans = clamp(state.relationships.fans + 4, 0, 100);
+    state.player.morale = clamp(state.player.morale + 3, 0, 100);
+    hooks.pushInbox(state, 'media', 'story.press.defended', { journalist: press.name });
+  }
+
+  // The hit job, when it has been coming: a vendetta with a word count.
+  if (press.stance <= -45 && !state.flags[`storyPressHit:${state.world.season}`] && inSeason(state)) {
+    state.flags[`storyPressHit:${state.world.season}`] = 1;
+    state.relationships.fans = clamp(state.relationships.fans - 3, 0, 100);
+    state.player.morale = clamp(state.player.morale - 4, 0, 100);
+    hooks.pushInbox(state, 'media', 'story.press.hitJob', { journalist: press.name });
+    hooks.pushNews(state, 'story.press.hitJobNews', {
+      journalist: press.name, player: fullName(state.player),
+    }, 'high');
+  }
+
+  // The exclusive. Once in a while he asks for an hour, and an hour with a byline is
+  // a gamble about which sentence survives editing.
+  if (inSeason(state) && press.stance > -30 && press.stance < 40 && rng.chance(0.015)) {
+    openStoryDecision(state, 'exclusive', {
+      category: 'media',
+      textKey: 'story.press.exclusive',
+      textArgs: { journalist: press.name },
+      options: [
+        {
+          id: 'sitDown',
+          labelKey: 'story.press.exclusive.sitDown',
+          riskKey: 'risk.medium',
+          effects: [],
+          outcomes: [
+            {
+              key: 'fair',
+              weight: 70,
+              swayedBy: 'fame',
+              sway: 0.3,
+              effects: [
+                { kind: 'custom', key: 'storyPressWarmed', value: 1 },
+                { kind: 'relationship', key: 'media', value: 4 },
+                { kind: 'fame', value: 2 },
+              ],
+            },
+            {
+              key: 'twisted',
+              weight: 30,
+              effects: [
+                { kind: 'relationship', key: 'media', value: -3 },
+                { kind: 'relationship', key: 'teammates', value: -3 },
+                { kind: 'morale', value: -3 },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'decline',
+          labelKey: 'story.press.exclusive.decline',
+          effects: [{ kind: 'custom', key: 'storyPressCooled', value: 1 }],
+        },
+      ],
+      blocking: false,
+      expiresWeek: absoluteWeek(state) + 2,
+    }, hooks, 'media');
+  }
+  if (state.flags['storyPressWarmed']) { state.flags['storyPressWarmed'] = 0; press.stance = clamp(press.stance + 10, -100, 100); }
+  if (state.flags['storyPressCooled']) { state.flags['storyPressCooled'] = 0; press.stance = clamp(press.stance - 6, -100, 100); }
+}
+
 /* ------------------------------------------------------------------- saga */
 
 /**
@@ -1082,6 +1206,7 @@ export function runStoryWeek(input: StoryWeekInput): void {
   // has - but the manager, the fans and the paper's comparisons belong to a shirt.
   familyWeek(input);
   friendsWeek(input, movedThisWeek);
+  journalistWeek(input);
   if (club) {
     rivalWeek(input);
     promiseWeek(input);

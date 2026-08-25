@@ -2903,4 +2903,19 @@ export const en: Record<string, string> = {
   'story.saga.moved': 'Done. A month of hints, denials and hotel Tuesdays, folded into one signature. The saga has an ending, and you wrote it.',
   'story.saga.stayed.meant': 'The window shut, the bid never came, and the stands remembered one thing: you said you were staying, and you stayed. It buys something no transfer fee measures.',
   'story.saga.faded': 'The {club} story starved to death quietly, the way most transfer stories do. The papers have a new name now. Your agent has kept the number, though.',
+
+  /* ----------------------------------------------------------- journalist */
+  'story.press.adopted': 'A Thursday profile you did not ask for: {journalist}, eight hundred words, calling you “the most interesting player nobody is writing about”. From today, somebody always is. Learn the byline - it will follow you for twenty years.',
+  'story.press.column.warm': '{journalist}, in his weekend column, on {player} - and it reads like a man defending his own early call. He saw it first and he never lets his readers forget it.',
+  'story.press.column.measured': '{journalist} gave {player} three paragraphs this weekend: fair, sourced, and impossible to argue with, which is somehow more annoying than a hatchet.',
+  'story.press.column.cold': '{journalist} spent his column on {player} again. The knife was polite, which is how he prefers it. His readers know the tone by now - and so does the dressing room.',
+  'story.press.defended': 'The stands have turned, and the one voice that did not: {journalist}, in print, spending twenty years of credibility on your behalf. “Watch the games again,” the column says. Some of them will.',
+  'story.press.hitJob': 'Page one of the sport section: {journalist}, at length, on everything you are not. Years of small slights, filed and kept, spent in one word count. The training ground read it before you did.',
+  'story.press.hitJobNews': '{journalist} has published the piece he has been writing for years: a full-page case against {player}. Whatever it is between those two, it is not journalism any more.',
+  'story.press.exclusive': '{journalist} wants an hour on the record. No cameras, his questions, your answers - and his edit. An hour with a byline is a gamble about which sentence survives.',
+  'story.press.exclusive.sitDown': 'Give him the hour',
+  'story.press.exclusive.decline': 'Politely decline',
+  'story.press.exclusive.sitDown.fair': 'He wrote it straight. Better than straight - he heard the answer under your answers, and printed that one. The piece moved something for you, and the hour bought years.',
+  'story.press.exclusive.sitDown.twisted': 'One sentence, mid-interview, about the dressing room - and it became the headline, upside down. The piece was fair. The headline was not, and headlines are what gets read.',
+  'story.press.exclusive.decline.outcome': 'You declined, politely, and he noted it politely, in the notebook where he notes everything. There is no feud. There is a ledger.',
 };

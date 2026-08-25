@@ -861,6 +861,14 @@ export interface StoryState {
   legend?: { name: string; group: string; retireSeason: number; settled?: boolean };
   /** The stands have a song with his name in it. That only happens once. */
   chant?: boolean;
+  /** The one reporter whose byline follows this career, and how he currently sees it. */
+  journalist?: {
+    name: string;
+    /** -100 is a running vendetta, 100 is a career-long advocate. */
+    stance: number;
+    /** The season he first put this player's name in a headline. */
+    since: number;
+  };
   /** A big move as a month of weather rather than one letter: the saga's state. */
   saga?: {
     /** The admirer the papers have him linked with. */
