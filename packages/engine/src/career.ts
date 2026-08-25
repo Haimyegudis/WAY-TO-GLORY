@@ -1056,6 +1056,40 @@ function focusForCampWeakness(skill: ReturnType<typeof skillProfile>[number]['ke
 }
 
 /**
+ * The staff's periodic word about his game.
+ *
+ * A player heard from the press every month and from his coaches twice a year, which is
+ * backwards: the people who watch him train every day are the ones with something
+ * useful to say. Every couple of months in season, the coach names the strongest part
+ * of his game, the part that is holding him back, and the focus that would fix it -
+ * with the button to switch to it in the same letter.
+ */
+function raiseCoachReview(state: CareerState): void {
+  const week = state.world.week;
+  if (week < FIRST_MATCH_WEEK || week > LAST_MATCH_WEEK) return;
+  const absolute = state.world.season * 52 + week;
+  const last = Number(state.flags['coachReviewWeek'] ?? 0);
+  if (absolute - last < 8) return;
+  state.flags['coachReviewWeek'] = absolute;
+
+  updateCampAssessment(state);
+  const season = state.world.season;
+  const weakness = String(state.flags[`campWeakness:${season}`] ?? '');
+  const strength = String(state.flags[`campStrength:${season}`] ?? '');
+  if (!weakness) return;
+  const focus = String(
+    state.flags[`campRecommendedFocus:${season}`] ?? 'balanced',
+  ) as TrainingPlan['focus'];
+  // A coach does not tell a man to keep doing what he is already doing.
+  if (state.training.focus === focus) return;
+  pushInbox(state, 'manager', 'inbox.coachReview', {
+    strength: `skill.${strength}`,
+    weakness: `skill.${weakness}`,
+    focus: `train.focus.${focus}`,
+  }, undefined, { type: 'setTrainingFocus', focus });
+}
+
+/**
  * We only model the squads that matter: the user's club in full, plus the named
  * stars of every club in the user's league so the scoring charts stay believable.
  */
@@ -1695,6 +1729,19 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   if (!club && !state.retired) {
     const absolute = season * 52 + week;
     if (clublessSince === 0) state.flags['clublessSince'] = absolute;
+    /*
+     * The letter before the contract. The week the clubs ring, he is told that they
+     * rang; the sheet with the actual terms opens the week after. The other order -
+     * being handed a contract and only then reading that somebody wants you - is how
+     * it used to happen, and it read like the postman was running behind the lawyer.
+     */
+    if (
+      state.transferOffers.length > 0
+      && !state.pendingDecisions.some((decision) => decision.kind === 'transfer')
+      && absolute >= Number(state.flags['freeAgentTermsWeek'] ?? 0)
+    ) {
+      openOfferDecision(state, state.transferOffers);
+    }
     const lastCall = Number(state.flags['freeAgentCall'] ?? 0);
     // An agent sent out to find him a club reports back in a fortnight, not a month.
     const callGap = hunting ? 2 : 4;
@@ -1709,7 +1756,8 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
         state.flags['agentHunting'] = 0;
         state.flags['agentAbroad'] = 0;
         state.transferOffers = offers;
-        openOfferDecision(state, offers);
+        // News first, terms next week: the decision sheet is opened by the block above.
+        state.flags['freeAgentTermsWeek'] = absolute + 1;
         pushInbox(state, 'club', 'inbox.freeAgentInterest', {
           club: state.world.clubs[offers[0]!.clubId]?.name ?? '',
           count: offers.length,
@@ -1757,6 +1805,10 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // dressing room - belongs to a shirt the player does not currently have.
   if (club) raiseMentorPrompt(state, rng);
 
+  // 7a3. The coaching staff, on what to actually work on. Professional, periodic,
+  // and only for a man who has coaches.
+  if (club) raiseCoachReview(state);
+
   // 7b. The people who have something to say about a bad month, one at a time.
   reactToBadRun(state, index);
 
@@ -1786,7 +1838,17 @@ export function advanceWeek(state: CareerState, index: PackIndex): TickResult {
   // somebody gives him one, the only people in his life are his agent and the market.
   if (club && !storyPending && colourPending < 2 && rng.chance(0.36)) {
     const ctx = buildEventContext(state, index);
-    const def = pickEvent(rng, index.pack.events.filter((event) => !FIXTURE_BOUND_EVENTS.has(event.id)), ctx, state);
+    // The press gets fewer of these weeks than everybody else. Most of a footballer's
+    // life is training grounds and dressing rooms, not interview requests.
+    const skipMedia = !rng.chance(0.4);
+    const def = pickEvent(
+      rng,
+      index.pack.events.filter(
+        (event) => !FIXTURE_BOUND_EVENTS.has(event.id) && !(skipMedia && event.category === 'media'),
+      ),
+      ctx,
+      state,
+    );
     if (def) {
       const story = isStoryEvent(def);
       // Past the ceiling, the week's question is one he reads rather than one he is
@@ -1975,8 +2037,9 @@ function buildEventContext(state: CareerState, index: PackIndex): EventContext {
  * a chore rather than a moment. What he says moves real numbers, and if he makes a claim
  * he then has to go and back it up on the pitch.
  */
-/** How long the press leaves him alone between questions. */
-const MEDIA_COOLDOWN_WEEKS = 4;
+/** How long the press leaves him alone between questions. A microphone once a month
+ * was still a career narrated by journalists; his week belongs to the coaches. */
+const MEDIA_COOLDOWN_WEEKS = 7;
 
 /** The things he is asked about whatever else the week held. */
 const MUST_ANSWER = new Set<MilestoneId>(['sentOff', 'badRun', 'goalDrought', 'dropped', 'transferRumour']);

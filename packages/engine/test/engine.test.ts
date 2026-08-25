@@ -3659,6 +3659,12 @@ describe('nobody rings a first-team player about a step down', () => {
           const best = [...state.transferOffers].sort((a, b) => b.interestLevel - a.interestLevel)[0];
           answerOffer(state, index, pending.id, best?.id ?? null);
         }
+        // A free agent's terms sheet opens the week after the letter; this loop wipes
+        // the offers before that week comes, so he signs the letter's best name here.
+        if (!state.player.clubId && state.transferOffers.length > 0) {
+          const best = [...state.transferOffers].sort((a, b) => b.interestLevel - a.interestLevel)[0]!;
+          acceptOffer(state, index, best.id);
+        }
         const club = state.player.clubId ? state.world.clubs[state.player.clubId] : undefined;
         const comp = club ? compById.get(club.competitionId) : undefined;
         // A club that has told him he can leave is allowed to be the last one calling.
@@ -4464,6 +4470,29 @@ describe('a player with no club', () => {
     expect(heard).toBe(true);
   });
 
+  it('is told the clubs want him before the contract sheet is opened', () => {
+    const { state, index } = releasedTwentyYearOld(600);
+    for (let week = 0; week < 8; week++) {
+      playWeek(state, index);
+      const announced = state.inbox.some((message) => message.titleKey === 'inbox.freeAgentInterest');
+      const sheetOpen = state.pendingDecisions.some((decision) => decision.kind === 'transfer');
+      if (announced && state.transferOffers.length > 0 && !sheetOpen) {
+        // The letter arrived this week; the terms must follow next week.
+        playWeek(state, index);
+        expect(
+          state.pendingDecisions.some((decision) => decision.kind === 'transfer'),
+          'the interest was announced but the terms never arrived',
+        ).toBe(true);
+        return;
+      }
+      if (sheetOpen) {
+        expect(announced, 'a contract sheet opened before anybody said they wanted him').toBe(true);
+        return;
+      }
+    }
+    expect.fail('no free-agent interest arrived at all');
+  });
+
   it('hears nothing from coaches, mentors or the press while he has no club', () => {
     const { state, index } = releasedTwentyYearOld(556);
     chooseMentor(state, MENTORS[0]!.id);
@@ -4484,5 +4513,22 @@ describe('a player with no club', () => {
         `a man with no club was written to: ${message.category} / ${message.titleKey}`,
       ).toBe(false);
     }
+  });
+});
+
+describe('the coaching staff', () => {
+  it('periodically tells him what to work on, with the focus switch attached', () => {
+    const { state, index } = startedCareer({ seed: 611 });
+    let review: (typeof state.inbox)[number] | undefined;
+    for (let week = 0; week < 24 && !review; week++) {
+      playWeek(state, index);
+      state.pendingDecisions = [];
+      review = state.inbox.find((message) => message.titleKey === 'inbox.coachReview');
+    }
+    expect(review, 'a season passed without one professional word from the coaches').toBeDefined();
+    expect(review!.category).toBe('manager');
+    expect(review!.action?.type).toBe('setTrainingFocus');
+    expect(review!.args?.weakness).toMatch(/^skill\./);
+    expect(review!.args?.focus).toMatch(/^train\.focus\./);
   });
 });

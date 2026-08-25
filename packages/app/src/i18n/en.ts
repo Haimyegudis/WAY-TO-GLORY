@@ -580,6 +580,7 @@ export const en: Record<string, string> = {
   'inbox.contractExtended': '{club} have extended your contract.',
   'inbox.freeAgentInterest': 'You are out of contract and {count} clubs are interested. {club} called first.',
   'inbox.agentStillLooking': 'Your agent: no club yet. I am widening the search to lower leagues - we will find you a home.',
+  'inbox.coachReview': 'A word from the coach: "Your {strength} is your weapon. What holds you back right now is {weakness} - that is what I want to see improve. Switch your training focus to {focus} and you will see the difference."',
   'inbox.released': '{club} have released you.',
   'inbox.loanEnded': 'Your loan is over. Back to {club}.',
   'inbox.calledUp': 'You are in the {country} squad for the {level} window next week.',
