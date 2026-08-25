@@ -2846,4 +2846,15 @@ export const en: Record<string, string> = {
   'story.promise.missed.pragmatist': '{goals} goals, {target} asked. He shrugged: “Numbers settle arguments.” The argument is settled, for now, against you.',
   'story.promise.missed.gambler': '{goals} against the {target} he bet on. He took it quietly, with the look of a man already planning the next wager - with somebody else.',
   'story.promise.void': 'The promise about the shirt left the building with {manager}. Whatever was agreed in that corridor, the new man never heard it.',
+
+  /* ------------------------------------------------------------- grudges */
+  'story.grudge.foul.born': 'The scan gave the injury a number of weeks. The replay gave it a name: {name}, of {club}, studs up and not even a card. You will remember him longer than the leg will.',
+  'story.grudge.foul.faced': '{name} was on their team sheet today. The tackle is years old for everyone else. Your knee counted the minutes he was on the pitch.',
+  'story.grudge.foul.settled': 'You looked for {name} at the final whistle. He looked away first. Whatever the scoreboard says, that account is closed now.',
+  'story.grudge.rejectedYouth.faced': 'You played against {name} today - the club whose letter said you were not what they were looking for. You kept the letter. They will never know how much of you it built.',
+  'story.grudge.rejectedYouth.settled': 'Against {name}, of all clubs. Fifteen-year-old you, the one who read their letter twice and put it in a drawer, was on the pitch tonight too. He is even now.',
+  'story.grudge.rejectedYouth.calls': '{name} rang your agent today. The same club, a different letter. You were not what they were looking for, once. Take a moment before anyone answers.',
+  'story.grudge.manager.born': 'You cleaned out the locker knowing {name} never rated you. No argument, no scene. Just a name you are taking with you.',
+  'story.grudge.manager.faced': 'On the far touchline today: {name}. The man who let you go. Ninety minutes was not enough to say what you wanted said.',
+  'story.grudge.manager.settled': '{name} shook your hand in the tunnel and said well played. He let you go once. Today the scoreboard did your talking, and it was fluent.',
 };

@@ -582,6 +582,111 @@ function clutchWeek(input: StoryWeekInput): void {
   }, hooks, 'club');
 }
 
+
+/* ---------------------------------------------------------------- grudges */
+
+/**
+ * What he has not forgiven. Three shapes of it: the man whose tackle cost him months,
+ * the big club whose letter said "not for us" when he was fifteen, and the manager who
+ * let him go. None of them do anything for years at a time - that is what a grudge is -
+ * and then a fixture list puts one of them in front of him.
+ */
+function grudges(state: CareerState): NonNullable<StoryState['grudges']> {
+  const s = story(state);
+  if (!s.grudges) s.grudges = [];
+  return s.grudges;
+}
+
+/** The rejection letter. Written once, at the start, and kept for good. */
+function seedRejection(state: CareerState, rng: Rng): void {
+  const s = story(state);
+  if (s.grudges) return;
+  const list = grudges(state);
+  const age = state.world.season - state.player.birthYear;
+  // Only a young career gets a backstory; a loaded veteran save is not handed one.
+  if (age > 21) return;
+  const candidates = Object.values(state.world.clubs)
+    .filter((c) => c.country === state.player.birthCountry && c.id !== state.player.clubId && c.tier === 1)
+    .sort((a, b) => (b.prestige ?? 0) - (a.prestige ?? 0))
+    .slice(0, 4);
+  if (candidates.length === 0) return;
+  const club = rng.pick(candidates);
+  list.push({ kind: 'rejectedYouth', name: club.name, clubId: club.id, season: state.world.season });
+}
+
+function grudgeWeek(input: StoryWeekInput): void {
+  const { state, rng, userMatch, hooks } = input;
+  seedRejection(state, rng);
+  const list = grudges(state);
+
+  // A new leg to remember. A fresh long injury out of a match gets a name attached:
+  // the man on the other side who put it there.
+  const worst = state.player.condition.injuries.find((injury) => injury.weeksRemaining >= 5);
+  if (worst && userMatch?.userLine?.played && !state.flags[`storyFoulNamed:${worst.id}`]) {
+    state.flags[`storyFoulNamed:${worst.id}`] = 1;
+    const otherClubId = userMatch.homeClubId === state.player.clubId ? userMatch.awayClubId : userMatch.homeClubId;
+    const culprits = (state.world.squads[otherClubId] ?? [])
+      .map((id) => state.world.players[id])
+      .filter((p): p is Player => Boolean(p && !p.retired && positionGroup(p.primaryPos) === 'DEF'));
+    const culprit = culprits.length > 0 ? rng.pick(culprits) : undefined;
+    if (culprit && !list.some((g) => g.kind === 'foul' && !g.settled)) {
+      list.push({ kind: 'foul', name: fullName(culprit), playerId: culprit.id, season: state.world.season });
+      hooks.pushInbox(state, 'personal', 'story.grudge.foul.born', {
+        name: fullName(culprit),
+        club: state.world.clubs[otherClubId]?.name ?? '',
+      });
+    }
+  }
+
+  // A fixture against somebody he remembers. Winning, or scoring, settles the account;
+  // losing to them again is its own letter, but not every time - a grudge is patient.
+  if (userMatch?.userLine?.played) {
+    const otherClubId = userMatch.homeClubId === state.player.clubId ? userMatch.awayClubId : userMatch.homeClubId;
+    const myGoals = userMatch.homeClubId === state.player.clubId ? userMatch.homeGoals : userMatch.awayGoals;
+    const theirGoals = userMatch.homeClubId === state.player.clubId ? userMatch.awayGoals : userMatch.homeGoals;
+    const won = myGoals > theirGoals;
+    const scored = (userMatch.userLine.goals ?? 0) > 0;
+    for (const grudge of list) {
+      if (grudge.settled) continue;
+      const address = grudge.kind === 'foul'
+        ? (grudge.playerId ? state.world.players[grudge.playerId]?.clubId ?? undefined : undefined)
+        : grudge.clubId;
+      if (!address || address !== otherClubId) continue;
+      const cooldownKey = `storyGrudgeFaced:${grudge.kind}`;
+      if (won || scored) {
+        grudge.settled = true;
+        state.player.morale = clamp(state.player.morale + 6, 0, 100);
+        hooks.pushInbox(state, 'personal', `story.grudge.${grudge.kind}.settled`, {
+          name: grudge.name,
+          goals: userMatch.userLine.goals ?? 0,
+        });
+      } else if (absoluteWeek(state) - Number(state.flags[cooldownKey] ?? -99) >= 20) {
+        state.flags[cooldownKey] = absoluteWeek(state);
+        hooks.pushInbox(state, 'personal', `story.grudge.${grudge.kind}.faced`, { name: grudge.name });
+      }
+    }
+  }
+
+  // The club that said no at fifteen, ringing the agent now. Read once and remembered.
+  const rejection = list.find((g) => g.kind === 'rejectedYouth' && !g.settled);
+  if (rejection && !state.flags['storyRejectionCalled']
+    && state.transferOffers.some((offer) => offer.clubId === rejection.clubId)) {
+    state.flags['storyRejectionCalled'] = 1;
+    hooks.pushInbox(state, 'personal', 'story.grudge.rejectedYouth.calls', { name: rejection.name });
+  }
+}
+
+/** The week a club is left: if the man in charge had stopped fancying him, that is kept. */
+function grudgeOnMove(state: CareerState, hooks: StoryHooks): void {
+  const s = story(state);
+  if (!s.lastManagerName || (s.lastManagerTrust ?? 50) >= 35 || !s.clubId) return;
+  const list = grudges(state);
+  if (list.some((g) => g.kind === 'manager' && g.name === s.lastManagerName)) return;
+  list.push({ kind: 'manager', name: s.lastManagerName, clubId: s.clubId, season: state.world.season });
+  if (list.length > 5) list.shift();
+  hooks.pushInbox(state, 'personal', 'story.grudge.manager.born', { name: s.lastManagerName });
+}
+
 /* ------------------------------------------------------------------ hooks */
 
 /** One week of everybody's life around him. Called with a club or without one. */
@@ -592,6 +697,9 @@ export function runStoryWeek(input: StoryWeekInput): void {
   // Notice a move the week it happened, before anybody reacts to it.
   const movedThisWeek = s.clubId !== undefined && s.clubId !== state.player.clubId;
   const leftClub = movedThisWeek && s.clubId ? state.world.clubs[s.clubId] : undefined;
+  // The grudge against the man who let him go is written while the old address and
+  // last week's manager are still in memory, before the pointers move.
+  if (movedThisWeek) grudgeOnMove(state, input.hooks);
   if (s.clubId === undefined || movedThisWeek) {
     if (movedThisWeek && state.player.clubId) s.joinedSeason = state.world.season;
     if (s.clubId === undefined) s.joinedSeason = s.joinedSeason ?? state.world.season;
@@ -600,6 +708,7 @@ export function runStoryWeek(input: StoryWeekInput): void {
 
   ensureLegend(state, input.index);
   injuryWeek(input);
+  grudgeWeek(input);
 
   // A man with no club keeps his family and his friends - they are exactly who he
   // has - but the manager, the fans and the paper's comparisons belong to a shirt.
@@ -611,6 +720,11 @@ export function runStoryWeek(input: StoryWeekInput): void {
     fansWeek(input, movedThisWeek, leftClub);
     clutchWeek(input);
   }
+
+  // Remember who was in charge this week, so the week this player walks out the door
+  // the name of the man who let him go is still known.
+  s.lastManagerName = state.manager?.name;
+  s.lastManagerTrust = state.managerTrust;
 }
 
 /** The summer: seasons are compared, kings retire, heat settles. */

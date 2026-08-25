@@ -861,6 +861,20 @@ export interface StoryState {
   legend?: { name: string; group: string; retireSeason: number; settled?: boolean };
   /** The stands have a song with his name in it. That only happens once. */
   chant?: boolean;
+  /** What he has not forgiven: a leg, a rejection letter, a man who let him go. */
+  grudges?: {
+    kind: 'foul' | 'rejectedYouth' | 'manager';
+    /** The name on the grudge: a player, a club, a manager. */
+    name: string;
+    /** Where to find them on a fixture list. For a foul, the player moves with it. */
+    clubId?: string;
+    playerId?: string;
+    season: number;
+    settled?: boolean;
+  }[];
+  /** Last week's manager, so the week he is left behind his name is still known. */
+  lastManagerName?: string;
+  lastManagerTrust?: number;
   /** The club he was at last week, so a move is noticed the week it happens. */
   clubId?: string | null;
   /** The season he joined the club he is at, for how long a goodbye has been. */
