@@ -583,6 +583,52 @@ function clutchWeek(input: StoryWeekInput): void {
 }
 
 
+
+/* ------------------------------------------------------------------ derby */
+
+/**
+ * The afternoon the city is divided. The build-up machinery already knows a derby when
+ * it sees one; this is the morning after, where a derby is actually decided to have
+ * mattered: a goal in one is worth three ordinary goals in the stands' arithmetic, a
+ * win colours a month, and a defeat follows him to the supermarket.
+ */
+function derbyWeek(input: StoryWeekInput): void {
+  const { state, userMatch, hooks } = input;
+  const line = userMatch?.userLine;
+  if (!userMatch || !line?.played) return;
+  const kind = userMatch.importance;
+  if (kind !== 'derby' && kind !== 'rival') return;
+  const opponentId = userMatch.homeClubId === state.player.clubId ? userMatch.awayClubId : userMatch.homeClubId;
+  const opponent = state.world.clubs[opponentId]?.name ?? '';
+  const mine = userMatch.homeClubId === state.player.clubId ? userMatch.homeGoals : userMatch.awayGoals;
+  const theirs = userMatch.homeClubId === state.player.clubId ? userMatch.awayGoals : userMatch.homeGoals;
+  const derby = kind === 'derby';
+
+  // A goal in this fixture is remembered at three times face value.
+  if (line.goals > 0) {
+    const worth = (derby ? 6 : 4) * line.goals;
+    state.relationships.fans = clamp(state.relationships.fans + worth, 0, 100);
+    state.player.fame = clamp(state.player.fame + (derby ? 3 : 2), 0, 100);
+    if (derby) {
+      hooks.pushNews(state, 'story.derby.scoredNews', {
+        player: fullName(state.player), opponent,
+      }, 'high');
+    }
+  }
+
+  if (mine > theirs) {
+    state.relationships.fans = clamp(state.relationships.fans + (derby ? 5 : 3), 0, 100);
+    state.player.morale = clamp(state.player.morale + (derby ? 6 : 4), 0, 100);
+    hooks.pushInbox(state, 'club', derby ? 'story.derby.won' : 'story.rivalry.won', { opponent });
+  } else if (mine < theirs) {
+    state.relationships.fans = clamp(state.relationships.fans - (derby ? 5 : 3), 0, 100);
+    state.player.morale = clamp(state.player.morale - (derby ? 5 : 3), 0, 100);
+    hooks.pushInbox(state, 'club', derby ? 'story.derby.lost' : 'story.rivalry.lost', { opponent });
+  } else if (derby) {
+    hooks.pushInbox(state, 'club', 'story.derby.draw', { opponent });
+  }
+}
+
 /* ---------------------------------------------------------------- grudges */
 
 /**
@@ -717,6 +763,7 @@ export function runStoryWeek(input: StoryWeekInput): void {
   if (club) {
     rivalWeek(input);
     promiseWeek(input);
+    derbyWeek(input);
     fansWeek(input, movedThisWeek, leftClub);
     clutchWeek(input);
   }

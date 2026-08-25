@@ -2857,4 +2857,12 @@ export const en: Record<string, string> = {
   'story.grudge.manager.born': 'You cleaned out the locker knowing {name} never rated you. No argument, no scene. Just a name you are taking with you.',
   'story.grudge.manager.faced': 'On the far touchline today: {name}. The man who let you go. Ninety minutes was not enough to say what you wanted said.',
   'story.grudge.manager.settled': '{name} shook your hand in the tunnel and said well played. He let you go once. Today the scoreboard did your talking, and it was fluent.',
+
+  /* --------------------------------------------------------------- derby */
+  'story.derby.won': 'The city is yours until the next one. Against {opponent}, that is the only trophy that changes hands every few months, and today it changed into your half of town.',
+  'story.derby.lost': 'Lost to {opponent}. The other half of the city owns the week: the office, the school gate, the supermarket queue. There is nothing to say until the return fixture, and everybody knows the date.',
+  'story.derby.draw': 'A draw with {opponent}. Both halves of the city claim it and neither believes themselves. The next one just got heavier.',
+  'story.derby.scoredNews': 'A derby goal is never just a goal: {player} scored against {opponent}, and half a city will name the minute for years.',
+  'story.rivalry.won': 'Beating {opponent} is never three points. The history between these clubs turned the dressing room into a carnival, and the fans went home taller.',
+  'story.rivalry.lost': 'Losing to {opponent}, of all clubs. The history made it heavier than the table says, and the stands let the team hear it.',
 };
