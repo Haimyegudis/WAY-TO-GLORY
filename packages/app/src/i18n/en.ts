@@ -2865,4 +2865,20 @@ export const en: Record<string, string> = {
   'story.derby.scoredNews': 'A derby goal is never just a goal: {player} scored against {opponent}, and half a city will name the minute for years.',
   'story.rivalry.won': 'Beating {opponent} is never three points. The history between these clubs turned the dressing room into a carnival, and the fans went home taller.',
   'story.rivalry.lost': 'Losing to {opponent}, of all clubs. The history made it heavier than the table says, and the stands let the team hear it.',
+
+  /* ------------------------------------------------------------- the room */
+  'story.room.toxic': '{name} has turned sour. Training-ground sarcasm, contract talk at dinner, eyes rolled behind the manager’s back - and the room is starting to rot around him. Somebody senior should say something. Nobody senior has.',
+  'story.room.toxic.confront': 'Say it to his face',
+  'story.room.toxic.stayOut': 'Stay out of it',
+  'story.room.toxic.confront.backedDown': 'You said it in front of everyone, and the room went silent for exactly as long as it took him to look at the floor. It is your dressing room now, whatever the armband says.',
+  'story.room.toxic.confront.backfired': 'He laughed, two others laughed with him, and you stood there holding the silence. The room noted who won. So did you.',
+  'story.room.toxic.stayOut.outcome': 'You kept your head down and did your work. It is a defensible choice, and the room defended nobody this week either.',
+  'story.room.toxic.left': '{name} cleared his locker today. Nobody organised a farewell dinner. The air in the building changed by Thursday.',
+  'story.room.crisis': 'The results have done what results do: the group has stopped listening to {captain}. Voices talk over him at half-time, and the meeting after training happened without him. Where do you stand?',
+  'story.room.crisis.backHim': 'Back the captain, out loud',
+  'story.room.crisis.silent': 'Keep your head down',
+  'story.room.crisis.backHim.outcome': 'You said your piece with the whole room listening: the armband gets followed here, or nothing does. Some of them looked at their boots. All of them heard it.',
+  'story.room.crisis.silent.outcome': 'You said nothing, like most of the room. The captain noticed who said nothing. Captains always do.',
+  'story.room.good': 'The dressing room is right. You can tell because nobody says so: the music is louder, the dinners are longer, and the pressing starts two metres higher.',
+  'story.room.bad': 'The dressing room has gone quiet in the wrong way. Cliques at separate tables, showers straight after training, nobody staying for the extra serve. Rooms like this lose points before kick-off.',
 };

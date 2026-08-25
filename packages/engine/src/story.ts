@@ -584,6 +584,159 @@ function clutchWeek(input: StoryWeekInput): void {
 
 
 
+
+/* ---------------------------------------------------------------- the room */
+
+/**
+ * The dressing room as a weather system. Results move it, one sour man can poison it,
+ * and a captain can lose it. It pays out through the player himself: a good room
+ * carries him through a bad month, a bad one taxes every Monday - and when it turns,
+ * he is asked where he stands, because staying out of it is also a place to stand.
+ */
+function roomWeek(input: StoryWeekInput): void {
+  const { state, rng, club, userMatch, hooks } = input;
+  if (!club) return;
+  const s = story(state);
+  if (!s.room) s.room = { mood: 55 };
+  const room = s.room;
+
+  // Results are the weather. Everything else is climate.
+  if (userMatch && !userMatch.competitionId.startsWith('friendly')) {
+    const mine = userMatch.homeClubId === club.id ? userMatch.homeGoals : userMatch.awayGoals;
+    const theirs = userMatch.homeClubId === club.id ? userMatch.awayGoals : userMatch.homeGoals;
+    room.mood = clamp(room.mood + (mine > theirs ? 2 : mine < theirs ? (theirs - mine >= 3 ? -5 : -3) : 0), 0, 100);
+  }
+  // And the climate drifts back toward ordinary.
+  room.mood = clamp(room.mood + (room.mood < 55 ? 0.5 : -0.3), 0, 100);
+
+  // The sour man. While he is in the building, the building knows.
+  if (room.toxicId) {
+    const toxic = state.world.players[room.toxicId];
+    if (!toxic || toxic.retired || toxic.clubId !== club.id) {
+      hooks.pushInbox(state, 'club', 'story.room.toxic.left', { name: room.toxicName ?? '' });
+      room.mood = clamp(room.mood + 8, 0, 100);
+      room.toxicId = undefined;
+      room.toxicName = undefined;
+    } else {
+      room.mood = clamp(room.mood - 0.8, 0, 100);
+      if (state.flags['storyToxicConfronted']) {
+        state.flags['storyToxicConfronted'] = 0;
+        // The confrontation, resolved by the gamble the player took last week.
+        if (state.flags['storyToxicWon']) {
+          state.flags['storyToxicWon'] = 0;
+          room.toxicId = undefined;
+          room.toxicName = undefined;
+          room.mood = clamp(room.mood + 12, 0, 100);
+        }
+      }
+    }
+  } else if (rng.chance(0.008) && inSeason(state)) {
+    const squad = (state.world.squads[club.id] ?? [])
+      .map((id) => state.world.players[id])
+      .filter((p): p is Player => Boolean(p && !p.isUser && !p.retired))
+      .filter((p) => !(s.friends ?? []).some((f) => f.id === p.id));
+    const sour = squad.sort((a, b) => ratingAt(b.attributes, b.primaryPos) - ratingAt(a.attributes, a.primaryPos))[0];
+    if (sour) {
+      room.toxicId = sour.id;
+      room.toxicName = fullName(sour);
+      openStoryDecision(state, 'toxic', {
+        category: 'club',
+        textKey: 'story.room.toxic',
+        textArgs: { name: fullName(sour) },
+        options: [
+          {
+            id: 'confront',
+            labelKey: 'story.room.toxic.confront',
+            riskKey: 'risk.high',
+            effects: [{ kind: 'custom', key: 'storyToxicConfronted', value: 1 }],
+            outcomes: [
+              {
+                key: 'backedDown',
+                weight: 55,
+                swayedBy: 'reputation',
+                sway: 0.6,
+                effects: [
+                  { kind: 'custom', key: 'storyToxicWon', value: 1 },
+                  { kind: 'relationship', key: 'teammates', value: 8 },
+                  { kind: 'morale', value: 6 },
+                  { kind: 'attribute', key: 'leadership', value: 1 },
+                ],
+              },
+              {
+                key: 'backfired',
+                weight: 45,
+                effects: [
+                  { kind: 'relationship', key: 'teammates', value: -5 },
+                  { kind: 'morale', value: -5 },
+                ],
+              },
+            ],
+          },
+          {
+            id: 'stayOut',
+            labelKey: 'story.room.toxic.stayOut',
+            effects: [{ kind: 'personality', key: 'professionalism', value: 1 }],
+          },
+        ],
+        blocking: false,
+        expiresWeek: absoluteWeek(state) + 3,
+      }, hooks, 'club');
+    }
+  }
+
+  // The captain losing the room. Asked about once a season, and only when it is true.
+  if (room.mood <= 32 && room.crisisSeason !== state.world.season && inSeason(state)) {
+    room.crisisSeason = state.world.season;
+    const squad = (state.world.squads[club.id] ?? [])
+      .map((id) => state.world.players[id])
+      .filter((p): p is Player => Boolean(p && !p.isUser && !p.retired));
+    const captain = squad.sort((a, b) =>
+      ((state.world.season - a.birthYear) + a.reputation / 10) < ((state.world.season - b.birthYear) + b.reputation / 10) ? 1 : -1)[0];
+    if (captain) {
+      openStoryDecision(state, 'captainCrisis', {
+        category: 'club',
+        textKey: 'story.room.crisis',
+        textArgs: { captain: fullName(captain) },
+        options: [
+          {
+            id: 'backHim',
+            labelKey: 'story.room.crisis.backHim',
+            effects: [
+              { kind: 'relationship', key: 'teammates', value: 5 },
+              { kind: 'attribute', key: 'leadership', value: 1 },
+              { kind: 'custom', key: 'storyRoomLift', value: 1 },
+            ],
+          },
+          {
+            id: 'silent',
+            labelKey: 'story.room.crisis.silent',
+            effects: [{ kind: 'morale', value: -2 }],
+          },
+        ],
+        blocking: false,
+        expiresWeek: absoluteWeek(state) + 2,
+      }, hooks, 'club');
+    }
+  }
+  if (state.flags['storyRoomLift']) {
+    state.flags['storyRoomLift'] = 0;
+    room.mood = clamp(room.mood + 9, 0, 100);
+  }
+
+  // The room pays out through him. Quietly, occasionally, in both directions - a
+  // climate, not a salary. Weekly payments compounded into inflation once.
+  if (state.world.week % 4 === 0) {
+    if (room.mood >= 78) state.player.morale = clamp(state.player.morale + 1, 0, 100);
+    if (room.mood <= 25) state.player.morale = clamp(state.player.morale - 1, 0, 100);
+  }
+
+  // Twice a season or so, the room is worth a letter of its own.
+  if (rng.chance(0.03) && inSeason(state)) {
+    if (room.mood >= 70) hooks.pushInbox(state, 'club', 'story.room.good', {});
+    else if (room.mood <= 32 && !room.toxicId) hooks.pushInbox(state, 'club', 'story.room.bad', {});
+  }
+}
+
 /* ------------------------------------------------------------------ derby */
 
 /**
@@ -764,6 +917,7 @@ export function runStoryWeek(input: StoryWeekInput): void {
     rivalWeek(input);
     promiseWeek(input);
     derbyWeek(input);
+    roomWeek(input);
     fansWeek(input, movedThisWeek, leftClub);
     clutchWeek(input);
   }

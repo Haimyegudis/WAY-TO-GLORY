@@ -861,6 +861,16 @@ export interface StoryState {
   legend?: { name: string; group: string; retireSeason: number; settled?: boolean };
   /** The stands have a song with his name in it. That only happens once. */
   chant?: boolean;
+  /** The dressing room as a weather system: its mood, and who is poisoning it. */
+  room?: {
+    /** 0 is a room nobody wants to walk into, 100 is a title-winning bus. */
+    mood: number;
+    /** The man souring it, while he is here. */
+    toxicId?: string;
+    toxicName?: string;
+    /** The season the captain's crisis was last asked about, so it is asked once. */
+    crisisSeason?: number;
+  };
   /** What he has not forgiven: a leg, a rejection letter, a man who let him go. */
   grudges?: {
     kind: 'foul' | 'rejectedYouth' | 'manager';
